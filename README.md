@@ -16,11 +16,16 @@ algo_trading_lab/
 │   ├── bot.py          # Ana loop ve risk yönetimi
 │   ├── exchange.py     # ccxt wrapper + paper-exchange mock
 │   ├── state.py        # JSON tabanlı state/signals/equity saklama
-│   └── strategy.py     # EMA/RSI stratejisi ve pozisyon boyutu hesapları
+│   ├── strategy.py     # EMA/RSI stratejisi ve pozisyon boyutu hesapları
+│   ├── backtesting.py  # Backtest motoru
+│   └── trading.py      # Gerçek işlem yöneticisi
 ├── api/
 │   ├── api.py          # FastAPI uygulaması
 │   └── schemas.py      # Pydantic response şemaları
 ├── data/               # State dosyaları (docker volume ile paylaşılır)
+├── test_binance_testnet.py  # Testnet bağlantı testi
+├── run_backtest.py     # Backtest çalıştırma scripti
+├── run_live_trading.py # Canlı trading scripti
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
@@ -49,6 +54,70 @@ algo_trading_lab/
 Binance testnet bağlantınızı test etmek için:
 ```bash
 python test_binance_testnet.py
+```
+
+## 🎯 Strateji Testi ve Al-Sat Kararları
+
+### 1. Backtest (Geçmiş Veri Testi)
+Stratejinizi geçmiş verilerle test edin:
+
+```bash
+python run_backtest.py
+```
+
+Bu script ile:
+- Geçmiş verilerde stratejinizi test edebilirsiniz
+- Win rate, profit factor, max drawdown gibi metrikleri görebilirsiniz
+- Farklı parametrelerle deneme yapabilirsiniz
+- Sonuçları JSON dosyasına kaydedebilirsiniz
+
+**Örnek Çıktı:**
+```
+============================================================
+BACKTEST SONUÇLARI
+============================================================
+Başlangıç Bakiyesi: $10,000.00
+Bitiş Bakiyesi: $11,250.00
+Toplam P&L: $1,250.00 (12.50%)
+
+Toplam İşlem: 45
+Kazanan: 28 | Kaybeden: 17
+Win Rate: 62.22%
+Ortalama Kazanç: $120.50
+Ortalama Kayıp: $65.30
+Profit Factor: 1.85
+Max Drawdown: $450.00 (4.50%)
+Sharpe Ratio: 1.42
+============================================================
+```
+
+### 2. Canlı Trading (Testnet veya Gerçek)
+Stratejinizi canlı olarak çalıştırın:
+
+```bash
+python run_live_trading.py
+```
+
+**3 Mod Seçeneği:**
+1. **DRY RUN**: Sadece log tutar, gerçek emir göndermez (güvenli test)
+2. **TESTNET**: Binance testnet'te gerçek emir gönderir (test parası)
+3. **LIVE**: GERÇEK BORSADA işlem yapar (DİKKAT!)
+
+**Önerilen İş Akışı:**
+```
+1. Backtest ile stratejiyi test et
+   └─> Win rate > %55 ve Profit Factor > 1.5 ise devam et
+   
+2. DRY RUN modunda canlı veri ile test et (1-2 gün)
+   └─> Sinyaller mantıklı mı kontrol et
+   
+3. TESTNET modunda gerçek emirlerle test et (1 hafta)
+   └─> Emir gönderimi, stop loss, take profit çalışıyor mu?
+   
+4. Küçük sermaye ile LIVE teste geç
+   └─> Risk yönetimini doğrula
+   
+5. Tam sermaye ile production
 ```
 
 ### Ortam Değişkenleri
