@@ -1,0 +1,36 @@
+[
+  {
+    "title": "Trump announces tariff review",
+    "category": "politics",
+    "sentiment": "bearish",
+    "impact": "high",
+    "actor": "Donald Trump",
+    "summary": "Renewed tariff threats raise volatility across global risk assets.",
+    "assets": {
+      "BTC/USDT": -0.2,
+      "ETH/USDT": -0.15,
+      "XAU/USD": 0.12,
+      "*": -0.05
+    }
+  },
+  {
+    "title": "FOMC statement",
+    "category": "central_bank",
+    "sentiment": "dovish",
+    "impact": "medium",
+    "interest_rate_expectation": "Fed signals a cautious path with one cut pencilled in for Q4.",
+    "summary": "Policymakers note disinflation progress but keep data-dependence high."
+  },
+  {
+    "title": "Global PMI slowdown",
+    "category": "macro",
+    "sentiment": "bearish",
+    "impact": "medium",
+    "summary": "Manufacturing softness hints at weaker growth into year-end.",
+    "assets": {
+      "BTC/USDT": -0.08,
+      "ETH/USDT": -0.05,
+      "XAU/USD": 0.1
+    }
+  }
+]

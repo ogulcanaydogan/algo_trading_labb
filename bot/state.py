@@ -31,6 +31,21 @@ class BotState:
     ema_fast: Optional[float] = None
     ema_slow: Optional[float] = None
     risk_per_trade_pct: float = 0.5
+    ai_action: Optional[str] = None
+    ai_confidence: Optional[float] = None
+    ai_probability_long: Optional[float] = None
+    ai_probability_short: Optional[float] = None
+    ai_probability_flat: Optional[float] = None
+    ai_expected_move_pct: Optional[float] = None
+    ai_summary: Optional[str] = None
+    ai_features: Dict[str, float] = field(default_factory=dict)
+    macro_bias: Optional[float] = None
+    macro_confidence: Optional[float] = None
+    macro_summary: Optional[str] = None
+    macro_drivers: List[str] = field(default_factory=list)
+    macro_interest_rate_outlook: Optional[str] = None
+    macro_political_risk: Optional[str] = None
+    macro_events: List[Dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         payload = asdict(self)
@@ -55,6 +70,9 @@ class SignalEvent:
     decision: PositionType
     confidence: float
     reason: str
+    ai_action: Optional[str] = None
+    ai_confidence: Optional[float] = None
+    ai_expected_move_pct: Optional[float] = None
 
     def to_dict(self) -> Dict[str, Any]:
         payload = asdict(self)
