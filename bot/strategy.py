@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from typing import Dict, Literal
 
@@ -22,6 +23,25 @@ class StrategyConfig:
     risk_per_trade_pct: float = 0.5
     stop_loss_pct: float = 0.004
     take_profit_pct: float = 0.008
+
+    @classmethod
+    def from_env(cls) -> "StrategyConfig":
+        """Create a strategy config from environment variables."""
+
+        return cls(
+            symbol=os.getenv("SYMBOL", cls.symbol),
+            timeframe=os.getenv("TIMEFRAME", cls.timeframe),
+            ema_fast=int(os.getenv("EMA_FAST", str(cls.ema_fast))),
+            ema_slow=int(os.getenv("EMA_SLOW", str(cls.ema_slow))),
+            rsi_period=int(os.getenv("RSI_PERIOD", str(cls.rsi_period))),
+            rsi_overbought=float(os.getenv("RSI_OVERBOUGHT", str(cls.rsi_overbought))),
+            rsi_oversold=float(os.getenv("RSI_OVERSOLD", str(cls.rsi_oversold))),
+            risk_per_trade_pct=float(
+                os.getenv("RISK_PER_TRADE_PCT", str(cls.risk_per_trade_pct))
+            ),
+            stop_loss_pct=float(os.getenv("STOP_LOSS_PCT", str(cls.stop_loss_pct))),
+            take_profit_pct=float(os.getenv("TAKE_PROFIT_PCT", str(cls.take_profit_pct))),
+        )
 
 
 def compute_indicators(

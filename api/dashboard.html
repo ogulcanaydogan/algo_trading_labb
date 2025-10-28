@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Algo Trading Lab Dashboard</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+        background-color: #020617;
+        color: #f8fafc;
+      }
+      body {
+        margin: 0 auto;
+        padding: 2rem;
+        max-width: 1080px;
+        background: radial-gradient(circle at top, rgba(30, 64, 175, 0.35), transparent 55%),
+          radial-gradient(circle at bottom, rgba(14, 116, 144, 0.28), transparent 60%), #020617;
+      }
+      h1,
+      h2 {
+        font-weight: 600;
+        margin: 0 0 0.5rem 0;
+      }
+      p {
+        margin: 0;
+      }
+      .title-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.35rem 0.65rem;
+        border-radius: 999px;
+        background: rgba(56, 189, 248, 0.18);
+        color: #38bdf8;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        border: 1px solid rgba(56, 189, 248, 0.35);
+      }
+      .hidden {
+        display: none;
+      }
+      section {
+        margin-top: 2rem;
+        padding: 1.75rem;
+        border-radius: 16px;
+        background: rgba(15, 23, 42, 0.78);
+        box-shadow: 0 20px 45px rgba(2, 6, 23, 0.55);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        backdrop-filter: blur(14px);
+      }
+      .timestamp {
+        margin-top: 0.4rem;
+        font-size: 0.9rem;
+        color: #94a3b8;
+      }
+      .status-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+      }
+      .status-card {
+        padding: 1rem;
+        border-radius: 12px;
+        background: rgba(30, 41, 59, 0.85);
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        min-height: 110px;
+      }
+      .status-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #94a3b8;
+      }
+      .status-value {
+        font-size: 1.35rem;
+        font-weight: 600;
+        word-break: break-word;
+      }
+      .status-subtle {
+        font-size: 0.8rem;
+        color: #cbd5f5;
+      }
+      .strategy-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+      .strategy-card {
+        padding: 1rem;
+        border-radius: 12px;
+        background: rgba(30, 41, 59, 0.82);
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+      }
+      .strategy-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #94a3b8;
+      }
+      .strategy-value {
+        font-size: 1.2rem;
+        font-weight: 600;
+        word-break: break-word;
+      }
+      .ai-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+      }
+      .ai-card {
+        padding: 1rem;
+        border-radius: 12px;
+        background: rgba(24, 31, 50, 0.88);
+        border: 1px solid rgba(56, 189, 248, 0.22);
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+      }
+      .ai-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #7dd3fc;
+      }
+      .ai-value {
+        font-size: 1.35rem;
+        font-weight: 600;
+      }
+      .ai-summary {
+        margin-top: 0.75rem;
+        font-size: 0.95rem;
+        color: #bfdbfe;
+        line-height: 1.5;
+      }
+      .macro-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+      .macro-card {
+        padding: 1rem;
+        border-radius: 12px;
+        background: rgba(24, 24, 45, 0.9);
+        border: 1px solid rgba(96, 165, 250, 0.18);
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+      .macro-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #a5b4fc;
+      }
+      .macro-value {
+        font-size: 1.3rem;
+        font-weight: 600;
+      }
+      .macro-summary {
+        font-size: 0.95rem;
+        color: #cbd5f5;
+        line-height: 1.55;
+        margin: 0.5rem 0 1rem;
+      }
+      .macro-drivers {
+        margin: 0.4rem 0 1rem;
+        padding-left: 1.15rem;
+        display: grid;
+        gap: 0.3rem;
+        color: #e0e7ff;
+      }
+      .macro-events {
+        margin-top: 0.75rem;
+        border: 1px solid rgba(79, 70, 229, 0.2);
+        border-radius: 12px;
+        background: rgba(23, 31, 64, 0.85);
+        padding: 1rem;
+      }
+      .macro-events h3 {
+        margin: 0 0 0.75rem 0;
+        font-size: 1rem;
+      }
+      .macro-events ul {
+        margin: 0;
+        padding-left: 1.1rem;
+        display: grid;
+        gap: 0.35rem;
+      }
+      .macro-events li {
+        color: #e0f2fe;
+        font-size: 0.92rem;
+      }
+      .ai-probabilities {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 0.5rem;
+      }
+      .ai-probabilities div {
+        background: rgba(15, 23, 42, 0.9);
+        border-radius: 10px;
+        padding: 0.6rem 0.9rem;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+      }
+      .ai-probabilities span {
+        display: block;
+        font-size: 0.8rem;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .ai-probabilities strong {
+        display: block;
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: #f8fafc;
+      }
+      .question-box {
+        margin-top: 1.5rem;
+        padding: 1.2rem;
+        border-radius: 12px;
+        background: rgba(15, 23, 42, 0.82);
+        border: 1px solid rgba(56, 189, 248, 0.18);
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+      .question-box form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: center;
+      }
+      .question-box input[type="text"] {
+        flex: 1 1 240px;
+        padding: 0.75rem 1rem;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        background: rgba(15, 23, 42, 0.92);
+        color: inherit;
+      }
+      .question-box button {
+        padding: 0.75rem 1.4rem;
+        border-radius: 999px;
+        border: none;
+        background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+        color: #020617;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .question-box button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .question-answer {
+        font-size: 0.95rem;
+        color: #e0f2fe;
+        line-height: 1.55;
+      }
+      .strategy-subtle {
+        font-size: 0.8rem;
+        color: #cbd5f5;
+      }
+      .strategy-rules {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.25rem;
+      }
+      .strategy-rules h3 {
+        margin-top: 0;
+        font-size: 1.05rem;
+      }
+      .strategy-rules ul {
+        margin: 0.5rem 0 0 0;
+        padding-left: 1.1rem;
+        display: grid;
+        gap: 0.35rem;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      thead {
+        background: rgba(30, 41, 59, 0.88);
+      }
+      th,
+      td {
+        padding: 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+        font-size: 0.95rem;
+      }
+      th {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #94a3b8;
+      }
+      tbody tr:hover {
+        background: rgba(30, 41, 59, 0.65);
+      }
+      #equity-canvas {
+        width: 100%;
+        height: 240px;
+        display: block;
+      }
+      .error {
+        margin-top: 0.75rem;
+        color: #f87171;
+        font-size: 0.95rem;
+      }
+      @media (max-width: 640px) {
+        body {
+          padding: 1.25rem;
+        }
+        section {
+          padding: 1.25rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="title-row">
+      <h1>Algo Trading Lab Dashboard</h1>
+      <span id="preview-badge" class="badge hidden">Preview</span>
+    </div>
+    <p class="timestamp" id="last-updated">Loading...</p>
+
+    <section>
+      <h2>Bot Status</h2>
+      <div class="status-grid">
+        <div class="status-card">
+          <span class="status-label">Symbol</span>
+          <span class="status-value" id="status-symbol">-</span>
+        </div>
+        <div class="status-card">
+          <span class="status-label">Position</span>
+          <span class="status-value" id="status-position">-</span>
+        </div>
+        <div class="status-card">
+          <span class="status-label">Balance</span>
+          <span class="status-value" id="status-balance">-</span>
+          <span class="status-subtle" id="status-entry">Entry: -</span>
+        </div>
+        <div class="status-card">
+          <span class="status-label">Unrealized PnL</span>
+          <span class="status-value" id="status-pnl">-</span>
+        </div>
+        <div class="status-card">
+          <span class="status-label">Last Signal</span>
+          <span class="status-value" id="status-signal">-</span>
+        </div>
+        <div class="status-card">
+          <span class="status-label">Signal Confidence</span>
+          <span class="status-value" id="status-confidence">-</span>
+        </div>
+        <div class="status-card">
+          <span class="status-label">Risk Per Trade</span>
+          <span class="status-value" id="status-risk">-</span>
+        </div>
+      </div>
+      <p id="status-error" class="error"></p>
+    </section>
+
+    <section>
+      <h2>AI Insights</h2>
+      <div class="ai-grid">
+        <div class="ai-card">
+          <span class="ai-label">Recommended Action</span>
+          <span class="ai-value" id="ai-action">-</span>
+          <span class="status-subtle" id="ai-confidence">Confidence: -</span>
+        </div>
+        <div class="ai-card">
+          <span class="ai-label">Expected Move</span>
+          <span class="ai-value" id="ai-expected-move">-</span>
+          <span class="status-subtle" id="ai-summary-short">-</span>
+        </div>
+        <div class="ai-card">
+          <span class="ai-label">Feature Snapshot</span>
+          <span class="status-subtle" id="ai-features">-</span>
+        </div>
+      </div>
+      <div class="ai-probabilities">
+        <div>
+          <span>Long</span>
+          <strong id="ai-prob-long">-</strong>
+        </div>
+        <div>
+          <span>Short</span>
+          <strong id="ai-prob-short">-</strong>
+        </div>
+        <div>
+          <span>Flat</span>
+          <strong id="ai-prob-flat">-</strong>
+        </div>
+      </div>
+      <p class="ai-summary" id="ai-summary">AI summary will appear here once data is available.</p>
+      <p id="ai-error" class="error"></p>
+      <div class="question-box">
+        <h3>Ask the Strategy Assistant</h3>
+        <form id="ai-question-form">
+          <input type="text" id="ai-question-input" placeholder="When should I buy?" autocomplete="off" />
+          <button type="submit" id="ai-question-submit">Ask</button>
+        </form>
+        <p id="ai-question-feedback" class="error"></p>
+        <p id="ai-answer" class="question-answer">Ask about buy, sell, risk, macro catalysts, or the AI model to get guidance.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Macro &amp; News Pulse</h2>
+      <div class="macro-grid">
+        <div class="macro-card">
+          <span class="macro-label">Bias Score</span>
+          <span class="macro-value" id="macro-bias">-</span>
+          <span class="status-subtle" id="macro-confidence">Confidence: -</span>
+        </div>
+        <div class="macro-card">
+          <span class="macro-label">Interest Rate Outlook</span>
+          <span class="status-subtle" id="macro-rates">-</span>
+        </div>
+        <div class="macro-card">
+          <span class="macro-label">Political Watch</span>
+          <span class="status-subtle" id="macro-politics">-</span>
+        </div>
+      </div>
+      <p class="macro-summary" id="macro-summary">Macro catalyst summaries will appear here once data is available.</p>
+      <ul class="macro-drivers" id="macro-drivers"></ul>
+      <div class="macro-events">
+        <h3>Recent Catalysts</h3>
+        <ul id="macro-events-list"></ul>
+      </div>
+      <p id="macro-error" class="error"></p>
+    </section>
+
+    <section>
+      <h2>Decision Playbook</h2>
+      <div class="strategy-grid">
+        <div class="strategy-card">
+          <span class="strategy-label">Symbol</span>
+          <span class="strategy-value" id="strategy-symbol">-</span>
+        </div>
+        <div class="strategy-card">
+          <span class="strategy-label">Timeframe</span>
+          <span class="strategy-value" id="strategy-timeframe">-</span>
+        </div>
+        <div class="strategy-card">
+          <span class="strategy-label">EMA Fast / Slow</span>
+          <span class="strategy-value" id="strategy-ema">-</span>
+        </div>
+        <div class="strategy-card">
+          <span class="strategy-label">RSI Period</span>
+          <span class="strategy-value" id="strategy-rsi-period">-</span>
+          <span class="strategy-subtle" id="strategy-rsi-bands">-</span>
+        </div>
+        <div class="strategy-card">
+          <span class="strategy-label">Stop / Take Profit</span>
+          <span class="strategy-value" id="strategy-risk-bounds">-</span>
+          <span class="strategy-subtle" id="strategy-risk">-</span>
+        </div>
+      </div>
+      <div class="strategy-rules">
+        <div>
+          <h3>Buy / Sell Triggers</h3>
+          <ul id="decision-rules"></ul>
+        </div>
+        <div>
+          <h3>Risk Management</h3>
+          <ul id="risk-rules"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Recent Signals</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Decision</th>
+            <th>Confidence</th>
+            <th>AI View</th>
+            <th>AI Move</th>
+            <th>Reason</th>
+          </tr>
+        </thead>
+        <tbody id="signals-body">
+          <tr>
+            <td colspan="5">Loading...</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Equity Curve</h2>
+      <canvas id="equity-canvas"></canvas>
+    </section>
+
+    <script>
+      const statusSymbol = document.getElementById("status-symbol");
+      const statusPosition = document.getElementById("status-position");
+      const statusBalance = document.getElementById("status-balance");
+      const statusEntry = document.getElementById("status-entry");
+      const statusPnL = document.getElementById("status-pnl");
+      const statusSignal = document.getElementById("status-signal");
+      const statusConfidence = document.getElementById("status-confidence");
+      const statusRisk = document.getElementById("status-risk");
+      const statusError = document.getElementById("status-error");
+      const lastUpdated = document.getElementById("last-updated");
+      const signalsBody = document.getElementById("signals-body");
+      const equityCanvas = document.getElementById("equity-canvas");
+      const previewBadge = document.getElementById("preview-badge");
+
+      const strategySymbol = document.getElementById("strategy-symbol");
+      const strategyTimeframe = document.getElementById("strategy-timeframe");
+      const strategyEma = document.getElementById("strategy-ema");
+      const strategyRsiPeriod = document.getElementById("strategy-rsi-period");
+      const strategyRsiBands = document.getElementById("strategy-rsi-bands");
+      const strategyRiskBounds = document.getElementById("strategy-risk-bounds");
+      const strategyRisk = document.getElementById("strategy-risk");
+      const decisionRules = document.getElementById("decision-rules");
+      const riskRules = document.getElementById("risk-rules");
+
+      const aiAction = document.getElementById("ai-action");
+      const aiConfidence = document.getElementById("ai-confidence");
+      const aiExpectedMove = document.getElementById("ai-expected-move");
+      const aiSummaryShort = document.getElementById("ai-summary-short");
+      const aiSummary = document.getElementById("ai-summary");
+      const aiProbLong = document.getElementById("ai-prob-long");
+      const aiProbShort = document.getElementById("ai-prob-short");
+      const aiProbFlat = document.getElementById("ai-prob-flat");
+      const aiFeatures = document.getElementById("ai-features");
+      const aiError = document.getElementById("ai-error");
+      const aiQuestionForm = document.getElementById("ai-question-form");
+      const aiQuestionInput = document.getElementById("ai-question-input");
+      const aiQuestionSubmit = document.getElementById("ai-question-submit");
+      const aiQuestionFeedback = document.getElementById("ai-question-feedback");
+      const aiAnswer = document.getElementById("ai-answer");
+
+      const macroBias = document.getElementById("macro-bias");
+      const macroConfidence = document.getElementById("macro-confidence");
+      const macroRates = document.getElementById("macro-rates");
+      const macroPolitics = document.getElementById("macro-politics");
+      const macroSummary = document.getElementById("macro-summary");
+      const macroDrivers = document.getElementById("macro-drivers");
+      const macroEventsList = document.getElementById("macro-events-list");
+      const macroError = document.getElementById("macro-error");
+
+      const ctx = equityCanvas.getContext("2d");
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const isPreviewMode = urlParams.get("demo") === "1" || window.location.pathname.includes("preview");
+      previewBadge.classList.toggle("hidden", !isPreviewMode);
+
+      let latestAiSnapshot = null;
+
+      const PREVIEW_STATE = {
+        symbol: "BTC/USDT",
+        position: "LONG",
+        entry_price: 67321.5,
+        position_size: 0.12,
+        balance: 10254.35,
+        unrealized_pnl_pct: 0.86,
+        last_signal: "LONG",
+        confidence: 0.68,
+        risk_per_trade_pct: 0.5,
+      };
+
+      const PREVIEW_AI = {
+        recommended_action: "LONG",
+        confidence: 0.72,
+        probability_long: 0.72,
+        probability_short: 0.18,
+        probability_flat: 0.1,
+        expected_move_pct: 0.64,
+        summary:
+          "Model leans upside with 72.0% confidence driven by EMA spread 0.48% and momentum 0.35%.",
+        features: {
+          ema_gap_pct: 0.48,
+          momentum_pct: 0.35,
+          rsi_distance_from_mid: 8.5,
+          volatility_pct: 0.62,
+        },
+      };
+
+      const PREVIEW_MACRO = {
+        bias_score: -0.18,
+        confidence: 0.58,
+        summary:
+          "Macro bias is bearish (-0.18) based on 3 tracked catalysts. Fed watch: Fed likely to keep rates unchanged but watch core inflation prints. Political risk: Donald Trump: Potential tariff escalation keeps risk assets cautious.",
+        drivers: [
+          "Trump vows fresh tariffs review (bearish, high impact)",
+          "US payrolls surprise to upside (hawkish, high impact)",
+        ],
+        interest_rate_outlook: "Fed likely to keep rates unchanged but watch core inflation prints.",
+        political_risk: "Donald Trump: Potential tariff escalation keeps risk assets cautious.",
+        events: [
+          {
+            title: "Trump vows fresh tariffs review",
+            sentiment: "bearish",
+            impact: "high",
+            actor: "Donald Trump",
+            summary: "Potential tariff escalation keeps risk assets cautious.",
+          },
+          {
+            title: "Fed officials guide for data-dependent path",
+            sentiment: "neutral",
+            impact: "medium",
+            interest_rate_expectation:
+              "Fed likely to keep rates unchanged but watch core inflation prints.",
+          },
+          {
+            title: "US payrolls surprise to upside",
+            sentiment: "hawkish",
+            impact: "high",
+            summary: "Stronger labor data tempers rate-cut odds.",
+          },
+        ],
+      };
+
+      const PREVIEW_SIGNALS = [
+        {
+          symbol: "BTC/USDT",
+          decision: "LONG",
+          confidence: 0.74,
+          reason: "EMA fast crossed above EMA slow; RSI rising.",
+          ai_action: "LONG",
+          ai_confidence: 0.7,
+          ai_expected_move_pct: 0.55,
+        },
+        {
+          symbol: "BTC/USDT",
+          decision: "FLAT",
+          confidence: 0.58,
+          reason: "RSI midline rejection triggered risk filter.",
+          ai_action: "FLAT",
+          ai_confidence: 0.52,
+          ai_expected_move_pct: 0.08,
+        },
+        {
+          symbol: "BTC/USDT",
+          decision: "SHORT",
+          confidence: 0.67,
+          reason: "EMA fast slipped below EMA slow with RSI divergence.",
+          ai_action: "SHORT",
+          ai_confidence: 0.66,
+          ai_expected_move_pct: -0.46,
+        },
+        {
+          symbol: "BTC/USDT",
+          decision: "LONG",
+          confidence: 0.62,
+          reason: "Mean reversion bounce with positive order flow.",
+          ai_action: "LONG",
+          ai_confidence: 0.61,
+          ai_expected_move_pct: 0.42,
+        },
+      ];
+
+      const PREVIEW_EQUITY_BASE = Array.from({ length: 32 }, (_, index) => 10000 + index * 24 + Math.sin(index / 1.8) * 18);
+
+      const PREVIEW_STRATEGY = {
+        symbol: "BTC/USDT",
+        timeframe: "1m",
+        ema_fast: 12,
+        ema_slow: 26,
+        rsi_period: 14,
+        rsi_overbought: 70,
+        rsi_oversold: 30,
+        risk_per_trade_pct: 0.5,
+        stop_loss_pct: 0.004,
+        take_profit_pct: 0.008,
+        decision_rules: [
+          "Go LONG when the fast EMA crosses above the slow EMA and RSI stays below the overbought threshold.",
+          "Go SHORT when the fast EMA crosses below the slow EMA and RSI stays above the oversold threshold.",
+          "Fallback LONG when RSI dips below the oversold threshold even without a crossover.",
+          "Fallback SHORT when RSI rises above the overbought threshold even without a crossover.",
+        ],
+        risk_management_notes: [
+          "Risk per trade is capped by the configured percentage of the current balance.",
+          "Stop-loss and take-profit levels are derived from the last entry price and the configured percentages.",
+          "Position sizing scales inversely with stop distance to maintain consistent risk exposure.",
+        ],
+      };
+
+      function formatNumber(value, fractionDigits = 2) {
+        return typeof value === "number" && Number.isFinite(value)
+          ? value.toLocaleString(undefined, {
+              minimumFractionDigits: fractionDigits,
+              maximumFractionDigits: fractionDigits,
+            })
+          : "-";
+      }
+
+      function formatPercent(value, fractionDigits = 2) {
+        return typeof value === "number" && Number.isFinite(value)
+          ? `${value.toFixed(fractionDigits)} %`
+          : "-";
+      }
+
+      function formatRatioPercent(value, fractionDigits = 1) {
+        return typeof value === "number" && Number.isFinite(value)
+          ? `${(value * 100).toFixed(fractionDigits)} %`
+          : "-";
+      }
+
+      function formatFeatureSnapshot(features) {
+        if (!features) {
+          return "-";
+        }
+        const parts = [];
+        if (typeof features.ema_gap_pct === "number") {
+          parts.push(`EMA gap ${features.ema_gap_pct.toFixed(2)}%`);
+        }
+        if (typeof features.momentum_pct === "number") {
+          parts.push(`Momentum ${features.momentum_pct.toFixed(2)}%`);
+        }
+        if (typeof features.rsi_distance_from_mid === "number") {
+          parts.push(
+            `RSI bias ${features.rsi_distance_from_mid.toFixed(2)}%`
+          );
+        }
+        if (typeof features.volatility_pct === "number") {
+          parts.push(`Volatility ${features.volatility_pct.toFixed(2)}%`);
+        }
+        return parts.length ? parts.join(" · ") : "-";
+      }
+
+      function formatBias(value) {
+        if (typeof value !== "number" || !Number.isFinite(value)) {
+          return "-";
+        }
+        const tone = value > 0.05 ? "Bullish" : value < -0.05 ? "Bearish" : "Balanced";
+        return `${value.toFixed(2)} (${tone})`;
+      }
+
+      function formatMacroEvent(event) {
+        if (!event || !event.title) {
+          return null;
+        }
+        const pieces = [event.title];
+        if (event.sentiment) {
+          pieces.push(`— ${event.sentiment}`);
+        }
+        if (event.impact) {
+          pieces.push(`[${event.impact} impact]`);
+        }
+        if (event.actor) {
+          pieces.push(`(${event.actor})`);
+        }
+        const context =
+          event.summary || event.interest_rate_expectation || event.source || event.timestamp;
+        if (context) {
+          pieces.push(`: ${context}`);
+        }
+        return pieces.join(" ");
+      }
+
+      function drawEquityCurve(points) {
+        const width = equityCanvas.clientWidth;
+        const height = equityCanvas.clientHeight;
+        const ratio = window.devicePixelRatio || 1;
+
+        equityCanvas.width = width * ratio;
+        equityCanvas.height = height * ratio;
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        ctx.clearRect(0, 0, width, height);
+
+        if (!points.length) {
+          return;
+        }
+
+        const values = points.map((point) => point.value);
+        const min = Math.min(...values);
+        const max = Math.max(...values);
+        const range = max - min || 1;
+
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#38bdf8";
+        ctx.beginPath();
+        points.forEach((point, index) => {
+          const x = (index / Math.max(points.length - 1, 1)) * width;
+          const y = height - ((point.value - min) / range) * height;
+          if (index === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        });
+        ctx.stroke();
+
+        ctx.fillStyle = "rgba(56, 189, 248, 0.18)";
+        ctx.beginPath();
+        points.forEach((point, index) => {
+          const x = (index / Math.max(points.length - 1, 1)) * width;
+          const y = height - ((point.value - min) / range) * height;
+          if (index === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        });
+        ctx.lineTo(width, height);
+        ctx.lineTo(0, height);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      function renderStrategy(strategy) {
+        if (!strategy) {
+          decisionRules.innerHTML = '<li>No strategy configuration available.</li>';
+          riskRules.innerHTML = '<li>No risk notes available.</li>';
+          return;
+        }
+
+        strategySymbol.textContent = strategy.symbol ?? "-";
+        strategyTimeframe.textContent = strategy.timeframe ?? "-";
+        strategyEma.textContent = `${strategy.ema_fast} / ${strategy.ema_slow}`;
+        strategyRsiPeriod.textContent = strategy.rsi_period;
+        strategyRsiBands.textContent = `Oversold ≤ ${strategy.rsi_oversold} • Overbought ≥ ${strategy.rsi_overbought}`;
+        strategyRiskBounds.textContent = `${formatPercent(strategy.stop_loss_pct * 100)} SL · ${formatPercent(
+          strategy.take_profit_pct * 100,
+        )} TP`;
+        strategyRisk.textContent = `Risk per trade: ${formatPercent(strategy.risk_per_trade_pct)}`;
+
+        const decisionMarkup = (strategy.decision_rules || [])
+          .map((rule) => `<li>${rule}</li>`)
+          .join("");
+        decisionRules.innerHTML = decisionMarkup || '<li>No decision rules configured.</li>';
+
+        const riskMarkup = (strategy.risk_management_notes || [])
+          .map((note) => `<li>${note}</li>`)
+          .join("");
+        riskRules.innerHTML = riskMarkup || '<li>No risk guidance configured.</li>';
+      }
+
+      function renderAI(ai, { preview } = { preview: false }) {
+        aiError.textContent = "";
+
+        if (!ai || !ai.recommended_action) {
+          latestAiSnapshot = null;
+          aiAction.textContent = "-";
+          aiConfidence.textContent = "Confidence: -";
+          aiExpectedMove.textContent = "-";
+          aiSummaryShort.textContent = preview
+            ? "Preview AI model warming up..."
+            : "Waiting for live predictions.";
+          aiSummary.textContent =
+            "AI summary will appear here once data is available.";
+          aiProbLong.textContent = "-";
+          aiProbShort.textContent = "-";
+          aiProbFlat.textContent = "-";
+          aiFeatures.textContent = "-";
+          if (!preview) {
+            aiError.textContent =
+              "AI insights will populate after the bot produces a few loops of data.";
+          }
+          return;
+        }
+
+        aiAction.textContent = ai.recommended_action;
+        aiConfidence.textContent = `Confidence: ${formatRatioPercent(
+          ai.confidence,
+        )}`;
+        aiExpectedMove.textContent = formatPercent(ai.expected_move_pct ?? null);
+        const summaryText = ai.summary || "";
+        aiSummaryShort.textContent = summaryText
+          ? summaryText.split(".")[0] + "."
+          : "-";
+        aiSummary.textContent = summaryText || "-";
+        aiProbLong.textContent = formatRatioPercent(ai.probability_long);
+        aiProbShort.textContent = formatRatioPercent(ai.probability_short);
+        aiProbFlat.textContent = formatRatioPercent(ai.probability_flat);
+        aiFeatures.textContent = formatFeatureSnapshot(ai.features);
+        latestAiSnapshot = { ...ai, features: { ...(ai.features || {}) } };
+      }
+
+      function renderMacro(macro, { preview } = { preview: false }) {
+        macroError.textContent = "";
+
+        if (!macro) {
+          macroBias.textContent = "-";
+          macroConfidence.textContent = "Confidence: -";
+          macroRates.textContent = "-";
+          macroPolitics.textContent = "-";
+          macroSummary.textContent = preview
+            ? "Preview macro context unavailable."
+            : "No macro data loaded yet.";
+          macroDrivers.innerHTML = "";
+          macroEventsList.innerHTML = "";
+          if (!preview) {
+            macroError.textContent =
+              "Unable to load macro insights. Ensure macro_events.json exists or provide MACRO_EVENTS_PATH.";
+          }
+          return;
+        }
+
+        macroBias.textContent = formatBias(macro.bias_score);
+        macroConfidence.textContent = `Confidence: ${formatRatioPercent(
+          macro.confidence ?? null,
+        )}`;
+        macroRates.textContent = macro.interest_rate_outlook || "-";
+        macroPolitics.textContent = macro.political_risk || "-";
+        macroSummary.textContent = macro.summary ||
+          (preview
+            ? "Macro bias oscillates in preview mode to simulate evolving catalysts."
+            : "No macro summary provided yet.");
+
+        const drivers = (macro.drivers || []).filter(Boolean);
+        macroDrivers.innerHTML = drivers.length
+          ? drivers.map((driver) => `<li>${driver}</li>`).join("")
+          : '<li class="status-subtle">No dominant macro drivers logged.</li>';
+
+        const events = (macro.events || [])
+          .map((event) => formatMacroEvent(event))
+          .filter(Boolean);
+        macroEventsList.innerHTML = events.length
+          ? events.map((event) => `<li>${event}</li>`).join("")
+          : '<li class="status-subtle">No recent catalysts captured.</li>';
+      }
+
+      function formatSignalAi(signal) {
+        if (!signal.ai_action) {
+          return "-";
+        }
+        const confidenceText =
+          typeof signal.ai_confidence === "number"
+            ? formatRatioPercent(signal.ai_confidence)
+            : null;
+        return confidenceText ? `${signal.ai_action} (${confidenceText})` : signal.ai_action;
+      }
+
+      function render(
+        status,
+        signals,
+        equity,
+        strategy,
+        ai,
+        macro,
+        { preview } = { preview: false },
+      ) {
+        statusError.textContent = "";
+
+        statusSymbol.textContent = status.symbol ?? "-";
+        statusPosition.textContent = status.position ?? "-";
+        statusBalance.textContent = formatNumber(status.balance);
+        statusEntry.textContent = `Entry: ${formatNumber(status.entry_price)}`;
+        statusPnL.textContent = formatPercent(status.unrealized_pnl_pct);
+        statusSignal.textContent = status.last_signal ?? "-";
+        statusConfidence.textContent = formatRatioPercent(status.confidence);
+        statusRisk.textContent = formatPercent(status.risk_per_trade_pct);
+
+        const timestamp = status.timestamp ? new Date(status.timestamp) : new Date();
+        const prefix = preview ? "Preview mode — " : "Last updated: ";
+        lastUpdated.textContent = `${prefix}${timestamp.toLocaleTimeString()}`;
+
+        if (!signals.length) {
+          signalsBody.innerHTML = '<tr><td colspan="5">No signals yet.</td></tr>';
+        } else {
+          signalsBody.innerHTML = signals
+            .map(
+              (signal) => `
+                <tr>
+                  <td>${new Date(signal.timestamp).toLocaleString()}</td>
+                  <td>${signal.decision}</td>
+                  <td>${formatRatioPercent(signal.confidence)}</td>
+                  <td>${formatSignalAi(signal)}</td>
+                  <td>${formatPercent(signal.ai_expected_move_pct)}</td>
+                  <td>${signal.reason}</td>
+                </tr>
+              `,
+            )
+            .join("");
+        }
+
+        drawEquityCurve(equity);
+        renderStrategy(strategy);
+        renderAI(ai, { preview });
+        renderMacro(macro, { preview });
+      }
+
+      async function submitQuestion(question) {
+        aiQuestionFeedback.textContent = "";
+        aiQuestionSubmit.disabled = true;
+        const previousText = aiQuestionSubmit.textContent;
+        aiQuestionSubmit.textContent = "Thinking...";
+        try {
+          const response = await fetch("/ai/question", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ question }),
+          });
+          if (!response.ok) {
+            throw new Error(`AI request failed with status ${response.status}`);
+          }
+          const data = await response.json();
+          aiAnswer.textContent = data.answer;
+          aiQuestionInput.value = "";
+        } catch (error) {
+          console.error(error);
+          aiQuestionFeedback.textContent =
+            "Unable to fetch an AI answer. Ensure the API is running.";
+        } finally {
+          aiQuestionSubmit.disabled = false;
+          aiQuestionSubmit.textContent = previousText;
+        }
+      }
+
+      function buildPreviewAnswer(question, ai) {
+        const text = question.toLowerCase();
+        const action = ai && ai.recommended_action ? ai.recommended_action : "FLAT";
+        const confidence = ai && typeof ai.confidence === "number" ? `${(ai.confidence * 100).toFixed(1)}%` : "--";
+        const expectedMove = ai && typeof ai.expected_move_pct === "number" ? `${ai.expected_move_pct.toFixed(2)}%` : "--";
+
+        if (text.includes("buy") || text.includes("long")) {
+          return `Preview guidance: look for the fast EMA crossing above the slow EMA with RSI below ${PREVIEW_STRATEGY.rsi_overbought}. AI currently favours ${action} with ${confidence} confidence.`;
+        }
+        if (text.includes("sell") || text.includes("short")) {
+          return `Preview guidance: short triggers arrive when EMA fast slips under EMA slow while RSI is above ${PREVIEW_STRATEGY.rsi_oversold}. AI stance: ${action} with expected move ${expectedMove}.`;
+        }
+        if (text.includes("risk") || text.includes("stop") || text.includes("take")) {
+          return `Preview risk settings: stop-loss ${(
+            PREVIEW_STRATEGY.stop_loss_pct * 100
+          ).toFixed(2)}% and take-profit ${(PREVIEW_STRATEGY.take_profit_pct * 100).toFixed(2)}%. Risk per trade ${PREVIEW_STRATEGY.risk_per_trade_pct}% of balance.`;
+        }
+        if (text.includes("ai") || text.includes("model") || text.includes("prob")) {
+          return `Preview AI leans ${action} with ${confidence} confidence and expects ${expectedMove} move.`;
+        }
+        return `Preview bot watches ${PREVIEW_STRATEGY.symbol} on ${PREVIEW_STRATEGY.timeframe} candles using EMA ${PREVIEW_STRATEGY.ema_fast}/${PREVIEW_STRATEGY.ema_slow} and RSI ${PREVIEW_STRATEGY.rsi_period}. Ask about buy, sell, risk, macro, or AI for focused tips.`;
+      }
+
+      aiQuestionForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const question = aiQuestionInput.value.trim();
+        if (!question) {
+          aiQuestionFeedback.textContent = "Enter a question to get an answer.";
+          return;
+        }
+        aiQuestionFeedback.textContent = "";
+        if (isPreviewMode) {
+          aiAnswer.textContent = buildPreviewAnswer(question, latestAiSnapshot);
+          aiQuestionInput.value = "";
+          return;
+        }
+        submitQuestion(question);
+      });
+
+      async function fetchJSON(path) {
+        const response = await fetch(path);
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
+        }
+        return response.json();
+      }
+
+      async function refresh() {
+        try {
+          const [status, signals, equity, strategy, ai, macro] = await Promise.all([
+            fetchJSON("/status"),
+            fetchJSON("/signals?limit=20"),
+            fetchJSON("/equity"),
+            fetchJSON("/strategy"),
+            fetchJSON("/ai/prediction").catch(() => null),
+            fetchJSON("/macro/insights").catch(() => null),
+          ]);
+
+          render(status, signals, equity, strategy, ai, macro, { preview: false });
+        } catch (error) {
+          console.error(error);
+          statusError.textContent =
+            "Unable to load live data. Ensure the bot is running and producing state files.";
+        }
+      }
+
+      function renderPreview() {
+        const now = Date.now();
+        const oscillation = Math.sin(now / 4000);
+        const secondary = Math.cos(now / 5000);
+
+        const status = {
+          ...PREVIEW_STATE,
+          timestamp: new Date(now).toISOString(),
+          unrealized_pnl_pct: PREVIEW_STATE.unrealized_pnl_pct + oscillation * 0.35,
+          balance: PREVIEW_STATE.balance + oscillation * 45,
+          confidence: Math.min(Math.max(PREVIEW_STATE.confidence + secondary * 0.06, 0), 1),
+        };
+
+        const signals = PREVIEW_SIGNALS.map((signal, index) => ({
+          ...signal,
+          timestamp: new Date(now - index * 90_000).toISOString(),
+        }));
+
+        const equity = PREVIEW_EQUITY_BASE.map((base, index) => ({
+          value: base + Math.sin(now / 3200 + index / 2.5) * 16,
+          timestamp: new Date(now - (PREVIEW_EQUITY_BASE.length - index) * 60_000).toISOString(),
+        }));
+
+        const ai = { ...PREVIEW_AI };
+        const leaningLong = oscillation >= 0;
+        ai.recommended_action = leaningLong ? "LONG" : "SHORT";
+        ai.confidence = Math.min(Math.max(PREVIEW_AI.confidence + oscillation * 0.05, 0.2), 0.95);
+        ai.expected_move_pct =
+          (leaningLong ? 1 : -1) * (PREVIEW_AI.expected_move_pct + secondary * 0.18);
+        const previewProbLong = Math.min(
+          Math.max(ai.confidence - (leaningLong ? 0.05 : -0.1), 0.05),
+          0.93,
+        );
+        const previewProbShort = Math.min(
+          Math.max(leaningLong ? 0.18 - oscillation * 0.08 : ai.confidence - 0.04, 0.05),
+          0.9,
+        );
+        const previewProbFlat = Math.max(0.02, 1 - (previewProbLong + previewProbShort));
+        ai.probability_long = previewProbLong;
+        ai.probability_short = previewProbShort;
+        ai.probability_flat = previewProbFlat;
+        const direction = leaningLong ? "upside" : "downside";
+        ai.summary = `Model leans ${direction} with ${(ai.confidence * 100).toFixed(
+          1,
+        )}% confidence driven by EMA gap ${(
+          PREVIEW_AI.features.ema_gap_pct + oscillation * 0.2
+        ).toFixed(2)}% and momentum ${(
+          PREVIEW_AI.features.momentum_pct + secondary * 0.15
+        ).toFixed(2)}%. Expected move: ${ai.expected_move_pct.toFixed(2)}%`;
+        ai.features = {
+          ema_gap_pct: PREVIEW_AI.features.ema_gap_pct + oscillation * 0.2,
+          momentum_pct: PREVIEW_AI.features.momentum_pct + secondary * 0.15,
+          rsi_distance_from_mid:
+            PREVIEW_AI.features.rsi_distance_from_mid + oscillation * 1.8,
+          volatility_pct: PREVIEW_AI.features.volatility_pct + secondary * 0.12,
+        };
+
+        const macro = { ...PREVIEW_MACRO };
+        macro.bias_score = PREVIEW_MACRO.bias_score + secondary * 0.08;
+        macro.confidence = Math.min(
+          Math.max(PREVIEW_MACRO.confidence + oscillation * 0.07, 0),
+          1,
+        );
+        macro.summary = `Macro bias is ${macro.bias_score > 0 ? "bullish" : macro.bias_score < 0 ? "bearish" : "balanced"} (${macro.bias_score.toFixed(
+          2,
+        )}) with confidence ${(macro.confidence * 100).toFixed(1)}%. Preview catalysts animate to show how political and rate headlines tilt the playbook.`;
+        macro.events = PREVIEW_MACRO.events.map((event, index) => ({
+          ...event,
+          timestamp: new Date(now - index * 120_000).toISOString(),
+        }));
+
+        render(status, signals, equity, PREVIEW_STRATEGY, ai, macro, { preview: true });
+      }
+
+      if (isPreviewMode) {
+        renderPreview();
+        setInterval(renderPreview, 4000);
+      } else {
+        refresh();
+        setInterval(refresh, 5000);
+      }
+    </script>
+  </body>
+</html>
