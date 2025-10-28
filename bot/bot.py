@@ -68,6 +68,26 @@ def create_exchange_client(config: BotConfig) -> PaperExchangeClient | ExchangeC
         logger.info("Running in paper mode with synthetic exchange data.")
         return PaperExchangeClient(symbol=config.symbol, timeframe=config.timeframe)
 
+    # Check for Binance testnet configuration
+    testnet_enabled = os.getenv("BINANCE_TESTNET_ENABLED", "false").lower() == "true"
+    
+    if testnet_enabled and config.exchange_id == "binance":
+        api_key = os.getenv("BINANCE_TESTNET_API_KEY")
+        api_secret = os.getenv("BINANCE_TESTNET_API_SECRET")
+        logger.info("Using Binance Spot Testnet")
+        try:
+            return ExchangeClient(
+                exchange_id=config.exchange_id,
+                api_key=api_key,
+                api_secret=api_secret,
+                sandbox=False,
+                testnet=True,
+            )
+        except RuntimeError as exc:
+            logger.warning("Falling back to paper exchange: %s", exc)
+            return PaperExchangeClient(symbol=config.symbol, timeframe=config.timeframe)
+    
+    # Regular exchange configuration
     api_key = os.getenv("EXCHANGE_API_KEY")
     api_secret = os.getenv("EXCHANGE_API_SECRET")
     sandbox = os.getenv("EXCHANGE_SANDBOX", "false").lower() == "true"
@@ -78,6 +98,7 @@ def create_exchange_client(config: BotConfig) -> PaperExchangeClient | ExchangeC
             api_key=api_key,
             api_secret=api_secret,
             sandbox=sandbox,
+            testnet=False,
         )
     except RuntimeError as exc:
         logger.warning("Falling back to paper exchange: %s", exc)

@@ -25,6 +25,7 @@ class ExchangeClient:
         api_key: Optional[str] = None,
         api_secret: Optional[str] = None,
         sandbox: bool = False,
+        testnet: bool = False,
     ) -> None:
         if ccxt is None:
             raise RuntimeError(
@@ -32,13 +33,25 @@ class ExchangeClient:
             )
         self.exchange_id = exchange_id
         self.sandbox = sandbox
+        self.testnet = testnet
         exchange_class = getattr(ccxt, exchange_id)
-        self.client = exchange_class(
-            {
-                "apiKey": api_key,
-                "secret": api_secret,
+        
+        config = {
+            "apiKey": api_key,
+            "secret": api_secret,
+        }
+        
+        # Binance Testnet configuration
+        if testnet and exchange_id == "binance":
+            config["urls"] = {
+                "api": {
+                    "public": "https://testnet.binance.vision/api",
+                    "private": "https://testnet.binance.vision/api",
+                }
             }
-        )
+        
+        self.client = exchange_class(config)
+        
         if sandbox and hasattr(self.client, "set_sandbox_mode"):
             self.client.set_sandbox_mode(True)
 

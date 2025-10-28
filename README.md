@@ -29,6 +29,29 @@ algo_trading_lab/
 ```
 
 ## Başlangıç
+
+### Binance Spot Testnet Kurulumu
+1. https://testnet.binance.vision/ adresine gidin ve API anahtarı oluşturun
+2. API Key ve Secret Key'i kopyalayın
+3. `.env` dosyasını düzenleyin:
+   ```bash
+   cp .env.example .env
+   ```
+4. `.env` içerisinde testnet bilgilerini güncelleyin:
+   ```bash
+   BINANCE_TESTNET_ENABLED=true
+   BINANCE_TESTNET_API_KEY=your_api_key_here
+   BINANCE_TESTNET_API_SECRET=your_secret_key_here
+   PAPER_MODE=false  # Testnet kullanmak için false yapın
+   ```
+
+### Test Bağlantısı
+Binance testnet bağlantınızı test etmek için:
+```bash
+python test_binance_testnet.py
+```
+
+### Ortam Değişkenleri
 1. Ortam değişkenlerini düzenleyin:
    ```bash
    cp .env.example .env
@@ -69,6 +92,13 @@ uvicorn api.api:app --reload
 
 ## Notlar
 - `requirements.txt` dosyası temel bağımlılıkları içerir. SSL/ML entegrasyonu için PyTorch ve PyTorch Lightning ek olarak kurulmalıdır (platforma göre whl dosyaları değişir).
-- Paper mode dışına çıkarken `.env` dosyasındaki `PAPER_MODE=false` ve API anahtarları alanlarını güncelleyin.
-- Çoklu enstrüman desteği için `docker-compose` içerisine aynı imajdan türetilmiş yeni servisler eklenebilir veya bot loop’u parametre alacak şekilde genişletilebilir.
+- **Testnet Kullanımı**: `.env` dosyasında `BINANCE_TESTNET_ENABLED=true` ve `PAPER_MODE=false` yaparak Binance Spot Testnet'i kullanabilirsiniz.
+- **Production Kullanımı**: Gerçek borsa kullanımı için `.env` dosyasındaki `PAPER_MODE=false`, `BINANCE_TESTNET_ENABLED=false` ve `EXCHANGE_API_KEY`, `EXCHANGE_API_SECRET` alanlarını güncelleyin.
+- Çoklu enstrüman desteği için `docker-compose` içerisine aynı imajdan türetilmiş yeni servisler eklenebilir veya bot loop'u parametre alacak şekilde genişletilebilir.
+
+## High Frequency Trading (HFT) için Öneriler
+- Binance Futures Testnet kullanın (daha gerçekçi): https://testnet.binancefuture.com
+- REST API yerine WebSocket ile order book ve trade stream'leri dinleyin
+- Latency optimizasyonu için sunucunuzu Binance'e yakın bir bölgede çalıştırın
+- Rate limit ve order matching test edilmelidir
 
