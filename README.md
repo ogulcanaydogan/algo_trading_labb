@@ -5,6 +5,8 @@ Algo Trading Lab; çoklu varlıklar için sinyal üretebilen, risk yönetimi yap
 ## Özellikler
 - Python tabanlı bot döngüsü (EMA crossover + RSI onayı) ve JSON tabanlı state saklama.
 - Paper trading modu için sentetik veri üreticisi; ileride ccxt ile gerçek borsa entegrasyonuna hazır.
+- *Yeni:* Hisse, endeks, altın ve emtia gibi kripto dışı varlıklardan veri çekebilen (opsiyonel `yfinance`) piyasa veri katmanı.
+- *Yeni:* Portföy seviyesinde çoklu varlık çalıştırıcısı; her enstrüman için ayrı risk parametreleri ve veri klasörü ile eş zamanlı bot döngüleri.
 - FastAPI servisi aracılığıyla `/status`, `/signals`, `/equity`, `/strategy` endpoint’leri ve dahili web dashboard'u.
 - Yapay zekâ katmanı için `/ai/prediction` (tahmin) ve `/ai/question` (soru-cevap) endpoint’leri ile dashboard üzerindeki AI Insights bölümü.
 - Trump gibi politik aktörlerin kararları ve Fed faiz beklentileri gibi makro başlıkları skorlayan makro motoru; `/macro/insights` endpoint’i ve dashboard üzerindeki **Macro & News Pulse** paneli ile son katalizörleri takip eder.
@@ -17,9 +19,11 @@ algo_trading_lab/
 ├── bot/
 │   ├── ai.py           # Heuristik AI tahmincisi ve soru-cevap motoru
 │   ├── bot.py          # Ana loop ve risk yönetimi
+│   ├── market_data.py  # ccxt/yfinance/paper veri sağlayıcıları
 │   ├── exchange.py     # ccxt wrapper + paper-exchange mock
 │   ├── state.py        # JSON tabanlı state/signals/equity saklama
 │   ├── strategy.py     # EMA/RSI stratejisi ve pozisyon boyutu hesapları
+│   ├── portfolio.py    # Çoklu varlık portföy koşucusu
 │   ├── backtesting.py  # Backtest motoru
 │   └── trading.py      # Gerçek işlem yöneticisi
 ├── api/
@@ -29,6 +33,7 @@ algo_trading_lab/
 ├── test_binance_testnet.py  # Testnet bağlantı testi
 ├── run_backtest.py     # Backtest çalıştırma scripti
 ├── run_live_trading.py # Canlı trading scripti
+├── run_portfolio.py    # Çoklu varlık botunu başlatan script
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
@@ -119,9 +124,25 @@ python run_live_trading.py
    
 4. Küçük sermaye ile LIVE teste geç
    └─> Risk yönetimini doğrula
-   
+
 5. Tam sermaye ile production
 ```
+
+### 3. Portföy Botu (Çoklu Varlık)
+Kripto dışı varlıkları (hisse, ETF, altın, endeks vb.) aynı loop içinde takip etmek için yeni portföy koşucusunu kullanın.
+
+1. Örnek konfigürasyonu çoğaltın:
+   ```bash
+   cp data/portfolio.sample.json data/portfolio.json
+   ```
+2. Dosya içindeki `assets` listesine istediğiniz sembolleri ekleyin. `asset_type` alanı `crypto`, `equity`, `commodity`, `forex` gibi değerler alabilir. Yahoo Finance ile veri çekilecekse `data_symbol` alanına ilgili ticker'ı (`GC=F`, `^GSPC`, `AAPL` vb.) yazın.
+3. Toplam sermayeyi (`portfolio_capital`) ve her varlığın payını (`allocation_pct`) belirleyin. Boş bırakılanlar kalan yüzdeyi eşit böler.
+4. Botu başlatın:
+   ```bash
+   python run_portfolio.py --config data/portfolio.json
+   ```
+
+> **Not:** Hisse/emtia verisi çekebilmek için `pip install yfinance` kurulu olmalıdır. Makro duyarlılık motoru her varlık için `macro_symbol` tanımlanırsa ilgili katalizörleri ayrı ayrı raporlar.
 
 ### Ortam Değişkenleri
 1. Ortam değişkenlerini düzenleyin:

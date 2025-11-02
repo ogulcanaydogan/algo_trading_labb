@@ -1,0 +1,53 @@
+[
+  {
+    "title": "Market Analysis for BTC/USDT",
+    "timestamp": "2025-11-01T09:52:11.235544",
+    "category": "macro",
+    "sentiment": "neutral",
+    "impact": "low",
+    "bias": 0.0,
+    "actor": "LLM Analysis",
+    "assets": [
+      "BTC/USDT"
+    ],
+    "interest_rate_expectation": "neutral",
+    "summary": "The news items do not have a significant impact on the BTC/USDT price.",
+    "catalysts": [],
+    "confidence": 0.3,
+    "source": "LLM-Enhanced News Analysis"
+  },
+  {
+    "title": "Market Analysis for NVDA",
+    "timestamp": "2025-11-01T09:52:15.628343",
+    "category": "macro",
+    "sentiment": "neutral",
+    "impact": "low",
+    "bias": 0.0,
+    "actor": "LLM Analysis",
+    "assets": [
+      "NVDA"
+    ],
+    "interest_rate_expectation": "neutral",
+    "summary": "LLM analizi parse edilemedi",
+    "catalysts": [],
+    "confidence": 0.3,
+    "source": "LLM-Enhanced News Analysis"
+  },
+  {
+    "title": "Market Analysis for GC=F",
+    "timestamp": "2025-11-01T09:52:18.833243",
+    "category": "macro",
+    "sentiment": "neutral",
+    "impact": "low",
+    "bias": 0.0,
+    "actor": "LLM Analysis",
+    "assets": [
+      "GC=F"
+    ],
+    "interest_rate_expectation": "neutral",
+    "summary": "The news articles do not have a significant bullish or bearish impact on GC=F.",
+    "catalysts": [],
+    "confidence": 0.5,
+    "source": "LLM-Enhanced News Analysis"
+  }
+]

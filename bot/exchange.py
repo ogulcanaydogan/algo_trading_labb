@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import random
 from datetime import datetime, timedelta, timezone
+import re
 from typing import List, Optional
 
 import numpy as np
@@ -92,7 +93,19 @@ class PaperExchangeClient:
 
     def fetch_ohlcv(self, limit: int = 250) -> pd.DataFrame:
         now = datetime.now(timezone.utc).replace(second=0, microsecond=0)
-        freq = "1T" if self.timeframe.endswith("m") else "5T"
+        # Parse timeframe like '1m', '5m', '1h', '4h', '1d'
+        tf = self.timeframe.strip().lower()
+        match = re.match(r"^(\d+)([mhd])$", tf)
+        freq = "1min"
+        if match:
+            value = int(match.group(1))
+            unit = match.group(2)
+            if unit == "m":
+                freq = f"{value}min"
+            elif unit == "h":
+                freq = f"{value}H"
+            elif unit == "d":
+                freq = f"{value}D"
         index = pd.date_range(
             end=now,
             periods=limit,

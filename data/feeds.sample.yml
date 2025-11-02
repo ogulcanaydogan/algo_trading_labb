@@ -1,0 +1,6 @@
+# Example RSS feeds to derive macro/news events from headlines
+feeds:
+  - https://www.federalreserve.gov/feeds/press_all.xml
+  - https://www.ecb.europa.eu/press/pressconf/pressconf.rss
+  - https://finance.yahoo.com/news/rssindex
+  - https://www.investing.com/rss/news_25.rss

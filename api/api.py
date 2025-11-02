@@ -11,6 +11,8 @@ from bot.ai import FeatureSnapshot, PredictionSnapshot, QuestionAnsweringEngine
 from bot.macro import MacroInsight
 from bot.state import StateStore, create_state_store
 from bot.strategy import StrategyConfig
+from bot.market_data import sanitize_symbol_for_fs
+from bot.config_loader import load_overrides, merge_config
 
 from .schemas import (
     AIAnswerResponse,
@@ -70,8 +72,32 @@ def read_equity(store: StateStore = Depends(get_store)) -> List[EquityPointRespo
 
 
 @app.get("/strategy", response_model=StrategyOverviewResponse)
-def read_strategy_overview() -> StrategyOverviewResponse:
+def read_strategy_overview(symbol: Optional[str] = Query(default=None)) -> StrategyOverviewResponse:
+    """Return the active strategy settings.
+
+    If a symbol is provided, the API will try to load the per-asset overrides from
+    DATA_DIR/portfolio/<safe_symbol>/strategy_config.json and fall back to the
+    global DATA_DIR/strategy_config.json when not found.
+    """
     config = StrategyConfig.from_env()
+
+    # Try per-asset strategy first when query symbol is provided
+    if symbol:
+        safe = sanitize_symbol_for_fs(symbol)
+        per_asset_path = STATE_DIR / "portfolio" / safe / "strategy_config.json"
+        overrides = load_overrides(per_asset_path)
+        if overrides:
+            merged = merge_config(StrategyConfig(symbol=symbol, timeframe=config.timeframe), overrides)
+            config = merged
+        else:
+            # fall back to global overrides
+            overrides = load_overrides(STATE_DIR / "strategy_config.json")
+            if overrides:
+                config = merge_config(config, overrides)
+    else:
+        overrides = load_overrides(STATE_DIR / "strategy_config.json")
+        if overrides:
+            config = merge_config(config, overrides)
     decision_rules = [
         "Go LONG when the fast EMA crosses above the slow EMA and RSI stays below the overbought threshold.",
         "Go SHORT when the fast EMA crosses below the slow EMA and RSI stays above the oversold threshold.",
@@ -98,6 +124,51 @@ def read_strategy_overview() -> StrategyOverviewResponse:
         decision_rules=decision_rules,
         risk_management_notes=risk_notes,
     )
+
+
+@app.get("/portfolio/strategies", response_model=List[StrategyOverviewResponse])
+def list_portfolio_strategies() -> List[StrategyOverviewResponse]:
+    """Enumerate per-asset strategies found under DATA_DIR/portfolio/*/strategy_config.json."""
+    results: List[StrategyOverviewResponse] = []
+    portfolio_dir = STATE_DIR / "portfolio"
+    if not portfolio_dir.exists():
+        return results
+    for item in sorted(portfolio_dir.iterdir()):
+        strategy_file = item / "strategy_config.json"
+        if not strategy_file.exists():
+            continue
+        overrides = load_overrides(strategy_file)
+        if not overrides:
+            continue
+        symbol = str(overrides.get("symbol") or item.name)
+        timeframe = str(overrides.get("timeframe") or StrategyConfig.from_env().timeframe)
+        cfg = merge_config(StrategyConfig(symbol=symbol, timeframe=timeframe), overrides)
+        results.append(
+            StrategyOverviewResponse(
+                symbol=cfg.symbol,
+                timeframe=cfg.timeframe,
+                ema_fast=cfg.ema_fast,
+                ema_slow=cfg.ema_slow,
+                rsi_period=cfg.rsi_period,
+                rsi_overbought=cfg.rsi_overbought,
+                rsi_oversold=cfg.rsi_oversold,
+                risk_per_trade_pct=cfg.risk_per_trade_pct,
+                stop_loss_pct=cfg.stop_loss_pct,
+                take_profit_pct=cfg.take_profit_pct,
+                decision_rules=[
+                    "Go LONG when the fast EMA crosses above the slow EMA and RSI stays below the overbought threshold.",
+                    "Go SHORT when the fast EMA crosses below the slow EMA and RSI stays above the oversold threshold.",
+                    "Fallback LONG when RSI dips below the oversold threshold even without a crossover.",
+                    "Fallback SHORT when RSI rises above the overbought threshold even without a crossover.",
+                ],
+                risk_management_notes=[
+                    "Risk per trade is capped by the configured percentage of the current balance.",
+                    "Stop-loss and take-profit levels are derived from the last entry price and the configured percentages.",
+                    "Position sizing scales inversely with stop distance to maintain consistent risk exposure.",
+                ],
+            )
+        )
+    return results
 
 
 @app.get("/ai/prediction", response_model=AIPredictionResponse)
