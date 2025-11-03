@@ -68,7 +68,7 @@ class SignalEvent:
     timestamp: datetime
     symbol: str
     decision: PositionType
-    confidence: float
+    confidence: floa
     reason: str
     ai_action: Optional[str] = None
     ai_confidence: Optional[float] = None
@@ -89,7 +89,7 @@ class SignalEvent:
 @dataclass
 class EquityPoint:
     timestamp: datetime
-    value: float
+    value: floa
 
     def to_dict(self) -> Dict[str, Any]:
         payload = asdict(self)

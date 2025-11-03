@@ -39,3 +39,9 @@ pytest -q
 ```
 
 For details, see the `Jenkinsfile` in the repository root.
+
+Troubleshooting common pipeline failures
+
+- Docker Desktop paused: Jenkins running on a macOS agent or a macOS-local runner may show failures like "Docker Desktop is manually paused". Unpause Docker Desktop from the Whale menu (or start the Docker daemon) and re-run the job.
+- Missing `REGISTRY` variable: If you see errors about `No such property: REGISTRY`, set the `REGISTRY` environment variable in the job (or leave it empty and set `PUSH_IMAGES=false` to skip the push stage). The pipeline also checks for `REGISTRY` before pushing images.
+

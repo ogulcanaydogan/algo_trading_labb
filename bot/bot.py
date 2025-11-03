@@ -5,16 +5,16 @@ import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Dict, Union, cast
+from typing import Optional, Dict, Union, cas
 
 import pandas as pd
 
 from .ai import PredictionSnapshot, RuleBasedAIPredictor
-from .exchange import ExchangeClient, PaperExchangeClient
+from .exchange import ExchangeClient, PaperExchangeClien
 from .macro import MacroInsight, MacroSentimentEngine
 from .config_loader import load_overrides, merge_config
 from .state import BotState, EquityPoint, SignalEvent, StateStore, create_state_store, PositionType
-from .market_data import MarketDataError, YFinanceMarketDataClient
+from .market_data import MarketDataError, YFinanceMarketDataClien
 from .strategy import (
     StrategyConfig,
     calculate_position_size,
@@ -118,7 +118,7 @@ def create_market_client(
 
     # Check for Binance testnet configuration
     testnet_enabled = os.getenv("BINANCE_TESTNET_ENABLED", "false").lower() == "true"
-    
+
     if testnet_enabled and config.exchange_id == "binance":
         api_key = os.getenv("BINANCE_TESTNET_API_KEY")
         api_secret = os.getenv("BINANCE_TESTNET_API_SECRET")
@@ -134,7 +134,7 @@ def create_market_client(
         except RuntimeError as exc:
             logger.warning("Falling back to paper exchange: %s", exc)
             return PaperExchangeClient(symbol=config.symbol, timeframe=config.timeframe)
-    
+
     # Regular exchange configuration
     api_key = os.getenv("EXCHANGE_API_KEY")
     api_secret = os.getenv("EXCHANGE_API_SECRET")
@@ -164,7 +164,7 @@ def sync_state_with_config(store: StateStore, config: BotConfig) -> None:
     if abs(state.balance - config.starting_balance) > 1e-6:
         updates["balance"] = config.starting_balance
     if state.risk_per_trade_pct != config.risk_per_trade_pct:
-        updates["risk_per_trade_pct"] = config.risk_per_trade_pct
+        updates["risk_per_trade_pct"] = config.risk_per_trade_pc
 
     if updates:
         store.update_state(**updates)
@@ -268,7 +268,7 @@ def update_state(
     macro_insight: MacroInsight | None,
 ) -> BotState:
     decision = cast(str, signal["decision"])
-    price = float(signal["close"])  # ensure float
+    price = float(signal["close"])  # ensure floa
     state = store.state
 
     entry_price: Optional[float] = state.entry_price

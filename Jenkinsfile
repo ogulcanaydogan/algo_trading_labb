@@ -52,25 +52,40 @@ pipeline {
     stage('Build Docker images') {
       steps {
         script {
-          def tag = IMAGE_TAG
-          sh "docker build -t ${REGISTRY}api:${tag} -f Dockerfile ."
-          sh "docker build -t ${REGISTRY}bot:${tag} -f Dockerfile ."
-          sh "docker build -t ${REGISTRY}optimizer:${tag} -f Dockerfile ."
+          // Avoid Groovy interpolation of REGISTRY by using shell variables only
+          sh '''
+            registry="${REGISTRY:-}"
+            tag="${IMAGE_TAG:-local}"
+            if ! docker info > /dev/null 2>&1; then
+              echo 'Docker daemon is not available. If you are using Docker Desktop, ensure it is running/unpaused.'
+              docker info || true
+              exit 1
+            fi
+            docker build -t "${registry}api:${tag}" -f Dockerfile .
+            docker build -t "${registry}bot:${tag}" -f Dockerfile .
+            docker build -t "${registry}optimizer:${tag}" -f Dockerfile .
+          '''
         }
       }
     }
 
     stage('Push images') {
       when {
-        expression { return env.PUSH_IMAGES == 'true' }
+        // Only run push if explicitly requested and a REGISTRY is configured
+        expression { return (env.PUSH_IMAGES == 'true') && (env.REGISTRY?.trim()) }
       }
       steps {
         withCredentials([usernamePassword(credentialsId: 'docker-registry-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
           sh '''
-            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin ${REGISTRY ?: ''}
-            docker push ${REGISTRY}api:${IMAGE_TAG}
-            docker push ${REGISTRY}bot:${IMAGE_TAG}
-            docker push ${REGISTRY}optimizer:${IMAGE_TAG}
+            registry="${REGISTRY:-}"
+            if [ -z "$registry" ]; then
+              echo "REGISTRY not set, skipping push"
+              exit 0
+            fi
+            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin "$registry"
+            docker push "${registry}api:${IMAGE_TAG}"
+            docker push "${registry}bot:${IMAGE_TAG}"
+            docker push "${registry}optimizer:${IMAGE_TAG}"
           '''
         }
       }

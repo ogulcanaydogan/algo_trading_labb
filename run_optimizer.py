@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from dotenv import load_dotenv
 
-from bot.exchange import ExchangeClient, PaperExchangeClient
+from bot.exchange import ExchangeClient, PaperExchangeClien
 from bot.strategy import StrategyConfig
 from bot.optimizer import random_search_optimize, results_to_dataframe
 

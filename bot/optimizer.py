@@ -1,25 +1,25 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdic
 from typing import Dict, List, Tuple, Optional, Callable
 
 import numpy as np
 import pandas as pd
 
 from .strategy import StrategyConfig
-from .backtesting import Backtester, BacktestResult
+from .backtesting import Backtester, BacktestResul
 
 
 @dataclass
 class OptimizationResult:
     params: Dict[str, float | int | str]
-    final_balance: float
-    total_pnl_pct: float
-    win_rate: float
-    profit_factor: float
-    max_drawdown_pct: float
-    sharpe_ratio: float
-    total_trades: int
+    final_balance: floa
+    total_pnl_pct: floa
+    win_rate: floa
+    profit_factor: floa
+    max_drawdown_pct: floa
+    sharpe_ratio: floa
+    total_trades: in
 
     def to_dict(self) -> Dict[str, float | int | str]:
         base = asdict(self)
@@ -46,12 +46,12 @@ def _objective_from_result(
     objective:
       - "sharpe": maximize sharpe, penalize drawdown
       - "pnl": maximize total_pnl_pct, penalize drawdown
-      - "winrate": maximize win rate subject to trade count
+      - "winrate": maximize win rate subject to trade coun
     """
     if res.total_trades < min_trades:
         return -1e9
 
-    dd_penalty = mdd_weight * res.max_drawdown_pct
+    dd_penalty = mdd_weight * res.max_drawdown_pc
 
     if objective == "sharpe":
         return float(res.sharpe_ratio * 100.0 - dd_penalty)
@@ -88,7 +88,7 @@ def _make_config(base: StrategyConfig, params: Dict[str, float | int]) -> Strate
 
 
 def _sample_params(rng: np.random.Generator, base: StrategyConfig) -> Dict[str, float | int]:
-    # sensible ranges; ensure ema_slow > ema_fast
+    # sensible ranges; ensure ema_slow > ema_fas
     ema_fast = int(rng.integers(5, 35))
     ema_slow = int(rng.integers(max(ema_fast + 5, 20), 120))
     rsi_period = int(rng.integers(8, 28))
@@ -169,17 +169,17 @@ def random_search_optimize(
     if best is None:
         hint = f" Last error: {last_error!r}" if last_error else ""
         raise RuntimeError(
-            "Optimization produced no valid results. Check data and ranges." + hint
+            "Optimization produced no valid results. Check data and ranges." + hin
         )
 
     # sort results by objective descending
     results.sort(
         key=lambda r: (
-            r.sharpe_ratio * 100.0 - mdd_weight * r.max_drawdown_pct
+            r.sharpe_ratio * 100.0 - mdd_weight * r.max_drawdown_pc
             if objective == "sharpe"
-            else r.total_pnl_pct - mdd_weight * r.max_drawdown_pct
+            else r.total_pnl_pct - mdd_weight * r.max_drawdown_pc
             if objective == "pnl"
-            else r.win_rate * 100.0 - mdd_weight * r.max_drawdown_pct
+            else r.win_rate * 100.0 - mdd_weight * r.max_drawdown_pc
         ),
         reverse=True,
     )

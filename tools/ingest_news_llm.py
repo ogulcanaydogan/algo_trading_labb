@@ -11,9 +11,9 @@ from typing import List, Dict, Any
 import sys
 import os
 
-# LLM client'ı import et
+# LLM client'ı import e
 sys.path.insert(0, os.path.dirname(__file__))
-from llm_client import LLMClient
+from llm_client import LLMClien
 
 
 def load_feeds(feeds_file: str) -> List[str]:
@@ -26,7 +26,7 @@ def load_feeds(feeds_file: str) -> List[str]:
 def fetch_news(feed_urls: List[str], limit: int = 50) -> List[Dict[str, Any]]:
     """RSS feedlerinden haberleri çek"""
     all_entries = []
-    
+
     for url in feed_urls:
         print(f"📡 Fetching {url}...")
         try:
@@ -41,25 +41,25 @@ def fetch_news(feed_urls: List[str], limit: int = 50) -> List[Dict[str, Any]]:
                 })
         except Exception as e:
             print(f"  ⚠️  Hata: {e}")
-    
+
     print(f"✅ Toplam {len(all_entries)} haber çekildi")
     return all_entries
 
 
-def analyze_with_llm(news_items: List[Dict[str, Any]], 
+def analyze_with_llm(news_items: List[Dict[str, Any]],
                      symbols: List[str],
                      llm: LLMClient) -> List[Dict[str, Any]]:
     """
-    Her sembol için haberleri LLM ile analiz et
+    Her sembol için haberleri LLM ile analiz e
     """
     macro_events = []
-    
+
     for symbol in symbols:
         print(f"\n🤖 {symbol} için LLM analizi...")
-        
+
         # LLM'e analiz yaptır
         analysis = llm.analyze_news(news_items, symbol)
-        
+
         # MacroEvent formatına çevir
         event = {
             "title": f"Market Analysis for {symbol}",
@@ -76,36 +76,36 @@ def analyze_with_llm(news_items: List[Dict[str, Any]],
             "confidence": analysis.get("confidence", 0.5),
             "source": "LLM-Enhanced News Analysis"
         }
-        
+
         macro_events.append(event)
-        
+
         # Sonuçları göster
         print(f"  📊 Sentiment: {event['sentiment']}")
         print(f"  ⚡ Impact: {event['impact']}")
         print(f"  📈 Bias Score: {event['bias']:.2f}")
         print(f"  💯 Confidence: {event['confidence']:.2f}")
         print(f"  📝 Summary: {event['summary'][:100]}...")
-    
+
     return macro_events
 
 
-def classify_news_basic(news_items: List[Dict[str, Any]], 
+def classify_news_basic(news_items: List[Dict[str, Any]],
                        symbols: List[str]) -> List[Dict[str, Any]]:
     """
     Basit keyword-based sınıflandırma (LLM olmadan fallback)
     """
     from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
     analyzer = SentimentIntensityAnalyzer()
-    
+
     macro_events = []
-    
+
     for item in news_items:
         title = item['title']
-        
-        # VADER sentiment
+
+        # VADER sentimen
         scores = analyzer.polarity_scores(title)
         compound = scores['compound']
-        
+
         # Sentiment mapping
         if compound > 0.3:
             sentiment = "bullish"
@@ -116,30 +116,30 @@ def classify_news_basic(news_items: List[Dict[str, Any]],
         else:
             sentiment = "neutral"
             bias = 0.0
-        
+
         # Impact (basit keyword matching)
         impact_keywords = {
             'critical': ['crash', 'collapse', 'crisis', 'emergency'],
             'high': ['fed', 'rate', 'inflation', 'gdp', 'unemployment'],
             'medium': ['earnings', 'report', 'forecast', 'outlook'],
         }
-        
+
         impact = "low"
         for level, keywords in impact_keywords.items():
             if any(kw in title.lower() for kw in keywords):
                 impact = level
                 break
-        
+
         # Affected assets (basit matching)
         affected = []
         for symbol in symbols:
             symbol_keywords = symbol.replace('/', ' ').replace('-', ' ').split()
             if any(kw.lower() in title.lower() for kw in symbol_keywords):
                 affected.append(symbol)
-        
+
         if not affected:
             affected = symbols  # Tüm varlıkları etkiler
-        
+
         event = {
             "title": title,
             "timestamp": item.get('published', datetime.now().isoformat()),
@@ -154,9 +154,9 @@ def classify_news_basic(news_items: List[Dict[str, Any]],
             "link": item.get('link', ''),
             "source": item.get('source', 'Unknown')
         }
-        
+
         macro_events.append(event)
-    
+
     return macro_events
 
 
@@ -167,35 +167,35 @@ def main():
     parser.add_argument('--symbols', required=True, help='Comma-separated symbols (e.g., BTC/USDT,NVDA,GC=F)')
     parser.add_argument('--use-llm', action='store_true', help='Use LLM for analysis (default: basic VADER)')
     parser.add_argument('--limit', type=int, default=50, help='Max news per feed')
-    
+
     args = parser.parse_args()
-    
-    # Sembolleri parse et
+
+    # Sembolleri parse e
     symbols = [s.strip() for s in args.symbols.split(',')]
-    
+
     print("="*60)
     print("📰 LLM-ENHANCED NEWS INGESTION")
     print("="*60)
     print(f"📋 Symbols: {', '.join(symbols)}")
     print(f"🤖 LLM Analysis: {'Enabled' if args.use_llm else 'Disabled (VADER only)'}")
     print("="*60)
-    
+
     # RSS feedlerini yükle
     feed_urls = load_feeds(args.feeds)
     print(f"\n📡 {len(feed_urls)} RSS feed yüklendi")
-    
+
     # Haberleri çek
     news_items = fetch_news(feed_urls, limit=args.limit)
-    
+
     if not news_items:
         print("❌ Hiç haber çekilemedi!")
         return
-    
+
     # Analiz yap
     if args.use_llm:
         # LLM ile analiz
         llm = LLMClient()
-        
+
         if not llm.health_check():
             print("\n⚠️  LLM servisi çalışmıyor!")
             print("💡 'ollama serve' komutu ile başlatın veya --use-llm olmadan çalıştırın")
@@ -208,15 +208,15 @@ def main():
         # Basit VADER analizi
         print("\n📊 VADER sentiment analizi yapılıyor...\n")
         macro_events = classify_news_basic(news_items, symbols)
-    
-    # JSON olarak kaydet
+
+    # JSON olarak kayde
     with open(args.out, 'w', encoding='utf-8') as f:
         json.dump(macro_events, f, indent=2, ensure_ascii=False)
-    
+
     print("\n" + "="*60)
     print(f"✅ {len(macro_events)} event yazıldı: {args.out}")
     print("="*60)
-    
+
     # Özet istatistikler
     sentiments = {}
     impacts = {}
@@ -225,11 +225,11 @@ def main():
         imp = event['impact']
         sentiments[sent] = sentiments.get(sent, 0) + 1
         impacts[imp] = impacts.get(imp, 0) + 1
-    
+
     print("\n📊 Sentiment Dağılımı:")
     for sent, count in sentiments.items():
         print(f"  {sent:10s}: {count}")
-    
+
     print("\n⚡ Impact Dağılımı:")
     for imp, count in impacts.items():
         print(f"  {imp:10s}: {count}")

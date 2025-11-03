@@ -14,12 +14,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # noqa: E402
 
-from bot.exchange import ExchangeClient, PaperExchangeClient
-from bot.strategy import StrategyConfig
-from bot.optimizer import random_search_optimize
-from typing import Dict, Union
+from bot.exchange import ExchangeClient, PaperExchangeClient  # noqa: E402
+from bot.strategy import StrategyConfig  # noqa: E402
+from bot.optimizer import random_search_optimize  # noqa: E402
+from typing import Dict, Union  # noqa: E402
 
 
 def fetch_data(symbol: str, timeframe: str, lookback: int):

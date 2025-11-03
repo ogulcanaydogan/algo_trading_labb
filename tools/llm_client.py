@@ -4,27 +4,27 @@ Connects to local Ollama instance for trading strategy assistance
 """
 import requests
 import json
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, Lis
 from datetime import datetime
 
 
 class LLMClient:
     """Client for interacting with local LLM (Ollama)"""
-    
+
     def __init__(self, base_url: str = "http://localhost:11434", model: str = "mistral"):
         self.base_url = base_url
         self.model = model
-        self.timeout = 120  # 2 dakika timeout
-    
+        self.timeout = 120  # 2 dakika timeou
+
     def ask(self, prompt: str, system_prompt: Optional[str] = None, temperature: float = 0.7) -> str:
         """
         LLM'e soru sor ve cevap al
-        
+
         Args:
             prompt: Kullanıcı sorusu
             system_prompt: Sistem rolü (opsiyonel)
             temperature: Yaratıcılık seviyesi (0.0-1.0)
-        
+
         Returns:
             LLM'in cevabı
         """
@@ -36,31 +36,31 @@ class LLMClient:
                 "temperature": temperature
             }
         }
-        
+
         if system_prompt:
-            payload["system"] = system_prompt
-        
+            payload["system"] = system_promp
+
         try:
             response = requests.post(
                 f"{self.base_url}/api/generate",
                 json=payload,
-                timeout=self.timeout
+                timeout=self.timeou
             )
             response.raise_for_status()
             result = response.json()
             return result.get("response", "").strip()
-        
+
         except requests.exceptions.RequestException as e:
             return f"❌ LLM bağlantı hatası: {e}"
-    
+
     def analyze_news(self, news_items: List[Dict[str, Any]], symbol: str) -> Dict[str, Any]:
         """
         Haberleri analiz et ve sentiment + impact döndür
-        
+
         Args:
             news_items: Haber listesi (title, summary vb.)
             symbol: Sembol (BTC/USDT, NVDA, vb.)
-        
+
         Returns:
             {
                 "sentiment": "bullish" | "bearish" | "neutral",
@@ -76,11 +76,11 @@ class LLMClient:
             f"- {item.get('title', '')} ({item.get('published', 'N/A')})"
             for item in news_items[-10:]  # Son 10 haber
         ])
-        
-        system_prompt = """Sen bir finansal analist ve trading uzmanısın. 
+
+        system_prompt = """Sen bir finansal analist ve trading uzmanısın.
 Haberleri analiz edip bir varlığın fiyatına muhtemel etkisini değerlendiriyorsun.
 Cevabını JSON formatında ver."""
-        
+
         prompt = f"""
 Aşağıdaki haberler {symbol} sembolü ile ilgili:
 
@@ -99,19 +99,19 @@ Lütfen bu haberleri analiz et ve şu JSON formatında cevap ver:
 
 SADECE JSON döndür, başka açıklama ekleme.
 """
-        
+
         response = self.ask(prompt, system_prompt=system_prompt, temperature=0.3)
-        
-        # JSON parse et
+
+        # JSON parse e
         try:
             # JSON'u çıkar (eğer markdown code block içindeyse)
             if "```json" in response:
                 response = response.split("```json")[1].split("```")[0].strip()
             elif "```" in response:
                 response = response.split("```")[1].split("```")[0].strip()
-            
+
             result = json.loads(response)
-            return result
+            return resul
         except json.JSONDecodeError:
             # Parse edilemezse default değerler
             return {
@@ -122,25 +122,25 @@ SADECE JSON döndür, başka açıklama ekleme.
                 "summary": "LLM analizi parse edilemedi",
                 "catalysts": []
             }
-    
-    def suggest_strategy(self, 
-                        symbol: str, 
+
+    def suggest_strategy(self,
+                        symbol: str,
                         historical_performance: Dict[str, Any],
                         market_conditions: Dict[str, Any]) -> str:
         """
         Mevcut performans ve piyasa koşullarına göre strateji önerisi
-        
+
         Args:
             symbol: Sembol
             historical_performance: Backtest sonuçları
             market_conditions: Piyasa durumu (volatilite, trend, vb.)
-        
+
         Returns:
             Strateji önerisi metni
         """
         system_prompt = """Sen bir algoritmik trading stratejisti ve quantitative analistisin.
 Backtest sonuçlarını ve piyasa koşullarını analiz edip strateji iyileştirmeleri öneriyorsun."""
-        
+
         prompt = f"""
 Sembol: {symbol}
 
@@ -164,30 +164,30 @@ Bu performansı iyileştirmek için:
 
 Lütfen somut, uygulanabilir öneriler ver.
 """
-        
+
         return self.ask(prompt, system_prompt=system_prompt, temperature=0.7)
-    
-    def optimize_parameters(self, 
+
+    def optimize_parameters(self,
                            symbol: str,
                            current_params: Dict[str, Any],
                            performance_history: List[Dict[str, Any]]) -> str:
         """
         Parametre optimizasyonu önerisi
-        
+
         Args:
             symbol: Sembol
             current_params: Mevcut parametreler
             performance_history: Farklı parametre kombinasyonlarının performansı
-        
+
         Returns:
             Optimizasyon önerisi
         """
         system_prompt = """Sen bir parametre optimizasyon uzmanısın.
 Grid search veya Bayesian optimization sonuçlarını yorumlayıp en iyi yaklaşımı öneriyorsun."""
-        
+
         # En iyi 5 kombinasyonu al
         top_5 = sorted(performance_history, key=lambda x: x.get('sharpe_ratio', 0), reverse=True)[:5]
-        
+
         prompt = f"""
 Sembol: {symbol}
 
@@ -205,25 +205,25 @@ Bu sonuçlara bakarak:
 
 Somut sayısal öneriler ver.
 """
-        
+
         return self.ask(prompt, system_prompt=system_prompt, temperature=0.5)
-    
-    def explain_trade(self, 
+
+    def explain_trade(self,
                      trade_data: Dict[str, Any],
                      market_context: Dict[str, Any]) -> str:
         """
         Bir işlemin neden açıldığını/kapatıldığını açıkla
-        
+
         Args:
             trade_data: İşlem detayları
             market_context: Piyasa durumu
-        
+
         Returns:
             Açıklama metni
         """
-        system_prompt = """Sen bir trading educator'ısın. 
+        system_prompt = """Sen bir trading educator'ısın.
 İşlemleri açık ve anlaşılır şekilde açıklıyorsun."""
-        
+
         prompt = f"""
 İşlem Detayları:
 - Side: {trade_data.get('side', 'N/A')}
@@ -238,12 +238,12 @@ Piyasa Durumu:
 - RSI: {market_context.get('rsi', 'N/A')}
 - Fiyat: ${market_context.get('price', 'N/A')}
 
-Bu işlemi neden açtık ve neden bu şekilde kapandı? 
+Bu işlemi neden açtık ve neden bu şekilde kapandı?
 Teknik analizle açıkla (2-3 cümle).
 """
-        
+
         return self.ask(prompt, system_prompt=system_prompt, temperature=0.5)
-    
+
     def health_check(self) -> bool:
         """LLM servisinin çalışıp çalışmadığını kontrol et"""
         try:
@@ -258,27 +258,27 @@ _llm_client = None
 
 def get_llm_client(model: str = "mistral") -> LLMClient:
     """Singleton LLM client al"""
-    global _llm_client
+    global _llm_clien
     if _llm_client is None:
         _llm_client = LLMClient(model=model)
-    return _llm_client
+    return _llm_clien
 
 
 if __name__ == "__main__":
-    # Test
+    # Tes
     client = LLMClient()
-    
+
     print("🔍 LLM Health Check...")
     if client.health_check():
         print("✅ LLM servisi çalışıyor!")
     else:
         print("❌ LLM servisi yanıt vermiyor. 'ollama serve' çalıştırın.")
         exit(1)
-    
+
     print("\n🤖 Test Sorusu...")
     response = client.ask("Bitcoin için EMA crossover stratejisi ne zaman long pozisyon açar? Kısa açıkla.")
     print(f"Cevap: {response}")
-    
+
     print("\n📰 Haber Analizi Test...")
     test_news = [
         {"title": "Fed faiz artırımına devam edeceğini açıkladı", "published": "2025-11-01"},

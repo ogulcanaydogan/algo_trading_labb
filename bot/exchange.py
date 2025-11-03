@@ -34,14 +34,14 @@ class ExchangeClient:
             )
         self.exchange_id = exchange_id
         self.sandbox = sandbox
-        self.testnet = testnet
+        self.testnet = testne
         exchange_class = getattr(ccxt, exchange_id)
-        
+
         config = {
             "apiKey": api_key,
             "secret": api_secret,
         }
-        
+
         # Binance Testnet configuration
         if testnet and exchange_id == "binance":
             config["urls"] = {
@@ -50,9 +50,9 @@ class ExchangeClient:
                     "private": "https://testnet.binance.vision/api",
                 }
             }
-        
+
         self.client = exchange_class(config)
-        
+
         if sandbox and hasattr(self.client, "set_sandbox_mode"):
             self.client.set_sandbox_mode(True)
 

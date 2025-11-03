@@ -8,27 +8,27 @@ import pandas as pd
 
 from .state import BotState
 from .strategy import StrategyConfig
-from .macro import MacroInsight
+from .macro import MacroInsigh
 
 
 @dataclass
 class FeatureSnapshot:
-    ema_gap_pct: float
-    momentum_pct: float
-    rsi_distance_from_mid: float
-    volatility_pct: float
+    ema_gap_pct: floa
+    momentum_pct: floa
+    rsi_distance_from_mid: floa
+    volatility_pct: floa
 
 
 @dataclass
 class PredictionSnapshot:
     recommended_action: str
-    confidence: float
-    probability_long: float
-    probability_short: float
-    probability_flat: float
-    expected_move_pct: float
+    confidence: floa
+    probability_long: floa
+    probability_short: floa
+    probability_flat: floa
+    expected_move_pct: floa
     summary: str
-    features: FeatureSnapshot
+    features: FeatureSnapsho
     macro_bias: float = 0.0
     macro_confidence: float = 0.0
     macro_summary: str = ""
@@ -301,7 +301,7 @@ class QuestionAnsweringEngine:
         ai_snapshot: Optional[PredictionSnapshot],
         macro_insight: Optional[MacroInsight],
     ) -> str:
-        del ai_snapshot
+        del ai_snapsho
         base = (
             f"Risk per trade is capped at {self.config.risk_per_trade_pct}% of the balance. "
             f"Stop-loss is set at {self.config.stop_loss_pct * 100:.2f}% and take-profit at {self.config.take_profit_pct * 100:.2f}%."
@@ -339,7 +339,7 @@ class QuestionAnsweringEngine:
         ai_snapshot: Optional[PredictionSnapshot],
         macro_insight: Optional[MacroInsight],
     ) -> str:
-        del ai_snapshot
+        del ai_snapsho
         parts: List[str] = []
         if macro_insight:
             parts.append(macro_insight.summary)

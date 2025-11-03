@@ -3,9 +3,9 @@ from __future__ import annotations
 Ingest RSS headlines and convert them into macro events usable by MacroSentimentEngine.
 
 Usage:
-  python tools/ingest_news_to_macro_events.py \
-    --feeds feeds.sample.yml \
-    --out data/macro_events.news.json \
+  python tools/ingest_news_to_macro_events.py
+    --feeds feeds.sample.yml
+    --out data/macro_events.news.json
     --symbols BTC/USDT,ETH/USDT,AAPL
 
 Notes:
@@ -17,7 +17,7 @@ import argparse
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable, Lis
 
 import feedparser  # type: ignore
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer  # type: ignore

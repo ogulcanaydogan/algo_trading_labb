@@ -4,7 +4,7 @@ Portfolio-wide optimizer: iterates assets from data/portfolio.json and produces
 per-asset strategy files under data/portfolio/<asset>/strategy_config.json.
 
 Uses:
-- Crypto: ExchangeClient (testnet if configured) or PaperExchangeClient
+- Crypto: ExchangeClient (testnet if configured) or PaperExchangeClien
 - Equities/Commodities/Forex: YFinanceMarketDataClient (falls back to Paper)
 
 This does not place orders; it only searches for parameters and writes configs.
@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 
 from bot.portfolio import PortfolioConfig
 from bot.market_data import sanitize_symbol_for_fs
-from bot.exchange import ExchangeClient, PaperExchangeClient
+from bot.exchange import ExchangeClient, PaperExchangeClien
 from bot.market_data import YFinanceMarketDataClient, MarketDataError
 from bot.strategy import StrategyConfig
 from bot.optimizer import random_search_optimize

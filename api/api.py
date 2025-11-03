@@ -8,7 +8,7 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse
 
 from bot.ai import FeatureSnapshot, PredictionSnapshot, QuestionAnsweringEngine
-from bot.macro import MacroInsight
+from bot.macro import MacroInsigh
 from bot.state import StateStore, create_state_store
 from bot.strategy import StrategyConfig
 from bot.market_data import sanitize_symbol_for_fs
