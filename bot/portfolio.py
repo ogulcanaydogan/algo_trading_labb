@@ -181,13 +181,13 @@ class PortfolioRunner:
             paper_mode=self._resolve_paper_mode(asset.paper_mode),
             exchange_id=asset.exchange_id or self.config.default_exchange_id,
             starting_balance=starting_balance,
-            risk_per_trade_pct=asset.risk_per_trade_pc
+            risk_per_trade_pct=asset.risk_per_trade_pct
             if asset.risk_per_trade_pct is not None
             else self.config.default_risk_per_trade_pct,
-            stop_loss_pct=asset.stop_loss_pc
+            stop_loss_pct=asset.stop_loss_pct
             if asset.stop_loss_pct is not None
             else self.config.default_stop_loss_pct,
-            take_profit_pct=asset.take_profit_pc
+            take_profit_pct=asset.take_profit_pct
             if asset.take_profit_pct is not None
             else self.config.default_take_profit_pct,
             data_dir=data_dir,
@@ -234,4 +234,3 @@ class PortfolioRunner:
         if asset_value is None:
             return self.config.default_paper_mode
         return bool(asset_value)
-

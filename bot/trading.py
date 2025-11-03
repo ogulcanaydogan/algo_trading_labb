@@ -40,7 +40,7 @@ class TradingManager:
         min_order_size: float = 0.001,   # Minimum emir büyüklüğü
         dry_run: bool = True,            # True = sadece log, gerçek emir gönderme
     ):
-        self.client = exchange_clien
+        self.client = exchange_client
         self.symbol = symbol
         self.max_position_size = max_position_size
         self.min_order_size = min_order_size
@@ -170,7 +170,7 @@ class TradingManager:
 
     def close_position(self, reason: str = "Manual close") -> OrderResult:
         """
-        Mevcut pozisyonu kapa
+        Mevcut pozisyonu kapat
 
         Args:
             reason: Kapatma nedeni
@@ -221,10 +221,10 @@ class TradingManager:
             )
         else:
             try:
-                # Bekleyen stop/tp emirlerini iptal e
+                # Bekleyen stop/tp emirlerini iptal et
                 self._cancel_pending_orders()
 
-                # Pozisyonu kapa
+                # Pozisyonu kapat
                 order = self.client.client.create_market_order(
                     symbol=self.symbol,
                     side=side,
@@ -253,7 +253,7 @@ class TradingManager:
         Pozisyon çıkış kontrolü (stop loss / take profit)
 
         Args:
-            current_price: Güncel fiya
+            current_price: Güncel fiyat
 
         Returns:
             Çıkış nedeni veya None

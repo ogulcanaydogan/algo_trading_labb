@@ -4,16 +4,13 @@ Haberleri RSS'ten çeker, LLM ile analiz eder ve macro events dosyasına yazar
 """
 import argparse
 import json
-import yaml
-import feedparser
 from datetime import datetime
-from typing import List, Dict, Any
-import sys
-import os
+from typing import Any, Dict, List
 
-# LLM client'ı import e
-sys.path.insert(0, os.path.dirname(__file__))
-from llm_client import LLMClien
+import feedparser
+import yaml
+
+from llm_client import LLMClient
 
 
 def load_feeds(feeds_file: str) -> List[str]:
@@ -46,11 +43,13 @@ def fetch_news(feed_urls: List[str], limit: int = 50) -> List[Dict[str, Any]]:
     return all_entries
 
 
-def analyze_with_llm(news_items: List[Dict[str, Any]],
-                     symbols: List[str],
-                     llm: LLMClient) -> List[Dict[str, Any]]:
+def analyze_with_llm(
+    news_items: List[Dict[str, Any]],
+    symbols: List[str],
+    llm: LLMClient,
+) -> List[Dict[str, Any]]:
     """
-    Her sembol için haberleri LLM ile analiz e
+    Her sembol için haberleri LLM ile analiz et
     """
     macro_events = []
 
@@ -89,8 +88,10 @@ def analyze_with_llm(news_items: List[Dict[str, Any]],
     return macro_events
 
 
-def classify_news_basic(news_items: List[Dict[str, Any]],
-                       symbols: List[str]) -> List[Dict[str, Any]]:
+def classify_news_basic(
+    news_items: List[Dict[str, Any]],
+    symbols: List[str],
+) -> List[Dict[str, Any]]:
     """
     Basit keyword-based sınıflandırma (LLM olmadan fallback)
     """
@@ -102,7 +103,7 @@ def classify_news_basic(news_items: List[Dict[str, Any]],
     for item in news_items:
         title = item['title']
 
-        # VADER sentimen
+        # VADER sentiment
         scores = analyzer.polarity_scores(title)
         compound = scores['compound']
 
@@ -170,7 +171,7 @@ def main():
 
     args = parser.parse_args()
 
-    # Sembolleri parse e
+    # Sembolleri parse et
     symbols = [s.strip() for s in args.symbols.split(',')]
 
     print("="*60)
@@ -209,7 +210,7 @@ def main():
         print("\n📊 VADER sentiment analizi yapılıyor...\n")
         macro_events = classify_news_basic(news_items, symbols)
 
-    # JSON olarak kayde
+    # JSON olarak kaydet
     with open(args.out, 'w', encoding='utf-8') as f:
         json.dump(macro_events, f, indent=2, ensure_ascii=False)
 

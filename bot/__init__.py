@@ -10,4 +10,3 @@ __all__ = [
     "PortfolioRunner",
     "run_loop",
 ]
-

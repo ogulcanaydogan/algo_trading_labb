@@ -6,17 +6,17 @@ DRY RUN modu ile önce güvenli test yapmanız önerilir.
 """
 
 import os
-import sys
 import time
-from pathlib import Path
 
-# Proje root'unu path'e ekle
-sys.path.insert(0, str(Path(__file__).parent))
-
-from dotenv import load_dotenv  # noqa: E402
-from bot.exchange import ExchangeClient  # noqa: E402
-from bot.strategy import StrategyConfig, compute_indicators, generate_signal, calculate_position_size  # noqa: E402
-from bot.trading import TradingManager  # noqa: E402
+from dotenv import load_dotenv
+from bot.exchange import ExchangeClient
+from bot.strategy import (
+    StrategyConfig,
+    calculate_position_size,
+    compute_indicators,
+    generate_signal,
+)
+from bot.trading import TradingManager
 
 # .env dosyasını yükle
 load_dotenv()
@@ -120,9 +120,9 @@ def run_live_trading():
             iteration += 1
             start_time = time.time()
 
-            print(f"\n{'='*60}")
+            print("\n" + "=" * 60)
             print(f"İTERASYON #{iteration} - {time.strftime('%Y-%m-%d %H:%M:%S')}")
-            print(f"{'='*60}")
+            print("=" * 60)
 
             try:
                 # 1. Veri çek
@@ -155,7 +155,7 @@ def run_live_trading():
                 else:
                     print("\n📊 Açık pozisyon yok")
 
-                    # 3. Sinyal üre
+                    # 3. Sinyal üret
                     print("\n🔍 Sinyal analizi...")
                     enriched = compute_indicators(ohlcv, config)
                     signal = generate_signal(enriched, config)
@@ -176,9 +176,7 @@ def run_live_trading():
                         try:
                             balance_info = exchange.client.fetch_balance()
                             usdt_balance = balance_info.get("USDT", {}).get("free", 10000)
-                        except Exception as exc:
-                            # Eğer bakiye çekilemezse varsayılan tutarı kullan
-                            print(f"⚠️  Balance fetch failed, using default 10000: {exc}")
+                        except Exception:
                             usdt_balance = 10000  # Varsayılan
 
                         size = calculate_position_size(

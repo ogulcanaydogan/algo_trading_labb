@@ -4,7 +4,7 @@ Portfolio-wide optimizer: iterates assets from data/portfolio.json and produces
 per-asset strategy files under data/portfolio/<asset>/strategy_config.json.
 
 Uses:
-- Crypto: ExchangeClient (testnet if configured) or PaperExchangeClien
+- Crypto: ExchangeClient (testnet if configured) or PaperExchangeClient
 - Equities/Commodities/Forex: YFinanceMarketDataClient (falls back to Paper)
 
 This does not place orders; it only searches for parameters and writes configs.
@@ -13,13 +13,13 @@ This does not place orders; it only searches for parameters and writes configs.
 import json
 import os
 from pathlib import Path
-from typing import Dict, Tuple, Union
+from typing import Dict, Union
 
 from dotenv import load_dotenv
 
 from bot.portfolio import PortfolioConfig
 from bot.market_data import sanitize_symbol_for_fs
-from bot.exchange import ExchangeClient, PaperExchangeClien
+from bot.exchange import ExchangeClient, PaperExchangeClient
 from bot.market_data import YFinanceMarketDataClient, MarketDataError
 from bot.strategy import StrategyConfig
 from bot.optimizer import random_search_optimize
@@ -49,7 +49,16 @@ def _fetch_ohlcv(asset_type: str, symbol: str, timeframe: str, lookback: int):
     return ex.fetch_ohlcv(limit=lookback)
 
 
-essentials = ("ema_fast","ema_slow","rsi_period","rsi_overbought","rsi_oversold","risk_per_trade_pct","stop_loss_pct","take_profit_pct")
+essentials = (
+    "ema_fast",
+    "ema_slow",
+    "rsi_period",
+    "rsi_overbought",
+    "rsi_oversold",
+    "risk_per_trade_pct",
+    "stop_loss_pct",
+    "take_profit_pct",
+)
 
 
 def _save_params(base: StrategyConfig, params: Dict[str, Union[int, float, str]], out_dir: Path) -> Path:
@@ -95,15 +104,26 @@ def main() -> None:
         )
         asset_dir = cfg.data_dir / sanitize_symbol_for_fs(symbol)
         out = _save_params(base, best.params, asset_dir)
-        print(f"✅ Wrote {out} | Sharpe={best.sharpe_ratio:.3f} PnL%={best.total_pnl_pct:.2f} Win%={best.win_rate*100:.1f} MDD%={best.max_drawdown_pct:.2f}")
-        results.append({
-            "symbol": symbol,
-            "timeframe": timeframe,
-            "sharpe": best.sharpe_ratio,
-            "pnl_pct": best.total_pnl_pct,
-            "win_rate": best.win_rate,
-            "mdd_pct": best.max_drawdown_pct,
-        })
+        print(
+            "✅ Wrote %s | Sharpe=%.3f PnL%%=%.2f Win%%=%.1f MDD%%=%.2f"
+            % (
+                out,
+                best.sharpe_ratio,
+                best.total_pnl_pct,
+                best.win_rate * 100,
+                best.max_drawdown_pct,
+            )
+        )
+        results.append(
+            {
+                "symbol": symbol,
+                "timeframe": timeframe,
+                "sharpe": best.sharpe_ratio,
+                "pnl_pct": best.total_pnl_pct,
+                "win_rate": best.win_rate,
+                "mdd_pct": best.max_drawdown_pct,
+            }
+        )
 
     # naive allocation suggestion proportional to Sharpe over positive Sharpe assets
     positive = [r for r in results if r["sharpe"] > 0]

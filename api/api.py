@@ -8,7 +8,7 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse
 
 from bot.ai import FeatureSnapshot, PredictionSnapshot, QuestionAnsweringEngine
-from bot.macro import MacroInsigh
+from bot.macro import MacroInsight
 from bot.state import StateStore, create_state_store
 from bot.strategy import StrategyConfig
 from bot.market_data import sanitize_symbol_for_fs
@@ -156,14 +156,23 @@ def list_portfolio_strategies() -> List[StrategyOverviewResponse]:
                 stop_loss_pct=cfg.stop_loss_pct,
                 take_profit_pct=cfg.take_profit_pct,
                 decision_rules=[
-                    "Go LONG when the fast EMA crosses above the slow EMA and RSI stays below the overbought threshold.",
-                    "Go SHORT when the fast EMA crosses below the slow EMA and RSI stays above the oversold threshold.",
+                    (
+                        "Go LONG when the fast EMA crosses above the slow EMA and "
+                        "RSI stays below the overbought threshold."
+                    ),
+                    (
+                        "Go SHORT when the fast EMA crosses below the slow EMA and "
+                        "RSI stays above the oversold threshold."
+                    ),
                     "Fallback LONG when RSI dips below the oversold threshold even without a crossover.",
                     "Fallback SHORT when RSI rises above the overbought threshold even without a crossover.",
                 ],
                 risk_management_notes=[
                     "Risk per trade is capped by the configured percentage of the current balance.",
-                    "Stop-loss and take-profit levels are derived from the last entry price and the configured percentages.",
+                    (
+                        "Stop-loss and take-profit levels are derived from the last entry price "
+                        "and the configured percentages."
+                    ),
                     "Position sizing scales inversely with stop distance to maintain consistent risk exposure.",
                 ],
             )
@@ -297,4 +306,3 @@ def load_dashboard_template() -> str:
 async def dashboard() -> HTMLResponse:
     """Serve a lightweight HTML dashboard for quick monitoring."""
     return HTMLResponse(content=load_dashboard_template())
-

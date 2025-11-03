@@ -199,4 +199,3 @@ def sanitize_symbol_for_fs(symbol: str) -> str:
     """Utility to build filesystem-friendly folder names for a trading symbol."""
 
     return "".join(ch if ch.isalnum() else "_" for ch in symbol).strip("_")
-

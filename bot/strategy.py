@@ -128,9 +128,8 @@ def calculate_position_size(
     Basic fixed-fraction position sizing model.
     """
     risk_amount = balance * (risk_pct / 100)
-    stop_distance = price * stop_loss_pc
+    stop_distance = price * stop_loss_pct
     if stop_distance <= 0:
         return 0.0
     size = risk_amount / stop_distance
     return max(size, 0.0)
-

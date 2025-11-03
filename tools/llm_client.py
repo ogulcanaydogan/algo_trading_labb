@@ -2,10 +2,10 @@
 LLM Client for Strategy Development and News Analysis
 Connects to local Ollama instance for trading strategy assistance
 """
-import requests
 import json
-from typing import Optional, Dict, Any, Lis
-from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+import requests
 
 
 class LLMClient:
@@ -14,7 +14,7 @@ class LLMClient:
     def __init__(self, base_url: str = "http://localhost:11434", model: str = "mistral"):
         self.base_url = base_url
         self.model = model
-        self.timeout = 120  # 2 dakika timeou
+        self.timeout = 120  # 2 dakika timeout
 
     def ask(self, prompt: str, system_prompt: Optional[str] = None, temperature: float = 0.7) -> str:
         """
@@ -38,13 +38,13 @@ class LLMClient:
         }
 
         if system_prompt:
-            payload["system"] = system_promp
+            payload["system"] = system_prompt
 
         try:
             response = requests.post(
                 f"{self.base_url}/api/generate",
                 json=payload,
-                timeout=self.timeou
+                timeout=self.timeout
             )
             response.raise_for_status()
             result = response.json()
@@ -53,7 +53,11 @@ class LLMClient:
         except requests.exceptions.RequestException as e:
             return f"❌ LLM bağlantı hatası: {e}"
 
-    def analyze_news(self, news_items: List[Dict[str, Any]], symbol: str) -> Dict[str, Any]:
+    def analyze_news(
+        self,
+        news_items: List[Dict[str, Any]],
+        symbol: str,
+    ) -> Dict[str, Any]:
         """
         Haberleri analiz et ve sentiment + impact döndür
 
@@ -72,10 +76,12 @@ class LLMClient:
             }
         """
         # Haberleri metne dönüştür
-        news_text = "\n".join([
-            f"- {item.get('title', '')} ({item.get('published', 'N/A')})"
-            for item in news_items[-10:]  # Son 10 haber
-        ])
+        news_text = "\n".join(
+            [
+                f"- {item.get('title', '')} ({item.get('published', 'N/A')})"
+                for item in news_items[-10:]  # Son 10 haber
+            ]
+        )
 
         system_prompt = """Sen bir finansal analist ve trading uzmanısın.
 Haberleri analiz edip bir varlığın fiyatına muhtemel etkisini değerlendiriyorsun.
@@ -102,7 +108,7 @@ SADECE JSON döndür, başka açıklama ekleme.
 
         response = self.ask(prompt, system_prompt=system_prompt, temperature=0.3)
 
-        # JSON parse e
+        # JSON parse et
         try:
             # JSON'u çıkar (eğer markdown code block içindeyse)
             if "```json" in response:
@@ -110,8 +116,7 @@ SADECE JSON döndür, başka açıklama ekleme.
             elif "```" in response:
                 response = response.split("```")[1].split("```")[0].strip()
 
-            result = json.loads(response)
-            return resul
+            return json.loads(response)
         except json.JSONDecodeError:
             # Parse edilemezse default değerler
             return {
@@ -123,10 +128,12 @@ SADECE JSON döndür, başka açıklama ekleme.
                 "catalysts": []
             }
 
-    def suggest_strategy(self,
-                        symbol: str,
-                        historical_performance: Dict[str, Any],
-                        market_conditions: Dict[str, Any]) -> str:
+    def suggest_strategy(
+        self,
+        symbol: str,
+        historical_performance: Dict[str, Any],
+        market_conditions: Dict[str, Any],
+    ) -> str:
         """
         Mevcut performans ve piyasa koşullarına göre strateji önerisi
 
@@ -167,10 +174,12 @@ Lütfen somut, uygulanabilir öneriler ver.
 
         return self.ask(prompt, system_prompt=system_prompt, temperature=0.7)
 
-    def optimize_parameters(self,
-                           symbol: str,
-                           current_params: Dict[str, Any],
-                           performance_history: List[Dict[str, Any]]) -> str:
+    def optimize_parameters(
+        self,
+        symbol: str,
+        current_params: Dict[str, Any],
+        performance_history: List[Dict[str, Any]],
+    ) -> str:
         """
         Parametre optimizasyonu önerisi
 
@@ -186,7 +195,11 @@ Lütfen somut, uygulanabilir öneriler ver.
 Grid search veya Bayesian optimization sonuçlarını yorumlayıp en iyi yaklaşımı öneriyorsun."""
 
         # En iyi 5 kombinasyonu al
-        top_5 = sorted(performance_history, key=lambda x: x.get('sharpe_ratio', 0), reverse=True)[:5]
+        top_5 = sorted(
+            performance_history,
+            key=lambda x: x.get("sharpe_ratio", 0),
+            reverse=True,
+        )[:5]
 
         prompt = f"""
 Sembol: {symbol}
@@ -208,9 +221,11 @@ Somut sayısal öneriler ver.
 
         return self.ask(prompt, system_prompt=system_prompt, temperature=0.5)
 
-    def explain_trade(self,
-                     trade_data: Dict[str, Any],
-                     market_context: Dict[str, Any]) -> str:
+    def explain_trade(
+        self,
+        trade_data: Dict[str, Any],
+        market_context: Dict[str, Any],
+    ) -> str:
         """
         Bir işlemin neden açıldığını/kapatıldığını açıkla
 
@@ -249,23 +264,24 @@ Teknik analizle açıkla (2-3 cümle).
         try:
             response = requests.get(f"{self.base_url}/api/tags", timeout=5)
             return response.status_code == 200
-        except:
+        except requests.RequestException:
             return False
 
 
 # Global instance
-_llm_client = None
+_llm_client: Optional[LLMClient] = None
+
 
 def get_llm_client(model: str = "mistral") -> LLMClient:
     """Singleton LLM client al"""
-    global _llm_clien
+    global _llm_client
     if _llm_client is None:
         _llm_client = LLMClient(model=model)
-    return _llm_clien
+    return _llm_client
 
 
 if __name__ == "__main__":
-    # Tes
+    # Test
     client = LLMClient()
 
     print("🔍 LLM Health Check...")

@@ -89,8 +89,8 @@ class MacroInsight:
     """Aggregated macro sentiment for a target symbol."""
 
     symbol: str
-    bias_score: floa
-    confidence: floa
+    bias_score: float
+    confidence: float
     summary: str
     drivers: List[str] = field(default_factory=list)
     interest_rate_outlook: Optional[str] = None
@@ -162,8 +162,8 @@ class MacroSentimentEngine:
         for event in relevant:
             weight = event.weight()
             bias = event.derived_bias(symbol)
-            weighted_bias += bias * weigh
-            total_weight += weigh
+            weighted_bias += bias * weight
+            total_weight += weight
 
             if event.category.lower() in {"politics", "geopolitics"}:
                 descriptor = event.summary or event.title
@@ -272,4 +272,3 @@ class MacroSentimentEngine:
                 timestamp=now,
             ),
         ]
-

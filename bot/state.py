@@ -68,7 +68,7 @@ class SignalEvent:
     timestamp: datetime
     symbol: str
     decision: PositionType
-    confidence: floa
+    confidence: float
     reason: str
     ai_action: Optional[str] = None
     ai_confidence: Optional[float] = None
@@ -89,7 +89,7 @@ class SignalEvent:
 @dataclass
 class EquityPoint:
     timestamp: datetime
-    value: floa
+    value: float
 
     def to_dict(self) -> Dict[str, Any]:
         payload = asdict(self)
@@ -200,4 +200,3 @@ def create_state_store(base_dir: Path) -> StateStore:
     signals_path = base_dir / "signals.json"
     equity_path = base_dir / "equity.json"
     return StateStore(state_path, signals_path, equity_path)
-

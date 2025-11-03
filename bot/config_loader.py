@@ -1,14 +1,8 @@
-import json
-from dataclasses import asdict
-from pathlib import Path
-from typing import Any, Dict, cas
-from typing import Any, Dict, cast
-from .strategy import StrategyConfig
+from __future__ import annotations
 
 import json
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any, Dict, cas
 from typing import Any, Dict, cast
 
 from .strategy import StrategyConfig

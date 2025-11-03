@@ -8,18 +8,15 @@ Bot her döngüde bu dosyayı okuyup parametreleri canlıca uygular.
 
 import json
 import os
-import sys
 import time
 from pathlib import Path
+from typing import Dict, Union
 
-sys.path.insert(0, str(Path(__file__).parent))
+from dotenv import load_dotenv
 
-from dotenv import load_dotenv  # noqa: E402
-
-from bot.exchange import ExchangeClient, PaperExchangeClient  # noqa: E402
-from bot.strategy import StrategyConfig  # noqa: E402
-from bot.optimizer import random_search_optimize  # noqa: E402
-from typing import Dict, Union  # noqa: E402
+from bot.exchange import ExchangeClient, PaperExchangeClient
+from bot.optimizer import random_search_optimize
+from bot.strategy import StrategyConfig
 
 
 def fetch_data(symbol: str, timeframe: str, lookback: int):
@@ -80,7 +77,8 @@ def run_service():
     print("AUTO OPTIMIZER SERVIS")
     print("=" * 60)
     print(
-        f"symbol={symbol} timeframe={timeframe} lookback={lookback} trials={n_trials} interval={interval_minutes}m obj={objective}"
+        "symbol=%s timeframe=%s lookback=%d trials=%d interval=%dm obj=%s"
+        % (symbol, timeframe, lookback, n_trials, interval_minutes, objective)
     )
 
     base_cfg = StrategyConfig(symbol=symbol, timeframe=timeframe)
@@ -101,7 +99,14 @@ def run_service():
             )
             out = write_strategy_config(data_dir, base_cfg, best.params)
             print(
-                f"✅ Güncellendi: {out} | Sharpe={best.sharpe_ratio:.3f} PnL%={best.total_pnl_pct:.2f} WinRate={best.win_rate*100:.1f}% MDD%={best.max_drawdown_pct:.2f}"
+                "✅ Güncellendi: %s | Sharpe=%.3f PnL%%=%.2f WinRate=%.1f%% MDD%%=%.2f"
+                % (
+                    out,
+                    best.sharpe_ratio,
+                    best.total_pnl_pct,
+                    best.win_rate * 100,
+                    best.max_drawdown_pct,
+                )
             )
         except Exception as exc:
             print(f"❌ Optimizasyon hatası: {exc}")

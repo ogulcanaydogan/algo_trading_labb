@@ -1,11 +1,12 @@
 """Test script to verify Binance Spot Testnet connection."""
 
 import os
+from bot.exchange import ExchangeClient
 from dotenv import load_dotenv
-from bot.exchange import ExchangeClien
 
 # Load environment variables
 load_dotenv()
+
 
 def test_testnet_connection():
     """Test connection to Binance Spot Testnet."""
@@ -20,7 +21,7 @@ def test_testnet_connection():
     print(f"API Key: {api_key[:10]}...{api_key[-10:]}")
 
     try:
-        # Create testnet clien
+        # Create testnet client
         client = ExchangeClient(
             exchange_id="binance",
             api_key=api_key,
@@ -67,6 +68,7 @@ def test_testnet_connection():
         print("1. Check that your API keys are correct")
         print("2. Ensure you created the keys on https://testnet.binance.vision/")
         print("3. Make sure TRADE, USER_DATA, USER_STREAM permissions are enabled")
+
 
 if __name__ == "__main__":
     test_testnet_connection()

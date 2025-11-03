@@ -5,14 +5,9 @@ Bu script ile stratejinizi geçmiş verilerle test edebilirsiniz.
 """
 
 import os
-import sys
-from pathlib import Path
-
-# Proje root'unu path'e ekle
-sys.path.insert(0, str(Path(__file__).parent))
 
 from dotenv import load_dotenv
-from bot.exchange import ExchangeClient, PaperExchangeClien
+from bot.exchange import ExchangeClient, PaperExchangeClient
 from bot.strategy import StrategyConfig
 from bot.backtesting import Backtester, save_backtest_results
 
@@ -61,7 +56,7 @@ def run_backtest():
     data_source = input("Seçiminiz (1/2): ").strip()
 
     if data_source == "1":
-        # Binance Testne
+        # Binance Testnet
         api_key = os.getenv("BINANCE_TESTNET_API_KEY")
         api_secret = os.getenv("BINANCE_TESTNET_API_SECRET")
 
@@ -113,7 +108,7 @@ def run_backtest():
             )
         print("-" * 80)
 
-    # Sonuçları kayde
+    # Sonuçları kaydet
     save_choice = input("\n💾 Sonuçları JSON dosyasına kaydetmek ister misiniz? (y/n): ").strip().lower()
     if save_choice == "y":
         filename = input("Dosya adı (default: backtest_results.json): ").strip() or "backtest_results.json"

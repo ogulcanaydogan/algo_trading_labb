@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import logging
 import random
-from datetime import datetime, timedelta, timezone
 import re
+from datetime import datetime, timezone
 from typing import List, Optional
 
 import numpy as np
@@ -141,8 +141,3 @@ class PaperExchangeClient:
         series = np.array(prices[1:])
         self.last_price = float(series[-1])
         return series
-
-# Backwards-compatible aliases for earlier misspellings used elsewhere in the repo
-ExchangeClien = ExchangeClient
-PaperExchangeClien = PaperExchangeClient
-

@@ -12,15 +12,7 @@ import pandas as pd
 from .ai import PredictionSnapshot, RuleBasedAIPredictor
 from .exchange import ExchangeClient, PaperExchangeClient
 from .macro import MacroInsight, MacroSentimentEngine
-try:
-    from .config_loader import load_overrides, merge_config
-except Exception:
-    # Fallback in case config_loader has syntax issues during staged fixes
-    def load_overrides(path):
-        return {}
-
-    def merge_config(base, overrides):
-        return base
+from .config_loader import load_overrides, merge_config
 from .state import BotState, EquityPoint, SignalEvent, StateStore, create_state_store, PositionType
 from .market_data import MarketDataError, YFinanceMarketDataClient
 from .strategy import (
@@ -172,7 +164,7 @@ def sync_state_with_config(store: StateStore, config: BotConfig) -> None:
     if abs(state.balance - config.starting_balance) > 1e-6:
         updates["balance"] = config.starting_balance
     if state.risk_per_trade_pct != config.risk_per_trade_pct:
-        updates["risk_per_trade_pct"] = config.risk_per_trade_pc
+        updates["risk_per_trade_pct"] = config.risk_per_trade_pct
 
     if updates:
         store.update_state(**updates)
@@ -206,7 +198,11 @@ def run_loop(config: BotConfig) -> None:
             if predictor is None or predictor.config != strategy_config:
                 predictor = RuleBasedAIPredictor(strategy_config)
                 logger.info(
-                    "Strategy reloaded | ema_fast=%d ema_slow=%d rsi_period=%d rsi_overbought=%.1f rsi_oversold=%.1f risk=%.3f%% sl=%.3f%% tp=%.3f%%",
+                    (
+                        "Strategy reloaded | ema_fast=%d ema_slow=%d rsi_period=%d "
+                        "rsi_overbought=%.1f rsi_oversold=%.1f risk=%.3f%% "
+                        "sl=%.3f%% tp=%.3f%%"
+                    ),
                     strategy_config.ema_fast,
                     strategy_config.ema_slow,
                     strategy_config.rsi_period,
@@ -276,7 +272,7 @@ def update_state(
     macro_insight: MacroInsight | None,
 ) -> BotState:
     decision = cast(str, signal["decision"])
-    price = float(signal["close"])  # ensure floa
+    price = float(signal["close"])  # ensure float
     state = store.state
 
     entry_price: Optional[float] = state.entry_price

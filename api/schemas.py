@@ -11,15 +11,15 @@ class BotStateResponse(BaseModel):
     symbol: str
     position: Literal["LONG", "SHORT", "FLAT"]
     entry_price: Optional[float] = Field(None, description="Last entry price for the open position.")
-    position_size: floa
-    balance: floa
-    unrealized_pnl_pct: floa
+    position_size: float
+    balance: float
+    unrealized_pnl_pct: float
     last_signal: Optional[str] = None
     confidence: Optional[float] = None
     rsi: Optional[float] = None
     ema_fast: Optional[float] = None
     ema_slow: Optional[float] = None
-    risk_per_trade_pct: floa
+    risk_per_trade_pct: float
     ai_action: Optional[str] = Field(None, description="AI layer recommended action.")
     ai_confidence: Optional[float] = Field(None, ge=0.0, le=1.0)
     ai_probability_long: Optional[float] = Field(None, ge=0.0, le=1.0)
@@ -41,7 +41,7 @@ class SignalResponse(BaseModel):
     timestamp: datetime
     symbol: str
     decision: Literal["LONG", "SHORT", "FLAT"]
-    confidence: floa
+    confidence: float
     reason: str
     ai_action: Optional[str] = None
     ai_confidence: Optional[float] = None
@@ -50,20 +50,20 @@ class SignalResponse(BaseModel):
 
 class EquityPointResponse(BaseModel):
     timestamp: datetime
-    value: floa
+    value: float
 
 
 class StrategyOverviewResponse(BaseModel):
     symbol: str
     timeframe: str
-    ema_fast: in
-    ema_slow: in
-    rsi_period: in
-    rsi_overbought: floa
-    rsi_oversold: floa
-    risk_per_trade_pct: floa
-    stop_loss_pct: floa
-    take_profit_pct: floa
+    ema_fast: int
+    ema_slow: int
+    rsi_period: int
+    rsi_overbought: float
+    rsi_oversold: float
+    risk_per_trade_pct: float
+    stop_loss_pct: float
+    take_profit_pct: float
     decision_rules: List[str]
     risk_management_notes: List[str]
 
@@ -118,4 +118,3 @@ class MacroInsightResponse(BaseModel):
     interest_rate_outlook: Optional[str] = None
     political_risk: Optional[str] = None
     events: List[MacroEventResponse] = Field(default_factory=list)
-

@@ -4,12 +4,13 @@ Backtesting and Strategy Testing Module
 Bu modül, stratejinizi geçmiş verilerde test etmenizi ve performansını analiz etmenizi sağlar.
 """
 
-import pandas as pd
-import numpy as np
+import json
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Dict, List, Optional
-from dataclasses import dataclass, field
-import json
+
+import numpy as np
+import pandas as pd
 
 from bot.strategy import compute_indicators, generate_signal, StrategyConfig, calculate_position_size
 
@@ -48,8 +49,8 @@ class Trade:
 @dataclass
 class BacktestResult:
     """Backtest sonuçları"""
-    initial_balance: floa
-    final_balance: floa
+    initial_balance: float
+    final_balance: float
     total_trades: int = 0
     winning_trades: int = 0
     losing_trades: int = 0
@@ -135,7 +136,7 @@ class Backtester:
         # İndikatörleri hesapla
         enriched = compute_indicators(ohlcv, self.config)
 
-        # Her bar için stratejiyi test e
+        # Her bar için stratejiyi test et
         for i in range(len(enriched)):
             if i < self.config.ema_slow + 5:
                 continue
@@ -143,7 +144,7 @@ class Backtester:
             current_bar = enriched.iloc[:i+1]
             current = current_bar.iloc[-1]
 
-            # Mevcut pozisyon varsa kontrol e
+            # Mevcut pozisyon varsa kontrol et
             if self.position:
                 self._check_exit(current)
 
@@ -153,14 +154,14 @@ class Backtester:
                 if signal["decision"] != "FLAT":
                     self._open_position(current, signal)
 
-            # Equity curve'ü kayde
+            # Equity curve'ü kaydet
             self.equity_curve.append({
                 "timestamp": current.name,
                 "balance": self.balance,
                 "price": float(current["close"]),
             })
 
-        # Açık pozisyon varsa kapa
+        # Açık pozisyon varsa kapat
         if self.position:
             last = enriched.iloc[-1]
             self._close_position(last["close"], last.name, "End of backtest")
@@ -203,6 +204,7 @@ class Backtester:
         """Pozisyon çıkış kontrolü"""
         if not self.position:
             return
+
         high = float(bar["high"])
         low = float(bar["low"])
 
@@ -216,7 +218,7 @@ class Backtester:
                 exit_reason = "Stop Loss"
             # Take profit kontrolü
             elif high >= self.position.take_profit:
-                exit_price = self.position.take_profi
+                exit_price = self.position.take_profit
                 exit_reason = "Take Profit"
         else:  # SHORT
             # Stop loss kontrolü
@@ -225,7 +227,7 @@ class Backtester:
                 exit_reason = "Stop Loss"
             # Take profit kontrolü
             elif low <= self.position.take_profit:
-                exit_price = self.position.take_profi
+                exit_price = self.position.take_profit
                 exit_reason = "Take Profit"
 
         if exit_price:
@@ -251,10 +253,14 @@ class Backtester:
         # Bakiyeyi güncelle
         self.balance += self.position.pnl
 
-        # Trade'i kayde
+        # Trade'i kaydet
         self.trades.append(self.position)
 
-        print(f"📉 Pozisyon kapatıldı: ${exit_price:.2f} | P&L: ${self.position.pnl:.2f} ({self.position.pnl_pct:.2f}%) | {reason}")
+        print(
+            "📉 Pozisyon kapatıldı: "
+            f"${exit_price:.2f} | P&L: ${self.position.pnl:.2f} "
+            f"({self.position.pnl_pct:.2f}%) | {reason}"
+        )
 
         self.position = None
 
@@ -268,7 +274,7 @@ class Backtester:
         )
 
         if not self.trades:
-            return resul
+            return result
 
         # Temel metrikler
         result.total_trades = len(self.trades)
@@ -313,7 +319,7 @@ class Backtester:
         if returns:
             result.sharpe_ratio = (np.mean(returns) / np.std(returns)) if np.std(returns) > 0 else 0
 
-        return resul
+        return result
 
 
 def save_backtest_results(result: BacktestResult, filename: str = "backtest_results.json"):
