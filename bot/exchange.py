@@ -34,7 +34,7 @@ class ExchangeClient:
             )
         self.exchange_id = exchange_id
         self.sandbox = sandbox
-        self.testnet = testne
+        self.testnet = testnet
         exchange_class = getattr(ccxt, exchange_id)
 
         config = {
@@ -141,4 +141,8 @@ class PaperExchangeClient:
         series = np.array(prices[1:])
         self.last_price = float(series[-1])
         return series
+
+# Backwards-compatible aliases for earlier misspellings used elsewhere in the repo
+ExchangeClien = ExchangeClient
+PaperExchangeClien = PaperExchangeClient
 

@@ -8,27 +8,27 @@ import pandas as pd
 
 from .state import BotState
 from .strategy import StrategyConfig
-from .macro import MacroInsigh
+from .macro import MacroInsight
 
 
 @dataclass
 class FeatureSnapshot:
-    ema_gap_pct: floa
-    momentum_pct: floa
-    rsi_distance_from_mid: floa
-    volatility_pct: floa
+    ema_gap_pct: float
+    momentum_pct: float
+    rsi_distance_from_mid: float
+    volatility_pct: float
 
 
 @dataclass
 class PredictionSnapshot:
     recommended_action: str
-    confidence: floa
-    probability_long: floa
-    probability_short: floa
-    probability_flat: floa
-    expected_move_pct: floa
+    confidence: float
+    probability_long: float
+    probability_short: float
+    probability_flat: float
+    expected_move_pct: float
     summary: str
-    features: FeatureSnapsho
+    features: FeatureSnapshot
     macro_bias: float = 0.0
     macro_confidence: float = 0.0
     macro_summary: str = ""
