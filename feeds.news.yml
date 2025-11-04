@@ -1,0 +1,5 @@
+feeds:
+  - https://feeds.reuters.com/reuters/topNews
+  - https://feeds.a.dj.com/rss/RSSMarketsMain.xml
+  - https://finance.yahoo.com/news/rssindex
+  - https://www.cnbc.com/id/19746125/device/rss/rss.html

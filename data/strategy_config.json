@@ -1,0 +1,12 @@
+{
+  "symbol": "BTC/USDT",
+  "timeframe": "1h",
+  "ema_fast": 19,
+  "ema_slow": 58,
+  "rsi_period": 24,
+  "rsi_overbought": 78.4424115775965,
+  "rsi_oversold": 22.10373633497916,
+  "risk_per_trade_pct": 0.9202469866007642,
+  "stop_loss_pct": 0.003954363340437984,
+  "take_profit_pct": 0.03492304427983134
+}

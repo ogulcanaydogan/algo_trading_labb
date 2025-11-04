@@ -133,4 +133,3 @@ def calculate_position_size(
         return 0.0
     size = risk_amount / stop_distance
     return max(size, 0.0)
-

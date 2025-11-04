@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   bot:
     build: .
@@ -20,6 +18,15 @@ services:
       - state_data:/app/data
     ports:
       - "8000:8000"
+
+  optimizer:
+    build: .
+    command: python run_auto_optimize.py
+    env_file:
+      - .env
+    volumes:
+      - ./:/app
+      - state_data:/app/data
 
 volumes:
   state_data:

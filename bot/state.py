@@ -201,4 +201,3 @@ def create_state_store(base_dir: Path) -> StateStore:
     signals_path = base_dir / "signals.json"
     equity_path = base_dir / "equity.json"
     return StateStore(state_path, signals_path, equity_path)
-

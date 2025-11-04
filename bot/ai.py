@@ -99,6 +99,15 @@ class RuleBasedAIPredictor:
         confidence = float(probabilities[recommended_action])
         expected_move_pct = float(
             (ema_gap_pct * 0.65 + momentum_pct * 0.9) * 100.0 * (1 if recommended_action == "LONG" else -1 if recommended_action == "SHORT" else 0)
+        direction = (
+            1
+            if recommended_action == "LONG"
+            else -1
+            if recommended_action == "SHORT"
+            else 0
+        )
+        expected_move_pct = float(
+            (ema_gap_pct * 0.65 + momentum_pct * 0.9) * 100.0 * direction
         )
 
         summary = self._summarise_prediction(
@@ -246,6 +255,15 @@ class QuestionAnsweringEngine:
         lines = [
             "Buy signals fire when the fast EMA crosses above the slow EMA and RSI remains below the overbought threshold.",
             f"Current fast/slow EMA windows: {self.config.ema_fast}/{self.config.ema_slow} on the {self.config.timeframe} timeframe.",
+            (
+                "Buy signals fire when the fast EMA crosses above the slow EMA and "
+                "RSI remains below the overbought threshold."
+            ),
+            (
+                "Current fast/slow EMA windows: "
+                f"{self.config.ema_fast}/{self.config.ema_slow} on the "
+                f"{self.config.timeframe} timeframe."
+            ),
         ]
         if state and state.last_signal == "LONG":
             lines.append(
@@ -254,6 +272,13 @@ class QuestionAnsweringEngine:
         if ai_snapshot and ai_snapshot.recommended_action == "LONG":
             lines.append(
                 f"AI layer leans LONG with {ai_snapshot.confidence * 100:.1f}% confidence and expects {ai_snapshot.expected_move_pct:.2f}% move."
+            ai_confidence = ai_snapshot.confidence * 100.0
+            lines.append(
+                (
+                    "AI layer leans LONG with "
+                    f"{ai_confidence:.1f}% confidence and expects "
+                    f"{ai_snapshot.expected_move_pct:.2f}% move."
+                )
             )
         if macro_insight and macro_insight.bias_score > 0.05:
             driver = macro_insight.drivers[0] if macro_insight.drivers else "macro backdrop"
@@ -263,6 +288,18 @@ class QuestionAnsweringEngine:
         elif macro_insight and macro_insight.bias_score < -0.05:
             lines.append(
                 f"Heads-up: macro bias is {macro_insight.bias_score:+.2f}, so confirm bullish setups with extra caution."
+                (
+                    "Macro tone is supportive "
+                    f"({macro_insight.bias_score:+.2f}) thanks to {driver}."
+                )
+            )
+        elif macro_insight and macro_insight.bias_score < -0.05:
+            lines.append(
+                (
+                    "Heads-up: macro bias is "
+                    f"{macro_insight.bias_score:+.2f}, so confirm bullish setups "
+                    "with extra caution."
+                )
             )
         return " ".join(lines)
 
@@ -275,6 +312,15 @@ class QuestionAnsweringEngine:
         lines = [
             "Short setups appear when the fast EMA dips below the slow EMA while RSI stays above the oversold band.",
             f"Oversold threshold: {self.config.rsi_oversold}, overbought threshold: {self.config.rsi_overbought}.",
+            (
+                "Short setups appear when the fast EMA dips below the slow EMA while "
+                "RSI stays above the oversold band."
+            ),
+            (
+                "Oversold threshold: "
+                f"{self.config.rsi_oversold}, overbought threshold: "
+                f"{self.config.rsi_overbought}."
+            ),
         ]
         if state and state.last_signal == "SHORT":
             lines.append(
@@ -283,6 +329,13 @@ class QuestionAnsweringEngine:
         if ai_snapshot and ai_snapshot.recommended_action == "SHORT":
             lines.append(
                 f"AI component favours SHORT with {ai_snapshot.confidence * 100:.1f}% confidence and {ai_snapshot.expected_move_pct:.2f}% expected move."
+            ai_confidence = ai_snapshot.confidence * 100.0
+            lines.append(
+                (
+                    "AI component favours SHORT with "
+                    f"{ai_confidence:.1f}% confidence and "
+                    f"{ai_snapshot.expected_move_pct:.2f}% expected move."
+                )
             )
         if macro_insight and macro_insight.bias_score < -0.05:
             driver = macro_insight.drivers[0] if macro_insight.drivers else "macro backdrop"
@@ -292,6 +345,17 @@ class QuestionAnsweringEngine:
         elif macro_insight and macro_insight.bias_score > 0.05:
             lines.append(
                 f"Macro bias is positive ({macro_insight.bias_score:+.2f}); keep shorts nimble."
+                (
+                    "Macro climate is risk-off "
+                    f"({macro_insight.bias_score:+.2f}) due to {driver}."
+                )
+            )
+        elif macro_insight and macro_insight.bias_score > 0.05:
+            lines.append(
+                (
+                    "Macro bias is positive "
+                    f"({macro_insight.bias_score:+.2f}); keep shorts nimble."
+                )
             )
         return " ".join(lines)
 
@@ -308,6 +372,14 @@ class QuestionAnsweringEngine:
         )
         if state:
             base += f" Current unrealized PnL sits at {state.unrealized_pnl_pct:.2f}% with position {state.position}."
+            f"Stop-loss is set at {self.config.stop_loss_pct * 100:.2f}% and "
+            f"take-profit at {self.config.take_profit_pct * 100:.2f}%."
+        )
+        if state:
+            base += (
+                " Current unrealized PnL sits at "
+                f"{state.unrealized_pnl_pct:.2f}% with position {state.position}."
+            )
         if macro_insight and macro_insight.interest_rate_outlook:
             base += (
                 f" Rate backdrop: {macro_insight.interest_rate_outlook}."
@@ -330,6 +402,14 @@ class QuestionAnsweringEngine:
             f"AI model leans {ai_snapshot.recommended_action} with probability {ai_snapshot.confidence * 100:.1f}% "
             f"(long {ai_snapshot.probability_long * 100:.1f}%, short {ai_snapshot.probability_short * 100:.1f}%, flat {ai_snapshot.probability_flat * 100:.1f}%). "
             f"Expected move: {ai_snapshot.expected_move_pct:.2f}% based on EMA spread {ai_snapshot.features.ema_gap_pct:.2f}% and momentum {ai_snapshot.features.momentum_pct:.2f}%."
+            f"AI model leans {ai_snapshot.recommended_action} with probability "
+            f"{ai_snapshot.confidence * 100:.1f}% "
+            f"(long {ai_snapshot.probability_long * 100:.1f}%, "
+            f"short {ai_snapshot.probability_short * 100:.1f}%, "
+            f"flat {ai_snapshot.probability_flat * 100:.1f}%). "
+            f"Expected move: {ai_snapshot.expected_move_pct:.2f}% based on EMA spread "
+            f"{ai_snapshot.features.ema_gap_pct:.2f}% and momentum "
+            f"{ai_snapshot.features.momentum_pct:.2f}%."
             f"{macro_line}"
         )
 
@@ -354,6 +434,17 @@ class QuestionAnsweringEngine:
         else:
             parts.append(
                 "No macro catalysts registered yet. Upload a macro_events.json file or set MACRO_EVENTS_PATH for richer context."
+                parts.append(
+                    f"Interest-rate outlook: {macro_insight.interest_rate_outlook}."
+                )
+            if macro_insight.political_risk:
+                parts.append(
+                    f"Political watch: {macro_insight.political_risk}."
+                )
+        else:
+            parts.append(
+                "No macro catalysts registered yet. Upload a macro_events.json file or "
+                "set MACRO_EVENTS_PATH for richer context."
             )
         if state:
             parts.append(
@@ -368,6 +459,9 @@ class QuestionAnsweringEngine:
     ) -> str:
         base = (
             f"The bot monitors {self.config.symbol} on {self.config.timeframe} candles using EMA {self.config.ema_fast}/{self.config.ema_slow} and RSI {self.config.rsi_period}."
+            "The bot monitors "
+            f"{self.config.symbol} on {self.config.timeframe} candles using EMA "
+            f"{self.config.ema_fast}/{self.config.ema_slow} and RSI {self.config.rsi_period}."
         )
         if state:
             base += f" Current stance: {state.position} with last signal {state.last_signal}."

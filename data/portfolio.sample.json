@@ -1,0 +1,41 @@
+{
+  "portfolio_capital": 75000,
+  "default_timeframe": "1h",
+  "default_loop_interval_seconds": 300,
+  "default_lookback": 500,
+  "default_paper_mode": true,
+  "default_risk_per_trade_pct": 0.4,
+  "default_stop_loss_pct": 0.01,
+  "default_take_profit_pct": 0.02,
+  "macro_events_path": "data/macro_events.sample.json",
+  "assets": [
+    {
+      "symbol": "BTC/USDT",
+      "asset_type": "crypto",
+      "timeframe": "15m",
+      "lookback": 600,
+      "allocation_pct": 35.0,
+      "loop_interval_seconds": 120
+    },
+    {
+      "symbol": "NVDA",
+      "asset_type": "equity",
+      "data_symbol": "NVDA",
+      "macro_symbol": "NVDA",
+      "timeframe": "1h",
+      "allocation_pct": 35.0,
+      "risk_per_trade_pct": 0.25
+    },
+    {
+      "symbol": "XAU/USD",
+      "asset_type": "commodity",
+      "data_symbol": "GC=F",
+      "macro_symbol": "XAUUSD",
+      "timeframe": "1h",
+      "allocation_pct": 30.0,
+      "stop_loss_pct": 0.008,
+      "take_profit_pct": 0.015
+    }
+  ]
+}
+

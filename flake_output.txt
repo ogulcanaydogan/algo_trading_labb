@@ -1,0 +1,313 @@
+./api/__init__.py:2:1: W391 blank line at end of file
+./api/api.py:159:121: E501 line too long (121 > 120 characters)
+./api/api.py:166:121: E501 line too long (125 > 120 characters)
+./api/api.py:300:1: W391 blank line at end of file
+./api/schemas.py:121:1: W391 blank line at end of file
+./bot/__init__.py:13:1: W391 blank line at end of file
+./bot/ai.py:101:121: E501 line too long (147 > 120 characters)
+./bot/ai.py:247:121: E501 line too long (124 > 120 characters)
+./bot/ai.py:248:121: E501 line too long (134 > 120 characters)
+./bot/ai.py:256:121: E501 line too long (145 > 120 characters)
+./bot/ai.py:265:121: E501 line too long (121 > 120 characters)
+./bot/ai.py:285:121: E501 line too long (153 > 120 characters)
+./bot/ai.py:307:121: E501 line too long (134 > 120 characters)
+./bot/ai.py:331:121: E501 line too long (163 > 120 characters)
+./bot/ai.py:332:121: E501 line too long (181 > 120 characters)
+./bot/ai.py:356:121: E501 line too long (129 > 120 characters)
+./bot/ai.py:370:121: E501 line too long (177 > 120 characters)
+./bot/backtesting.py:9:1: F401 'datetime.timezone' imported but unused
+./bot/backtesting.py:32:1: W293 blank line contains whitespace
+./bot/backtesting.py:67:1: W293 blank line contains whitespace
+./bot/backtesting.py:86:1: W293 blank line contains whitespace
+./bot/backtesting.py:110:1: W293 blank line contains whitespace
+./bot/backtesting.py:122:1: W293 blank line contains whitespace
+./bot/backtesting.py:126:1: W293 blank line contains whitespace
+./bot/backtesting.py:129:1: W293 blank line contains whitespace
+./bot/backtesting.py:134:1: W293 blank line contains whitespace
+./bot/backtesting.py:137:1: W293 blank line contains whitespace
+./bot/backtesting.py:142:1: W293 blank line contains whitespace
+./bot/backtesting.py:145:1: W293 blank line contains whitespace
+./bot/backtesting.py:149:1: W293 blank line contains whitespace
+./bot/backtesting.py:155:1: W293 blank line contains whitespace
+./bot/backtesting.py:162:1: W293 blank line contains whitespace
+./bot/backtesting.py:167:1: W293 blank line contains whitespace
+./bot/backtesting.py:169:1: W293 blank line contains whitespace
+./bot/backtesting.py:173:1: W293 blank line contains whitespace
+./bot/backtesting.py:181:1: W293 blank line contains whitespace
+./bot/backtesting.py:189:1: W293 blank line contains whitespace
+./bot/backtesting.py:199:1: W293 blank line contains whitespace
+./bot/backtesting.py:201:1: W293 blank line contains whitespace
+./bot/backtesting.py:206:1: W293 blank line contains whitespace
+./bot/backtesting.py:209:9: F841 local variable 'close' is assigned to but never used
+./bot/backtesting.py:210:1: W293 blank line contains whitespace
+./bot/backtesting.py:213:1: W293 blank line contains whitespace
+./bot/backtesting.py:232:1: W293 blank line contains whitespace
+./bot/backtesting.py:235:1: W293 blank line contains whitespace
+./bot/backtesting.py:240:1: W293 blank line contains whitespace
+./bot/backtesting.py:244:1: W293 blank line contains whitespace
+./bot/backtesting.py:252:1: W293 blank line contains whitespace
+./bot/backtesting.py:255:1: W293 blank line contains whitespace
+./bot/backtesting.py:258:1: W293 blank line contains whitespace
+./bot/backtesting.py:259:121: E501 line too long (131 > 120 characters)
+./bot/backtesting.py:260:1: W293 blank line contains whitespace
+./bot/backtesting.py:262:1: W293 blank line contains whitespace
+./bot/backtesting.py:271:1: W293 blank line contains whitespace
+./bot/backtesting.py:274:1: W293 blank line contains whitespace
+./bot/backtesting.py:281:1: W293 blank line contains whitespace
+./bot/backtesting.py:285:1: W293 blank line contains whitespace
+./bot/backtesting.py:289:1: W293 blank line contains whitespace
+./bot/backtesting.py:292:1: W293 blank line contains whitespace
+./bot/backtesting.py:297:1: W293 blank line contains whitespace
+./bot/backtesting.py:301:1: W293 blank line contains whitespace
+./bot/backtesting.py:309:1: W293 blank line contains whitespace
+./bot/backtesting.py:312:1: W293 blank line contains whitespace
+./bot/backtesting.py:317:1: W293 blank line contains whitespace
+./bot/bot.py:121:1: W293 blank line contains whitespace
+./bot/bot.py:137:1: W293 blank line contains whitespace
+./bot/bot.py:201:121: E501 line too long (150 > 120 characters)
+./bot/exchange.py:5:1: F401 'datetime.timedelta' imported but unused
+./bot/exchange.py:39:1: W293 blank line contains whitespace
+./bot/exchange.py:44:1: W293 blank line contains whitespace
+./bot/exchange.py:53:1: W293 blank line contains whitespace
+./bot/exchange.py:55:1: W293 blank line contains whitespace
+./bot/exchange.py:144:1: W391 blank line at end of file
+./bot/macro.py:275:1: W391 blank line at end of file
+./bot/market_data.py:202:1: W391 blank line at end of file
+./bot/optimizer.py:4:1: F401 'typing.Callable' imported but unused
+./bot/optimizer.py:34:121: E501 line too long (183 > 120 characters)
+./bot/portfolio.py:237:1: W391 blank line at end of file
+./bot/state.py:203:1: W391 blank line at end of file
+./bot/strategy.py:136:1: W391 blank line at end of file
+./bot/trading.py:30:1: W293 blank line contains whitespace
+./bot/trading.py:34:1: W293 blank line contains whitespace
+./bot/trading.py:48:1: W293 blank line contains whitespace
+./bot/trading.py:51:1: W293 blank line contains whitespace
+./bot/trading.py:55:1: W293 blank line contains whitespace
+./bot/trading.py:66:1: W293 blank line contains whitespace
+./bot/trading.py:73:1: W293 blank line contains whitespace
+./bot/trading.py:84:1: W293 blank line contains whitespace
+./bot/trading.py:89:1: W293 blank line contains whitespace
+./bot/trading.py:96:1: W293 blank line contains whitespace
+./bot/trading.py:104:1: W293 blank line contains whitespace
+./bot/trading.py:107:1: W293 blank line contains whitespace
+./bot/trading.py:113:1: W293 blank line contains whitespace
+./bot/trading.py:123:1: W293 blank line contains whitespace
+./bot/trading.py:140:1: W293 blank line contains whitespace
+./bot/trading.py:142:1: W293 blank line contains whitespace
+./bot/trading.py:146:1: W293 blank line contains whitespace
+./bot/trading.py:157:1: W293 blank line contains whitespace
+./bot/trading.py:166:1: W293 blank line contains whitespace
+./bot/trading.py:170:1: W293 blank line contains whitespace
+./bot/trading.py:174:1: W293 blank line contains whitespace
+./bot/trading.py:177:1: W293 blank line contains whitespace
+./bot/trading.py:184:1: W293 blank line contains whitespace
+./bot/trading.py:187:1: W293 blank line contains whitespace
+./bot/trading.py:190:1: W293 blank line contains whitespace
+./bot/trading.py:197:1: W293 blank line contains whitespace
+./bot/trading.py:206:1: W293 blank line contains whitespace
+./bot/trading.py:211:1: W293 blank line contains whitespace
+./bot/trading.py:213:1: W293 blank line contains whitespace
+./bot/trading.py:226:1: W293 blank line contains whitespace
+./bot/trading.py:233:1: W293 blank line contains whitespace
+./bot/trading.py:235:1: W293 blank line contains whitespace
+./bot/trading.py:237:1: W293 blank line contains whitespace
+./bot/trading.py:246:1: W293 blank line contains whitespace
+./bot/trading.py:250:1: W293 blank line contains whitespace
+./bot/trading.py:254:1: W293 blank line contains whitespace
+./bot/trading.py:257:1: W293 blank line contains whitespace
+./bot/trading.py:263:1: W293 blank line contains whitespace
+./bot/trading.py:267:1: W293 blank line contains whitespace
+./bot/trading.py:278:1: W293 blank line contains whitespace
+./bot/trading.py:280:1: W293 blank line contains whitespace
+./bot/trading.py:285:1: W293 blank line contains whitespace
+./bot/trading.py:289:1: W293 blank line contains whitespace
+./bot/trading.py:293:1: W293 blank line contains whitespace
+./bot/trading.py:300:1: W293 blank line contains whitespace
+./bot/trading.py:307:1: W293 blank line contains whitespace
+./bot/trading.py:311:1: W293 blank line contains whitespace
+./bot/trading.py:315:1: W293 blank line contains whitespace
+./bot/trading.py:332:1: W293 blank line contains whitespace
+./bot/trading.py:347:1: W293 blank line contains whitespace
+./run_auto_optimize.py:17:1: E402 module level import not at top of file
+./run_auto_optimize.py:19:1: E402 module level import not at top of file
+./run_auto_optimize.py:20:1: E402 module level import not at top of file
+./run_auto_optimize.py:21:1: E402 module level import not at top of file
+./run_auto_optimize.py:22:1: E402 module level import not at top of file
+./run_auto_optimize.py:83:121: E501 line too long (131 > 120 characters)
+./run_auto_optimize.py:104:121: E501 line too long (168 > 120 characters)
+./run_backtest.py:14:1: E402 module level import not at top of file
+./run_backtest.py:15:1: E402 module level import not at top of file
+./run_backtest.py:16:1: E402 module level import not at top of file
+./run_backtest.py:17:1: E402 module level import not at top of file
+./run_backtest.py:25:1: W293 blank line contains whitespace
+./run_backtest.py:29:1: W293 blank line contains whitespace
+./run_backtest.py:35:1: W293 blank line contains whitespace
+./run_backtest.py:44:1: W293 blank line contains whitespace
+./run_backtest.py:56:1: W293 blank line contains whitespace
+./run_backtest.py:62:1: W293 blank line contains whitespace
+./run_backtest.py:67:1: W293 blank line contains whitespace
+./run_backtest.py:71:1: W293 blank line contains whitespace
+./run_backtest.py:85:1: W293 blank line contains whitespace
+./run_backtest.py:89:1: W293 blank line contains whitespace
+./run_backtest.py:95:1: W293 blank line contains whitespace
+./run_backtest.py:97:1: W293 blank line contains whitespace
+./run_backtest.py:100:1: W293 blank line contains whitespace
+./run_backtest.py:115:1: W293 blank line contains whitespace
+./run_backtest.py:121:1: W293 blank line contains whitespace
+./run_live_trading.py:16:1: E402 module level import not at top of file
+./run_live_trading.py:17:1: E402 module level import not at top of file
+./run_live_trading.py:18:1: E402 module level import not at top of file
+./run_live_trading.py:19:1: E402 module level import not at top of file
+./run_live_trading.py:27:1: W293 blank line contains whitespace
+./run_live_trading.py:33:1: W293 blank line contains whitespace
+./run_live_trading.py:39:1: W293 blank line contains whitespace
+./run_live_trading.py:41:1: W293 blank line contains whitespace
+./run_live_trading.py:45:1: W293 blank line contains whitespace
+./run_live_trading.py:51:1: W293 blank line contains whitespace
+./run_live_trading.py:54:1: W293 blank line contains whitespace
+./run_live_trading.py:59:1: W293 blank line contains whitespace
+./run_live_trading.py:65:1: W293 blank line contains whitespace
+./run_live_trading.py:73:1: W293 blank line contains whitespace
+./run_live_trading.py:100:1: W293 blank line contains whitespace
+./run_live_trading.py:107:1: W293 blank line contains whitespace
+./run_live_trading.py:108:11: F541 f-string is missing placeholders
+./run_live_trading.py:109:11: F541 f-string is missing placeholders
+./run_live_trading.py:115:1: W293 blank line contains whitespace
+./run_live_trading.py:117:1: W293 blank line contains whitespace
+./run_live_trading.py:122:1: W293 blank line contains whitespace
+./run_live_trading.py:126:1: W293 blank line contains whitespace
+./run_live_trading.py:133:1: W293 blank line contains whitespace
+./run_live_trading.py:137:27: F541 f-string is missing placeholders
+./run_live_trading.py:145:1: W293 blank line contains whitespace
+./run_live_trading.py:157:1: W293 blank line contains whitespace
+./run_live_trading.py:162:1: W293 blank line contains whitespace
+./run_live_trading.py:169:1: W293 blank line contains whitespace
+./run_live_trading.py:173:1: W293 blank line contains whitespace
+./run_live_trading.py:179:25: E722 do not use bare 'except'
+./run_live_trading.py:181:1: W293 blank line contains whitespace
+./run_live_trading.py:188:1: W293 blank line contains whitespace
+./run_live_trading.py:191:1: W293 blank line contains whitespace
+./run_live_trading.py:199:1: W293 blank line contains whitespace
+./run_live_trading.py:207:1: W293 blank line contains whitespace
+./run_live_trading.py:214:1: W293 blank line contains whitespace
+./run_live_trading.py:219:1: W293 blank line contains whitespace
+./run_live_trading.py:225:1: W293 blank line contains whitespace
+./run_live_trading.py:228:1: W293 blank line contains whitespace
+./run_optimizer.py:15:1: E402 module level import not at top of file
+./run_optimizer.py:17:1: E402 module level import not at top of file
+./run_optimizer.py:18:1: E402 module level import not at top of file
+./run_optimizer.py:19:1: E402 module level import not at top of file
+./run_portfolio.py:67:1: W391 blank line at end of file
+./run_portfolio_optimize.py:16:1: F401 'typing.Tuple' imported but unused
+./run_portfolio_optimize.py:52:25: E231 missing whitespace after ','
+./run_portfolio_optimize.py:52:36: E231 missing whitespace after ','
+./run_portfolio_optimize.py:52:49: E231 missing whitespace after ','
+./run_portfolio_optimize.py:52:66: E231 missing whitespace after ','
+./run_portfolio_optimize.py:52:81: E231 missing whitespace after ','
+./run_portfolio_optimize.py:52:102: E231 missing whitespace after ','
+./run_portfolio_optimize.py:52:118: E231 missing whitespace after ','
+./run_portfolio_optimize.py:52:121: E501 line too long (136 > 120 characters)
+./run_portfolio_optimize.py:98:121: E501 line too long (156 > 120 characters)
+./test_binance_testnet.py:10:1: E302 expected 2 blank lines, found 1
+./test_binance_testnet.py:14:1: W293 blank line contains whitespace
+./test_binance_testnet.py:18:1: W293 blank line contains whitespace
+./test_binance_testnet.py:21:1: W293 blank line contains whitespace
+./test_binance_testnet.py:31:1: W293 blank line contains whitespace
+./test_binance_testnet.py:33:1: W293 blank line contains whitespace
+./test_binance_testnet.py:37:1: W293 blank line contains whitespace
+./test_binance_testnet.py:41:1: W293 blank line contains whitespace
+./test_binance_testnet.py:48:1: W293 blank line contains whitespace
+./test_binance_testnet.py:58:1: W293 blank line contains whitespace
+./test_binance_testnet.py:61:1: W293 blank line contains whitespace
+./test_binance_testnet.py:63:1: W293 blank line contains whitespace
+./test_binance_testnet.py:71:1: E305 expected 2 blank lines after class or function definition, found 1
+./tools/ingest_news_llm.py:16:1: E402 module level import not at top of file
+./tools/ingest_news_llm.py:29:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:44:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:49:55: W291 trailing whitespace
+./tools/ingest_news_llm.py:56:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:59:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:62:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:79:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:81:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:88:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:92:58: W291 trailing whitespace
+./tools/ingest_news_llm.py:93:24: E128 continuation line under-indented for visual indent
+./tools/ingest_news_llm.py:99:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:101:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:104:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:108:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:119:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:126:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:132:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:139:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:142:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:157:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:159:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:170:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:172:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:175:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:182:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:186:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:189:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:193:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:198:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:211:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:215:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:219:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:228:1: W293 blank line contains whitespace
+./tools/ingest_news_llm.py:232:1: W293 blank line contains whitespace
+./tools/ingest_news_to_macro_events.py:70:121: E501 line too long (130 > 120 characters)
+./tools/llm_client.py:8:1: F401 'datetime.datetime' imported but unused
+./tools/llm_client.py:13:1: W293 blank line contains whitespace
+./tools/llm_client.py:18:1: W293 blank line contains whitespace
+./tools/llm_client.py:22:1: W293 blank line contains whitespace
+./tools/llm_client.py:27:1: W293 blank line contains whitespace
+./tools/llm_client.py:39:1: W293 blank line contains whitespace
+./tools/llm_client.py:42:1: W293 blank line contains whitespace
+./tools/llm_client.py:52:1: W293 blank line contains whitespace
+./tools/llm_client.py:55:1: W293 blank line contains whitespace
+./tools/llm_client.py:59:1: W293 blank line contains whitespace
+./tools/llm_client.py:63:1: W293 blank line contains whitespace
+./tools/llm_client.py:79:1: W293 blank line contains whitespace
+./tools/llm_client.py:80:74: W291 trailing whitespace
+./tools/llm_client.py:83:1: W293 blank line contains whitespace
+./tools/llm_client.py:102:1: W293 blank line contains whitespace
+./tools/llm_client.py:104:1: W293 blank line contains whitespace
+./tools/llm_client.py:112:1: W293 blank line contains whitespace
+./tools/llm_client.py:125:1: W293 blank line contains whitespace
+./tools/llm_client.py:126:31: W291 trailing whitespace
+./tools/llm_client.py:127:25: E128 continuation line under-indented for visual indent
+./tools/llm_client.py:127:37: W291 trailing whitespace
+./tools/llm_client.py:128:25: E128 continuation line under-indented for visual indent
+./tools/llm_client.py:129:25: E128 continuation line under-indented for visual indent
+./tools/llm_client.py:132:1: W293 blank line contains whitespace
+./tools/llm_client.py:137:1: W293 blank line contains whitespace
+./tools/llm_client.py:143:1: W293 blank line contains whitespace
+./tools/llm_client.py:167:1: W293 blank line contains whitespace
+./tools/llm_client.py:169:1: W293 blank line contains whitespace
+./tools/llm_client.py:170:34: W291 trailing whitespace
+./tools/llm_client.py:171:28: E128 continuation line under-indented for visual indent
+./tools/llm_client.py:172:28: E128 continuation line under-indented for visual indent
+./tools/llm_client.py:173:28: E128 continuation line under-indented for visual indent
+./tools/llm_client.py:176:1: W293 blank line contains whitespace
+./tools/llm_client.py:181:1: W293 blank line contains whitespace
+./tools/llm_client.py:187:1: W293 blank line contains whitespace
+./tools/llm_client.py:190:1: W293 blank line contains whitespace
+./tools/llm_client.py:208:1: W293 blank line contains whitespace
+./tools/llm_client.py:210:1: W293 blank line contains whitespace
+./tools/llm_client.py:211:28: W291 trailing whitespace
+./tools/llm_client.py:212:22: E128 continuation line under-indented for visual indent
+./tools/llm_client.py:213:22: E128 continuation line under-indented for visual indent
+./tools/llm_client.py:216:1: W293 blank line contains whitespace
+./tools/llm_client.py:220:1: W293 blank line contains whitespace
+./tools/llm_client.py:224:58: W291 trailing whitespace
+./tools/llm_client.py:226:1: W293 blank line contains whitespace
+./tools/llm_client.py:241:51: W291 trailing whitespace
+./tools/llm_client.py:244:1: W293 blank line contains whitespace
+./tools/llm_client.py:246:1: W293 blank line contains whitespace
+./tools/llm_client.py:252:9: E722 do not use bare 'except'
+./tools/llm_client.py:259:1: E302 expected 2 blank lines, found 1
+./tools/llm_client.py:270:1: W293 blank line contains whitespace
+./tools/llm_client.py:277:1: W293 blank line contains whitespace
+./tools/llm_client.py:281:1: W293 blank line contains whitespace
