@@ -1537,7 +1537,6 @@
       async function refresh() {
         try {
           const [status, signals, equity, strategy, ai, macro, playbook] = await Promise.all([
-          const [status, signals, equity, strategy, ai, macro] = await Promise.all([
             fetchJSON("/status"),
             fetchJSON("/signals?limit=20"),
             fetchJSON("/equity"),
@@ -1548,9 +1547,6 @@
           ]);
 
           render(status, signals, equity, strategy, ai, macro, playbook, { preview: false });
-          ]);
-
-          render(status, signals, equity, strategy, ai, macro, { preview: false });
         } catch (error) {
           console.error(error);
           statusError.textContent =
