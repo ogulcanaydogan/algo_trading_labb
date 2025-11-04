@@ -6,7 +6,6 @@ from typing import Dict, List, Literal, Optional
 from pydantic import BaseModel, Field
 
 
-
 class BotStateResponse(BaseModel):
     timestamp: datetime
     symbol: str
@@ -167,4 +166,3 @@ class MacroInsightResponse(BaseModel):
     interest_rate_outlook: Optional[str] = None
     political_risk: Optional[str] = None
     events: List[MacroEventResponse] = Field(default_factory=list)
-

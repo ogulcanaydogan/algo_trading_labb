@@ -79,10 +79,12 @@ class StrategySearchResult:
 
     def describe(self) -> str:
         """Human readable summary used by the CLI."""
-
+        # Keep each printed line under the configured max line length
         lines = [
-            f"EMA {self.config.ema_fast}/{self.config.ema_slow} | RSI {self.config.rsi_oversold}-{self.config.rsi_overbought}",
-            f"Return: {self.total_return_pct:+.2f}% | Sharpe: {self.sharpe_ratio:.2f} | Win rate: {self.win_rate:.1f}% | Trades: {self.trades}",
+            f"EMA {self.config.ema_fast}/{self.config.ema_slow} | RSI {self.config.rsi_oversold}-"
+            f"{self.config.rsi_overbought}",
+            f"Return: {self.total_return_pct:+.2f}% | Sharpe: {self.sharpe_ratio:.2f}",
+            f"Win rate: {self.win_rate:.1f}% | Trades: {self.trades}",
             f"Max drawdown: {self.max_drawdown_pct:.2f}% | Macro bias: {self.macro_bias:+.2f}",
         ]
         if self.macro_summary:
@@ -211,7 +213,10 @@ def backtest_strategy(enriched: pd.DataFrame, config: StrategyConfig) -> tuple[L
     return equity_curve, trade_returns
 
 
-def calculate_metrics(equity_curve: Sequence[float], trade_returns: Sequence[float]) -> tuple[float, float, float, float, int]:
+def calculate_metrics(
+    equity_curve: Sequence[float],
+    trade_returns: Sequence[float],
+) -> tuple[float, float, float, float, int]:
     """Compute aggregated metrics for ranking purposes."""
 
     if not equity_curve:
@@ -378,4 +383,3 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 if __name__ == "__main__":  # pragma: no cover - CLI helper
     raise SystemExit(main())
-
