@@ -26,6 +26,7 @@ def _load_ccxt():
     ccxt = module  # type: ignore
     return module
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -49,7 +50,8 @@ class ExchangeClient:
         self.exchange_id = exchange_id
         self.sandbox = sandbox
         self.testnet = testnet
-        exchange_class = getattr(ccxt, exchange_id)
+        # prefer the module returned by _load_ccxt to avoid relying on globals
+        exchange_class = getattr(module, exchange_id)
 
         config = {
             "apiKey": api_key,

@@ -5,7 +5,7 @@ import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Dict, Union, cast
+from typing import Optional, cast
 
 import pandas as pd
 
@@ -13,9 +13,15 @@ from .ai import PredictionSnapshot, RuleBasedAIPredictor
 from .exchange import ExchangeClient, PaperExchangeClient
 from .macro import MacroInsight, MacroSentimentEngine
 from .playbook import PortfolioPlaybook, build_portfolio_playbook
-from .state import BotState, EquityPoint, SignalEvent, StateStore, create_state_store
+from .state import (
+    BotState,
+    EquityPoint,
+    SignalEvent,
+    StateStore,
+    create_state_store,
+    PositionType,
+)
 from .config_loader import load_overrides, merge_config
-from .state import BotState, EquityPoint, SignalEvent, StateStore, create_state_store, PositionType
 from .market_data import MarketDataError, YFinanceMarketDataClient
 from .strategy import (
     StrategyConfig,
@@ -187,7 +193,6 @@ def run_loop(config: BotConfig) -> None:
     market_client = create_market_client(config)
     store = create_state_store(config.data_dir)
     sync_state_with_config(store, config)
-    predictor = RuleBasedAIPredictor(strategy_config)
     # predictor will be re-created if strategy settings change
     predictor: RuleBasedAIPredictor | None = None
     macro_engine = MacroSentimentEngine(
@@ -264,7 +269,6 @@ def run_loop(config: BotConfig) -> None:
                 macro_insight,
                 portfolio_playbook,
             )
-            state = update_state(store, signal, config, ai_snapshot, macro_insight)
             record_metrics(store, signal, state, config, ai_snapshot)
             logger.info(
                 "decision=%s price=%.2f rsi=%.2f ema_fast=%.2f ema_slow=%.2f ai=%s macro_bias=%.2f",
@@ -290,9 +294,7 @@ def fetch_candles(
     timeframe: str,
     limit: int,
 ) -> pd.DataFrame:
-    if isinstance(exchange, PaperExchangeClient):
-        return exchange.fetch_ohlcv(limit=limit)
-    return exchange.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
+    # PaperExchangeClient provides a simplified fetch_ohlcv signature
     if isinstance(client, PaperExchangeClient):
         return client.fetch_ohlcv(limit=limit)
     return client.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
@@ -306,15 +308,8 @@ def update_state(
     macro_insight: MacroInsight | None,
     portfolio_playbook: PortfolioPlaybook | None,
 ) -> BotState:
-    decision = signal["decision"]
-    price = signal["close"]
-    signal: Dict[str, Union[float, str]],
-    config: BotConfig,
-    ai_snapshot: PredictionSnapshot | None,
-    macro_insight: MacroInsight | None,
-) -> BotState:
-    decision = cast(str, signal["decision"])
-    price = float(signal["close"])  # ensure float
+    decision = cast(str, signal.get("decision", "FLAT"))
+    price = float(signal.get("close", 0.0))
     state = store.state
 
     entry_price: Optional[float] = state.entry_price
@@ -360,16 +355,27 @@ def update_state(
     macro_drivers: list[str] = []
 
     if macro_insight:
-        macro_events = [dict(event) for event in macro_insight.events]
-        macro_summary = macro_insight.summary
-        macro_bias = macro_insight.bias_score
-        macro_confidence = macro_insight.confidence
-        macro_interest = macro_insight.interest_rate_outlook
-        macro_political = macro_insight.political_risk
-        macro_drivers = list(macro_insight.drivers)
+        macro_events = [dict(event) for event in getattr(macro_insight, "events", [])]
+        macro_summary = getattr(macro_insight, "summary", None)
+        macro_bias = getattr(macro_insight, "bias_score", None)
+        macro_confidence = getattr(macro_insight, "confidence", None)
+        macro_interest = getattr(macro_insight, "interest_rate_outlook", None)
+        macro_political = getattr(macro_insight, "political_risk", None)
+        macro_drivers = list(getattr(macro_insight, "drivers", []))
 
     playbook_payload = (
         portfolio_playbook.to_dict() if portfolio_playbook else store.state.portfolio_playbook
+    )
+
+    # Build a lightweight execution snapshot from available inputs
+    execution = ExecutionSnapshot(
+        decision=decision,
+        confidence=ai_snapshot.confidence if ai_snapshot else float(signal.get("confidence", 0.0)),
+        reason=signal.get("reason", ""),
+        technical_decision=signal.get("decision", ""),
+        technical_confidence=float(signal.get("confidence", 0.0)),
+        technical_reason=signal.get("reason", ""),
+        ai_override=bool(ai_snapshot),
     )
 
     updated = store.update_state(
@@ -385,9 +391,9 @@ def update_state(
         technical_confidence=execution.technical_confidence,
         technical_reason=execution.technical_reason,
         ai_override_active=execution.ai_override,
-        rsi=signal["rsi"],
-        ema_fast=signal["ema_fast"],
-        ema_slow=signal["ema_slow"],
+        rsi=signal.get("rsi"),
+        ema_fast=signal.get("ema_fast"),
+        ema_slow=signal.get("ema_slow"),
         risk_per_trade_pct=config.risk_per_trade_pct,
         ai_action=ai_snapshot.recommended_action if ai_snapshot else None,
         ai_confidence=ai_snapshot.confidence if ai_snapshot else None,
@@ -412,29 +418,26 @@ def update_state(
 def record_metrics(
     store: StateStore,
     signal: dict,
-    signal: Dict[str, Union[float, str]],
     state: BotState,
     config: BotConfig,
     ai_snapshot: PredictionSnapshot | None,
 ) -> None:
     timestamp = state.timestamp
+    # Record a simplified signal event and equity snapshot
     store.record_signal(
         SignalEvent(
             timestamp=timestamp,
             symbol=config.symbol,
-            decision=signal["decision"],
-            confidence=signal["confidence"],
-            reason=signal["reason"],
-            decision=cast(PositionType, signal["decision"]),
-            confidence=float(signal["confidence"]),
-            reason=cast(str, signal["reason"]),
+            decision=cast(PositionType, state.position),
+            confidence=float(state.confidence or 0.0),
+            reason=state.last_signal_reason or "",
             ai_action=ai_snapshot.recommended_action if ai_snapshot else None,
             ai_confidence=ai_snapshot.confidence if ai_snapshot else None,
             ai_expected_move_pct=ai_snapshot.expected_move_pct if ai_snapshot else None,
         )
     )
 
-    equity_value = state.balance * (1 + state.unrealized_pnl_pct / 100)
+    equity_value = state.balance * (1 + (state.unrealized_pnl_pct or 0.0) / 100)
     store.record_equity(
         EquityPoint(
             timestamp=timestamp,
