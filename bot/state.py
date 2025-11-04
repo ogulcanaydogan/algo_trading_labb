@@ -26,11 +26,32 @@ class BotState:
     balance: float = 10_000.0
     unrealized_pnl_pct: float = 0.0
     last_signal: Optional[str] = None
+    last_signal_reason: Optional[str] = None
     confidence: Optional[float] = None
+    technical_signal: Optional[str] = None
+    technical_confidence: Optional[float] = None
+    technical_reason: Optional[str] = None
+    ai_override_active: bool = False
     rsi: Optional[float] = None
     ema_fast: Optional[float] = None
     ema_slow: Optional[float] = None
     risk_per_trade_pct: float = 0.5
+    ai_action: Optional[str] = None
+    ai_confidence: Optional[float] = None
+    ai_probability_long: Optional[float] = None
+    ai_probability_short: Optional[float] = None
+    ai_probability_flat: Optional[float] = None
+    ai_expected_move_pct: Optional[float] = None
+    ai_summary: Optional[str] = None
+    ai_features: Dict[str, float] = field(default_factory=dict)
+    macro_bias: Optional[float] = None
+    macro_confidence: Optional[float] = None
+    macro_summary: Optional[str] = None
+    macro_drivers: List[str] = field(default_factory=list)
+    macro_interest_rate_outlook: Optional[str] = None
+    macro_political_risk: Optional[str] = None
+    macro_events: List[Dict[str, Any]] = field(default_factory=list)
+    portfolio_playbook: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         payload = asdict(self)
@@ -55,16 +76,26 @@ class SignalEvent:
     decision: PositionType
     confidence: float
     reason: str
+    technical_decision: Optional[PositionType] = None
+    technical_confidence: Optional[float] = None
+    technical_reason: Optional[str] = None
+    ai_override: bool = False
+    ai_action: Optional[str] = None
+    ai_confidence: Optional[float] = None
+    ai_expected_move_pct: Optional[float] = None
 
     def to_dict(self) -> Dict[str, Any]:
         payload = asdict(self)
         payload["timestamp"] = self.timestamp.isoformat()
+        payload.setdefault("execution_reason", self.reason)
         return payload
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "SignalEvent":
         payload = dict(data)
         payload["timestamp"] = datetime.fromisoformat(payload["timestamp"])
+        if "execution_reason" in payload and "reason" not in payload:
+            payload["reason"] = payload["execution_reason"]
         return cls(**payload)
 
 

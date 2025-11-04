@@ -1,0 +1,2218 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Algo Trading Lab Dashboard</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+        background-color: #020617;
+        color: #f8fafc;
+      }
+      body {
+        margin: 0 auto;
+        padding: 2rem;
+        max-width: 1080px;
+        background: radial-gradient(circle at top, rgba(30, 64, 175, 0.35), transparent 55%),
+          radial-gradient(circle at bottom, rgba(14, 116, 144, 0.28), transparent 60%), #020617;
+      }
+      h1,
+      h2 {
+        font-weight: 600;
+        margin: 0 0 0.5rem 0;
+      }
+      p {
+        margin: 0;
+      }
+      .title-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.35rem 0.65rem;
+        border-radius: 999px;
+        background: rgba(56, 189, 248, 0.18);
+        color: #38bdf8;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        border: 1px solid rgba(56, 189, 248, 0.35);
+      }
+      .hidden {
+        display: none;
+      }
+      section {
+        margin-top: 2rem;
+        padding: 1.75rem;
+        border-radius: 16px;
+        background: rgba(15, 23, 42, 0.78);
+        box-shadow: 0 20px 45px rgba(2, 6, 23, 0.55);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        backdrop-filter: blur(14px);
+      }
+      .timestamp {
+        margin-top: 0.4rem;
+        font-size: 0.9rem;
+        color: #94a3b8;
+      }
+      .status-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+      }
+      .status-card {
+        padding: 1rem;
+        border-radius: 12px;
+        background: rgba(30, 41, 59, 0.85);
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        min-height: 110px;
+      }
+      .status-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #94a3b8;
+      }
+      .status-value {
+        font-size: 1.35rem;
+        font-weight: 600;
+        word-break: break-word;
+      }
+      .status-subtle {
+        font-size: 0.8rem;
+        color: #cbd5f5;
+      }
+      .strategy-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+      .strategy-card {
+        padding: 1rem;
+        border-radius: 12px;
+        background: rgba(30, 41, 59, 0.82);
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+      }
+      .strategy-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #94a3b8;
+      }
+      .strategy-value {
+        font-size: 1.2rem;
+        font-weight: 600;
+        word-break: break-word;
+      }
+      .ai-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+      }
+      .ai-card {
+        padding: 1rem;
+        border-radius: 12px;
+        background: rgba(24, 31, 50, 0.88);
+        border: 1px solid rgba(56, 189, 248, 0.22);
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+      }
+      .ai-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #7dd3fc;
+      }
+      .ai-value {
+        font-size: 1.35rem;
+        font-weight: 600;
+      }
+      .ai-summary {
+        margin-top: 0.75rem;
+        font-size: 0.95rem;
+        color: #bfdbfe;
+        line-height: 1.5;
+      }
+      .macro-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+      .macro-card {
+        padding: 1rem;
+        border-radius: 12px;
+        background: rgba(24, 24, 45, 0.9);
+        border: 1px solid rgba(96, 165, 250, 0.18);
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+      .macro-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #a5b4fc;
+      }
+      .macro-value {
+        font-size: 1.3rem;
+        font-weight: 600;
+      }
+      .macro-summary {
+        font-size: 0.95rem;
+        color: #cbd5f5;
+        line-height: 1.55;
+        margin: 0.5rem 0 1rem;
+      }
+      .macro-drivers {
+        margin: 0.4rem 0 1rem;
+        padding-left: 1.15rem;
+        display: grid;
+        gap: 0.3rem;
+        color: #e0e7ff;
+      }
+      .macro-events {
+        margin-top: 0.75rem;
+        border: 1px solid rgba(79, 70, 229, 0.2);
+        border-radius: 12px;
+        background: rgba(23, 31, 64, 0.85);
+        padding: 1rem;
+      }
+      .macro-events h3 {
+        margin: 0 0 0.75rem 0;
+        font-size: 1rem;
+      }
+      .playbook-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.25rem;
+        margin-top: 1.25rem;
+      }
+      .playbook-highlights {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin: 0.75rem 0 0;
+      }
+      .playbook-group h3 {
+        margin-top: 0;
+        margin-bottom: 0.75rem;
+        font-size: 1.1rem;
+        color: #38bdf8;
+      }
+      .playbook-card {
+        padding: 1.1rem;
+        border-radius: 14px;
+        background: rgba(13, 23, 42, 0.95);
+        border: 1px solid rgba(59, 130, 246, 0.25);
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+      }
+      .playbook-card header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.5rem;
+      }
+      .playbook-symbol {
+        font-size: 1.15rem;
+        font-weight: 600;
+      }
+      .playbook-horizons,
+      .playbook-notes {
+        margin: 0;
+        padding-left: 1.2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+      .playbook-horizon-label {
+        font-weight: 600;
+        color: #e0f2fe;
+      }
+      .playbook-highlight {
+        display: inline-block;
+        padding: 0.35rem 0.6rem;
+        margin: 0.25rem 0.35rem 0.25rem 0;
+        border-radius: 999px;
+        background: rgba(59, 130, 246, 0.16);
+        border: 1px solid rgba(59, 130, 246, 0.38);
+        font-size: 0.75rem;
+        color: #bfdbfe;
+      }
+      .macro-events ul {
+        margin: 0;
+        padding-left: 1.1rem;
+        display: grid;
+        gap: 0.35rem;
+      }
+      .macro-events li {
+        color: #e0f2fe;
+        font-size: 0.92rem;
+      }
+      .ai-probabilities {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 0.5rem;
+      }
+      .ai-probabilities div {
+        background: rgba(15, 23, 42, 0.9);
+        border-radius: 10px;
+        padding: 0.6rem 0.9rem;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+      }
+      .ai-probabilities span {
+        display: block;
+        font-size: 0.8rem;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .ai-probabilities strong {
+        display: block;
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: #f8fafc;
+      }
+      .analytics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 1.25rem;
+        margin-top: 1.25rem;
+      }
+      .analytics-card {
+        padding: 1.1rem;
+        border-radius: 14px;
+        background: rgba(13, 23, 42, 0.92);
+        border: 1px solid rgba(56, 189, 248, 0.22);
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+      .analytics-card h3 {
+        margin: 0;
+        font-size: 1.05rem;
+        color: #38bdf8;
+      }
+      .analytics-card canvas {
+        width: 100%;
+        height: 220px;
+      }
+      .question-box {
+        margin-top: 1.5rem;
+        padding: 1.2rem;
+        border-radius: 12px;
+        background: rgba(15, 23, 42, 0.82);
+        border: 1px solid rgba(56, 189, 248, 0.18);
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+      .question-box form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: center;
+      }
+      .question-box input[type="text"] {
+        flex: 1 1 240px;
+        padding: 0.75rem 1rem;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        background: rgba(15, 23, 42, 0.92);
+        color: inherit;
+      }
+      .question-box button {
+        padding: 0.75rem 1.4rem;
+        border-radius: 999px;
+        border: none;
+        background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+        color: #020617;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .question-box button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .question-answer {
+        font-size: 0.95rem;
+        color: #e0f2fe;
+        line-height: 1.55;
+      }
+      .strategy-subtle {
+        font-size: 0.8rem;
+        color: #cbd5f5;
+      }
+      .strategy-rules {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.25rem;
+      }
+      .strategy-rules h3 {
+        margin-top: 0;
+        font-size: 1.05rem;
+      }
+      .strategy-rules ul {
+        margin: 0.5rem 0 0 0;
+        padding-left: 1.1rem;
+        display: grid;
+        gap: 0.35rem;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      thead {
+        background: rgba(30, 41, 59, 0.88);
+      }
+      th,
+      td {
+        padding: 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+        font-size: 0.95rem;
+      }
+      th {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #94a3b8;
+      }
+      tbody tr:hover {
+        background: rgba(30, 41, 59, 0.65);
+      }
+      #equity-canvas {
+        width: 100%;
+        height: 240px;
+        display: block;
+      }
+      .error {
+        margin-top: 0.75rem;
+        color: #f87171;
+        font-size: 0.95rem;
+      }
+      @media (max-width: 640px) {
+        body {
+          padding: 1.25rem;
+        }
+        section {
+          padding: 1.25rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="title-row">
+      <h1>Algo Trading Lab Dashboard</h1>
+      <span id="preview-badge" class="badge hidden">Preview</span>
+    </div>
+    <p class="timestamp" id="last-updated">Loading...</p>
+
+    <section>
+      <h2>Bot Status</h2>
+      <div class="status-grid">
+        <div class="status-card">
+          <span class="status-label">Symbol</span>
+          <span class="status-value" id="status-symbol">-</span>
+        </div>
+        <div class="status-card">
+          <span class="status-label">Position</span>
+          <span class="status-value" id="status-position">-</span>
+        </div>
+        <div class="status-card">
+          <span class="status-label">Balance</span>
+          <span class="status-value" id="status-balance">-</span>
+          <span class="status-subtle" id="status-entry">Entry: -</span>
+        </div>
+        <div class="status-card">
+          <span class="status-label">Unrealized PnL</span>
+          <span class="status-value" id="status-pnl">-</span>
+        </div>
+        <div class="status-card">
+          <span class="status-label">Last Signal</span>
+          <span class="status-value" id="status-signal">-</span>
+          <span class="status-subtle" id="status-signal-technical">Technical: -</span>
+        </div>
+        <div class="status-card">
+          <span class="status-label">Signal Confidence</span>
+          <span class="status-value" id="status-confidence">-</span>
+        </div>
+        <div class="status-card">
+          <span class="status-label">Execution Context</span>
+          <span class="status-value" id="status-execution-mode">-</span>
+          <span class="status-subtle" id="status-execution-reason">-</span>
+        </div>
+        <div class="status-card">
+          <span class="status-label">Risk Per Trade</span>
+          <span class="status-value" id="status-risk">-</span>
+        </div>
+      </div>
+      <p id="status-error" class="error"></p>
+    </section>
+
+    <section>
+      <h2>AI Insights</h2>
+      <div class="ai-grid">
+        <div class="ai-card">
+          <span class="ai-label">Recommended Action</span>
+          <span class="ai-value" id="ai-action">-</span>
+          <span class="status-subtle" id="ai-confidence">Confidence: -</span>
+        </div>
+        <div class="ai-card">
+          <span class="ai-label">Expected Move</span>
+          <span class="ai-value" id="ai-expected-move">-</span>
+          <span class="status-subtle" id="ai-summary-short">-</span>
+        </div>
+        <div class="ai-card">
+          <span class="ai-label">Feature Snapshot</span>
+          <span class="status-subtle" id="ai-features">-</span>
+        </div>
+      </div>
+      <div class="ai-probabilities">
+        <div>
+          <span>Long</span>
+          <strong id="ai-prob-long">-</strong>
+        </div>
+        <div>
+          <span>Short</span>
+          <strong id="ai-prob-short">-</strong>
+        </div>
+        <div>
+          <span>Flat</span>
+          <strong id="ai-prob-flat">-</strong>
+        </div>
+      </div>
+      <p class="ai-summary" id="ai-summary">AI summary will appear here once data is available.</p>
+      <p id="ai-error" class="error"></p>
+      <div class="question-box">
+        <h3>Ask the Strategy Assistant</h3>
+        <form id="ai-question-form">
+          <input type="text" id="ai-question-input" placeholder="When should I buy?" autocomplete="off" />
+          <button type="submit" id="ai-question-submit">Ask</button>
+        </form>
+        <p id="ai-question-feedback" class="error"></p>
+        <p id="ai-answer" class="question-answer">Ask about buy, sell, risk, macro catalysts, or the AI model to get guidance.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Live Action Analytics</h2>
+      <div class="analytics-grid">
+        <div class="analytics-card">
+          <h3>Signal vs AI Confidence</h3>
+          <canvas id="signal-confidence-canvas"></canvas>
+        </div>
+        <div class="analytics-card">
+          <h3>Commodity Playbook Returns</h3>
+          <canvas id="commodity-returns-canvas"></canvas>
+        </div>
+        <div class="analytics-card">
+          <h3>AI Move vs Unrealized PnL</h3>
+          <canvas id="ai-telemetry-canvas"></canvas>
+        </div>
+        <div class="analytics-card">
+          <h3>Commodity Bias &amp; Confidence</h3>
+          <canvas id="commodity-bias-canvas"></canvas>
+        </div>
+      </div>
+      <p id="analytics-error" class="error"></p>
+    </section>
+
+    <section>
+      <h2>Macro &amp; News Pulse</h2>
+      <div class="macro-grid">
+        <div class="macro-card">
+          <span class="macro-label">Bias Score</span>
+          <span class="macro-value" id="macro-bias">-</span>
+          <span class="status-subtle" id="macro-confidence">Confidence: -</span>
+        </div>
+        <div class="macro-card">
+          <span class="macro-label">Interest Rate Outlook</span>
+          <span class="status-subtle" id="macro-rates">-</span>
+        </div>
+        <div class="macro-card">
+          <span class="macro-label">Political Watch</span>
+          <span class="status-subtle" id="macro-politics">-</span>
+        </div>
+      </div>
+      <p class="macro-summary" id="macro-summary">Macro catalyst summaries will appear here once data is available.</p>
+      <ul class="macro-drivers" id="macro-drivers"></ul>
+      <div class="macro-events">
+        <h3>Recent Catalysts</h3>
+        <ul id="macro-events-list"></ul>
+      </div>
+      <p id="macro-error" class="error"></p>
+    </section>
+
+    <section>
+      <h2>Multi-Market Portfolio Playbook</h2>
+      <p class="status-subtle" id="playbook-updated">Playbook loading...</p>
+      <div id="playbook-highlights" class="playbook-highlights"></div>
+      <div class="playbook-container">
+        <div class="playbook-group">
+          <h3>Commodities, Crypto &amp; Metals</h3>
+          <div id="playbook-commodities"></div>
+        </div>
+        <div class="playbook-group">
+          <h3>Large-Cap Equities</h3>
+          <div id="playbook-equities"></div>
+        </div>
+      </div>
+      <p id="playbook-error" class="error"></p>
+    </section>
+
+    <section>
+      <h2>Decision Playbook</h2>
+      <div class="strategy-grid">
+        <div class="strategy-card">
+          <span class="strategy-label">Symbol</span>
+          <span class="strategy-value" id="strategy-symbol">-</span>
+        </div>
+        <div class="strategy-card">
+          <span class="strategy-label">Timeframe</span>
+          <span class="strategy-value" id="strategy-timeframe">-</span>
+        </div>
+        <div class="strategy-card">
+          <span class="strategy-label">EMA Fast / Slow</span>
+          <span class="strategy-value" id="strategy-ema">-</span>
+        </div>
+        <div class="strategy-card">
+          <span class="strategy-label">RSI Period</span>
+          <span class="strategy-value" id="strategy-rsi-period">-</span>
+          <span class="strategy-subtle" id="strategy-rsi-bands">-</span>
+        </div>
+        <div class="strategy-card">
+          <span class="strategy-label">Stop / Take Profit</span>
+          <span class="strategy-value" id="strategy-risk-bounds">-</span>
+          <span class="strategy-subtle" id="strategy-risk">-</span>
+        </div>
+      </div>
+      <div class="strategy-rules">
+        <div>
+          <h3>Buy / Sell Triggers</h3>
+          <ul id="decision-rules"></ul>
+        </div>
+        <div>
+          <h3>Risk Management</h3>
+          <ul id="risk-rules"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Recent Signals</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Executed</th>
+            <th>Exec Confidence</th>
+            <th>Technical Baseline</th>
+            <th>AI View</th>
+            <th>Expected Move</th>
+            <th>Context</th>
+          </tr>
+        </thead>
+        <tbody id="signals-body">
+          <tr>
+            <td colspan="7">Loading...</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Equity Curve</h2>
+      <canvas id="equity-canvas"></canvas>
+    </section>
+
+    <script>
+      const statusSymbol = document.getElementById("status-symbol");
+      const statusPosition = document.getElementById("status-position");
+      const statusBalance = document.getElementById("status-balance");
+      const statusEntry = document.getElementById("status-entry");
+      const statusPnL = document.getElementById("status-pnl");
+      const statusSignal = document.getElementById("status-signal");
+      const statusSignalTechnical = document.getElementById("status-signal-technical");
+      const statusConfidence = document.getElementById("status-confidence");
+      const statusExecutionMode = document.getElementById("status-execution-mode");
+      const statusExecutionReason = document.getElementById("status-execution-reason");
+      const statusRisk = document.getElementById("status-risk");
+      const statusError = document.getElementById("status-error");
+      const lastUpdated = document.getElementById("last-updated");
+      const signalsBody = document.getElementById("signals-body");
+      const equityCanvas = document.getElementById("equity-canvas");
+      const previewBadge = document.getElementById("preview-badge");
+      const analyticsError = document.getElementById("analytics-error");
+      const signalConfidenceCanvas = document.getElementById("signal-confidence-canvas");
+      const commodityReturnsCanvas = document.getElementById("commodity-returns-canvas");
+      const aiTelemetryCanvas = document.getElementById("ai-telemetry-canvas");
+      const commodityBiasCanvas = document.getElementById("commodity-bias-canvas");
+
+      const strategySymbol = document.getElementById("strategy-symbol");
+      const strategyTimeframe = document.getElementById("strategy-timeframe");
+      const strategyEma = document.getElementById("strategy-ema");
+      const strategyRsiPeriod = document.getElementById("strategy-rsi-period");
+      const strategyRsiBands = document.getElementById("strategy-rsi-bands");
+      const strategyRiskBounds = document.getElementById("strategy-risk-bounds");
+      const strategyRisk = document.getElementById("strategy-risk");
+      const decisionRules = document.getElementById("decision-rules");
+      const riskRules = document.getElementById("risk-rules");
+
+      const aiAction = document.getElementById("ai-action");
+      const aiConfidence = document.getElementById("ai-confidence");
+      const aiExpectedMove = document.getElementById("ai-expected-move");
+      const aiSummaryShort = document.getElementById("ai-summary-short");
+      const aiSummary = document.getElementById("ai-summary");
+      const aiProbLong = document.getElementById("ai-prob-long");
+      const aiProbShort = document.getElementById("ai-prob-short");
+      const aiProbFlat = document.getElementById("ai-prob-flat");
+      const aiFeatures = document.getElementById("ai-features");
+      const aiError = document.getElementById("ai-error");
+      const aiQuestionForm = document.getElementById("ai-question-form");
+      const aiQuestionInput = document.getElementById("ai-question-input");
+      const aiQuestionSubmit = document.getElementById("ai-question-submit");
+      const aiQuestionFeedback = document.getElementById("ai-question-feedback");
+      const aiAnswer = document.getElementById("ai-answer");
+
+      const macroBias = document.getElementById("macro-bias");
+      const macroConfidence = document.getElementById("macro-confidence");
+      const macroRates = document.getElementById("macro-rates");
+      const macroPolitics = document.getElementById("macro-politics");
+      const macroSummary = document.getElementById("macro-summary");
+      const macroDrivers = document.getElementById("macro-drivers");
+      const macroEventsList = document.getElementById("macro-events-list");
+      const macroError = document.getElementById("macro-error");
+
+      const playbookUpdated = document.getElementById("playbook-updated");
+      const playbookHighlights = document.getElementById("playbook-highlights");
+      const playbookCommodities = document.getElementById("playbook-commodities");
+      const playbookEquities = document.getElementById("playbook-equities");
+      const playbookError = document.getElementById("playbook-error");
+
+      const ctx = equityCanvas.getContext("2d");
+      const signalConfidenceCtx = signalConfidenceCanvas.getContext("2d");
+      const commodityReturnsCtx = commodityReturnsCanvas.getContext("2d");
+      const aiTelemetryCtx = aiTelemetryCanvas.getContext("2d");
+      const commodityBiasCtx = commodityBiasCanvas.getContext("2d");
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const isPreviewMode = urlParams.get("demo") === "1" || window.location.pathname.includes("preview");
+      previewBadge.classList.toggle("hidden", !isPreviewMode);
+
+      let latestAiSnapshot = null;
+
+      const PREVIEW_STATE = {
+        symbol: "BTC/USDT",
+        position: "LONG",
+        entry_price: 67321.5,
+        position_size: 0.12,
+        balance: 10254.35,
+        unrealized_pnl_pct: 0.86,
+        last_signal: "LONG",
+        confidence: 0.68,
+        last_signal_reason: "AI reinforcement aligned with bullish crossover.",
+        technical_signal: "LONG",
+        technical_confidence: 0.62,
+        technical_reason: "EMA fast crossed above EMA slow; RSI supportive.",
+        ai_override_active: false,
+        risk_per_trade_pct: 0.5,
+      };
+
+      const PREVIEW_AI = {
+        recommended_action: "LONG",
+        confidence: 0.72,
+        probability_long: 0.72,
+        probability_short: 0.18,
+        probability_flat: 0.1,
+        expected_move_pct: 0.64,
+        summary:
+          "Model leans upside with 72.0% confidence driven by EMA spread 0.48% and momentum 0.35%.",
+        features: {
+          ema_gap_pct: 0.48,
+          momentum_pct: 0.35,
+          rsi_distance_from_mid: 8.5,
+          volatility_pct: 0.62,
+        },
+      };
+
+      const PREVIEW_MACRO = {
+        bias_score: -0.18,
+        confidence: 0.58,
+        summary:
+          "Macro bias is bearish (-0.18) based on 3 tracked catalysts. Fed watch: Fed likely to keep rates unchanged but watch core inflation prints. Political risk: Donald Trump: Potential tariff escalation keeps risk assets cautious.",
+        drivers: [
+          "Trump vows fresh tariffs review (bearish, high impact)",
+          "US payrolls surprise to upside (hawkish, high impact)",
+        ],
+        interest_rate_outlook: "Fed likely to keep rates unchanged but watch core inflation prints.",
+        political_risk: "Donald Trump: Potential tariff escalation keeps risk assets cautious.",
+        events: [
+          {
+            title: "Trump vows fresh tariffs review",
+            sentiment: "bearish",
+            impact: "high",
+            actor: "Donald Trump",
+            summary: "Potential tariff escalation keeps risk assets cautious.",
+          },
+          {
+            title: "Fed officials guide for data-dependent path",
+            sentiment: "neutral",
+            impact: "medium",
+            interest_rate_expectation:
+              "Fed likely to keep rates unchanged but watch core inflation prints.",
+          },
+          {
+            title: "US payrolls surprise to upside",
+            sentiment: "hawkish",
+            impact: "high",
+            summary: "Stronger labor data tempers rate-cut odds.",
+          },
+        ],
+      };
+
+      const PREVIEW_SIGNALS = [
+        {
+          symbol: "BTC/USDT",
+          decision: "LONG",
+          confidence: 0.74,
+          reason: "EMA fast crossed above EMA slow; RSI rising.",
+          execution_reason: "Technical signal executed without override.",
+          technical_decision: "LONG",
+          technical_confidence: 0.7,
+          technical_reason: "EMA fast crossed above EMA slow; RSI rising.",
+          ai_override: false,
+          ai_action: "LONG",
+          ai_confidence: 0.7,
+          ai_expected_move_pct: 0.55,
+        },
+        {
+          symbol: "BTC/USDT",
+          decision: "FLAT",
+          confidence: 0.58,
+          reason: "RSI midline rejection triggered risk filter.",
+          execution_reason: "Macro caution kept the bot flat.",
+          technical_decision: "FLAT",
+          technical_confidence: 0.55,
+          technical_reason: "RSI midline rejection triggered risk filter.",
+          ai_override: false,
+          ai_action: "FLAT",
+          ai_confidence: 0.52,
+          ai_expected_move_pct: 0.08,
+        },
+        {
+          symbol: "BTC/USDT",
+          decision: "SHORT",
+          confidence: 0.67,
+          reason: "EMA fast slipped below EMA slow with RSI divergence.",
+          execution_reason: "AI override triggered on rising downside probability.",
+          technical_decision: "FLAT",
+          technical_confidence: 0.4,
+          technical_reason: "Momentum flattening kept the technical view neutral.",
+          ai_override: true,
+          ai_action: "SHORT",
+          ai_confidence: 0.66,
+          ai_expected_move_pct: -0.46,
+        },
+        {
+          symbol: "BTC/USDT",
+          decision: "LONG",
+          confidence: 0.62,
+          reason: "Mean reversion bounce with positive order flow.",
+          execution_reason: "AI reinforcement backed the long setup.",
+          technical_decision: "LONG",
+          technical_confidence: 0.6,
+          technical_reason: "Mean reversion bounce with positive order flow.",
+          ai_override: false,
+          ai_action: "LONG",
+          ai_confidence: 0.61,
+          ai_expected_move_pct: 0.42,
+        },
+      ];
+
+      const PREVIEW_EQUITY_BASE = Array.from({ length: 32 }, (_, index) => 10000 + index * 24 + Math.sin(index / 1.8) * 18);
+
+      const PREVIEW_STRATEGY = {
+        symbol: "BTC/USDT",
+        timeframe: "1m",
+        ema_fast: 12,
+        ema_slow: 26,
+        rsi_period: 14,
+        rsi_overbought: 70,
+        rsi_oversold: 30,
+        risk_per_trade_pct: 0.5,
+        stop_loss_pct: 0.004,
+        take_profit_pct: 0.008,
+        decision_rules: [
+          "Go LONG when the fast EMA crosses above the slow EMA and RSI stays below the overbought threshold.",
+          "Go SHORT when the fast EMA crosses below the slow EMA and RSI stays above the oversold threshold.",
+          "Fallback LONG when RSI dips below the oversold threshold even without a crossover.",
+          "Fallback SHORT when RSI rises above the overbought threshold even without a crossover.",
+        ],
+        risk_management_notes: [
+          "Risk per trade is capped by the configured percentage of the current balance.",
+          "Stop-loss and take-profit levels are derived from the last entry price and the configured percentages.",
+          "Position sizing scales inversely with stop distance to maintain consistent risk exposure.",
+        ],
+      };
+
+      const PREVIEW_PLAYBOOK = {
+        generated_at: new Date().toISOString(),
+        starting_balance: 10000,
+        highlights: [
+          "Top performer: BTC/USDT on the short horizon (+1.85%).",
+          "Lagging setup: XAG/USD on the long horizon (-0.42%).",
+          "Average macro bias across tracked assets: +0.12.",
+        ],
+        commodities: [
+          {
+            symbol: "BTC/USDT",
+            asset_class: "commodity",
+            macro_bias: 0.18,
+            macro_confidence: 0.62,
+            macro_summary: "Crypto desks position for dovish Fed guidance.",
+            macro_drivers: [
+              "FOMC statement (dovish, medium impact)",
+              "Tariff review rhetoric (political, high impact)",
+            ],
+            macro_interest_rate_outlook: "Fed signals a cautious cut later this year.",
+            macro_political_risk: "Tariff policy uncertainty under Trump agenda.",
+            horizons: [
+              {
+                label: "short",
+                timeframe: "1m",
+                candles_tested: 720,
+                initial_balance: 10000,
+                final_balance: 10185,
+                total_return_pct: 1.85,
+                annualized_return_pct: 42.2,
+                sharpe_ratio: 1.4,
+                win_rate: 58.2,
+                trades: 34,
+                macro_bias: 0.18,
+                macro_summary: "Crypto desks position for dovish Fed guidance.",
+              },
+              {
+                label: "medium",
+                timeframe: "15m",
+                candles_tested: 480,
+                initial_balance: 10000,
+                final_balance: 10240,
+                total_return_pct: 2.4,
+                annualized_return_pct: 35.8,
+                sharpe_ratio: 1.12,
+                win_rate: 54.6,
+                trades: 21,
+                macro_bias: 0.18,
+                macro_summary: "Crypto desks position for dovish Fed guidance.",
+              },
+              {
+                label: "long",
+                timeframe: "1h",
+                candles_tested: 360,
+                initial_balance: 10000,
+                final_balance: 10042,
+                total_return_pct: 0.42,
+                annualized_return_pct: 9.1,
+                sharpe_ratio: 0.54,
+                win_rate: 51.2,
+                trades: 12,
+                macro_bias: 0.18,
+                macro_summary: "Crypto desks position for dovish Fed guidance.",
+              },
+            ],
+            notes: [
+              "Best horizon: short (+1.85% return).",
+              "Most pressured horizon: long (+0.42% return).",
+              "Macro stance is supportive (bias +0.18, confidence 0.62).",
+            ],
+          },
+          {
+            symbol: "XAU/USD",
+            asset_class: "commodity",
+            macro_bias: 0.11,
+            macro_confidence: 0.58,
+            macro_summary: "Gold benefits from safe-haven demand amid policy uncertainty.",
+            macro_drivers: [
+              "Global PMI slowdown (macro, medium impact)",
+              "FOMC statement (dovish, medium impact)",
+            ],
+            macro_interest_rate_outlook: "Lower-for-longer yields keep bullion attractive.",
+            macro_political_risk: "Trade rhetoric keeps volatility elevated.",
+            horizons: [
+              {
+                label: "short",
+                timeframe: "1m",
+                candles_tested: 720,
+                initial_balance: 10000,
+                final_balance: 10092,
+                total_return_pct: 0.92,
+                annualized_return_pct: 21.1,
+                sharpe_ratio: 0.98,
+                win_rate: 56.5,
+                trades: 28,
+                macro_bias: 0.11,
+                macro_summary: "Gold benefits from safe-haven demand amid policy uncertainty.",
+              },
+              {
+                label: "medium",
+                timeframe: "15m",
+                candles_tested: 480,
+                initial_balance: 10000,
+                final_balance: 10138,
+                total_return_pct: 1.38,
+                annualized_return_pct: 19.4,
+                sharpe_ratio: 0.87,
+                win_rate: 53.1,
+                trades: 18,
+                macro_bias: 0.11,
+                macro_summary: "Gold benefits from safe-haven demand amid policy uncertainty.",
+              },
+              {
+                label: "long",
+                timeframe: "1h",
+                candles_tested: 360,
+                initial_balance: 10000,
+                final_balance: 10220,
+                total_return_pct: 2.2,
+                annualized_return_pct: 23.5,
+                sharpe_ratio: 1.05,
+                win_rate: 59.4,
+                trades: 15,
+                macro_bias: 0.11,
+                macro_summary: "Gold benefits from safe-haven demand amid policy uncertainty.",
+              },
+            ],
+            notes: [
+              "Best horizon: long (+2.20% return).",
+              "Most pressured horizon: short (+0.92% return).",
+              "Macro stance is supportive (bias +0.11, confidence 0.58).",
+            ],
+          },
+        ],
+        equities: [
+          {
+            symbol: "AAPL",
+            asset_class: "equity",
+            macro_bias: 0.05,
+            macro_confidence: 0.55,
+            macro_summary: "Tech mega-caps track softer yields and resilient consumer demand.",
+            macro_drivers: [
+              "FOMC statement (dovish, medium impact)",
+              "Global PMI slowdown (macro, medium impact)",
+            ],
+            macro_interest_rate_outlook: "Lower yields extend duration appetite for growth stocks.",
+            macro_political_risk: "Regulatory noise remains contained.",
+            horizons: [
+              {
+                label: "short",
+                timeframe: "1m",
+                candles_tested: 720,
+                initial_balance: 10000,
+                final_balance: 10048,
+                total_return_pct: 0.48,
+                annualized_return_pct: 11.3,
+                sharpe_ratio: 0.62,
+                win_rate: 52.4,
+                trades: 25,
+                macro_bias: 0.05,
+                macro_summary: "Tech mega-caps track softer yields and resilient consumer demand.",
+              },
+              {
+                label: "medium",
+                timeframe: "15m",
+                candles_tested: 480,
+                initial_balance: 10000,
+                final_balance: 10102,
+                total_return_pct: 1.02,
+                annualized_return_pct: 14.8,
+                sharpe_ratio: 0.76,
+                win_rate: 55.2,
+                trades: 19,
+                macro_bias: 0.05,
+                macro_summary: "Tech mega-caps track softer yields and resilient consumer demand.",
+              },
+              {
+                label: "long",
+                timeframe: "1h",
+                candles_tested: 360,
+                initial_balance: 10000,
+                final_balance: 10340,
+                total_return_pct: 3.4,
+                annualized_return_pct: 36.7,
+                sharpe_ratio: 1.22,
+                win_rate: 61.1,
+                trades: 14,
+                macro_bias: 0.05,
+                macro_summary: "Tech mega-caps track softer yields and resilient consumer demand.",
+              },
+            ],
+            notes: [
+              "Best horizon: long (+3.40% return).",
+              "Most pressured horizon: short (+0.48% return).",
+              "Macro stance is balanced (bias +0.05, confidence 0.55).",
+            ],
+          },
+          {
+            symbol: "MSFT",
+            asset_class: "equity",
+            macro_bias: 0.08,
+            macro_confidence: 0.6,
+            macro_summary: "Cloud demand holds firm as enterprise budgets normalize.",
+            macro_drivers: [
+              "AI investment cycle (growth, medium impact)",
+              "FOMC statement (dovish, medium impact)",
+            ],
+            macro_interest_rate_outlook: "Stable policy path underpins tech multiples.",
+            macro_political_risk: "Antitrust scrutiny manageable relative to peers.",
+            horizons: [
+              {
+                label: "short",
+                timeframe: "1m",
+                candles_tested: 720,
+                initial_balance: 10000,
+                final_balance: 10066,
+                total_return_pct: 0.66,
+                annualized_return_pct: 15.5,
+                sharpe_ratio: 0.74,
+                win_rate: 54.3,
+                trades: 26,
+                macro_bias: 0.08,
+                macro_summary: "Cloud demand holds firm as enterprise budgets normalize.",
+              },
+              {
+                label: "medium",
+                timeframe: "15m",
+                candles_tested: 480,
+                initial_balance: 10000,
+                final_balance: 10158,
+                total_return_pct: 1.58,
+                annualized_return_pct: 21.6,
+                sharpe_ratio: 0.93,
+                win_rate: 56.7,
+                trades: 20,
+                macro_bias: 0.08,
+                macro_summary: "Cloud demand holds firm as enterprise budgets normalize.",
+              },
+              {
+                label: "long",
+                timeframe: "1h",
+                candles_tested: 360,
+                initial_balance: 10000,
+                final_balance: 10280,
+                total_return_pct: 2.8,
+                annualized_return_pct: 30.2,
+                sharpe_ratio: 1.08,
+                win_rate: 60.3,
+                trades: 13,
+                macro_bias: 0.08,
+                macro_summary: "Cloud demand holds firm as enterprise budgets normalize.",
+              },
+            ],
+            notes: [
+              "Best horizon: long (+2.80% return).",
+              "Most pressured horizon: short (+0.66% return).",
+              "Macro stance is supportive (bias +0.08, confidence 0.60).",
+            ],
+          },
+        ],
+      };
+
+      function formatNumber(value, fractionDigits = 2) {
+        return typeof value === "number" && Number.isFinite(value)
+          ? value.toLocaleString(undefined, {
+              minimumFractionDigits: fractionDigits,
+              maximumFractionDigits: fractionDigits,
+            })
+          : "-";
+      }
+
+      function formatPercent(value, fractionDigits = 2) {
+        return typeof value === "number" && Number.isFinite(value)
+          ? `${value.toFixed(fractionDigits)} %`
+          : "-";
+      }
+
+      function formatSignedPercent(value, fractionDigits = 2) {
+        if (typeof value !== "number" || !Number.isFinite(value)) {
+          return "-";
+        }
+        const sign = value > 0 ? "+" : value < 0 ? "" : "";
+        return `${sign}${value.toFixed(fractionDigits)} %`;
+      }
+
+      function formatRatioPercent(value, fractionDigits = 1) {
+        return typeof value === "number" && Number.isFinite(value)
+          ? `${(value * 100).toFixed(fractionDigits)} %`
+          : "-";
+      }
+
+      function formatFeatureSnapshot(features) {
+        if (!features) {
+          return "-";
+        }
+        const parts = [];
+        if (typeof features.ema_gap_pct === "number") {
+          parts.push(`EMA gap ${features.ema_gap_pct.toFixed(2)}%`);
+        }
+        if (typeof features.momentum_pct === "number") {
+          parts.push(`Momentum ${features.momentum_pct.toFixed(2)}%`);
+        }
+        if (typeof features.rsi_distance_from_mid === "number") {
+          parts.push(
+            `RSI bias ${features.rsi_distance_from_mid.toFixed(2)}%`
+          );
+        }
+        if (typeof features.volatility_pct === "number") {
+          parts.push(`Volatility ${features.volatility_pct.toFixed(2)}%`);
+        }
+        return parts.length ? parts.join(" · ") : "-";
+      }
+
+      function formatBias(value) {
+        if (typeof value !== "number" || !Number.isFinite(value)) {
+          return "-";
+        }
+        const tone = value > 0.05 ? "Bullish" : value < -0.05 ? "Bearish" : "Balanced";
+        return `${value.toFixed(2)} (${tone})`;
+      }
+
+      function formatMacroEvent(event) {
+        if (!event || !event.title) {
+          return null;
+        }
+        const pieces = [event.title];
+        if (event.sentiment) {
+          pieces.push(`— ${event.sentiment}`);
+        }
+        if (event.impact) {
+          pieces.push(`[${event.impact} impact]`);
+        }
+        if (event.actor) {
+          pieces.push(`(${event.actor})`);
+        }
+        const biasValue =
+          typeof event.derived_bias === "number"
+            ? event.derived_bias
+            : typeof event.bias === "number"
+            ? event.bias
+            : null;
+        if (typeof biasValue === "number" && Number.isFinite(biasValue)) {
+          pieces.push(`bias ${biasValue >= 0 ? "+" : ""}${biasValue.toFixed(2)}`);
+        }
+        const context =
+          event.summary || event.interest_rate_expectation || event.source || event.timestamp;
+        if (context) {
+          pieces.push(`: ${context}`);
+        }
+        return pieces.join(" ");
+      }
+
+      function titleCase(text) {
+        if (!text) {
+          return "";
+        }
+        return text.charAt(0).toUpperCase() + text.slice(1);
+      }
+
+      function drawEquityCurve(points) {
+        const width = equityCanvas.clientWidth;
+        const height = equityCanvas.clientHeight;
+        const ratio = window.devicePixelRatio || 1;
+
+        equityCanvas.width = width * ratio;
+        equityCanvas.height = height * ratio;
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        ctx.clearRect(0, 0, width, height);
+
+        if (!points.length) {
+          return;
+        }
+
+        const values = points.map((point) => point.value);
+        const min = Math.min(...values);
+        const max = Math.max(...values);
+        const range = max - min || 1;
+
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#38bdf8";
+        ctx.beginPath();
+        points.forEach((point, index) => {
+          const x = (index / Math.max(points.length - 1, 1)) * width;
+          const y = height - ((point.value - min) / range) * height;
+          if (index === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        });
+        ctx.stroke();
+
+        ctx.fillStyle = "rgba(56, 189, 248, 0.18)";
+        ctx.beginPath();
+        points.forEach((point, index) => {
+          const x = (index / Math.max(points.length - 1, 1)) * width;
+          const y = height - ((point.value - min) / range) * height;
+          if (index === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        });
+        ctx.lineTo(width, height);
+        ctx.lineTo(0, height);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      function drawSignalConfidenceChart(signals) {
+        const canvas = signalConfidenceCanvas;
+        const chartCtx = signalConfidenceCtx;
+        const width = canvas.clientWidth;
+        const height = canvas.clientHeight;
+        const ratio = window.devicePixelRatio || 1;
+
+        canvas.width = Math.max(1, width * ratio);
+        canvas.height = Math.max(1, height * ratio);
+        chartCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        chartCtx.clearRect(0, 0, width, height);
+
+        if (!Array.isArray(signals) || signals.length === 0) {
+          chartCtx.fillStyle = "#94a3b8";
+          chartCtx.font = "14px Inter, sans-serif";
+          chartCtx.fillText("Waiting for signals...", 16, height / 2);
+          return false;
+        }
+
+        const recent = signals
+          .slice(0, 20)
+          .map((signal) => ({
+            executed: typeof signal.confidence === "number" ? signal.confidence : null,
+            technical:
+              typeof signal.technical_confidence === "number"
+                ? signal.technical_confidence
+                : null,
+            ai: typeof signal.ai_confidence === "number" ? signal.ai_confidence : null,
+          }))
+          .reverse();
+
+        const horizontalSteps = 4;
+        chartCtx.strokeStyle = "rgba(148, 163, 184, 0.25)";
+        chartCtx.lineWidth = 1;
+        for (let i = 0; i <= horizontalSteps; i += 1) {
+          const y = (i / horizontalSteps) * height;
+          chartCtx.beginPath();
+          chartCtx.moveTo(0, y);
+          chartCtx.lineTo(width, y);
+          chartCtx.stroke();
+        }
+
+        const drawLine = (values, color) => {
+          if (!values.some((value) => typeof value === "number")) {
+            return;
+          }
+          chartCtx.beginPath();
+          chartCtx.strokeStyle = color;
+          chartCtx.lineWidth = 2;
+          values.forEach((value, index) => {
+            const ratioValue = Math.max(0, Math.min(1, value ?? 0));
+            const x = (index / Math.max(values.length - 1, 1)) * width;
+            const y = height - ratioValue * height;
+            if (index === 0) {
+              chartCtx.moveTo(x, y);
+            } else {
+              chartCtx.lineTo(x, y);
+            }
+          });
+          chartCtx.stroke();
+        };
+
+        drawLine(
+          recent.map((entry) => entry.executed),
+          "#38bdf8",
+        );
+        drawLine(
+          recent.map((entry) => entry.technical),
+          "#f97316",
+        );
+        drawLine(
+          recent.map((entry) => entry.ai),
+          "#22d3ee",
+        );
+
+        chartCtx.font = "12px Inter, sans-serif";
+        chartCtx.textBaseline = "top";
+        chartCtx.fillStyle = "#38bdf8";
+        chartCtx.fillText("Executed", 10, 8);
+        chartCtx.fillStyle = "#f97316";
+        chartCtx.fillText("Technical", 10, 24);
+        chartCtx.fillStyle = "#22d3ee";
+        chartCtx.fillText("AI", 10, 40);
+
+        return true;
+      }
+
+      function drawCommodityReturnsChart(playbook) {
+        const canvas = commodityReturnsCanvas;
+        const chartCtx = commodityReturnsCtx;
+        const width = canvas.clientWidth;
+        const height = canvas.clientHeight;
+        const ratio = window.devicePixelRatio || 1;
+
+        canvas.width = Math.max(1, width * ratio);
+        canvas.height = Math.max(1, height * ratio);
+        chartCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        chartCtx.clearRect(0, 0, width, height);
+
+        const assets = (playbook && Array.isArray(playbook.commodities))
+          ? playbook.commodities.slice(0, 6)
+          : [];
+
+        if (!assets.length) {
+          chartCtx.fillStyle = "#94a3b8";
+          chartCtx.font = "14px Inter, sans-serif";
+          chartCtx.fillText("Waiting for playbook data...", 16, height / 2);
+          return false;
+        }
+
+        const bars = assets.map((asset) => {
+          const horizons = Array.isArray(asset.horizons) ? asset.horizons : [];
+          const preferred = horizons.find((horizon) => horizon.label === "short") || horizons[0];
+          const totalReturn = preferred ? preferred.total_return_pct : 0;
+          return {
+            symbol: asset.symbol,
+            value: typeof totalReturn === "number" ? totalReturn : 0,
+          };
+        });
+
+        const maxAbs = Math.max(...bars.map((bar) => Math.abs(bar.value)), 1);
+        const paddingX = 45;
+        const paddingY = 32;
+        const chartHeight = height - paddingY * 2;
+        const zeroY = paddingY + chartHeight / 2;
+        const gap = 18;
+        const barWidth = Math.max(
+          18,
+          Math.min(60, (width - paddingX * 2 - gap * (bars.length - 1)) / bars.length),
+        );
+
+        chartCtx.strokeStyle = "rgba(148, 163, 184, 0.35)";
+        chartCtx.lineWidth = 1;
+        chartCtx.beginPath();
+        chartCtx.moveTo(paddingX - 10, zeroY);
+        chartCtx.lineTo(width - paddingX + 10, zeroY);
+        chartCtx.stroke();
+
+        chartCtx.font = "12px Inter, sans-serif";
+        chartCtx.textAlign = "center";
+        chartCtx.textBaseline = "middle";
+
+        let x = paddingX;
+        bars.forEach((bar) => {
+          const ratioValue = Math.min(1, Math.abs(bar.value) / maxAbs);
+          const barHeight = ratioValue * (chartHeight / 2);
+          const barY = bar.value >= 0 ? zeroY - barHeight : zeroY;
+          chartCtx.fillStyle = bar.value >= 0 ? "#22d3ee" : "#f97316";
+          chartCtx.fillRect(x, barY, barWidth, Math.max(barHeight, 3));
+
+          chartCtx.fillStyle = "#cbd5f5";
+          chartCtx.fillText(bar.symbol, x + barWidth / 2, height - paddingY / 2);
+          chartCtx.fillStyle = "#94a3b8";
+          const labelY = bar.value >= 0 ? barY - 10 : barY + barHeight + 12;
+          chartCtx.fillText(`${bar.value.toFixed(2)}%`, x + barWidth / 2, labelY);
+
+          x += barWidth + gap;
+        });
+
+        return true;
+      }
+
+      function drawAIMetricsChart(status, signals) {
+        const canvas = aiTelemetryCanvas;
+        const chartCtx = aiTelemetryCtx;
+        const width = canvas.clientWidth;
+        const height = canvas.clientHeight;
+        const ratio = window.devicePixelRatio || 1;
+
+        canvas.width = Math.max(1, width * ratio);
+        canvas.height = Math.max(1, height * ratio);
+        chartCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        chartCtx.clearRect(0, 0, width, height);
+
+        const history = Array.isArray(signals) ? signals.slice(0, 24).reverse() : [];
+        if (!history.length) {
+          chartCtx.fillStyle = "#94a3b8";
+          chartCtx.font = "14px Inter, sans-serif";
+          chartCtx.fillText("Signals required for AI telemetry...", 12, height / 2);
+          return false;
+        }
+
+        const lineHeight = height * 0.6;
+        const barHeight = Math.max(24, height - lineHeight - 10);
+        const zeroY = lineHeight + barHeight / 2;
+
+        chartCtx.strokeStyle = "rgba(148, 163, 184, 0.22)";
+        chartCtx.lineWidth = 1;
+        for (let i = 0; i <= 4; i += 1) {
+          const y = (i / 4) * lineHeight;
+          chartCtx.beginPath();
+          chartCtx.moveTo(0, y);
+          chartCtx.lineTo(width, y);
+          chartCtx.stroke();
+        }
+
+        const series = [
+          {
+            values: history.map((signal) =>
+              typeof signal.confidence === "number" ? signal.confidence : null,
+            ),
+            color: "#38bdf8",
+            dash: [],
+          },
+          {
+            values: history.map((signal) =>
+              typeof signal.ai_confidence === "number" ? signal.ai_confidence : null,
+            ),
+            color: "#f472b6",
+            dash: [],
+          },
+          {
+            values: history.map((signal) =>
+              typeof signal.technical_confidence === "number"
+                ? signal.technical_confidence
+                : null,
+            ),
+            color: "rgba(203, 213, 225, 0.85)",
+            dash: [6, 4],
+          },
+        ];
+
+        series.forEach((line) => {
+          if (!line.values.some((value) => typeof value === "number")) {
+            return;
+          }
+          chartCtx.beginPath();
+          chartCtx.setLineDash(line.dash);
+          chartCtx.strokeStyle = line.color;
+          chartCtx.lineWidth = 2;
+          line.values.forEach((value, index) => {
+            const ratioValue = Math.max(0, Math.min(1, value ?? 0));
+            const x = (index / Math.max(line.values.length - 1, 1)) * width;
+            const y = lineHeight - ratioValue * lineHeight;
+            if (index === 0) {
+              chartCtx.moveTo(x, y);
+            } else {
+              chartCtx.lineTo(x, y);
+            }
+          });
+          chartCtx.stroke();
+        });
+        chartCtx.setLineDash([]);
+
+        const moves = history.map((signal) =>
+          typeof signal.ai_expected_move_pct === "number" ? signal.ai_expected_move_pct : 0,
+        );
+        const hasPnL = status && typeof status.unrealized_pnl_pct === "number";
+        const currentPnL = hasPnL ? status.unrealized_pnl_pct : 0;
+        const maxMove = Math.max(...moves.map((value) => Math.abs(value)), Math.abs(currentPnL), 1);
+        const barWidth = Math.max(6, width / Math.max(history.length, 8) * 0.65);
+
+        chartCtx.strokeStyle = "rgba(148, 163, 184, 0.32)";
+        chartCtx.beginPath();
+        chartCtx.moveTo(0, zeroY);
+        chartCtx.lineTo(width, zeroY);
+        chartCtx.stroke();
+
+        history.forEach((signal, index) => {
+          const move = moves[index];
+          const ratioValue = Math.max(-1, Math.min(1, move / maxMove));
+          const xCenter = (index / Math.max(history.length - 1, 1)) * width;
+          const barX = xCenter - barWidth / 2;
+          const barLength = Math.abs(ratioValue) * (barHeight / 2);
+          const barY = ratioValue >= 0 ? zeroY - barLength : zeroY;
+          chartCtx.fillStyle = ratioValue >= 0 ? "rgba(34, 211, 238, 0.65)" : "rgba(249, 115, 22, 0.65)";
+          chartCtx.fillRect(barX, barY, barWidth, Math.max(barLength, 2));
+        });
+
+        if (hasPnL) {
+          const pnlRatio = Math.max(-1, Math.min(1, currentPnL / maxMove));
+          const pnlY = zeroY - pnlRatio * (barHeight / 2);
+          chartCtx.setLineDash([4, 4]);
+          chartCtx.strokeStyle = "#facc15";
+          chartCtx.beginPath();
+          chartCtx.moveTo(0, pnlY);
+          chartCtx.lineTo(width, pnlY);
+          chartCtx.stroke();
+          chartCtx.setLineDash([]);
+          chartCtx.fillStyle = "#facc15";
+          chartCtx.font = "11px Inter, sans-serif";
+          chartCtx.fillText(`Unrealized PnL ${currentPnL.toFixed(2)}%`, 8, pnlY - 6);
+        }
+
+        chartCtx.fillStyle = "#94a3b8";
+        chartCtx.font = "11px Inter, sans-serif";
+        chartCtx.fillText("lines: exec / AI / technical confidence", 8, lineHeight - 10);
+        chartCtx.fillText("bars: AI expected move, dashed: unrealized PnL", 8, height - 8);
+
+        return true;
+      }
+
+      function drawCommodityBiasChart(playbook) {
+        const canvas = commodityBiasCanvas;
+        const chartCtx = commodityBiasCtx;
+        const width = canvas.clientWidth;
+        const height = canvas.clientHeight;
+        const ratio = window.devicePixelRatio || 1;
+
+        canvas.width = Math.max(1, width * ratio);
+        canvas.height = Math.max(1, height * ratio);
+        chartCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        chartCtx.clearRect(0, 0, width, height);
+
+        const assets =
+          playbook && Array.isArray(playbook.commodities)
+            ? playbook.commodities.slice(0, 6)
+            : [];
+        if (!assets.length) {
+          chartCtx.fillStyle = "#94a3b8";
+          chartCtx.font = "14px Inter, sans-serif";
+          chartCtx.fillText("Commodity bias chart populates after playbook refresh...", 12, height / 2);
+          return false;
+        }
+
+        const paddingX = 70;
+        const rowHeight = height / assets.length;
+        const centerX = width / 2;
+
+        chartCtx.strokeStyle = "rgba(148, 163, 184, 0.22)";
+        chartCtx.beginPath();
+        chartCtx.moveTo(centerX, 0);
+        chartCtx.lineTo(centerX, height);
+        chartCtx.stroke();
+
+        assets.forEach((asset, index) => {
+          const bias = Math.max(-1, Math.min(1, Number(asset.macro_bias) || 0));
+          const confidence = Math.max(0, Math.min(1, Number(asset.macro_confidence) || 0));
+          const y = rowHeight * index + rowHeight / 2;
+          const magnitude = Math.abs(bias);
+          const maxBar = Math.max(20, width / 2 - paddingX);
+          const barLength = Math.max(4, magnitude * maxBar);
+          const startX = bias >= 0 ? centerX : centerX - barLength;
+          chartCtx.globalAlpha = 0.55 + confidence * 0.35;
+          chartCtx.fillStyle = bias >= 0 ? "#34d399" : "#fb923c";
+          chartCtx.fillRect(startX, y - 12, barLength, 24);
+          chartCtx.globalAlpha = 1;
+
+          chartCtx.font = "13px Inter, sans-serif";
+          chartCtx.fillStyle = "#e2e8f0";
+          chartCtx.textAlign = "center";
+          chartCtx.fillText(asset.symbol || "-", centerX, y - 18);
+
+          chartCtx.font = "11px Inter, sans-serif";
+          chartCtx.fillStyle = "#cbd5f5";
+          chartCtx.textAlign = bias >= 0 ? "left" : "right";
+          const biasLabel = `${bias >= 0 ? "+" : ""}${bias.toFixed(2)} bias`;
+          const confidenceLabel = `conf ${(confidence * 100).toFixed(0)}%`;
+          const textX = bias >= 0 ? startX + barLength + 6 : startX - 6;
+          chartCtx.fillText(`${biasLabel} • ${confidenceLabel}`, textX, y + 4);
+        });
+
+        chartCtx.textAlign = "center";
+        chartCtx.font = "10px Inter, sans-serif";
+        chartCtx.fillStyle = "#94a3b8";
+        chartCtx.fillText("Positive bias pushes right, negative to the left", centerX, height - 6);
+
+        return true;
+      }
+
+      function renderStrategy(strategy) {
+        if (!strategy) {
+          decisionRules.innerHTML = '<li>No strategy configuration available.</li>';
+          riskRules.innerHTML = '<li>No risk notes available.</li>';
+          return;
+        }
+
+        strategySymbol.textContent = strategy.symbol ?? "-";
+        strategyTimeframe.textContent = strategy.timeframe ?? "-";
+        strategyEma.textContent = `${strategy.ema_fast} / ${strategy.ema_slow}`;
+        strategyRsiPeriod.textContent = strategy.rsi_period;
+        strategyRsiBands.textContent = `Oversold ≤ ${strategy.rsi_oversold} • Overbought ≥ ${strategy.rsi_overbought}`;
+        strategyRiskBounds.textContent = `${formatPercent(strategy.stop_loss_pct * 100)} SL · ${formatPercent(
+          strategy.take_profit_pct * 100,
+        )} TP`;
+        strategyRisk.textContent = `Risk per trade: ${formatPercent(strategy.risk_per_trade_pct)}`;
+
+        const decisionMarkup = (strategy.decision_rules || [])
+          .map((rule) => `<li>${rule}</li>`)
+          .join("");
+        decisionRules.innerHTML = decisionMarkup || '<li>No decision rules configured.</li>';
+
+        const riskMarkup = (strategy.risk_management_notes || [])
+          .map((note) => `<li>${note}</li>`)
+          .join("");
+        riskRules.innerHTML = riskMarkup || '<li>No risk guidance configured.</li>';
+      }
+
+      function renderAI(ai, { preview } = { preview: false }) {
+        aiError.textContent = "";
+
+        if (!ai || !ai.recommended_action) {
+          latestAiSnapshot = null;
+          aiAction.textContent = "-";
+          aiConfidence.textContent = "Confidence: -";
+          aiExpectedMove.textContent = "-";
+          aiSummaryShort.textContent = preview
+            ? "Preview AI model warming up..."
+            : "Waiting for live predictions.";
+          aiSummary.textContent =
+            "AI summary will appear here once data is available.";
+          aiProbLong.textContent = "-";
+          aiProbShort.textContent = "-";
+          aiProbFlat.textContent = "-";
+          aiFeatures.textContent = "-";
+          if (!preview) {
+            aiError.textContent =
+              "AI insights will populate after the bot produces a few loops of data.";
+          }
+          return;
+        }
+
+        aiAction.textContent = ai.recommended_action;
+        aiConfidence.textContent = `Confidence: ${formatRatioPercent(
+          ai.confidence,
+        )}`;
+        aiExpectedMove.textContent = formatPercent(ai.expected_move_pct ?? null);
+        const summaryText = ai.summary || "";
+        aiSummaryShort.textContent = summaryText
+          ? summaryText.split(".")[0] + "."
+          : "-";
+        aiSummary.textContent = summaryText || "-";
+        aiProbLong.textContent = formatRatioPercent(ai.probability_long);
+        aiProbShort.textContent = formatRatioPercent(ai.probability_short);
+        aiProbFlat.textContent = formatRatioPercent(ai.probability_flat);
+        aiFeatures.textContent = formatFeatureSnapshot(ai.features);
+        latestAiSnapshot = { ...ai, features: { ...(ai.features || {}) } };
+      }
+
+      function renderMacro(macro, { preview } = { preview: false }) {
+        macroError.textContent = "";
+
+        if (!macro) {
+          macroBias.textContent = "-";
+          macroConfidence.textContent = "Confidence: -";
+          macroRates.textContent = "-";
+          macroPolitics.textContent = "-";
+          macroSummary.textContent = preview
+            ? "Preview macro context unavailable."
+            : "No macro data loaded yet.";
+          macroDrivers.innerHTML = "";
+          macroEventsList.innerHTML = "";
+          if (!preview) {
+            macroError.textContent =
+              "Unable to load macro insights. Ensure macro_events.json exists or provide MACRO_EVENTS_PATH.";
+          }
+          return;
+        }
+
+        macroBias.textContent = formatBias(macro.bias_score);
+        macroConfidence.textContent = `Confidence: ${formatRatioPercent(
+          macro.confidence ?? null,
+        )}`;
+        macroRates.textContent = macro.interest_rate_outlook || "-";
+        macroPolitics.textContent = macro.political_risk || "-";
+        macroSummary.textContent = macro.summary ||
+          (preview
+            ? "Macro bias oscillates in preview mode to simulate evolving catalysts."
+            : "No macro summary provided yet.");
+
+        const drivers = (macro.drivers || []).filter(Boolean);
+        macroDrivers.innerHTML = drivers.length
+          ? drivers.map((driver) => `<li>${driver}</li>`).join("")
+          : '<li class="status-subtle">No dominant macro drivers logged.</li>';
+
+        const events = (macro.events || [])
+          .map((event) => formatMacroEvent(event))
+          .filter(Boolean);
+        macroEventsList.innerHTML = events.length
+          ? events.map((event) => `<li>${event}</li>`).join("")
+          : '<li class="status-subtle">No recent catalysts captured.</li>';
+      }
+
+      function formatPlaybookHorizon(horizon) {
+        if (!horizon) {
+          return "";
+        }
+        const label = `${titleCase(horizon.label)} (${horizon.timeframe})`;
+        const returnText = formatSignedPercent(horizon.total_return_pct);
+        const finalValue = formatNumber(horizon.final_balance);
+        const sharpe =
+          typeof horizon.sharpe_ratio === "number" && Number.isFinite(horizon.sharpe_ratio)
+            ? horizon.sharpe_ratio.toFixed(2)
+            : "--";
+        const winRate = formatPercent(horizon.win_rate, 1);
+        const trades =
+          typeof horizon.trades === "number" && Number.isFinite(horizon.trades)
+            ? horizon.trades
+            : "--";
+        const macroBiasText =
+          typeof horizon.macro_bias === "number" && Number.isFinite(horizon.macro_bias)
+            ? ` | Macro ${horizon.macro_bias.toFixed(2)}`
+            : "";
+        return `<li><span class="playbook-horizon-label">${label}</span> · Return ${returnText} · Final ${finalValue} · Sharpe ${sharpe} · Win ${winRate} · Trades ${trades}${macroBiasText}</li>`;
+      }
+
+      function renderAssetPlaybook(asset) {
+        const macroSummaryText = asset.macro_summary || "Macro stance unavailable.";
+        const drivers = (asset.macro_drivers || []).filter(Boolean).slice(0, 3);
+        const driverLine = drivers.length
+          ? `<p class="status-subtle">${drivers.join(" · ")}</p>`
+          : "";
+        const horizons = (asset.horizons || []).map((horizon) => formatPlaybookHorizon(horizon)).filter(Boolean);
+        const horizonList =
+          horizons.length
+            ? horizons.join("")
+            : '<li class="status-subtle">No horizon analytics recorded yet.</li>';
+        const notes = (asset.notes || []).filter(Boolean);
+        const rateNote = asset.macro_interest_rate_outlook
+          ? `Rate outlook: ${asset.macro_interest_rate_outlook}`
+          : null;
+        const politicsNote = asset.macro_political_risk ? `Politics: ${asset.macro_political_risk}` : null;
+        const combinedNotes = [...notes, rateNote, politicsNote].filter(Boolean);
+        const notesMarkup =
+          combinedNotes.length
+            ? combinedNotes.map((note) => `<li>${note}</li>`).join("")
+            : '<li class="status-subtle">No qualitative notes yet.</li>';
+
+        return `
+          <div class="playbook-card">
+            <header>
+              <span class="playbook-symbol">${asset.symbol}</span>
+              <span class="status-subtle">${formatBias(asset.macro_bias)}</span>
+            </header>
+            <p class="status-subtle">${macroSummaryText}</p>
+            ${driverLine}
+            <ul class="playbook-horizons">
+              ${horizonList}
+            </ul>
+            <ul class="playbook-notes">
+              ${notesMarkup}
+            </ul>
+          </div>
+        `;
+      }
+
+      function renderPlaybookGroup(container, assets, preview) {
+        if (!assets || !assets.length) {
+          container.innerHTML = '<p class="status-subtle">No assets evaluated yet.</p>';
+          return;
+        }
+        container.innerHTML = assets.map((asset) => renderAssetPlaybook(asset)).join("\n");
+      }
+
+      function renderPlaybook(playbook, { preview } = { preview: false }) {
+        playbookError.textContent = "";
+        if (!playbook) {
+          playbookUpdated.textContent = preview
+            ? "Preview playbook not generated yet."
+            : "Portfolio playbook unavailable.";
+          playbookHighlights.innerHTML = "";
+          renderPlaybookGroup(playbookCommodities, [], preview);
+          renderPlaybookGroup(playbookEquities, [], preview);
+          if (!preview) {
+            playbookError.textContent =
+              "Unable to load the portfolio playbook. Ensure the bot has generated analytics.";
+          }
+          return;
+        }
+
+        const generatedAt = playbook.generated_at ? new Date(playbook.generated_at) : new Date();
+        playbookUpdated.textContent = `Generated at ${generatedAt.toLocaleString()}`;
+
+        const highlights = (playbook.highlights || []).filter(Boolean);
+        playbookHighlights.innerHTML = highlights.length
+          ? highlights.map((item) => `<span class="playbook-highlight">${item}</span>`).join("")
+          : '<span class="status-subtle">No highlights logged yet.</span>';
+
+        renderPlaybookGroup(playbookCommodities, playbook.commodities || [], preview);
+        renderPlaybookGroup(playbookEquities, playbook.equities || [], preview);
+      }
+
+      function formatSignalAi(signal) {
+        if (!signal.ai_action) {
+          return "-";
+        }
+        const confidenceText =
+          typeof signal.ai_confidence === "number"
+            ? formatRatioPercent(signal.ai_confidence)
+            : null;
+        return confidenceText ? `${signal.ai_action} (${confidenceText})` : signal.ai_action;
+      }
+
+      function formatTechnical(signal) {
+        if (!signal.technical_decision) {
+          return "-";
+        }
+        const confidenceText =
+          typeof signal.technical_confidence === "number"
+            ? formatRatioPercent(signal.technical_confidence)
+            : null;
+        return confidenceText
+          ? `${signal.technical_decision} (${confidenceText})`
+          : signal.technical_decision;
+      }
+
+      function render(
+        status,
+        signals,
+        equity,
+        strategy,
+        ai,
+        macro,
+        playbook,
+        { preview } = { preview: false },
+      ) {
+        statusError.textContent = "";
+
+        statusSymbol.textContent = status.symbol ?? "-";
+        statusPosition.textContent = status.position ?? "-";
+        statusBalance.textContent = formatNumber(status.balance);
+        statusEntry.textContent = `Entry: ${formatNumber(status.entry_price)}`;
+        statusPnL.textContent = formatPercent(status.unrealized_pnl_pct);
+        statusSignal.textContent = status.last_signal ?? "-";
+        statusSignalTechnical.textContent = status.technical_signal
+          ? `Technical: ${status.technical_signal} (${formatRatioPercent(
+              status.technical_confidence,
+            )})`
+          : "Technical: -";
+        statusConfidence.textContent = formatRatioPercent(status.confidence);
+        const overrideActive = Boolean(status.ai_override_active);
+        statusExecutionMode.textContent = overrideActive ? "AI Override" : "Technical Signal";
+        statusExecutionReason.textContent = status.last_signal_reason ||
+          (overrideActive
+            ? "AI chose the execution path based on confidence thresholds."
+            : "Awaiting detailed rationale.");
+        statusRisk.textContent = formatPercent(status.risk_per_trade_pct);
+
+        const timestamp = status.timestamp ? new Date(status.timestamp) : new Date();
+        const prefix = preview ? "Preview mode — " : "Last updated: ";
+        lastUpdated.textContent = `${prefix}${timestamp.toLocaleTimeString()}`;
+
+        if (!signals.length) {
+          signalsBody.innerHTML = '<tr><td colspan="7">No signals yet.</td></tr>';
+        } else {
+          signalsBody.innerHTML = signals
+            .map(
+              (signal) => `
+                <tr>
+                  <td>${new Date(signal.timestamp).toLocaleString()}</td>
+                  <td>${signal.decision}</td>
+                  <td>${formatRatioPercent(signal.confidence)}</td>
+                  <td>${formatTechnical(signal)}</td>
+                  <td>${formatSignalAi(signal)}</td>
+                  <td>${formatPercent(signal.ai_expected_move_pct)}</td>
+                  <td>${signal.execution_reason || signal.reason}</td>
+                </tr>
+              `,
+            )
+            .join("");
+        }
+
+        drawEquityCurve(equity);
+        renderStrategy(strategy);
+        renderAI(ai, { preview });
+        renderMacro(macro, { preview });
+        renderPlaybook(playbook, { preview });
+        const chartHasSignals = drawSignalConfidenceChart(signals);
+        const chartHasCommodities = drawCommodityReturnsChart(playbook);
+        const chartHasTelemetry = drawAIMetricsChart(status, signals);
+        const chartHasCommodityBias = drawCommodityBiasChart(playbook);
+        analyticsError.textContent =
+          chartHasSignals || chartHasCommodities || chartHasTelemetry || chartHasCommodityBias
+            ? ""
+            : preview
+            ? "Preview charts animate once demo data loads."
+            : "Charts will populate after signals fire and the playbook is generated.";
+      }
+
+      async function submitQuestion(question) {
+        aiQuestionFeedback.textContent = "";
+        aiQuestionSubmit.disabled = true;
+        const previousText = aiQuestionSubmit.textContent;
+        aiQuestionSubmit.textContent = "Thinking...";
+        try {
+          const response = await fetch("/ai/question", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ question }),
+          });
+          if (!response.ok) {
+            throw new Error(`AI request failed with status ${response.status}`);
+          }
+          const data = await response.json();
+          aiAnswer.textContent = data.answer;
+          aiQuestionInput.value = "";
+        } catch (error) {
+          console.error(error);
+          aiQuestionFeedback.textContent =
+            "Unable to fetch an AI answer. Ensure the API is running.";
+        } finally {
+          aiQuestionSubmit.disabled = false;
+          aiQuestionSubmit.textContent = previousText;
+        }
+      }
+
+      function buildPreviewAnswer(question, ai) {
+        const text = question.toLowerCase();
+        const action = ai && ai.recommended_action ? ai.recommended_action : "FLAT";
+        const confidence = ai && typeof ai.confidence === "number" ? `${(ai.confidence * 100).toFixed(1)}%` : "--";
+        const expectedMove = ai && typeof ai.expected_move_pct === "number" ? `${ai.expected_move_pct.toFixed(2)}%` : "--";
+
+        if (text.includes("buy") || text.includes("long")) {
+          return `Preview guidance: look for the fast EMA crossing above the slow EMA with RSI below ${PREVIEW_STRATEGY.rsi_overbought}. AI currently favours ${action} with ${confidence} confidence.`;
+        }
+        if (text.includes("sell") || text.includes("short")) {
+          return `Preview guidance: short triggers arrive when EMA fast slips under EMA slow while RSI is above ${PREVIEW_STRATEGY.rsi_oversold}. AI stance: ${action} with expected move ${expectedMove}.`;
+        }
+        if (text.includes("risk") || text.includes("stop") || text.includes("take")) {
+          return `Preview risk settings: stop-loss ${(
+            PREVIEW_STRATEGY.stop_loss_pct * 100
+          ).toFixed(2)}% and take-profit ${(PREVIEW_STRATEGY.take_profit_pct * 100).toFixed(2)}%. Risk per trade ${PREVIEW_STRATEGY.risk_per_trade_pct}% of balance.`;
+        }
+        if (text.includes("ai") || text.includes("model") || text.includes("prob")) {
+          return `Preview AI leans ${action} with ${confidence} confidence and expects ${expectedMove} move.`;
+        }
+        return `Preview bot watches ${PREVIEW_STRATEGY.symbol} on ${PREVIEW_STRATEGY.timeframe} candles using EMA ${PREVIEW_STRATEGY.ema_fast}/${PREVIEW_STRATEGY.ema_slow} and RSI ${PREVIEW_STRATEGY.rsi_period}. Ask about buy, sell, risk, macro, or AI for focused tips.`;
+      }
+
+      aiQuestionForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const question = aiQuestionInput.value.trim();
+        if (!question) {
+          aiQuestionFeedback.textContent = "Enter a question to get an answer.";
+          return;
+        }
+        aiQuestionFeedback.textContent = "";
+        if (isPreviewMode) {
+          aiAnswer.textContent = buildPreviewAnswer(question, latestAiSnapshot);
+          aiQuestionInput.value = "";
+          return;
+        }
+        submitQuestion(question);
+      });
+
+      async function fetchJSON(path) {
+        const response = await fetch(path);
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
+        }
+        return response.json();
+      }
+
+      async function refresh() {
+        try {
+          const [status, signals, equity, strategy, ai, macro, playbook] = await Promise.all([
+            fetchJSON("/status"),
+            fetchJSON("/signals?limit=20"),
+            fetchJSON("/equity"),
+            fetchJSON("/strategy"),
+            fetchJSON("/ai/prediction").catch(() => null),
+            fetchJSON("/macro/insights").catch(() => null),
+            fetchJSON("/portfolio/playbook").catch(() => null),
+          ]);
+
+          render(status, signals, equity, strategy, ai, macro, playbook, { preview: false });
+        } catch (error) {
+          console.error(error);
+          statusError.textContent =
+            "Unable to load live data. Ensure the bot is running and producing state files.";
+        }
+      }
+
+      function renderPreview() {
+        const now = Date.now();
+        const oscillation = Math.sin(now / 4000);
+        const secondary = Math.cos(now / 5000);
+
+        const status = {
+          ...PREVIEW_STATE,
+          timestamp: new Date(now).toISOString(),
+          unrealized_pnl_pct: PREVIEW_STATE.unrealized_pnl_pct + oscillation * 0.35,
+          balance: PREVIEW_STATE.balance + oscillation * 45,
+        };
+
+        const technicalCycle = Math.sin(now / 4600);
+        const technicalDecision =
+          technicalCycle > 0.3 ? "LONG" : technicalCycle < -0.3 ? "SHORT" : "FLAT";
+        const technicalConfidence = Math.min(
+          Math.max((PREVIEW_STATE.technical_confidence || 0.6) + technicalCycle * 0.18, 0.05),
+          0.95,
+        );
+        status.technical_signal = technicalDecision;
+        status.technical_confidence = technicalConfidence;
+        status.technical_reason =
+          technicalDecision === "LONG"
+            ? "Momentum pulse and EMA spread favour upside."
+            : technicalDecision === "SHORT"
+            ? "Momentum fading with RSI overextension."
+            : "Range-bound technicals keep the strategy patient.";
+
+        const signals = PREVIEW_SIGNALS.map((signal, index) => ({
+          ...signal,
+          timestamp: new Date(now - index * 90_000).toISOString(),
+          confidence: Math.min(
+            Math.max(signal.confidence + Math.sin(now / 3700 + index) * 0.05, 0.05),
+            0.95,
+          ),
+          technical_confidence: Math.min(
+            Math.max(
+              (signal.technical_confidence || 0.55) + Math.cos(now / 4100 + index) * 0.04,
+              0.05,
+            ),
+            0.95,
+          ),
+          ai_confidence: Math.min(
+            Math.max((signal.ai_confidence || 0.5) + Math.sin(now / 3900 + index) * 0.05, 0.05),
+            0.97,
+          ),
+        }));
+
+        const equity = PREVIEW_EQUITY_BASE.map((base, index) => ({
+          value: base + Math.sin(now / 3200 + index / 2.5) * 16,
+          timestamp: new Date(now - (PREVIEW_EQUITY_BASE.length - index) * 60_000).toISOString(),
+        }));
+
+        const ai = { ...PREVIEW_AI };
+        const leaningLong = oscillation >= 0;
+        ai.recommended_action = leaningLong ? "LONG" : "SHORT";
+        ai.confidence = Math.min(Math.max(PREVIEW_AI.confidence + oscillation * 0.05, 0.2), 0.95);
+        ai.expected_move_pct =
+          (leaningLong ? 1 : -1) * (PREVIEW_AI.expected_move_pct + secondary * 0.18);
+        const previewProbLong = Math.min(
+          Math.max(ai.confidence - (leaningLong ? 0.05 : -0.1), 0.05),
+          0.93,
+        );
+        const previewProbShort = Math.min(
+          Math.max(leaningLong ? 0.18 - oscillation * 0.08 : ai.confidence - 0.04, 0.05),
+          0.9,
+        );
+        const previewProbFlat = Math.max(0.02, 1 - (previewProbLong + previewProbShort));
+        ai.probability_long = previewProbLong;
+        ai.probability_short = previewProbShort;
+        ai.probability_flat = previewProbFlat;
+        const direction = leaningLong ? "upside" : "downside";
+        ai.summary = `Model leans ${direction} with ${(ai.confidence * 100).toFixed(
+          1,
+        )}% confidence driven by EMA gap ${(
+          PREVIEW_AI.features.ema_gap_pct + oscillation * 0.2
+        ).toFixed(2)}% and momentum ${(
+          PREVIEW_AI.features.momentum_pct + secondary * 0.15
+        ).toFixed(2)}%. Expected move: ${ai.expected_move_pct.toFixed(2)}%`;
+        ai.features = {
+          ema_gap_pct: PREVIEW_AI.features.ema_gap_pct + oscillation * 0.2,
+          momentum_pct: PREVIEW_AI.features.momentum_pct + secondary * 0.15,
+          rsi_distance_from_mid:
+            PREVIEW_AI.features.rsi_distance_from_mid + oscillation * 1.8,
+          volatility_pct: PREVIEW_AI.features.volatility_pct + secondary * 0.12,
+        };
+
+        const aiOverride = ai.confidence > 0.68 && ai.recommended_action !== technicalDecision;
+        status.ai_override_active = aiOverride;
+        status.last_signal = aiOverride ? ai.recommended_action : technicalDecision;
+        status.confidence = aiOverride ? ai.confidence : technicalConfidence;
+        status.last_signal_reason = aiOverride
+          ? `AI override executed ${ai.recommended_action} at ${(ai.confidence * 100).toFixed(1)}% confidence.`
+          : ai.recommended_action === technicalDecision
+          ? `AI reinforced the ${technicalDecision} stance.`
+          : status.technical_reason;
+
+        const macro = { ...PREVIEW_MACRO };
+        macro.bias_score = PREVIEW_MACRO.bias_score + secondary * 0.08;
+        macro.confidence = Math.min(
+          Math.max(PREVIEW_MACRO.confidence + oscillation * 0.07, 0),
+          1,
+        );
+        macro.summary = `Macro bias is ${macro.bias_score > 0 ? "bullish" : macro.bias_score < 0 ? "bearish" : "balanced"} (${macro.bias_score.toFixed(
+          2,
+        )}) with confidence ${(macro.confidence * 100).toFixed(1)}%. Preview catalysts animate to show how political and rate headlines tilt the playbook.`;
+        macro.events = PREVIEW_MACRO.events.map((event, index) => ({
+          ...event,
+          timestamp: new Date(now - index * 120_000).toISOString(),
+        }));
+
+        const playbook = JSON.parse(JSON.stringify(PREVIEW_PLAYBOOK));
+        playbook.generated_at = new Date(now).toISOString();
+        playbook.commodities.forEach((asset, assetIndex) => {
+          const biasShift = Math.sin(now / 3600 + assetIndex) * 0.05;
+          const confidenceShift = Math.cos(now / 4100 + assetIndex) * 0.06;
+          asset.macro_bias = parseFloat((asset.macro_bias + biasShift).toFixed(2));
+          asset.macro_confidence = Math.min(
+            Math.max(asset.macro_confidence + confidenceShift, 0),
+            1,
+          );
+          asset.horizons.forEach((horizon, horizonIndex) => {
+            const tweak = Math.sin(now / 4300 + horizonIndex + assetIndex * 0.4) * 0.35;
+            horizon.total_return_pct = parseFloat((horizon.total_return_pct + tweak).toFixed(2));
+            horizon.final_balance = parseFloat(
+              (horizon.initial_balance * (1 + horizon.total_return_pct / 100)).toFixed(2),
+            );
+            horizon.annualized_return_pct = parseFloat(
+              (horizon.annualized_return_pct + tweak * 6).toFixed(2),
+            );
+            horizon.macro_bias = asset.macro_bias;
+          });
+        });
+        playbook.equities.forEach((asset, assetIndex) => {
+          const biasShift = Math.cos(now / 3700 + assetIndex) * 0.04;
+          const confidenceShift = Math.sin(now / 3900 + assetIndex) * 0.05;
+          asset.macro_bias = parseFloat((asset.macro_bias + biasShift).toFixed(2));
+          asset.macro_confidence = Math.min(
+            Math.max(asset.macro_confidence + confidenceShift, 0),
+            1,
+          );
+          asset.horizons.forEach((horizon, horizonIndex) => {
+            const tweak = Math.cos(now / 4500 + horizonIndex + assetIndex * 0.5) * 0.28;
+            horizon.total_return_pct = parseFloat((horizon.total_return_pct + tweak).toFixed(2));
+            horizon.final_balance = parseFloat(
+              (horizon.initial_balance * (1 + horizon.total_return_pct / 100)).toFixed(2),
+            );
+            horizon.annualized_return_pct = parseFloat(
+              (horizon.annualized_return_pct + tweak * 5).toFixed(2),
+            );
+            horizon.macro_bias = asset.macro_bias;
+          });
+        });
+
+        render(status, signals, equity, PREVIEW_STRATEGY, ai, macro, playbook, { preview: true });
+      }
+
+      if (isPreviewMode) {
+        renderPreview();
+        setInterval(renderPreview, 4000);
+      } else {
+        refresh();
+        setInterval(refresh, 5000);
+      }
+    </script>
+  </body>
+</html>

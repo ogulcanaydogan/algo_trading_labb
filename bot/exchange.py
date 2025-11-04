@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import importlib
 import logging
+import os
 import random
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
@@ -8,10 +10,20 @@ from typing import List, Optional
 import numpy as np
 import pandas as pd
 
-try:
-    import ccxt  # type: ignore
-except ImportError:  # pragma: no cover - optional dependency for the skeleton
-    ccxt = None  # type: ignore
+ccxt = None  # type: ignore
+
+
+def _load_ccxt():
+    global ccxt  # type: ignore
+    if ccxt is not None:
+        return ccxt
+    try:
+        os.environ.setdefault("SETUPTOOLS_SCM_PRETEND_VERSION", "0.0.0")
+    except Exception:  # pragma: no cover - defensive
+        pass
+    module = importlib.import_module("ccxt")
+    ccxt = module  # type: ignore
+    return module
 
 logger = logging.getLogger(__name__)
 
@@ -26,13 +38,15 @@ class ExchangeClient:
         api_secret: Optional[str] = None,
         sandbox: bool = False,
     ) -> None:
-        if ccxt is None:
+        try:
+            module = _load_ccxt()
+        except ModuleNotFoundError as exc:  # pragma: no cover - optional dependency
             raise RuntimeError(
                 "ccxt not available. Install requirements or use PaperExchangeClient."
-            )
+            ) from exc
         self.exchange_id = exchange_id
         self.sandbox = sandbox
-        exchange_class = getattr(ccxt, exchange_id)
+        exchange_class = getattr(module, exchange_id)
         self.client = exchange_class(
             {
                 "apiKey": api_key,
@@ -79,7 +93,14 @@ class PaperExchangeClient:
 
     def fetch_ohlcv(self, limit: int = 250) -> pd.DataFrame:
         now = datetime.now(timezone.utc).replace(second=0, microsecond=0)
-        freq = "1T" if self.timeframe.endswith("m") else "5T"
+        if self.timeframe.endswith("m"):
+            minutes = int(self.timeframe[:-1] or 1)
+            freq = f"{minutes}min"
+        elif self.timeframe.endswith("h"):
+            hours = int(self.timeframe[:-1] or 1)
+            freq = f"{hours}H"
+        else:
+            freq = "1min"
         index = pd.date_range(
             end=now,
             periods=limit,
