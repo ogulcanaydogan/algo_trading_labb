@@ -75,6 +75,17 @@ class BotConfig:
         )
 
 
+@dataclass
+class ExecutionSnapshot:
+    decision: str
+    confidence: float
+    reason: str
+    technical_decision: str
+    technical_confidence: float
+    technical_reason: str
+    ai_override: bool
+
+
 def build_strategy_config(config: BotConfig) -> StrategyConfig:
     """Build StrategyConfig from BotConfig and optional overrides file.
 
@@ -368,7 +379,12 @@ def update_state(
         position_size=position_size,
         unrealized_pnl_pct=round(unrealized_pnl_pct, 4),
         last_signal=decision,
-        confidence=signal["confidence"],
+        last_signal_reason=execution.reason,
+        confidence=round(execution.confidence, 4),
+        technical_signal=execution.technical_decision,
+        technical_confidence=execution.technical_confidence,
+        technical_reason=execution.technical_reason,
+        ai_override_active=execution.ai_override,
         rsi=signal["rsi"],
         ema_fast=signal["ema_fast"],
         ema_slow=signal["ema_slow"],

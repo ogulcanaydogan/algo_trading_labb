@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import importlib
 import logging
+import os
 import random
 import re
 from datetime import datetime, timezone
@@ -9,10 +11,20 @@ from typing import List, Optional
 import numpy as np
 import pandas as pd
 
-try:
-    import ccxt  # type: ignore
-except ImportError:  # pragma: no cover - optional dependency for the skeleton
-    ccxt = None  # type: ignore
+ccxt = None  # type: ignore
+
+
+def _load_ccxt():
+    global ccxt  # type: ignore
+    if ccxt is not None:
+        return ccxt
+    try:
+        os.environ.setdefault("SETUPTOOLS_SCM_PRETEND_VERSION", "0.0.0")
+    except Exception:  # pragma: no cover - defensive
+        pass
+    module = importlib.import_module("ccxt")
+    ccxt = module  # type: ignore
+    return module
 
 logger = logging.getLogger(__name__)
 
@@ -28,10 +40,12 @@ class ExchangeClient:
         sandbox: bool = False,
         testnet: bool = False,
     ) -> None:
-        if ccxt is None:
+        try:
+            module = _load_ccxt()
+        except ModuleNotFoundError as exc:  # pragma: no cover - optional dependency
             raise RuntimeError(
                 "ccxt not available. Install requirements or use PaperExchangeClient."
-            )
+            ) from exc
         self.exchange_id = exchange_id
         self.sandbox = sandbox
         self.testnet = testnet

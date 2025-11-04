@@ -16,7 +16,18 @@ class BotStateResponse(BaseModel):
     balance: float
     unrealized_pnl_pct: float
     last_signal: Optional[str] = None
+    last_signal_reason: Optional[str] = Field(
+        None, description="Narrative explaining why the last decision was taken."
+    )
     confidence: Optional[float] = None
+    technical_signal: Optional[str] = Field(
+        None, description="Baseline technical signal before any AI adjustments."
+    )
+    technical_confidence: Optional[float] = Field(None, ge=0.0, le=1.0)
+    technical_reason: Optional[str] = None
+    ai_override_active: bool = Field(
+        False, description="Whether the AI layer overrode the technical signal."
+    )
     rsi: Optional[float] = None
     ema_fast: Optional[float] = None
     ema_slow: Optional[float] = None
