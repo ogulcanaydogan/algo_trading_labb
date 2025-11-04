@@ -1,0 +1,23 @@
+# Example multi-asset configuration. Copy to data/assets.yml and edit.
+# Each item describes one market to optimize/monitor.
+# asset_type can be: crypto | equity | commodity | forex | index | etf
+# For Yahoo Finance-backed markets, set data_symbol if it differs from the display symbol.
+
+assets:
+  - symbol: BTC/USDT
+    asset_type: crypto
+    timeframe: 1h
+  - symbol: ETH/USDT
+    asset_type: crypto
+    timeframe: 1h
+  - symbol: AAPL
+    asset_type: equity
+    timeframe: 1h
+  - symbol: GC=F   # Gold futures on Yahoo Finance
+    data_symbol: GC=F
+    asset_type: commodity
+    timeframe: 1h
+  - symbol: XAUUSD=X  # Gold spot on Yahoo Finance
+    data_symbol: XAUUSD=X
+    asset_type: forex
+    timeframe: 1h

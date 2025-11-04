@@ -1,0 +1,7 @@
+[flake8]
+# Exclude virtual environments and common non-source folders to avoid scanning site-packages
+exclude = .venv,venv,.git,__pycache__,build,dist,node_modules,docs,data
+# Allow a more pragmatic max line length for modern code (adjust as needed)
+max-line-length = 120
+# Ignore long docstrings and some style that is not critical for CI here
+extend-ignore = E203, W503

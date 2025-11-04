@@ -92,11 +92,6 @@ class SignalResponse(BaseModel):
     decision: Literal["LONG", "SHORT", "FLAT"]
     confidence: float
     reason: str
-    execution_reason: Optional[str] = None
-    technical_decision: Optional[str] = None
-    technical_confidence: Optional[float] = Field(None, ge=0.0, le=1.0)
-    technical_reason: Optional[str] = None
-    ai_override: bool = False
     ai_action: Optional[str] = None
     ai_confidence: Optional[float] = None
     ai_expected_move_pct: Optional[float] = None
@@ -160,8 +155,6 @@ class MacroEventResponse(BaseModel):
     summary: Optional[str] = None
     timestamp: Optional[str] = None
     source: Optional[str] = None
-    bias: Optional[float] = Field(None, ge=-1.0, le=1.0)
-    derived_bias: Optional[float] = Field(None, ge=-1.0, le=1.0)
 
 
 class MacroInsightResponse(BaseModel):

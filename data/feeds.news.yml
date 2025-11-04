@@ -1,0 +1,20 @@
+# RSS Feed Configuration for News Ingestion
+# LLM-Enhanced News Analysis için haber kaynakları
+
+feeds:
+  # Finansal Haberler
+  - https://feeds.reuters.com/reuters/topNews
+  - https://feeds.reuters.com/reuters/businessNews
+  - https://feeds.a.dj.com/rss/RSSMarketsMain.xml
+  - https://finance.yahoo.com/news/rssindex
+  
+  # Kripto Haberler
+  - https://cointelegraph.com/rss
+  - https://www.coindesk.com/arc/outboundfeeds/rss/
+  
+  # Genel Piyasa
+  - https://www.cnbc.com/id/19746125/device/rss/rss.html
+  - https://www.cnbc.com/id/10000664/device/rss/rss.html
+  
+  # Teknoloji
+  - https://www.theverge.com/rss/index.xml

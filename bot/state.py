@@ -76,10 +76,6 @@ class SignalEvent:
     decision: PositionType
     confidence: float
     reason: str
-    technical_decision: Optional[PositionType] = None
-    technical_confidence: Optional[float] = None
-    technical_reason: Optional[str] = None
-    ai_override: bool = False
     ai_action: Optional[str] = None
     ai_confidence: Optional[float] = None
     ai_expected_move_pct: Optional[float] = None
@@ -213,4 +209,3 @@ def create_state_store(base_dir: Path) -> StateStore:
     signals_path = base_dir / "signals.json"
     equity_path = base_dir / "equity.json"
     return StateStore(state_path, signals_path, equity_path)
-

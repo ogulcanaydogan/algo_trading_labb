@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import json
-import math
 import os
 import time
-from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
@@ -71,8 +70,8 @@ class MacroEvent:
 
         return max(-1.0, min(1.0, bias + asset_bias))
 
-    def as_dict(self, symbol: Optional[str] = None) -> Dict[str, Any]:
-        payload = {
+    def as_dict(self) -> Dict[str, Any]:
+        return {
             "title": self.title,
             "category": self.category,
             "sentiment": self.sentiment,
@@ -82,14 +81,7 @@ class MacroEvent:
             "summary": self.summary,
             "timestamp": self.timestamp,
             "source": self.source,
-            "bias": self.bias,
         }
-        if symbol:
-            try:
-                payload["derived_bias"] = round(self.derived_bias(symbol), 4)
-            except Exception:
-                payload["derived_bias"] = None
-        return payload
 
 
 @dataclass
@@ -133,8 +125,6 @@ class MacroSentimentEngine:
         self._baseline_events = list(baseline_events or self._build_default_events())
         self._events: List[MacroEvent] = list(self._baseline_events)
         self._last_loaded: float = 0.0
-        self._dynamic_templates: List[Dict[str, Any]] = self._build_dynamic_templates()
-        self._cycle_index: int = 0
 
     @classmethod
     def from_env(cls) -> "MacroSentimentEngine":
@@ -146,17 +136,17 @@ class MacroSentimentEngine:
     def refresh_if_needed(self) -> None:
         now = time.time()
         if self.events_path is None:
-            self._events = self._compose_events()
+            self._events = list(self._baseline_events)
             return
         if now - self._last_loaded < self.refresh_interval:
             return
         try:
-            self._events = self._compose_events(
-                extra_events=self._load_events_from_path(self.events_path)
+            self._events = list(self._baseline_events) + self._load_events_from_path(
+                self.events_path
             )
             self._last_loaded = now
         except (OSError, json.JSONDecodeError):
-            self._events = self._compose_events()
+            self._events = list(self._baseline_events)
 
     def assess(self, symbol: str) -> MacroInsight:
         self.refresh_if_needed()
@@ -171,19 +161,6 @@ class MacroSentimentEngine:
 
         for event in relevant:
             weight = event.weight()
-            timestamp_value = event.timestamp
-            if timestamp_value:
-                try:
-                    event_time = datetime.fromisoformat(
-                        timestamp_value.replace("Z", "+00:00")
-                    )
-                    age_hours = (
-                        datetime.now(timezone.utc) - event_time
-                    ).total_seconds() / 3600
-                    decay = math.exp(-max(age_hours, 0.0) / 6.0)
-                    weight *= max(0.35, decay)
-                except ValueError:
-                    pass
             bias = event.derived_bias(symbol)
             weighted_bias += bias * weight
             total_weight += weight
@@ -210,7 +187,7 @@ class MacroSentimentEngine:
             f"{event.title} ({event.sentiment}, {event.impact} impact)"
             for event in sorted_events[:4]
         ]
-        events_payload = [event.as_dict(symbol) for event in sorted_events[:6]]
+        events_payload = [event.as_dict() for event in sorted_events[:6]]
 
         bias_text = "bullish" if bias_score > 0.05 else "bearish" if bias_score < -0.05 else "balanced"
         summary = (
@@ -249,7 +226,7 @@ class MacroSentimentEngine:
             keys = {key.lower() for key in event.assets.keys()}
             if "*" in keys or symbol.lower() in keys:
                 selected.append(event)
-        return selected[:12]
+        return selected
 
     def _load_events_from_path(self, path: Path) -> List[MacroEvent]:
         if not path.exists():
@@ -264,66 +241,6 @@ class MacroSentimentEngine:
                 except TypeError:
                     continue
         return events
-
-    def _compose_events(
-        self,
-        extra_events: Optional[Iterable[MacroEvent]] = None,
-    ) -> List[MacroEvent]:
-        now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-        baseline = self._refresh_baseline_events(now)
-        dynamic = self._generate_dynamic_events(now)
-        combined: List[MacroEvent] = baseline + dynamic
-        if extra_events:
-            combined.extend(extra_events)
-        # ensure newest events first
-        combined.sort(key=lambda event: event.timestamp or now, reverse=True)
-        return combined[:20]
-
-    def _generate_dynamic_events(self, timestamp: str) -> List[MacroEvent]:
-        events: List[MacroEvent] = []
-        if not self._dynamic_templates:
-            return events
-        templates_to_use = min(5, len(self._dynamic_templates))
-        for offset in range(templates_to_use):
-            template = self._dynamic_templates[
-                (self._cycle_index + offset) % len(self._dynamic_templates)
-            ]
-            payload = dict(template)
-            bias_jitter = math.sin((self._cycle_index + offset) / 2.5) * 0.1
-            payload["timestamp"] = timestamp
-            update_tag = timestamp.split("T")[-1][:5] if "T" in timestamp else timestamp
-            payload["summary"] = f"{template['summary']} (refresh {update_tag}Z)"
-            if "bias" in payload and payload["bias"] is not None:
-                payload["bias"] = max(
-                    -1.0,
-                    min(1.0, float(payload["bias"]) + bias_jitter),
-                )
-            events.append(MacroEvent.from_dict(payload))
-        self._cycle_index = (self._cycle_index + 1) % len(self._dynamic_templates)
-        return events
-
-    def _refresh_baseline_events(self, timestamp: str) -> List[MacroEvent]:
-        if not self._baseline_events:
-            return []
-
-        ordered = (
-            self._baseline_events[self._cycle_index % len(self._baseline_events) :]
-            + self._baseline_events[: self._cycle_index % len(self._baseline_events)]
-        )
-
-        refreshed: List[MacroEvent] = []
-        for index, event in enumerate(ordered):
-            payload = asdict(event)
-            payload["timestamp"] = timestamp
-            base_summary = event.summary or event.title
-            update_tag = timestamp.split("T")[-1][:5] if "T" in timestamp else timestamp
-            payload["summary"] = f"{base_summary} (update {update_tag}Z)"
-            bias_value = payload.get("bias")
-            if bias_value is not None:
-                jitter = math.sin((self._cycle_index + index) / 3.0) * 0.08
-                payload["bias"] = max(-1.0, min(1.0, float(bias_value) + jitter))
-            refreshed.append(MacroEvent.from_dict(payload))
-        return refreshed
 
     def _build_default_events(self) -> List[MacroEvent]:
         now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -354,50 +271,5 @@ class MacroSentimentEngine:
                 summary="Stronger labor data tempers rate-cut odds.",
                 timestamp=now,
             ),
-        ]
-
-    def _build_dynamic_templates(self) -> List[Dict[str, Any]]:
-        return [
-            {
-                "title": "Global supply chains tighten",
-                "category": "macro",
-                "sentiment": "negative",
-                "impact": "high",
-                "summary": "Freight rates spike as Red Sea tensions disrupt shipping lanes",
-                "assets": {"XAU/USD": 0.18, "XAG/USD": 0.12, "USOIL/USD": 0.15, "*": -0.05},
-            },
-            {
-                "title": "Fed speakers lean data-dependent",
-                "category": "central_bank",
-                "sentiment": "neutral",
-                "impact": "medium",
-                "interest_rate_expectation": "Short-term rates stay restrictive until inflation cools further.",
-                "summary": "Officials reiterate patience on cuts while monitoring labour data",
-            },
-            {
-                "title": "Fiscal policy debate heats up",
-                "category": "politics",
-                "sentiment": "bearish",
-                "impact": "high",
-                "actor": "US Congress",
-                "summary": "Budget standoff revives volatility across risk assets",
-                "assets": {"BTC/USDT": -0.1, "ETH/USDT": -0.08, "*": -0.04},
-            },
-            {
-                "title": "Energy markets eye OPEC guidance",
-                "category": "commodities",
-                "sentiment": "bullish",
-                "impact": "medium",
-                "summary": "Production discipline hints at tighter crude balances into year-end",
-                "assets": {"USOIL/USD": 0.22, "XAU/USD": 0.05},
-            },
-            {
-                "title": "Tech earnings beat expectations",
-                "category": "equities",
-                "sentiment": "positive",
-                "impact": "medium",
-                "summary": "Mega-cap guidance lifts sentiment for growth equities",
-                "assets": {"AAPL": 0.1, "NVDA": 0.12, "*": 0.04},
-            },
         ]
 

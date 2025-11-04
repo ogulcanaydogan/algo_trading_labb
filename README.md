@@ -7,12 +7,14 @@ Algo Trading Lab; çoklu varlıklar için sinyal üretebilen, risk yönetimi yap
 - Paper trading modu için sentetik veri üreticisi; ileride ccxt ile gerçek borsa entegrasyonuna hazır.
 - FastAPI servisi aracılığıyla `/status`, `/signals`, `/equity`, `/strategy` endpoint’leri ve dahili web dashboard'u.
 - Yapay zekâ katmanı için `/ai/prediction` (tahmin) ve `/ai/question` (soru-cevap) endpoint’leri ile dashboard üzerindeki AI Insights bölümü.
-- Trump gibi politik aktörlerin kararları ve Fed faiz beklentileri gibi makro başlıkları skorlayan makro motoru; `/macro/insights` endpoint’i ve dashboard üzerindeki **Macro & News Pulse** paneli ile son katalizörleri takip eder. Motor her döngüde dinamik olay şablonlarını yeniden örnekleyerek haber akışının tek bir başlıkta takılı kalmasını engeller.
-- AI karar katmanı teknik sinyalleri yüksek güven seviyesinde otomatik olarak devralabilir; `AI_OVERRIDE_CONFIDENCE` ve `AI_MACRO_GUARD` ile AI güven eşiğini ve makro eşiklerini ayarlayarak LONG/SHORT kararlarını yapay zekâya bırakabilirsiniz.
-- Dashboard’daki **Live Action Analytics** bölümü yürütülen sinyal güveni, AI güveni, teknik güveni aynı grafikte karşılaştırır ve AI’nın beklenen hareketini unrealized PnL ile yan yana sunar.
-- Emtia tarafı için eklenen makro bias & güven ısı haritası, playbook’taki her varlığın (BTC, ETH, XAU, XAG, USOIL vb.) long/short eğilimini ve güven seviyesini görsel olarak takip etmeyi kolaylaştırır.
+- Trump gibi politik aktörlerin kararları ve Fed faiz beklentileri gibi makro başlıkları skorlayan makro motoru; `/macro/insights` endpoint’i ve dashboard üzerindeki **Macro & News Pulse** paneli ile son katalizörleri takip eder.
 - Çoklu piyasa portföyü için `/portfolio/playbook` endpoint’i ve dashboard’daki **Multi-Market Portfolio Playbook** paneli; BTC, ETH, altın, gümüş ve petrol gibi emtia/kripto başlıklarını; AAPL, MSFT gibi mega-cap hisseleri kısa/orta/uzun vadeli strateji dökümleriyle ve makro özetleriyle birlikte sunar.
 - EMA/RSI aralığı, RSI eşikleri ve makro bias'ı birlikte değerlendiren yeni **strateji arama (research) aracı** ile grid-search denemelerini kod yazmadan başlatabilirsiniz.
+- *Yeni:* Hisse, endeks, altın ve emtia gibi kripto dışı varlıklardan veri çekebilen (opsiyonel `yfinance`) piyasa veri katmanı.
+- *Yeni:* Portföy seviyesinde çoklu varlık çalıştırıcısı; her enstrüman için ayrı risk parametreleri ve veri klasörü ile eş zamanlı bot döngüleri.
+- FastAPI servisi aracılığıyla `/status`, `/signals`, `/equity`, `/strategy` endpoint’leri ve dahili web dashboard'u.
+- Yapay zekâ katmanı için `/ai/prediction` (tahmin) ve `/ai/question` (soru-cevap) endpoint’leri ile dashboard üzerindeki AI Insights bölümü.
+- Trump gibi politik aktörlerin kararları ve Fed faiz beklentileri gibi makro başlıkları skorlayan makro motoru; `/macro/insights` endpoint’i ve dashboard üzerindeki **Macro & News Pulse** paneli ile son katalizörleri takip eder.
 - Docker + docker-compose ile 7/24 çalışacak şekilde konteynerleştirme.
 - İlerleyen fazlarda self-supervised learning modelinin entegre edilebilmesi için ayrıştırılmış strateji ve state katmanı.
 
@@ -22,14 +24,23 @@ algo_trading_lab/
 ├── bot/
 │   ├── ai.py           # Heuristik AI tahmincisi ve soru-cevap motoru
 │   ├── bot.py          # Ana loop ve risk yönetimi
+│   ├── market_data.py  # ccxt/yfinance/paper veri sağlayıcıları
 │   ├── exchange.py     # ccxt wrapper + paper-exchange mock
 │   ├── research.py     # EMA/RSI parametre araması ve makro farkındalıkla grid search
 │   ├── state.py        # JSON tabanlı state/signals/equity saklama
-│   └── strategy.py     # EMA/RSI stratejisi ve pozisyon boyutu hesapları
+│   ├── strategy.py     # EMA/RSI stratejisi ve pozisyon boyutu hesapları
+│   ├── portfolio.py    # Çoklu varlık portföy koşucusu
+│   ├── backtesting.py  # Backtest motoru
+│   └── trading.py      # Gerçek işlem yöneticisi
 ├── api/
 │   ├── api.py          # FastAPI uygulaması
 │   └── schemas.py      # Pydantic response şemaları
 ├── data/               # State dosyaları, örnek OHLCV ve makro event setleri
+├── data/               # State dosyaları (docker volume ile paylaşılır)
+├── test_binance_testnet.py  # Testnet bağlantı testi
+├── run_backtest.py     # Backtest çalıştırma scripti
+├── run_live_trading.py # Canlı trading scripti
+├── run_portfolio.py    # Çoklu varlık botunu başlatan script
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
@@ -38,13 +49,115 @@ algo_trading_lab/
 ```
 
 ## Başlangıç
+
+### Binance Spot Testnet Kurulumu
+1. https://testnet.binance.vision/ adresine gidin ve API anahtarı oluşturun
+2. API Key ve Secret Key'i kopyalayın
+3. `.env` dosyasını düzenleyin:
+   ```bash
+   cp .env.example .env
+   ```
+4. `.env` içerisinde testnet bilgilerini güncelleyin:
+   ```bash
+   BINANCE_TESTNET_ENABLED=true
+   BINANCE_TESTNET_API_KEY=your_api_key_here
+   BINANCE_TESTNET_API_SECRET=your_secret_key_here
+   PAPER_MODE=false  # Testnet kullanmak için false yapın
+   ```
+
+### Test Bağlantısı
+Binance testnet bağlantınızı test etmek için:
+```bash
+python test_binance_testnet.py
+```
+
+## 🎯 Strateji Testi ve Al-Sat Kararları
+
+### 1. Backtest (Geçmiş Veri Testi)
+Stratejinizi geçmiş verilerle test edin:
+
+```bash
+python run_backtest.py
+```
+
+Bu script ile:
+- Geçmiş verilerde stratejinizi test edebilirsiniz
+- Win rate, profit factor, max drawdown gibi metrikleri görebilirsiniz
+- Farklı parametrelerle deneme yapabilirsiniz
+- Sonuçları JSON dosyasına kaydedebilirsiniz
+
+**Örnek Çıktı:**
+```
+============================================================
+BACKTEST SONUÇLARI
+============================================================
+Başlangıç Bakiyesi: $10,000.00
+Bitiş Bakiyesi: $11,250.00
+Toplam P&L: $1,250.00 (12.50%)
+
+Toplam İşlem: 45
+Kazanan: 28 | Kaybeden: 17
+Win Rate: 62.22%
+Ortalama Kazanç: $120.50
+Ortalama Kayıp: $65.30
+Profit Factor: 1.85
+Max Drawdown: $450.00 (4.50%)
+Sharpe Ratio: 1.42
+============================================================
+```
+
+### 2. Canlı Trading (Testnet veya Gerçek)
+Stratejinizi canlı olarak çalıştırın:
+
+```bash
+python run_live_trading.py
+```
+
+**3 Mod Seçeneği:**
+1. **DRY RUN**: Sadece log tutar, gerçek emir göndermez (güvenli test)
+2. **TESTNET**: Binance testnet'te gerçek emir gönderir (test parası)
+3. **LIVE**: GERÇEK BORSADA işlem yapar (DİKKAT!)
+
+**Önerilen İş Akışı:**
+```
+1. Backtest ile stratejiyi test et
+   └─> Win rate > %55 ve Profit Factor > 1.5 ise devam et
+   
+2. DRY RUN modunda canlı veri ile test et (1-2 gün)
+   └─> Sinyaller mantıklı mı kontrol et
+   
+3. TESTNET modunda gerçek emirlerle test et (1 hafta)
+   └─> Emir gönderimi, stop loss, take profit çalışıyor mu?
+   
+4. Küçük sermaye ile LIVE teste geç
+   └─> Risk yönetimini doğrula
+
+5. Tam sermaye ile production
+```
+
+### 3. Portföy Botu (Çoklu Varlık)
+Kripto dışı varlıkları (hisse, ETF, altın, endeks vb.) aynı loop içinde takip etmek için yeni portföy koşucusunu kullanın.
+
+1. Örnek konfigürasyonu çoğaltın:
+   ```bash
+   cp data/portfolio.sample.json data/portfolio.json
+   ```
+2. Dosya içindeki `assets` listesine istediğiniz sembolleri ekleyin. `asset_type` alanı `crypto`, `equity`, `commodity`, `forex` gibi değerler alabilir. Yahoo Finance ile veri çekilecekse `data_symbol` alanına ilgili ticker'ı (`GC=F`, `^GSPC`, `AAPL` vb.) yazın.
+3. Toplam sermayeyi (`portfolio_capital`) ve her varlığın payını (`allocation_pct`) belirleyin. Boş bırakılanlar kalan yüzdeyi eşit böler.
+4. Botu başlatın:
+   ```bash
+   python run_portfolio.py --config data/portfolio.json
+   ```
+
+> **Not:** Hisse/emtia verisi çekebilmek için `pip install yfinance` kurulu olmalıdır. Makro duyarlılık motoru her varlık için `macro_symbol` tanımlanırsa ilgili katalizörleri ayrı ayrı raporlar.
+
+### Ortam Değişkenleri
 1. Ortam değişkenlerini düzenleyin:
    ```bash
    cp .env.example .env
    # .env içindeki değerleri ihtiyacınıza göre güncelleyin
    ```
    - Binance Futures veya Spot testnet anahtarlarınız varsa `.env` içine `BINANCE_TESTNET_API_KEY`, `BINANCE_TESTNET_SECRET` ve `BINANCE_TESTNET_USE_FUTURES=true/false` gibi alanları ekleyin. Ayrıntılı entegrasyon adımları için [docs/binance_testnet_guide.md](docs/binance_testnet_guide.md) dosyasına bakabilirsiniz.
-   - AI karar katmanını yapılandırmak için `AI_OVERRIDE_CONFIDENCE` (varsayılan `0.65`) ve `AI_MACRO_GUARD` (varsayılan `0.35`) değerlerini belirleyebilir, makro veri yenileme sıklığını `MACRO_REFRESH_SECONDS` ile ayarlayabilirsiniz.
 2. Konteynerleri ayağa kaldırın:
    ```bash
    docker-compose up --build
@@ -60,9 +173,8 @@ algo_trading_lab/
 ![Dashboard önizleme](docs/dashboard_preview.svg)
 
 Dashboard, tek sayfalık bir arayüz içinde aşağıdaki bloklarla organize edilmiştir:
-- **Üst durum şeridi:** Seçili sembol, pozisyon, giriş fiyatı, gerçekleşmemiş PnL ve bot çalışma modunu gösteren kartlara ek olarak teknik sinyal ile AI’nin devreye girip girmediği bilgisini ve son kararın açıklamasını paylaşır.
-- **Signal Stream:** Sağ tarafta son sinyaller, emir özetleri ve AI tahminlerine ait kısa açıklamalar kronolojik olarak akar; her satırda yürütülen emir, teknik baz çizgisi ve AI hareketi ayrı ayrı gösterilir.
-- **Live Action Analytics:** Sinyal/AI güven trendlerini ve emtia portföyü getirilerini iki ayrı grafik halinde canlı güncelleyerek farklı ufuklardaki güven ve performans dengesini takip etmenizi sağlar.
+- **Üst durum şeridi:** Seçili sembol, pozisyon, giriş fiyatı, gerçekleşmemiş PnL ve bot çalışma modunu gösteren renk kodlu kartlar.
+- **Signal Stream:** Sağ tarafta son sinyaller, emir özetleri ve AI tahminlerine ait kısa açıklamalar kronolojik olarak akar.
 - **Equity & Risk:** Orta bölümde equity eğrisi, günlük PnL şeridi ve risk parametreleri yan yana yer alır. Preview modunda örnek veri, canlı modda state dosyasındaki gerçek değerler gösterilir.
 - **AI Insights:** AI aksiyonu, olasılıklar, açıklayıcı özellikler (EMA açığı, momentum vb.) ve kısa anlatım kutucuğu.
 - **Decision Playbook:** EMA/RSI eşiklerini, stop-loss/take-profit örneklerini ve pozisyon boyutu formülünü, canlı strateji konfigürasyonuna göre açıklar.
@@ -91,6 +203,9 @@ python -m bot.research \
 ```
 
 Komut tamamlandığında Sharpe, toplam getiri, kazanma oranı ve makro bias'ı birlikte skorlayan en iyi kombinasyonlar listelenir. Çıktıdaki `EMA`, `RSI` değerlerini `.env` veya dashboard’un **Decision Playbook** paneline taşıyarak canlı bota uygulayabilirsiniz. Örnek CSV için `data/sample_ohlcv.csv` dosyasına bakabilirsiniz.
+- **Assistant formu:** Dashboard alt kısmındaki form ile `/ai/question` endpoint’ine soru gönderebilir, cevapları gerçek zamanlı görebilirsiniz; preview modunda örnek sorular hazır gelir.
+
+`/dashboard/preview` rotası bu bileşenlerin tamamını örnek veriyle render eder; bu sayede botu başlatmadan arayüzü inceleyebilir ve tasarımı özelleştirebilirsiniz. Daha ayrıntılı bir bölümlendirme ve ASCII yerleşim krokisi için [docs/ui_walkthrough.md](docs/ui_walkthrough.md) dosyasına göz atabilirsiniz.
 
 ## Neleri geliştirebilirim?
 Aşağıdaki alanlar ilk etapta kolayca genişletilebilir:
@@ -224,8 +339,16 @@ uvicorn api.api:app --reload
 
 ## Notlar
 - `requirements.txt` dosyası temel bağımlılıkları içerir. SSL/ML entegrasyonu için PyTorch ve PyTorch Lightning ek olarak kurulmalıdır (platforma göre whl dosyaları değişir).
-- Paper mode dışına çıkarken `.env` dosyasındaki `PAPER_MODE=false` ve API anahtarları alanlarını güncelleyin.
-- Çoklu enstrüman desteği için `docker-compose` içerisine aynı imajdan türetilmiş yeni servisler eklenebilir veya bot loop’u parametre alacak şekilde genişletilebilir.
+- **Testnet Kullanımı**: `.env` dosyasında `BINANCE_TESTNET_ENABLED=true` ve `PAPER_MODE=false` yaparak Binance Spot Testnet'i kullanabilirsiniz.
+- **Production Kullanımı**: Gerçek borsa kullanımı için `.env` dosyasındaki `PAPER_MODE=false`, `BINANCE_TESTNET_ENABLED=false` ve `EXCHANGE_API_KEY`, `EXCHANGE_API_SECRET` alanlarını güncelleyin.
+- Çoklu enstrüman desteği için `docker-compose` içerisine aynı imajdan türetilmiş yeni servisler eklenebilir veya bot loop'u parametre alacak şekilde genişletilebilir.
+
+## High Frequency Trading (HFT) için Öneriler
+- Binance Futures Testnet kullanın (daha gerçekçi): https://testnet.binancefuture.com
+- REST API yerine WebSocket ile order book ve trade stream'leri dinleyin
+- Latency optimizasyonu için sunucunuzu Binance'e yakın bir bölgede çalıştırın
+- Rate limit ve order matching test edilmelidir
+
 
 
 ## Backend ve Frontend Açıkları

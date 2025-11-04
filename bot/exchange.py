@@ -4,7 +4,8 @@ import importlib
 import logging
 import os
 import random
-from datetime import datetime, timedelta, timezone
+import re
+from datetime import datetime, timezone
 from typing import List, Optional
 
 import numpy as np
@@ -37,6 +38,7 @@ class ExchangeClient:
         api_key: Optional[str] = None,
         api_secret: Optional[str] = None,
         sandbox: bool = False,
+        testnet: bool = False,
     ) -> None:
         try:
             module = _load_ccxt()
@@ -46,13 +48,25 @@ class ExchangeClient:
             ) from exc
         self.exchange_id = exchange_id
         self.sandbox = sandbox
-        exchange_class = getattr(module, exchange_id)
-        self.client = exchange_class(
-            {
-                "apiKey": api_key,
-                "secret": api_secret,
+        self.testnet = testnet
+        exchange_class = getattr(ccxt, exchange_id)
+
+        config = {
+            "apiKey": api_key,
+            "secret": api_secret,
+        }
+
+        # Binance Testnet configuration
+        if testnet and exchange_id == "binance":
+            config["urls"] = {
+                "api": {
+                    "public": "https://testnet.binance.vision/api",
+                    "private": "https://testnet.binance.vision/api",
+                }
             }
-        )
+
+        self.client = exchange_class(config)
+
         if sandbox and hasattr(self.client, "set_sandbox_mode"):
             self.client.set_sandbox_mode(True)
 
@@ -93,14 +107,19 @@ class PaperExchangeClient:
 
     def fetch_ohlcv(self, limit: int = 250) -> pd.DataFrame:
         now = datetime.now(timezone.utc).replace(second=0, microsecond=0)
-        if self.timeframe.endswith("m"):
-            minutes = int(self.timeframe[:-1] or 1)
-            freq = f"{minutes}min"
-        elif self.timeframe.endswith("h"):
-            hours = int(self.timeframe[:-1] or 1)
-            freq = f"{hours}H"
-        else:
-            freq = "1min"
+        # Parse timeframe like '1m', '5m', '1h', '4h', '1d'
+        tf = self.timeframe.strip().lower()
+        match = re.match(r"^(\d+)([mhd])$", tf)
+        freq = "1min"
+        if match:
+            value = int(match.group(1))
+            unit = match.group(2)
+            if unit == "m":
+                freq = f"{value}min"
+            elif unit == "h":
+                freq = f"{value}H"
+            elif unit == "d":
+                freq = f"{value}D"
         index = pd.date_range(
             end=now,
             periods=limit,
@@ -136,4 +155,3 @@ class PaperExchangeClient:
         series = np.array(prices[1:])
         self.last_price = float(series[-1])
         return series
-
