@@ -2,6 +2,8 @@
 
 This walkthrough shows exactly what appears on the `/dashboard/preview` route so you can picture the interface before running the stack.
 
+![Dashboard mockup](dashboard_preview.svg)
+
 ## Hero & Status Strip
 - **Header** – Dark gradient background with "Algo Trading Lab" title and environment badge.
 - **Bot Status Cards** – Responsive grid showing symbol, mode (paper/live), balance, PnL, last signal, and next candle countdown. Each card uses neon cyan highlights on a deep-navy glassmorphism panel.
@@ -26,6 +28,11 @@ This walkthrough shows exactly what appears on the `/dashboard/preview` route so
 ## Macro & News Pulse
 - **Macro Bias Cards** – Display macro score, confidence, and leading catalysts (e.g., "Fed path dovish") with amber highlights when caution is warranted.
 - **Events Timeline** – A vertical list that surfaces Trump/Fed events, impact score, and effective window.
+
+## Multi-Market Portfolio Playbook
+- **Dual Columns** – Left column covers crypto & commodities (BTC, ETH, gold, silver, oil); right column tracks mega-cap equities (AAPL, MSFT, AMZN, GOOG, TSLA, NVDA).
+- **Horizon Rows** – Each card lists short (1m), medium (15m), and long (1h) horizons with signed return %, Sharpe, win rate, trade count, and macro bias so you can compare execution windows at a glance.
+- **Macro & Notes** – Compact text blocks summarise rate outlook, political risk, and key takeaways (e.g., "best horizon" vs. "most pressured horizon") so discretionary traders can layer human judgement on top.
 
 ## Recent Signals & Equity
 - **Signals Table** – Glowing rows with timestamp, decision, price, reason tags.

@@ -272,3 +272,4 @@ class MacroSentimentEngine:
                 timestamp=now,
             ),
         ]
+

@@ -12,6 +12,8 @@ import pandas as pd
 from .ai import PredictionSnapshot, RuleBasedAIPredictor
 from .exchange import ExchangeClient, PaperExchangeClient
 from .macro import MacroInsight, MacroSentimentEngine
+from .playbook import PortfolioPlaybook, build_portfolio_playbook
+from .state import BotState, EquityPoint, SignalEvent, StateStore, create_state_store
 from .config_loader import load_overrides, merge_config
 from .state import BotState, EquityPoint, SignalEvent, StateStore, create_state_store, PositionType
 from .market_data import MarketDataError, YFinanceMarketDataClient
@@ -174,6 +176,7 @@ def run_loop(config: BotConfig) -> None:
     market_client = create_market_client(config)
     store = create_state_store(config.data_dir)
     sync_state_with_config(store, config)
+    predictor = RuleBasedAIPredictor(strategy_config)
     # predictor will be re-created if strategy settings change
     predictor: RuleBasedAIPredictor | None = None
     macro_engine = MacroSentimentEngine(
@@ -223,6 +226,7 @@ def run_loop(config: BotConfig) -> None:
             signal = generate_signal(enriched, strategy_config)
             macro_insight: MacroInsight | None
             try:
+                macro_insight = macro_engine.assess(config.symbol)
                 target_macro_symbol = config.macro_symbol or config.symbol
                 macro_insight = macro_engine.assess(target_macro_symbol)
             except Exception as macro_error:  # pragma: no cover - defensive
@@ -233,6 +237,22 @@ def run_loop(config: BotConfig) -> None:
                 ai_snapshot = predictor.predict(enriched, macro_insight)
             except ValueError as exc:
                 logger.debug("AI prediction skipped: %s", exc)
+            try:
+                portfolio_playbook = build_portfolio_playbook(
+                    starting_balance=config.starting_balance,
+                    macro_engine=macro_engine,
+                )
+            except Exception as playbook_error:
+                logger.debug("Portfolio playbook generation skipped: %s", playbook_error)
+                portfolio_playbook = None
+            state = update_state(
+                store,
+                signal,
+                config,
+                ai_snapshot,
+                macro_insight,
+                portfolio_playbook,
+            )
             state = update_state(store, signal, config, ai_snapshot, macro_insight)
             record_metrics(store, signal, state, config, ai_snapshot)
             logger.info(
@@ -259,6 +279,9 @@ def fetch_candles(
     timeframe: str,
     limit: int,
 ) -> pd.DataFrame:
+    if isinstance(exchange, PaperExchangeClient):
+        return exchange.fetch_ohlcv(limit=limit)
+    return exchange.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
     if isinstance(client, PaperExchangeClient):
         return client.fetch_ohlcv(limit=limit)
     return client.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
@@ -266,6 +289,14 @@ def fetch_candles(
 
 def update_state(
     store: StateStore,
+    signal: dict,
+    config: BotConfig,
+    ai_snapshot: PredictionSnapshot | None,
+    macro_insight: MacroInsight | None,
+    portfolio_playbook: PortfolioPlaybook | None,
+) -> BotState:
+    decision = signal["decision"]
+    price = signal["close"]
     signal: Dict[str, Union[float, str]],
     config: BotConfig,
     ai_snapshot: PredictionSnapshot | None,
@@ -326,6 +357,10 @@ def update_state(
         macro_political = macro_insight.political_risk
         macro_drivers = list(macro_insight.drivers)
 
+    playbook_payload = (
+        portfolio_playbook.to_dict() if portfolio_playbook else store.state.portfolio_playbook
+    )
+
     updated = store.update_state(
         symbol=config.symbol,
         position=position,
@@ -353,12 +388,14 @@ def update_state(
         macro_interest_rate_outlook=macro_interest,
         macro_political_risk=macro_political,
         macro_events=macro_events,
+        portfolio_playbook=playbook_payload,
     )
     return updated
 
 
 def record_metrics(
     store: StateStore,
+    signal: dict,
     signal: Dict[str, Union[float, str]],
     state: BotState,
     config: BotConfig,
@@ -369,6 +406,9 @@ def record_metrics(
         SignalEvent(
             timestamp=timestamp,
             symbol=config.symbol,
+            decision=signal["decision"],
+            confidence=signal["confidence"],
+            reason=signal["reason"],
             decision=cast(PositionType, signal["decision"]),
             confidence=float(signal["confidence"]),
             reason=cast(str, signal["reason"]),

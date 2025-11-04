@@ -198,6 +198,65 @@
         margin: 0 0 0.75rem 0;
         font-size: 1rem;
       }
+      .playbook-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.25rem;
+        margin-top: 1.25rem;
+      }
+      .playbook-highlights {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin: 0.75rem 0 0;
+      }
+      .playbook-group h3 {
+        margin-top: 0;
+        margin-bottom: 0.75rem;
+        font-size: 1.1rem;
+        color: #38bdf8;
+      }
+      .playbook-card {
+        padding: 1.1rem;
+        border-radius: 14px;
+        background: rgba(13, 23, 42, 0.95);
+        border: 1px solid rgba(59, 130, 246, 0.25);
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+      }
+      .playbook-card header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.5rem;
+      }
+      .playbook-symbol {
+        font-size: 1.15rem;
+        font-weight: 600;
+      }
+      .playbook-horizons,
+      .playbook-notes {
+        margin: 0;
+        padding-left: 1.2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+      .playbook-horizon-label {
+        font-weight: 600;
+        color: #e0f2fe;
+      }
+      .playbook-highlight {
+        display: inline-block;
+        padding: 0.35rem 0.6rem;
+        margin: 0.25rem 0.35rem 0.25rem 0;
+        border-radius: 999px;
+        background: rgba(59, 130, 246, 0.16);
+        border: 1px solid rgba(59, 130, 246, 0.38);
+        font-size: 0.75rem;
+        color: #bfdbfe;
+      }
       .macro-events ul {
         margin: 0;
         padding-left: 1.1rem;
@@ -452,6 +511,23 @@
     </section>
 
     <section>
+      <h2>Multi-Market Portfolio Playbook</h2>
+      <p class="status-subtle" id="playbook-updated">Playbook loading...</p>
+      <div id="playbook-highlights" class="playbook-highlights"></div>
+      <div class="playbook-container">
+        <div class="playbook-group">
+          <h3>Commodities, Crypto &amp; Metals</h3>
+          <div id="playbook-commodities"></div>
+        </div>
+        <div class="playbook-group">
+          <h3>Large-Cap Equities</h3>
+          <div id="playbook-equities"></div>
+        </div>
+      </div>
+      <p id="playbook-error" class="error"></p>
+    </section>
+
+    <section>
       <h2>Decision Playbook</h2>
       <div class="strategy-grid">
         <div class="strategy-card">
@@ -564,6 +640,12 @@
       const macroDrivers = document.getElementById("macro-drivers");
       const macroEventsList = document.getElementById("macro-events-list");
       const macroError = document.getElementById("macro-error");
+
+      const playbookUpdated = document.getElementById("playbook-updated");
+      const playbookHighlights = document.getElementById("playbook-highlights");
+      const playbookCommodities = document.getElementById("playbook-commodities");
+      const playbookEquities = document.getElementById("playbook-equities");
+      const playbookError = document.getElementById("playbook-error");
 
       const ctx = equityCanvas.getContext("2d");
 
@@ -702,6 +784,268 @@
         ],
       };
 
+      const PREVIEW_PLAYBOOK = {
+        generated_at: new Date().toISOString(),
+        starting_balance: 10000,
+        highlights: [
+          "Top performer: BTC/USDT on the short horizon (+1.85%).",
+          "Lagging setup: XAG/USD on the long horizon (-0.42%).",
+          "Average macro bias across tracked assets: +0.12.",
+        ],
+        commodities: [
+          {
+            symbol: "BTC/USDT",
+            asset_class: "commodity",
+            macro_bias: 0.18,
+            macro_confidence: 0.62,
+            macro_summary: "Crypto desks position for dovish Fed guidance.",
+            macro_drivers: [
+              "FOMC statement (dovish, medium impact)",
+              "Tariff review rhetoric (political, high impact)",
+            ],
+            macro_interest_rate_outlook: "Fed signals a cautious cut later this year.",
+            macro_political_risk: "Tariff policy uncertainty under Trump agenda.",
+            horizons: [
+              {
+                label: "short",
+                timeframe: "1m",
+                candles_tested: 720,
+                initial_balance: 10000,
+                final_balance: 10185,
+                total_return_pct: 1.85,
+                annualized_return_pct: 42.2,
+                sharpe_ratio: 1.4,
+                win_rate: 58.2,
+                trades: 34,
+                macro_bias: 0.18,
+                macro_summary: "Crypto desks position for dovish Fed guidance.",
+              },
+              {
+                label: "medium",
+                timeframe: "15m",
+                candles_tested: 480,
+                initial_balance: 10000,
+                final_balance: 10240,
+                total_return_pct: 2.4,
+                annualized_return_pct: 35.8,
+                sharpe_ratio: 1.12,
+                win_rate: 54.6,
+                trades: 21,
+                macro_bias: 0.18,
+                macro_summary: "Crypto desks position for dovish Fed guidance.",
+              },
+              {
+                label: "long",
+                timeframe: "1h",
+                candles_tested: 360,
+                initial_balance: 10000,
+                final_balance: 10042,
+                total_return_pct: 0.42,
+                annualized_return_pct: 9.1,
+                sharpe_ratio: 0.54,
+                win_rate: 51.2,
+                trades: 12,
+                macro_bias: 0.18,
+                macro_summary: "Crypto desks position for dovish Fed guidance.",
+              },
+            ],
+            notes: [
+              "Best horizon: short (+1.85% return).",
+              "Most pressured horizon: long (+0.42% return).",
+              "Macro stance is supportive (bias +0.18, confidence 0.62).",
+            ],
+          },
+          {
+            symbol: "XAU/USD",
+            asset_class: "commodity",
+            macro_bias: 0.11,
+            macro_confidence: 0.58,
+            macro_summary: "Gold benefits from safe-haven demand amid policy uncertainty.",
+            macro_drivers: [
+              "Global PMI slowdown (macro, medium impact)",
+              "FOMC statement (dovish, medium impact)",
+            ],
+            macro_interest_rate_outlook: "Lower-for-longer yields keep bullion attractive.",
+            macro_political_risk: "Trade rhetoric keeps volatility elevated.",
+            horizons: [
+              {
+                label: "short",
+                timeframe: "1m",
+                candles_tested: 720,
+                initial_balance: 10000,
+                final_balance: 10092,
+                total_return_pct: 0.92,
+                annualized_return_pct: 21.1,
+                sharpe_ratio: 0.98,
+                win_rate: 56.5,
+                trades: 28,
+                macro_bias: 0.11,
+                macro_summary: "Gold benefits from safe-haven demand amid policy uncertainty.",
+              },
+              {
+                label: "medium",
+                timeframe: "15m",
+                candles_tested: 480,
+                initial_balance: 10000,
+                final_balance: 10138,
+                total_return_pct: 1.38,
+                annualized_return_pct: 19.4,
+                sharpe_ratio: 0.87,
+                win_rate: 53.1,
+                trades: 18,
+                macro_bias: 0.11,
+                macro_summary: "Gold benefits from safe-haven demand amid policy uncertainty.",
+              },
+              {
+                label: "long",
+                timeframe: "1h",
+                candles_tested: 360,
+                initial_balance: 10000,
+                final_balance: 10220,
+                total_return_pct: 2.2,
+                annualized_return_pct: 23.5,
+                sharpe_ratio: 1.05,
+                win_rate: 59.4,
+                trades: 15,
+                macro_bias: 0.11,
+                macro_summary: "Gold benefits from safe-haven demand amid policy uncertainty.",
+              },
+            ],
+            notes: [
+              "Best horizon: long (+2.20% return).",
+              "Most pressured horizon: short (+0.92% return).",
+              "Macro stance is supportive (bias +0.11, confidence 0.58).",
+            ],
+          },
+        ],
+        equities: [
+          {
+            symbol: "AAPL",
+            asset_class: "equity",
+            macro_bias: 0.05,
+            macro_confidence: 0.55,
+            macro_summary: "Tech mega-caps track softer yields and resilient consumer demand.",
+            macro_drivers: [
+              "FOMC statement (dovish, medium impact)",
+              "Global PMI slowdown (macro, medium impact)",
+            ],
+            macro_interest_rate_outlook: "Lower yields extend duration appetite for growth stocks.",
+            macro_political_risk: "Regulatory noise remains contained.",
+            horizons: [
+              {
+                label: "short",
+                timeframe: "1m",
+                candles_tested: 720,
+                initial_balance: 10000,
+                final_balance: 10048,
+                total_return_pct: 0.48,
+                annualized_return_pct: 11.3,
+                sharpe_ratio: 0.62,
+                win_rate: 52.4,
+                trades: 25,
+                macro_bias: 0.05,
+                macro_summary: "Tech mega-caps track softer yields and resilient consumer demand.",
+              },
+              {
+                label: "medium",
+                timeframe: "15m",
+                candles_tested: 480,
+                initial_balance: 10000,
+                final_balance: 10102,
+                total_return_pct: 1.02,
+                annualized_return_pct: 14.8,
+                sharpe_ratio: 0.76,
+                win_rate: 55.2,
+                trades: 19,
+                macro_bias: 0.05,
+                macro_summary: "Tech mega-caps track softer yields and resilient consumer demand.",
+              },
+              {
+                label: "long",
+                timeframe: "1h",
+                candles_tested: 360,
+                initial_balance: 10000,
+                final_balance: 10340,
+                total_return_pct: 3.4,
+                annualized_return_pct: 36.7,
+                sharpe_ratio: 1.22,
+                win_rate: 61.1,
+                trades: 14,
+                macro_bias: 0.05,
+                macro_summary: "Tech mega-caps track softer yields and resilient consumer demand.",
+              },
+            ],
+            notes: [
+              "Best horizon: long (+3.40% return).",
+              "Most pressured horizon: short (+0.48% return).",
+              "Macro stance is balanced (bias +0.05, confidence 0.55).",
+            ],
+          },
+          {
+            symbol: "MSFT",
+            asset_class: "equity",
+            macro_bias: 0.08,
+            macro_confidence: 0.6,
+            macro_summary: "Cloud demand holds firm as enterprise budgets normalize.",
+            macro_drivers: [
+              "AI investment cycle (growth, medium impact)",
+              "FOMC statement (dovish, medium impact)",
+            ],
+            macro_interest_rate_outlook: "Stable policy path underpins tech multiples.",
+            macro_political_risk: "Antitrust scrutiny manageable relative to peers.",
+            horizons: [
+              {
+                label: "short",
+                timeframe: "1m",
+                candles_tested: 720,
+                initial_balance: 10000,
+                final_balance: 10066,
+                total_return_pct: 0.66,
+                annualized_return_pct: 15.5,
+                sharpe_ratio: 0.74,
+                win_rate: 54.3,
+                trades: 26,
+                macro_bias: 0.08,
+                macro_summary: "Cloud demand holds firm as enterprise budgets normalize.",
+              },
+              {
+                label: "medium",
+                timeframe: "15m",
+                candles_tested: 480,
+                initial_balance: 10000,
+                final_balance: 10158,
+                total_return_pct: 1.58,
+                annualized_return_pct: 21.6,
+                sharpe_ratio: 0.93,
+                win_rate: 56.7,
+                trades: 20,
+                macro_bias: 0.08,
+                macro_summary: "Cloud demand holds firm as enterprise budgets normalize.",
+              },
+              {
+                label: "long",
+                timeframe: "1h",
+                candles_tested: 360,
+                initial_balance: 10000,
+                final_balance: 10280,
+                total_return_pct: 2.8,
+                annualized_return_pct: 30.2,
+                sharpe_ratio: 1.08,
+                win_rate: 60.3,
+                trades: 13,
+                macro_bias: 0.08,
+                macro_summary: "Cloud demand holds firm as enterprise budgets normalize.",
+              },
+            ],
+            notes: [
+              "Best horizon: long (+2.80% return).",
+              "Most pressured horizon: short (+0.66% return).",
+              "Macro stance is supportive (bias +0.08, confidence 0.60).",
+            ],
+          },
+        ],
+      };
+
       function formatNumber(value, fractionDigits = 2) {
         return typeof value === "number" && Number.isFinite(value)
           ? value.toLocaleString(undefined, {
@@ -715,6 +1059,14 @@
         return typeof value === "number" && Number.isFinite(value)
           ? `${value.toFixed(fractionDigits)} %`
           : "-";
+      }
+
+      function formatSignedPercent(value, fractionDigits = 2) {
+        if (typeof value !== "number" || !Number.isFinite(value)) {
+          return "-";
+        }
+        const sign = value > 0 ? "+" : value < 0 ? "" : "";
+        return `${sign}${value.toFixed(fractionDigits)} %`;
       }
 
       function formatRatioPercent(value, fractionDigits = 1) {
@@ -773,6 +1125,13 @@
           pieces.push(`: ${context}`);
         }
         return pieces.join(" ");
+      }
+
+      function titleCase(text) {
+        if (!text) {
+          return "";
+        }
+        return text.charAt(0).toUpperCase() + text.slice(1);
       }
 
       function drawEquityCurve(points) {
@@ -938,6 +1297,105 @@
           : '<li class="status-subtle">No recent catalysts captured.</li>';
       }
 
+      function formatPlaybookHorizon(horizon) {
+        if (!horizon) {
+          return "";
+        }
+        const label = `${titleCase(horizon.label)} (${horizon.timeframe})`;
+        const returnText = formatSignedPercent(horizon.total_return_pct);
+        const finalValue = formatNumber(horizon.final_balance);
+        const sharpe =
+          typeof horizon.sharpe_ratio === "number" && Number.isFinite(horizon.sharpe_ratio)
+            ? horizon.sharpe_ratio.toFixed(2)
+            : "--";
+        const winRate = formatPercent(horizon.win_rate, 1);
+        const trades =
+          typeof horizon.trades === "number" && Number.isFinite(horizon.trades)
+            ? horizon.trades
+            : "--";
+        const macroBiasText =
+          typeof horizon.macro_bias === "number" && Number.isFinite(horizon.macro_bias)
+            ? ` | Macro ${horizon.macro_bias.toFixed(2)}`
+            : "";
+        return `<li><span class="playbook-horizon-label">${label}</span> · Return ${returnText} · Final ${finalValue} · Sharpe ${sharpe} · Win ${winRate} · Trades ${trades}${macroBiasText}</li>`;
+      }
+
+      function renderAssetPlaybook(asset) {
+        const macroSummaryText = asset.macro_summary || "Macro stance unavailable.";
+        const drivers = (asset.macro_drivers || []).filter(Boolean).slice(0, 3);
+        const driverLine = drivers.length
+          ? `<p class="status-subtle">${drivers.join(" · ")}</p>`
+          : "";
+        const horizons = (asset.horizons || []).map((horizon) => formatPlaybookHorizon(horizon)).filter(Boolean);
+        const horizonList =
+          horizons.length
+            ? horizons.join("")
+            : '<li class="status-subtle">No horizon analytics recorded yet.</li>';
+        const notes = (asset.notes || []).filter(Boolean);
+        const rateNote = asset.macro_interest_rate_outlook
+          ? `Rate outlook: ${asset.macro_interest_rate_outlook}`
+          : null;
+        const politicsNote = asset.macro_political_risk ? `Politics: ${asset.macro_political_risk}` : null;
+        const combinedNotes = [...notes, rateNote, politicsNote].filter(Boolean);
+        const notesMarkup =
+          combinedNotes.length
+            ? combinedNotes.map((note) => `<li>${note}</li>`).join("")
+            : '<li class="status-subtle">No qualitative notes yet.</li>';
+
+        return `
+          <div class="playbook-card">
+            <header>
+              <span class="playbook-symbol">${asset.symbol}</span>
+              <span class="status-subtle">${formatBias(asset.macro_bias)}</span>
+            </header>
+            <p class="status-subtle">${macroSummaryText}</p>
+            ${driverLine}
+            <ul class="playbook-horizons">
+              ${horizonList}
+            </ul>
+            <ul class="playbook-notes">
+              ${notesMarkup}
+            </ul>
+          </div>
+        `;
+      }
+
+      function renderPlaybookGroup(container, assets, preview) {
+        if (!assets || !assets.length) {
+          container.innerHTML = '<p class="status-subtle">No assets evaluated yet.</p>';
+          return;
+        }
+        container.innerHTML = assets.map((asset) => renderAssetPlaybook(asset)).join("\n");
+      }
+
+      function renderPlaybook(playbook, { preview } = { preview: false }) {
+        playbookError.textContent = "";
+        if (!playbook) {
+          playbookUpdated.textContent = preview
+            ? "Preview playbook not generated yet."
+            : "Portfolio playbook unavailable.";
+          playbookHighlights.innerHTML = "";
+          renderPlaybookGroup(playbookCommodities, [], preview);
+          renderPlaybookGroup(playbookEquities, [], preview);
+          if (!preview) {
+            playbookError.textContent =
+              "Unable to load the portfolio playbook. Ensure the bot has generated analytics.";
+          }
+          return;
+        }
+
+        const generatedAt = playbook.generated_at ? new Date(playbook.generated_at) : new Date();
+        playbookUpdated.textContent = `Generated at ${generatedAt.toLocaleString()}`;
+
+        const highlights = (playbook.highlights || []).filter(Boolean);
+        playbookHighlights.innerHTML = highlights.length
+          ? highlights.map((item) => `<span class="playbook-highlight">${item}</span>`).join("")
+          : '<span class="status-subtle">No highlights logged yet.</span>';
+
+        renderPlaybookGroup(playbookCommodities, playbook.commodities || [], preview);
+        renderPlaybookGroup(playbookEquities, playbook.equities || [], preview);
+      }
+
       function formatSignalAi(signal) {
         if (!signal.ai_action) {
           return "-";
@@ -956,6 +1414,7 @@
         strategy,
         ai,
         macro,
+        playbook,
         { preview } = { preview: false },
       ) {
         statusError.textContent = "";
@@ -996,6 +1455,7 @@
         renderStrategy(strategy);
         renderAI(ai, { preview });
         renderMacro(macro, { preview });
+        renderPlaybook(playbook, { preview });
       }
 
       async function submitQuestion(question) {
@@ -1076,6 +1536,7 @@
 
       async function refresh() {
         try {
+          const [status, signals, equity, strategy, ai, macro, playbook] = await Promise.all([
           const [status, signals, equity, strategy, ai, macro] = await Promise.all([
             fetchJSON("/status"),
             fetchJSON("/signals?limit=20"),
@@ -1083,6 +1544,10 @@
             fetchJSON("/strategy"),
             fetchJSON("/ai/prediction").catch(() => null),
             fetchJSON("/macro/insights").catch(() => null),
+            fetchJSON("/portfolio/playbook").catch(() => null),
+          ]);
+
+          render(status, signals, equity, strategy, ai, macro, playbook, { preview: false });
           ]);
 
           render(status, signals, equity, strategy, ai, macro, { preview: false });
@@ -1164,6 +1629,50 @@
           timestamp: new Date(now - index * 120_000).toISOString(),
         }));
 
+        const playbook = JSON.parse(JSON.stringify(PREVIEW_PLAYBOOK));
+        playbook.generated_at = new Date(now).toISOString();
+        playbook.commodities.forEach((asset, assetIndex) => {
+          const biasShift = Math.sin(now / 3600 + assetIndex) * 0.05;
+          const confidenceShift = Math.cos(now / 4100 + assetIndex) * 0.06;
+          asset.macro_bias = parseFloat((asset.macro_bias + biasShift).toFixed(2));
+          asset.macro_confidence = Math.min(
+            Math.max(asset.macro_confidence + confidenceShift, 0),
+            1,
+          );
+          asset.horizons.forEach((horizon, horizonIndex) => {
+            const tweak = Math.sin(now / 4300 + horizonIndex + assetIndex * 0.4) * 0.35;
+            horizon.total_return_pct = parseFloat((horizon.total_return_pct + tweak).toFixed(2));
+            horizon.final_balance = parseFloat(
+              (horizon.initial_balance * (1 + horizon.total_return_pct / 100)).toFixed(2),
+            );
+            horizon.annualized_return_pct = parseFloat(
+              (horizon.annualized_return_pct + tweak * 6).toFixed(2),
+            );
+            horizon.macro_bias = asset.macro_bias;
+          });
+        });
+        playbook.equities.forEach((asset, assetIndex) => {
+          const biasShift = Math.cos(now / 3700 + assetIndex) * 0.04;
+          const confidenceShift = Math.sin(now / 3900 + assetIndex) * 0.05;
+          asset.macro_bias = parseFloat((asset.macro_bias + biasShift).toFixed(2));
+          asset.macro_confidence = Math.min(
+            Math.max(asset.macro_confidence + confidenceShift, 0),
+            1,
+          );
+          asset.horizons.forEach((horizon, horizonIndex) => {
+            const tweak = Math.cos(now / 4500 + horizonIndex + assetIndex * 0.5) * 0.28;
+            horizon.total_return_pct = parseFloat((horizon.total_return_pct + tweak).toFixed(2));
+            horizon.final_balance = parseFloat(
+              (horizon.initial_balance * (1 + horizon.total_return_pct / 100)).toFixed(2),
+            );
+            horizon.annualized_return_pct = parseFloat(
+              (horizon.annualized_return_pct + tweak * 5).toFixed(2),
+            );
+            horizon.macro_bias = asset.macro_bias;
+          });
+        });
+
+        render(status, signals, equity, PREVIEW_STRATEGY, ai, macro, playbook, { preview: true });
         render(status, signals, equity, PREVIEW_STRATEGY, ai, macro, { preview: true });
       }
 

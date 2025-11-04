@@ -1,0 +1,169 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 2200" role="img" aria-labelledby="title desc">
+  <title id="title">Algo Trading Lab dashboard preview</title>
+  <desc id="desc">Stylised mock interface showing the main dashboard cards for the Algo Trading Lab preview route.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#03122f" />
+      <stop offset="100%" stop-color="#020617" />
+    </linearGradient>
+    <linearGradient id="panel" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#041429" />
+    </linearGradient>
+    <style>
+      text { font-family: 'Inter', 'Segoe UI', sans-serif; fill: #e2e8f0; }
+      .title { font-size: 48px; font-weight: 700; }
+      .badge { fill: #0ea5e9; font-size: 26px; font-weight: 600; }
+      .section-title { font-size: 34px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; fill: #93c5fd; }
+      .card-title { font-size: 24px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; fill: #60a5fa; }
+      .metric-label { font-size: 18px; fill: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; }
+      .metric-value { font-size: 32px; font-weight: 700; fill: #f8fafc; }
+      .metric-sub { font-size: 20px; fill: #38bdf8; }
+      .copy { font-size: 20px; fill: #cbd5f5; line-height: 1.5; }
+      .panel { fill: url(#panel); stroke: rgba(148, 163, 184, 0.15); stroke-width: 1; }
+      .chip { fill: rgba(14, 165, 233, 0.2); stroke: rgba(14, 165, 233, 0.6); stroke-width: 1; rx: 14; }
+    </style>
+  </defs>
+  <rect width="1200" height="2200" fill="url(#bg)" />
+
+  <!-- Header -->
+  <g transform="translate(80 120)">
+    <text class="title">Algo Trading Lab Dashboard</text>
+    <rect class="chip" x="600" y="-32" width="140" height="48" ry="24" />
+    <text class="badge" x="634" y="0">PREVIEW</text>
+    <text class="copy" x="0" y="70">Preview mode — deterministic sample data rendered by /dashboard/preview</text>
+  </g>
+
+  <!-- Bot Status Panel -->
+  <g transform="translate(80 220)">
+    <rect class="panel" width="1040" height="260" rx="32" />
+    <text class="section-title" x="40" y="70">Bot Status</text>
+    <g transform="translate(40 110)">
+      <rect class="panel" width="170" height="120" rx="18" />
+      <text class="metric-label" x="18" y="36">Symbol</text>
+      <text class="metric-value" x="18" y="86">BTC/USDT</text>
+    </g>
+    <g transform="translate(230 110)">
+      <rect class="panel" width="170" height="120" rx="18" />
+      <text class="metric-label" x="18" y="36">Position</text>
+      <text class="metric-value" x="18" y="86">Long</text>
+    </g>
+    <g transform="translate(420 110)">
+      <rect class="panel" width="200" height="120" rx="18" />
+      <text class="metric-label" x="18" y="36">Balance</text>
+      <text class="metric-value" x="18" y="86">10,224.22</text>
+      <text class="metric-sub" x="18" y="116">Entry 67,321.50</text>
+    </g>
+    <g transform="translate(640 110)">
+      <rect class="panel" width="170" height="120" rx="18" />
+      <text class="metric-label" x="18" y="36">Unrealized PnL</text>
+      <text class="metric-value" x="18" y="86">0.63 %</text>
+    </g>
+    <g transform="translate(830 110)">
+      <rect class="panel" width="170" height="120" rx="18" />
+      <text class="metric-label" x="18" y="36">Last Signal</text>
+      <text class="metric-value" x="18" y="86">Long</text>
+    </g>
+  </g>
+
+  <!-- AI Insights -->
+  <g transform="translate(80 520)">
+    <rect class="panel" width="1040" height="360" rx="32" />
+    <text class="section-title" x="40" y="70">AI Insights</text>
+    <g transform="translate(40 110)">
+      <rect class="panel" width="220" height="120" rx="18" />
+      <text class="metric-label" x="18" y="36">Recommended Action</text>
+      <text class="metric-value" x="18" y="86">Short</text>
+      <text class="metric-sub" x="18" y="116">Confidence 68.7%</text>
+    </g>
+    <g transform="translate(280 110)">
+      <rect class="panel" width="220" height="120" rx="18" />
+      <text class="metric-label" x="18" y="36">Expected Move</text>
+      <text class="metric-value" x="18" y="86">-0.79 %</text>
+    </g>
+    <g transform="translate(520 110)">
+      <rect class="panel" width="220" height="120" rx="18" />
+      <text class="metric-label" x="18" y="36">Feature Snapshot</text>
+      <text class="metric-sub" x="18" y="86">EMA gap 0.35%</text>
+      <text class="metric-sub" x="18" y="116">Momentum 0.47%</text>
+    </g>
+    <g transform="translate(760 110)">
+      <rect class="panel" width="220" height="120" rx="18" />
+      <text class="metric-label" x="18" y="36">Probabilities</text>
+      <text class="metric-sub" x="18" y="86">Long 0.78</text>
+      <text class="metric-sub" x="18" y="116">Short 0.65</text>
+    </g>
+    <text class="copy" x="40" y="280" width="960">Model leans downside with 68.7% confidence driven by EMA gap compression and macro caution. Use the assistant below to ask why, when to enter, or risk implications.</text>
+    <g transform="translate(40 300)">
+      <rect class="panel" width="960" height="80" rx="20" />
+      <text class="copy" x="24" y="52">Ask: When should I buy?</text>
+    </g>
+  </g>
+
+  <!-- Macro panel -->
+  <g transform="translate(80 930)">
+    <rect class="panel" width="1040" height="360" rx="32" />
+    <text class="section-title" x="40" y="70">Macro &amp; News Pulse</text>
+    <g transform="translate(40 110)">
+      <rect class="panel" width="220" height="120" rx="18" />
+      <text class="metric-label" x="18" y="36">Bias Score</text>
+      <text class="metric-value" x="18" y="86">-0.11</text>
+      <text class="metric-sub" x="18" y="116">Bearish</text>
+    </g>
+    <g transform="translate(280 110)">
+      <rect class="panel" width="220" height="120" rx="18" />
+      <text class="metric-label" x="18" y="36">Interest Rate</text>
+      <text class="metric-value" x="18" y="86">Watch Core CPI</text>
+    </g>
+    <g transform="translate(520 110)">
+      <rect class="panel" width="220" height="120" rx="18" />
+      <text class="metric-label" x="18" y="36">Political Watch</text>
+      <text class="metric-value" x="18" y="86">Tariff review</text>
+    </g>
+    <text class="copy" x="40" y="270" width="960">Trump tariffs drive cautious risk appetite. Fed keeps rates unchanged but warns on sticky core inflation. Payroll surprise remains hawkish.</text>
+    <text class="copy" x="40" y="320">• Trump vows fresh tariffs review (high impact)  • Fed officials guide for data-dependent path  • Payrolls surprise to upside</text>
+  </g>
+
+  <!-- Decision Playbook -->
+  <g transform="translate(80 1340)">
+    <rect class="panel" width="1040" height="320" rx="32" />
+    <text class="section-title" x="40" y="70">Decision Playbook</text>
+    <g transform="translate(40 110)">
+      <rect class="panel" width="200" height="120" rx="18" />
+      <text class="metric-label" x="18" y="36">Symbol</text>
+      <text class="metric-value" x="18" y="86">BTC/USDT</text>
+    </g>
+    <g transform="translate(260 110)">
+      <rect class="panel" width="200" height="120" rx="18" />
+      <text class="metric-label" x="18" y="36">Timeframe</text>
+      <text class="metric-value" x="18" y="86">1m</text>
+    </g>
+    <g transform="translate(480 110)">
+      <rect class="panel" width="220" height="120" rx="18" />
+      <text class="metric-label" x="18" y="36">EMA Fast / Slow</text>
+      <text class="metric-value" x="18" y="86">12 / 26</text>
+    </g>
+    <g transform="translate(720 110)">
+      <rect class="panel" width="220" height="120" rx="18" />
+      <text class="metric-label" x="18" y="36">RSI Period</text>
+      <text class="metric-value" x="18" y="86">14</text>
+    </g>
+    <text class="copy" x="40" y="260" width="960">Go LONG when fast EMA crosses above slow EMA with RSI below overbought. Go SHORT when inverse crossover occurs with RSI above oversold. Fallback triggers fire when RSI extremes hit. Risk per trade capped at 0.5% with 0.4% stop / 0.8% take profit.</text>
+  </g>
+
+  <!-- Signals & Equity -->
+  <g transform="translate(80 1700)">
+    <rect class="panel" width="1040" height="420" rx="32" />
+    <text class="section-title" x="40" y="70">Recent Signals &amp; Equity Curve</text>
+    <g transform="translate(40 110)">
+      <rect class="panel" width="960" height="160" rx="18" />
+      <text class="metric-label" x="18" y="40">Timestamp    Decision    Confidence    Reason</text>
+      <text class="copy" x="18" y="90">10:29:24  LONG   74%   EMA fast crossed above EMA slow; RSI rising</text>
+      <text class="copy" x="18" y="130">10:27:54  FLAT   58%   RSI midline rejection triggered risk filter</text>
+    </g>
+    <g transform="translate(40 300)">
+      <rect class="panel" width="960" height="80" rx="18" />
+      <text class="copy" x="18" y="50">Equity curve trending higher with smooth intraday progression.</text>
+    </g>
+  </g>
+</svg>

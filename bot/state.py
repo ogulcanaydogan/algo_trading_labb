@@ -46,6 +46,7 @@ class BotState:
     macro_interest_rate_outlook: Optional[str] = None
     macro_political_risk: Optional[str] = None
     macro_events: List[Dict[str, Any]] = field(default_factory=list)
+    portfolio_playbook: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         payload = asdict(self)

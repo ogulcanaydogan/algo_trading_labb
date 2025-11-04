@@ -22,6 +22,7 @@ from .schemas import (
     EquityPointResponse,
     MacroEventResponse,
     MacroInsightResponse,
+    PortfolioPlaybookResponse,
     SignalResponse,
     StrategyOverviewResponse,
 )
@@ -72,6 +73,8 @@ def read_equity(store: StateStore = Depends(get_store)) -> List[EquityPointRespo
 
 
 @app.get("/strategy", response_model=StrategyOverviewResponse)
+def read_strategy_overview() -> StrategyOverviewResponse:
+    config = StrategyConfig.from_env()
 def read_strategy_overview(symbol: Optional[str] = Query(default=None)) -> StrategyOverviewResponse:
     """Return the active strategy settings.
 
@@ -293,6 +296,22 @@ def read_macro_insights(store: StateStore = Depends(get_store)) -> MacroInsightR
     )
 
 
+@app.get("/portfolio/playbook", response_model=PortfolioPlaybookResponse)
+def read_portfolio_playbook(
+    store: StateStore = Depends(get_store),
+) -> PortfolioPlaybookResponse:
+    store.load()
+    payload = store.get_state_dict()
+    if not payload:
+        raise HTTPException(status_code=404, detail="State not found.")
+
+    playbook = payload.get("portfolio_playbook")
+    if not playbook:
+        raise HTTPException(status_code=404, detail="Portfolio playbook unavailable.")
+
+    return PortfolioPlaybookResponse(**playbook)
+
+
 def load_dashboard_template() -> str:
     try:
         return DASHBOARD_TEMPLATE.read_text(encoding="utf-8")
@@ -306,3 +325,4 @@ def load_dashboard_template() -> str:
 async def dashboard() -> HTMLResponse:
     """Serve a lightweight HTML dashboard for quick monitoring."""
     return HTMLResponse(content=load_dashboard_template())
+

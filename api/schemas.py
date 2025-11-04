@@ -6,6 +6,7 @@ from typing import Dict, List, Literal, Optional
 from pydantic import BaseModel, Field
 
 
+
 class BotStateResponse(BaseModel):
     timestamp: datetime
     symbol: str
@@ -35,6 +36,43 @@ class BotStateResponse(BaseModel):
     macro_interest_rate_outlook: Optional[str] = None
     macro_political_risk: Optional[str] = None
     macro_events: List[Dict[str, Optional[str]]] = Field(default_factory=list)
+    portfolio_playbook: Optional[PortfolioPlaybookResponse] = None
+
+
+class PlaybookHorizonResponse(BaseModel):
+    label: str
+    timeframe: str
+    candles_tested: int
+    initial_balance: float
+    final_balance: float
+    total_return_pct: float
+    annualized_return_pct: float
+    sharpe_ratio: float
+    win_rate: float
+    trades: int
+    macro_bias: float
+    macro_summary: Optional[str] = None
+
+
+class AssetPlaybookResponse(BaseModel):
+    symbol: str
+    asset_class: str
+    macro_bias: float
+    macro_confidence: float
+    macro_summary: Optional[str] = None
+    macro_drivers: List[str] = Field(default_factory=list)
+    macro_interest_rate_outlook: Optional[str] = None
+    macro_political_risk: Optional[str] = None
+    horizons: List[PlaybookHorizonResponse] = Field(default_factory=list)
+    notes: List[str] = Field(default_factory=list)
+
+
+class PortfolioPlaybookResponse(BaseModel):
+    generated_at: datetime
+    starting_balance: float
+    commodities: List[AssetPlaybookResponse] = Field(default_factory=list)
+    equities: List[AssetPlaybookResponse] = Field(default_factory=list)
+    highlights: List[str] = Field(default_factory=list)
 
 
 class SignalResponse(BaseModel):
@@ -118,3 +156,4 @@ class MacroInsightResponse(BaseModel):
     interest_rate_outlook: Optional[str] = None
     political_risk: Optional[str] = None
     events: List[MacroEventResponse] = Field(default_factory=list)
+
