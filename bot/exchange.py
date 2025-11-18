@@ -58,12 +58,12 @@ class ExchangeClient:
             "secret": api_secret,
         }
 
-        # Binance Testnet configuration
+        # Binance Demo Trading configuration (new testnet system)
         if testnet and exchange_id == "binance":
             config["urls"] = {
                 "api": {
-                    "public": "https://testnet.binance.vision/api",
-                    "private": "https://testnet.binance.vision/api",
+                    "public": "https://demo-api.binance.com/api",
+                    "private": "https://demo-api.binance.com/api",
                 }
             }
 
