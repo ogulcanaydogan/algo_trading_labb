@@ -62,10 +62,11 @@ class ExchangeClient:
         if testnet and exchange_id == "binance":
             config["urls"] = {
                 "api": {
-                    "public": "https://demo-api.binance.com/api",
-                    "private": "https://demo-api.binance.com/api",
+                    "public": "https://demo-api.binance.com/api/v3",
+                    "private": "https://demo-api.binance.com/api/v3",
                 }
             }
+            config["hostname"] = "demo-api.binance.com"
 
         self.client = exchange_class(config)
 
