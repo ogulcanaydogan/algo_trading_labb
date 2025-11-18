@@ -52,7 +52,7 @@ def read_status(store: StateStore = Depends(get_store)) -> BotStateResponse:
     payload = store.get_state_dict()
     if not payload:
         raise HTTPException(status_code=404, detail="State not found.")
-    return BotStateResponse(**payload)
+    return BotStateResponse.model_validate(payload)
 
 
 @app.get("/signals", response_model=List[SignalResponse])
@@ -62,14 +62,14 @@ def read_signals(
 ) -> List[SignalResponse]:
     store.load()
     signals = store.get_signals(limit)
-    return [SignalResponse(**item) for item in signals]
+    return [SignalResponse.model_validate(item) for item in signals]
 
 
 @app.get("/equity", response_model=List[EquityPointResponse])
 def read_equity(store: StateStore = Depends(get_store)) -> List[EquityPointResponse]:
     store.load()
     curve = store.get_equity_curve()
-    return [EquityPointResponse(**point) for point in curve]
+    return [EquityPointResponse.model_validate(point) for point in curve]
 
 
 @app.get("/strategy", response_model=StrategyOverviewResponse)
@@ -287,7 +287,7 @@ def read_macro_insights(store: StateStore = Depends(get_store)) -> MacroInsightR
     events_payload: List[MacroEventResponse] = []
     for item in payload.get("macro_events") or []:
         if isinstance(item, dict) and item.get("title"):
-            events_payload.append(MacroEventResponse(**item))
+            events_payload.append(MacroEventResponse.model_validate(item))
 
     return MacroInsightResponse(
         timestamp=payload["timestamp"],
@@ -315,7 +315,7 @@ def read_portfolio_playbook(
     if not playbook:
         raise HTTPException(status_code=404, detail="Portfolio playbook unavailable.")
 
-    return PortfolioPlaybookResponse(**playbook)
+    return PortfolioPlaybookResponse.model_validate(playbook)
 
 
 def load_dashboard_template() -> str:
