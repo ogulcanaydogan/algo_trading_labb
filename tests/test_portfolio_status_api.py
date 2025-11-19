@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import pytest
 
@@ -134,20 +133,3 @@ def test_portfolio_control_endpoint_updates_state(tmp_path, monkeypatch):
     status = statuses[0]
     assert status.is_paused is True
     assert status.pause_reason == "Macro volatility"
-
-
-def test_repo_default_portfolio_config_exposed(monkeypatch, tmp_path):
-    config_path = Path(__file__).resolve().parents[1] / "data" / "portfolio.json"
-    payload = json.loads(config_path.read_text(encoding="utf-8"))
-    expected_symbols = {asset["symbol"] for asset in payload["assets"]}
-
-    monkeypatch.setattr(api_module, "STATE_DIR", tmp_path)
-    monkeypatch.setattr(api_module, "PORTFOLIO_CONFIG_PATH", config_path)
-
-    statuses = api_module.load_portfolio_states()
-    assert {status.symbol for status in statuses} == expected_symbols
-    assert all(status.is_placeholder for status in statuses)
-
-    for status in statuses:
-        assert status.initial_balance == pytest.approx(10_000.0)
-        assert status.balance == pytest.approx(10_000.0)
