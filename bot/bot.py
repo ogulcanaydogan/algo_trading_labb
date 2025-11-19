@@ -5,14 +5,22 @@ import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Dict, Union, cast
+from typing import Dict, List, Optional, Sequence, Union, cast
 
 import pandas as pd
 
 from .ai import PredictionSnapshot, RuleBasedAIPredictor
+from .control import load_bot_control
 from .exchange import ExchangeClient, PaperExchangeClient
 from .macro import MacroInsight, MacroSentimentEngine
-from .playbook import PortfolioPlaybook, build_portfolio_playbook
+from .playbook import (
+    HorizonConfig,
+    PortfolioPlaybook,
+    PlaybookAssetDefinition,
+    PlaybookAssetFile,
+    build_portfolio_playbook,
+    load_playbook_asset_file,
+)
 from .state import BotState, EquityPoint, SignalEvent, StateStore, create_state_store
 from .config_loader import load_overrides, merge_config
 from .state import BotState, EquityPoint, SignalEvent, StateStore, create_state_store, PositionType
@@ -46,6 +54,7 @@ class BotConfig:
     data_dir: Path = Path("./data")
     macro_events_path: Optional[Path] = None
     macro_refresh_seconds: int = 300
+    playbook_assets_path: Optional[Path] = None
 
     @classmethod
     def from_env(cls) -> "BotConfig":
@@ -71,6 +80,11 @@ class BotConfig:
             ),
             macro_refresh_seconds=int(
                 os.getenv("MACRO_REFRESH_SECONDS", "300")
+            ),
+            playbook_assets_path=(
+                Path(os.getenv("PLAYBOOK_ASSETS_PATH", "")).expanduser()
+                if os.getenv("PLAYBOOK_ASSETS_PATH")
+                else None
             ),
         )
 
@@ -174,6 +188,8 @@ def sync_state_with_config(store: StateStore, config: BotConfig) -> None:
 
     if state.symbol != config.symbol:
         updates["symbol"] = config.symbol
+    if abs(state.initial_balance - config.starting_balance) > 1e-6:
+        updates["initial_balance"] = config.starting_balance
     if abs(state.balance - config.starting_balance) > 1e-6:
         updates["balance"] = config.starting_balance
     if state.risk_per_trade_pct != config.risk_per_trade_pct:
@@ -195,6 +211,27 @@ def run_loop(config: BotConfig) -> None:
         refresh_interval=config.macro_refresh_seconds,
     )
 
+    playbook_assets: Sequence[PlaybookAssetDefinition] | None = None
+    playbook_horizons: Sequence[HorizonConfig] | None = None
+    if config.playbook_assets_path:
+        try:
+            asset_file: PlaybookAssetFile = load_playbook_asset_file(
+                config.playbook_assets_path
+            )
+            playbook_assets = asset_file.assets
+            playbook_horizons = asset_file.horizons
+            logger.info(
+                "Loaded %d custom playbook assets from %s",
+                len(playbook_assets),
+                config.playbook_assets_path,
+            )
+        except Exception as exc:
+            logger.warning(
+                "Failed to load playbook assets from %s: %s",
+                config.playbook_assets_path,
+                exc,
+            )
+
     logger.info(
         "Starting trading loop | symbol=%s data_symbol=%s timeframe=%s asset_type=%s paper=%s",
         config.symbol,
@@ -207,6 +244,26 @@ def run_loop(config: BotConfig) -> None:
     while True:
         started = time.time()
         try:
+            control_state = load_bot_control(config.data_dir)
+            if control_state.paused:
+                note = control_state.reason or "Manual safety pause active."
+                if (
+                    store.state.last_signal != "PAUSED"
+                    or store.state.last_signal_reason != note
+                ):
+                    store.update_state(
+                        last_signal="PAUSED",
+                        last_signal_reason=note,
+                        ai_action=None,
+                        ai_confidence=None,
+                    )
+                    logger.info(
+                        "Trading paused for %s: %s",
+                        config.symbol,
+                        note,
+                    )
+                time.sleep(max(5, config.loop_interval_seconds))
+                continue
             # re-load strategy config every loop to allow hot updates
             strategy_config = build_strategy_config(config)
             if predictor is None or predictor.config != strategy_config:
@@ -237,7 +294,6 @@ def run_loop(config: BotConfig) -> None:
             signal = generate_signal(enriched, strategy_config)
             macro_insight: MacroInsight | None
             try:
-                macro_insight = macro_engine.assess(config.symbol)
                 target_macro_symbol = config.macro_symbol or config.symbol
                 macro_insight = macro_engine.assess(target_macro_symbol)
             except Exception as macro_error:  # pragma: no cover - defensive
@@ -249,9 +305,15 @@ def run_loop(config: BotConfig) -> None:
             except ValueError as exc:
                 logger.debug("AI prediction skipped: %s", exc)
             try:
+                playbook_kwargs: Dict[str, object] = {}
+                if playbook_assets is not None:
+                    playbook_kwargs["asset_definitions"] = playbook_assets
+                if playbook_horizons is not None:
+                    playbook_kwargs["horizons"] = playbook_horizons
                 portfolio_playbook = build_portfolio_playbook(
                     starting_balance=config.starting_balance,
                     macro_engine=macro_engine,
+                    **playbook_kwargs,
                 )
             except Exception as playbook_error:
                 logger.debug("Portfolio playbook generation skipped: %s", playbook_error)
@@ -264,7 +326,6 @@ def run_loop(config: BotConfig) -> None:
                 macro_insight,
                 portfolio_playbook,
             )
-            state = update_state(store, signal, config, ai_snapshot, macro_insight)
             record_metrics(store, signal, state, config, ai_snapshot)
             logger.info(
                 "decision=%s price=%.2f rsi=%.2f ema_fast=%.2f ema_slow=%.2f ai=%s macro_bias=%.2f",
@@ -290,9 +351,6 @@ def fetch_candles(
     timeframe: str,
     limit: int,
 ) -> pd.DataFrame:
-    if isinstance(exchange, PaperExchangeClient):
-        return exchange.fetch_ohlcv(limit=limit)
-    return exchange.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
     if isinstance(client, PaperExchangeClient):
         return client.fetch_ohlcv(limit=limit)
     return client.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
@@ -300,18 +358,11 @@ def fetch_candles(
 
 def update_state(
     store: StateStore,
-    signal: dict,
-    config: BotConfig,
-    ai_snapshot: PredictionSnapshot | None,
-    macro_insight: MacroInsight | None,
-    portfolio_playbook: PortfolioPlaybook | None,
-) -> BotState:
-    decision = signal["decision"]
-    price = signal["close"]
     signal: Dict[str, Union[float, str]],
     config: BotConfig,
     ai_snapshot: PredictionSnapshot | None,
     macro_insight: MacroInsight | None,
+    portfolio_playbook: PortfolioPlaybook | None,
 ) -> BotState:
     decision = cast(str, signal["decision"])
     price = float(signal["close"])  # ensure float
@@ -324,9 +375,10 @@ def update_state(
         position = "FLAT"
         entry_price = None
     else:
-        if position != cast(PositionType, decision):
+        desired = cast(PositionType, decision)
+        if position != desired:
+            position = desired
             entry_price = price
-            position = cast(PositionType, decision)
         elif entry_price is None:
             entry_price = price
 
@@ -342,7 +394,7 @@ def update_state(
         direction = 1 if position == "LONG" else -1
         unrealized_pnl_pct = (price - entry_price) / entry_price * 100 * direction
 
-    ai_features: dict[str, float] = {}
+    ai_features: Dict[str, float] = {}
     if ai_snapshot:
         ai_features = {
             "ema_gap_pct": ai_snapshot.features.ema_gap_pct,
@@ -351,13 +403,13 @@ def update_state(
             "volatility_pct": ai_snapshot.features.volatility_pct,
         }
 
-    macro_events: list[dict[str, object]] = []
+    macro_events: List[Dict[str, object]] = []
     macro_summary: Optional[str] = None
     macro_bias: Optional[float] = None
     macro_confidence: Optional[float] = None
     macro_interest: Optional[str] = None
     macro_political: Optional[str] = None
-    macro_drivers: list[str] = []
+    macro_drivers: List[str] = []
 
     if macro_insight:
         macro_events = [dict(event) for event in macro_insight.events]
@@ -372,6 +424,13 @@ def update_state(
         portfolio_playbook.to_dict() if portfolio_playbook else store.state.portfolio_playbook
     )
 
+    signal_confidence = float(signal.get("confidence", 0.0))
+    signal_reason = cast(str, signal.get("reason", ""))
+
+    ai_override = False
+    if ai_snapshot and ai_snapshot.recommended_action:
+        ai_override = ai_snapshot.recommended_action != decision
+
     updated = store.update_state(
         symbol=config.symbol,
         position=position,
@@ -379,15 +438,15 @@ def update_state(
         position_size=position_size,
         unrealized_pnl_pct=round(unrealized_pnl_pct, 4),
         last_signal=decision,
-        last_signal_reason=execution.reason,
-        confidence=round(execution.confidence, 4),
-        technical_signal=execution.technical_decision,
-        technical_confidence=execution.technical_confidence,
-        technical_reason=execution.technical_reason,
-        ai_override_active=execution.ai_override,
-        rsi=signal["rsi"],
-        ema_fast=signal["ema_fast"],
-        ema_slow=signal["ema_slow"],
+        last_signal_reason=signal_reason,
+        confidence=round(signal_confidence, 4),
+        technical_signal=decision,
+        technical_confidence=round(signal_confidence, 4),
+        technical_reason=signal_reason,
+        ai_override_active=ai_override,
+        rsi=float(signal.get("rsi", state.rsi or 0.0)),
+        ema_fast=float(signal.get("ema_fast", state.ema_fast or 0.0)),
+        ema_slow=float(signal.get("ema_slow", state.ema_slow or 0.0)),
         risk_per_trade_pct=config.risk_per_trade_pct,
         ai_action=ai_snapshot.recommended_action if ai_snapshot else None,
         ai_confidence=ai_snapshot.confidence if ai_snapshot else None,
@@ -411,7 +470,6 @@ def update_state(
 
 def record_metrics(
     store: StateStore,
-    signal: dict,
     signal: Dict[str, Union[float, str]],
     state: BotState,
     config: BotConfig,
@@ -422,12 +480,9 @@ def record_metrics(
         SignalEvent(
             timestamp=timestamp,
             symbol=config.symbol,
-            decision=signal["decision"],
-            confidence=signal["confidence"],
-            reason=signal["reason"],
             decision=cast(PositionType, signal["decision"]),
-            confidence=float(signal["confidence"]),
-            reason=cast(str, signal["reason"]),
+            confidence=float(signal.get("confidence", 0.0)),
+            reason=cast(str, signal.get("reason", "")),
             ai_action=ai_snapshot.recommended_action if ai_snapshot else None,
             ai_confidence=ai_snapshot.confidence if ai_snapshot else None,
             ai_expected_move_pct=ai_snapshot.expected_move_pct if ai_snapshot else None,
