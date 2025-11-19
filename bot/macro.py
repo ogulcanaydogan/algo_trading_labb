@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import json
 import os
 import time
+import json
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -260,7 +260,9 @@ class MacroSentimentEngine:
                 category="central_bank",
                 sentiment="neutral",
                 impact="medium",
-                interest_rate_expectation="Fed likely to keep rates unchanged but watch core inflation prints.",
+                interest_rate_expectation=(
+                    "Fed likely to keep rates unchanged but watch core inflation prints."
+                ),
                 timestamp=now,
             ),
             MacroEvent(
@@ -272,4 +274,3 @@ class MacroSentimentEngine:
                 timestamp=now,
             ),
         ]
-

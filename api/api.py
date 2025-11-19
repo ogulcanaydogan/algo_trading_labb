@@ -192,17 +192,8 @@ def load_portfolio_states(
             except ValueError:
                 relative_dir = item
 
-            asset = asset_map.get(symbol_key)
-            allocation_pct = asset.get("allocation_pct") if asset else None
-            starting_balance = asset.get("starting_balance") if asset else None
-            if starting_balance is None and allocation_pct is not None and portfolio_capital:
-                starting_balance = (portfolio_capital * float(allocation_pct)) / 100.0
-            config_initial_balance = (
-                float(starting_balance) if starting_balance is not None else None
-            )
-
             metadata = _derive_asset_metadata(
-                asset,
+                asset_map.get(symbol_key),
                 default_timeframe=default_timeframe,
                 default_loop_interval=default_loop_interval,
                 default_paper_mode=default_paper_mode,
@@ -210,34 +201,18 @@ def load_portfolio_states(
                 default_take_profit_pct=default_take_profit_pct,
             )
             control = load_bot_control(item)
-
-            risk_value = state.risk_per_trade_pct
-            if risk_value is None:
-                risk_value = asset.get("risk_per_trade_pct") if asset else None
-            if risk_value is None:
-                risk_value = default_risk_pct
-            risk_value = float(risk_value) if risk_value is not None else 0.0
-
-            initial_balance_value = (
-                state.initial_balance
-                if state.initial_balance is not None
-                else config_initial_balance
-                if config_initial_balance is not None
-                else state.balance
-            )
-
             results[symbol_key] = PortfolioBotStatusResponse(
                 timestamp=state.timestamp,
                 symbol=state.symbol,
                 position=state.position,
                 position_size=state.position_size,
                 balance=state.balance,
-                initial_balance=initial_balance_value,
+                initial_balance=state.initial_balance or state.balance,
                 entry_price=state.entry_price,
                 unrealized_pnl_pct=state.unrealized_pnl_pct,
                 last_signal=state.last_signal,
                 confidence=state.confidence,
-                risk_per_trade_pct=risk_value,
+                risk_per_trade_pct=state.risk_per_trade_pct,
                 ai_action=state.ai_action,
                 ai_confidence=state.ai_confidence,
                 data_directory=str(relative_dir),
@@ -374,7 +349,7 @@ def read_status(store: StateStore = Depends(get_store)) -> BotStateResponse:
     payload = store.get_state_dict()
     if not payload:
         raise HTTPException(status_code=404, detail="State not found.")
-    return BotStateResponse(**payload)
+    return BotStateResponse.model_validate(payload)
 
 
 @app.get("/signals", response_model=List[SignalResponse])
@@ -384,14 +359,14 @@ def read_signals(
 ) -> List[SignalResponse]:
     store.load()
     signals = store.get_signals(limit)
-    return [SignalResponse(**item) for item in signals]
+    return [SignalResponse.model_validate(item) for item in signals]
 
 
 @app.get("/equity", response_model=List[EquityPointResponse])
 def read_equity(store: StateStore = Depends(get_store)) -> List[EquityPointResponse]:
     store.load()
     curve = store.get_equity_curve()
-    return [EquityPointResponse(**point) for point in curve]
+    return [EquityPointResponse.model_validate(point) for point in curve]
 
 
 @app.get("/strategy", response_model=StrategyOverviewResponse)
@@ -412,7 +387,9 @@ def read_strategy_overview(
         per_asset_path = STATE_DIR / "portfolio" / safe / "strategy_config.json"
         overrides = load_overrides(per_asset_path)
         if overrides:
-            merged = merge_config(StrategyConfig(symbol=symbol, timeframe=config.timeframe), overrides)
+            merged = merge_config(
+                StrategyConfig(symbol=symbol, timeframe=config.timeframe), overrides
+            )
             config = merged
         else:
             # fall back to global overrides
@@ -466,8 +443,12 @@ def list_portfolio_strategies() -> List[StrategyOverviewResponse]:
         if not overrides:
             continue
         symbol = str(overrides.get("symbol") or item.name)
-        timeframe = str(overrides.get("timeframe") or StrategyConfig.from_env().timeframe)
-        cfg = merge_config(StrategyConfig(symbol=symbol, timeframe=timeframe), overrides)
+        timeframe = str(
+            overrides.get("timeframe") or StrategyConfig.from_env().timeframe
+        )
+        cfg = merge_config(
+            StrategyConfig(symbol=symbol, timeframe=timeframe), overrides
+        )
         results.append(
             StrategyOverviewResponse(
                 symbol=cfg.symbol,
@@ -603,7 +584,7 @@ def read_macro_insights(store: StateStore = Depends(get_store)) -> MacroInsightR
     events_payload: List[MacroEventResponse] = []
     for item in payload.get("macro_events") or []:
         if isinstance(item, dict) and item.get("title"):
-            events_payload.append(MacroEventResponse(**item))
+            events_payload.append(MacroEventResponse.model_validate(item))
 
     return MacroInsightResponse(
         timestamp=payload["timestamp"],
@@ -631,7 +612,19 @@ def read_portfolio_playbook(
     if not playbook:
         raise HTTPException(status_code=404, detail="Portfolio playbook unavailable.")
 
-    return PortfolioPlaybookResponse(**playbook)
+    return PortfolioPlaybookResponse.model_validate(playbook)
+
+
+@app.get("/portfolio/status", response_model=List[PortfolioBotStatusResponse])
+def read_portfolio_status(
+    symbol: Optional[str] = Query(default=None),
+) -> List[PortfolioBotStatusResponse]:
+    """Expose each running asset's status for the dashboard."""
+
+    statuses = load_portfolio_states(symbol)
+    if symbol and not statuses:
+        raise HTTPException(status_code=404, detail=f"No state found for symbol {symbol}.")
+    return statuses
 
 
 @app.get("/portfolio/status", response_model=List[PortfolioBotStatusResponse])
@@ -659,4 +652,3 @@ def load_dashboard_template() -> str:
 async def dashboard() -> HTMLResponse:
     """Serve a lightweight HTML dashboard for quick monitoring."""
     return HTMLResponse(content=load_dashboard_template())
-

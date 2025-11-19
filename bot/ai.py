@@ -255,9 +255,7 @@ class QuestionAnsweringEngine:
             f"Current fast/slow EMA windows: {self.config.ema_fast}/{self.config.ema_slow} on the {self.config.timeframe} timeframe.",
         ]
         if state and state.last_signal == "LONG":
-            lines.append(
-                f"The latest signal already points LONG with confidence {state.confidence or 0:.2f}."
-            )
+            parts.append(f"Latest signal: LONG (confidence {state.confidence or 0:.2f}).")
         if ai_snapshot and ai_snapshot.recommended_action == "LONG":
             ai_confidence = ai_snapshot.confidence * 100.0
             lines.append(
@@ -286,9 +284,7 @@ class QuestionAnsweringEngine:
             f"Oversold threshold: {self.config.rsi_oversold}, overbought threshold: {self.config.rsi_overbought}.",
         ]
         if state and state.last_signal == "SHORT":
-            lines.append(
-                f"Most recent decision is SHORT with confidence {state.confidence or 0:.2f}."
-            )
+            parts.append(f"Latest signal: SHORT (confidence {state.confidence or 0:.2f}).")
         if ai_snapshot and ai_snapshot.recommended_action == "SHORT":
             ai_confidence = ai_snapshot.confidence * 100.0
             lines.append(
@@ -374,6 +370,7 @@ class QuestionAnsweringEngine:
             parts.append(
                 "No macro catalysts registered yet. Upload a macro_events.json file or set MACRO_EVENTS_PATH for richer context."
             )
+            parts.append("or set MACRO_EVENTS_PATH for richer context.")
         if state:
             parts.append(
                 f"Strategy currently tracks {state.symbol} with position {state.position}."

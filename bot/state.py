@@ -92,7 +92,10 @@ class SignalEvent:
         payload = dict(data)
         payload["timestamp"] = datetime.fromisoformat(payload["timestamp"])
         if "execution_reason" in payload and "reason" not in payload:
+            # Map legacy 'execution_reason' to the current 'reason' field
             payload["reason"] = payload["execution_reason"]
+        # Remove legacy key so dataclass constructor does not receive unexpected args
+        payload.pop("execution_reason", None)
         return cls(**payload)
 
 

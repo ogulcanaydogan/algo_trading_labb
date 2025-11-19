@@ -386,17 +386,31 @@ def build_portfolio_playbook(
     highlights: List[str] = []
     all_assets = commodities + equities
     if all_assets:
-        best_asset = max(all_assets, key=lambda asset: max((h.total_return_pct for h in asset.horizons), default=-math.inf))
-        worst_asset = min(all_assets, key=lambda asset: min((h.total_return_pct for h in asset.horizons), default=math.inf))
+        # Helper functions make the ranking lambda expressions short and readable
+        def _asset_max_return(asset: AssetPlaybook) -> float:
+            return max((h.total_return_pct for h in asset.horizons), default=-math.inf)
+
+        def _asset_min_return(asset: AssetPlaybook) -> float:
+            return min((h.total_return_pct for h in asset.horizons), default=math.inf)
+
+        best_asset = max(all_assets, key=_asset_max_return)
+        worst_asset = min(all_assets, key=_asset_min_return)
+
         if best_asset.horizons:
             top_horizon = max(best_asset.horizons, key=lambda h: h.total_return_pct)
             highlights.append(
-                f"Top performer: {best_asset.symbol} on the {top_horizon.label} horizon ({top_horizon.total_return_pct:+.2f}%)."
+                (
+                    f"Top performer: {best_asset.symbol} on the {top_horizon.label} "
+                    f"horizon ({top_horizon.total_return_pct:+.2f}%)."
+                )
             )
         if worst_asset.horizons:
             bottom_horizon = min(worst_asset.horizons, key=lambda h: h.total_return_pct)
             highlights.append(
-                f"Lagging setup: {worst_asset.symbol} on the {bottom_horizon.label} horizon ({bottom_horizon.total_return_pct:+.2f}%)."
+                (
+                    f"Lagging setup: {worst_asset.symbol} on the {bottom_horizon.label} "
+                    f"horizon ({bottom_horizon.total_return_pct:+.2f}%)."
+                )
             )
         avg_macro = sum(asset.macro_bias for asset in all_assets) / len(all_assets)
         highlights.append(

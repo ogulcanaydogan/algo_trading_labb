@@ -7,7 +7,8 @@
     "reason": "No clear signal.",
     "ai_action": "FLAT",
     "ai_confidence": 0.5201,
-    "ai_expected_move_pct": -0.0
+    "ai_expected_move_pct": -0.0,
+    "execution_reason": "No clear signal."
   },
   {
     "timestamp": "2025-10-31T23:39:25.622423+00:00",
@@ -17,7 +18,8 @@
     "reason": "No clear signal.",
     "ai_action": "FLAT",
     "ai_confidence": 0.5184,
-    "ai_expected_move_pct": -0.0
+    "ai_expected_move_pct": -0.0,
+    "execution_reason": "No clear signal."
   },
   {
     "timestamp": "2025-10-31T23:40:25.631956+00:00",
@@ -27,7 +29,8 @@
     "reason": "No clear signal.",
     "ai_action": "FLAT",
     "ai_confidence": 0.5163,
-    "ai_expected_move_pct": 0.0
+    "ai_expected_move_pct": 0.0,
+    "execution_reason": "No clear signal."
   },
   {
     "timestamp": "2025-10-31T23:41:25.640164+00:00",
@@ -37,7 +40,8 @@
     "reason": "No clear signal.",
     "ai_action": "FLAT",
     "ai_confidence": 0.5262,
-    "ai_expected_move_pct": 0.0
+    "ai_expected_move_pct": 0.0,
+    "execution_reason": "No clear signal."
   },
   {
     "timestamp": "2025-10-31T23:42:25.650028+00:00",
@@ -47,7 +51,8 @@
     "reason": "No clear signal.",
     "ai_action": "SHORT",
     "ai_confidence": 0.5618,
-    "ai_expected_move_pct": -1.2074
+    "ai_expected_move_pct": -1.2074,
+    "execution_reason": "No clear signal."
   },
   {
     "timestamp": "2025-10-31T23:43:25.657900+00:00",
@@ -57,7 +62,8 @@
     "reason": "No clear signal.",
     "ai_action": "SHORT",
     "ai_confidence": 0.4669,
-    "ai_expected_move_pct": -0.2303
+    "ai_expected_move_pct": -0.2303,
+    "execution_reason": "No clear signal."
   },
   {
     "timestamp": "2025-10-31T23:44:25.664519+00:00",
@@ -67,7 +73,8 @@
     "reason": "No clear signal.",
     "ai_action": "SHORT",
     "ai_confidence": 0.4922,
-    "ai_expected_move_pct": -0.5214
+    "ai_expected_move_pct": -0.5214,
+    "execution_reason": "No clear signal."
   },
   {
     "timestamp": "2025-10-31T23:45:25.674276+00:00",
@@ -77,7 +84,8 @@
     "reason": "No clear signal.",
     "ai_action": "FLAT",
     "ai_confidence": 0.5283,
-    "ai_expected_move_pct": 0.0
+    "ai_expected_move_pct": 0.0,
+    "execution_reason": "No clear signal."
   },
   {
     "timestamp": "2025-10-31T23:46:25.684079+00:00",
@@ -87,7 +95,8 @@
     "reason": "No clear signal.",
     "ai_action": "FLAT",
     "ai_confidence": 0.5368,
-    "ai_expected_move_pct": 0.0
+    "ai_expected_move_pct": 0.0,
+    "execution_reason": "No clear signal."
   },
   {
     "timestamp": "2025-10-31T23:47:25.693321+00:00",
@@ -97,7 +106,8 @@
     "reason": "No clear signal.",
     "ai_action": "FLAT",
     "ai_confidence": 0.5236,
-    "ai_expected_move_pct": 0.0
+    "ai_expected_move_pct": 0.0,
+    "execution_reason": "No clear signal."
   },
   {
     "timestamp": "2025-10-31T23:48:25.706099+00:00",
@@ -107,7 +117,8 @@
     "reason": "No clear signal.",
     "ai_action": "FLAT",
     "ai_confidence": 0.5308,
-    "ai_expected_move_pct": 0.0
+    "ai_expected_move_pct": 0.0,
+    "execution_reason": "No clear signal."
   },
   {
     "timestamp": "2025-10-31T23:49:25.720781+00:00",
@@ -117,6 +128,18 @@
     "reason": "No clear signal.",
     "ai_action": "FLAT",
     "ai_confidence": 0.529,
-    "ai_expected_move_pct": -0.0
+    "ai_expected_move_pct": -0.0,
+    "execution_reason": "No clear signal."
+  },
+  {
+    "timestamp": "2025-11-04T01:57:20.452212+00:00",
+    "symbol": "BTC/USDT",
+    "decision": "FLAT",
+    "confidence": 0.5629,
+    "reason": "No clear signal.",
+    "ai_action": "LONG",
+    "ai_confidence": 0.5629,
+    "ai_expected_move_pct": -0.2265,
+    "execution_reason": "No clear signal."
   }
 ]

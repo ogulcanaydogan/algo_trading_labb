@@ -26,6 +26,7 @@ def _load_ccxt():
     ccxt = module  # type: ignore
     return module
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -49,21 +50,23 @@ class ExchangeClient:
         self.exchange_id = exchange_id
         self.sandbox = sandbox
         self.testnet = testnet
-        exchange_class = getattr(ccxt, exchange_id)
+        # prefer the module returned by _load_ccxt to avoid relying on globals
+        exchange_class = getattr(module, exchange_id)
 
         config = {
             "apiKey": api_key,
             "secret": api_secret,
         }
 
-        # Binance Testnet configuration
+        # Binance Demo Trading configuration (new testnet system)
         if testnet and exchange_id == "binance":
             config["urls"] = {
                 "api": {
-                    "public": "https://testnet.binance.vision/api",
-                    "private": "https://testnet.binance.vision/api",
+                    "public": "https://demo-api.binance.com/api/v3",
+                    "private": "https://demo-api.binance.com/api/v3",
                 }
             }
+            config["hostname"] = "demo-api.binance.com"
 
         self.client = exchange_class(config)
 

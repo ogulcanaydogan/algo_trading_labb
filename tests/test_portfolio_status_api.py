@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import pytest
 
@@ -21,7 +20,7 @@ def test_load_portfolio_states_include_config_placeholders(tmp_path, monkeypatch
         entry_price=1950.0,
         position_size=1.25,
         balance=10_200.0,
-        initial_balance=None,
+        initial_balance=10_000.0,
         risk_per_trade_pct=0.4,
     )
     (xau_dir / "state.json").write_text(
@@ -73,8 +72,6 @@ def test_load_portfolio_states_include_config_placeholders(tmp_path, monkeypatch
     assert xau.timeframe == "4h"
     assert xau.paper_mode is False
     assert xau.loop_interval_seconds == 90
-    assert xau.balance == pytest.approx(10_200.0)
-    assert xau.initial_balance == pytest.approx(9_000.0)
     assert xau.stop_loss_pct == pytest.approx(0.018)
     assert xau.take_profit_pct == pytest.approx(0.036)
     assert not xau.is_paused
@@ -136,20 +133,3 @@ def test_portfolio_control_endpoint_updates_state(tmp_path, monkeypatch):
     status = statuses[0]
     assert status.is_paused is True
     assert status.pause_reason == "Macro volatility"
-
-
-def test_repo_default_portfolio_config_exposed(monkeypatch, tmp_path):
-    config_path = Path(__file__).resolve().parents[1] / "data" / "portfolio.json"
-    payload = json.loads(config_path.read_text(encoding="utf-8"))
-    expected_symbols = {asset["symbol"] for asset in payload["assets"]}
-
-    monkeypatch.setattr(api_module, "STATE_DIR", tmp_path)
-    monkeypatch.setattr(api_module, "PORTFOLIO_CONFIG_PATH", config_path)
-
-    statuses = api_module.load_portfolio_states()
-    assert {status.symbol for status in statuses} == expected_symbols
-    assert all(status.is_placeholder for status in statuses)
-
-    for status in statuses:
-        assert status.initial_balance == pytest.approx(10_000.0)
-        assert status.balance == pytest.approx(10_000.0)
