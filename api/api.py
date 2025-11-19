@@ -627,6 +627,18 @@ def read_portfolio_status(
     return statuses
 
 
+@app.get("/portfolio/status", response_model=List[PortfolioBotStatusResponse])
+def read_portfolio_status(
+    symbol: Optional[str] = Query(default=None),
+) -> List[PortfolioBotStatusResponse]:
+    """Expose each running asset's status for the dashboard."""
+
+    statuses = load_portfolio_states(symbol)
+    if symbol and not statuses:
+        raise HTTPException(status_code=404, detail=f"No state found for symbol {symbol}.")
+    return statuses
+
+
 def load_dashboard_template() -> str:
     try:
         return DASHBOARD_TEMPLATE.read_text(encoding="utf-8")
