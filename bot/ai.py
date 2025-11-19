@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, Iterable, List, Optional, Sequence
 
 import pandas as pd
 
@@ -97,7 +97,6 @@ class RuleBasedAIPredictor:
 
         recommended_action = max(probabilities, key=probabilities.get)
         confidence = float(probabilities[recommended_action])
-        # derive expected move as a blend of EMA gap and momentum, then apply direction
         direction = (
             1
             if recommended_action == "LONG"
@@ -251,25 +250,28 @@ class QuestionAnsweringEngine:
         ai_snapshot: Optional[PredictionSnapshot],
         macro_insight: Optional[MacroInsight],
     ) -> str:
-        parts: List[str] = []
-        parts.append(
-            "Buy signals are triggered when the fast EMA crosses above the slow EMA and RSI is not overbought."
-        )
-        parts.append(
-            f"EMA windows: {self.config.ema_fast}/{self.config.ema_slow} on {self.config.timeframe}."
-        )
+        lines = [
+            "Buy signals fire when the fast EMA crosses above the slow EMA and RSI remains below the overbought threshold.",
+            f"Current fast/slow EMA windows: {self.config.ema_fast}/{self.config.ema_slow} on the {self.config.timeframe} timeframe.",
+        ]
         if state and state.last_signal == "LONG":
             parts.append(f"Latest signal: LONG (confidence {state.confidence or 0:.2f}).")
         if ai_snapshot and ai_snapshot.recommended_action == "LONG":
-            parts.append(
-                f"AI leans LONG ({ai_snapshot.confidence * 100:.1f}%); expected move "
-                f"{ai_snapshot.expected_move_pct:.2f}%.")
+            ai_confidence = ai_snapshot.confidence * 100.0
+            lines.append(
+                f"AI layer leans LONG with {ai_confidence:.1f}% confidence and expects {ai_snapshot.expected_move_pct:.2f}% move."
+            )
         if macro_insight:
-            if macro_insight.bias_score and macro_insight.bias_score > 0.05:
-                parts.append(f"Macro supportive ({macro_insight.bias_score:+.2f}).")
-            elif macro_insight.bias_score and macro_insight.bias_score < -0.05:
-                parts.append(f"Macro cautious ({macro_insight.bias_score:+.2f}).")
-        return " ".join(parts)
+            if macro_insight.bias_score > 0.05:
+                driver = macro_insight.drivers[0] if macro_insight.drivers else "macro backdrop"
+                lines.append(
+                    f"Macro tone is supportive ({macro_insight.bias_score:+.2f}) thanks to {driver}."
+                )
+            elif macro_insight.bias_score < -0.05:
+                lines.append(
+                    f"Heads-up: macro bias is {macro_insight.bias_score:+.2f}, so confirm bullish setups with extra caution."
+                )
+        return self._coalesce_lines(lines)
 
     def _answer_sell_question(
         self,
@@ -277,25 +279,28 @@ class QuestionAnsweringEngine:
         ai_snapshot: Optional[PredictionSnapshot],
         macro_insight: Optional[MacroInsight],
     ) -> str:
-        parts: List[str] = []
-        parts.append(
-            "Short setups occur when the fast EMA crosses below the slow EMA and RSI is not oversold."
-        )
-        parts.append(
-            f"Oversold/overbought: {self.config.rsi_oversold}/{self.config.rsi_overbought}."
-        )
+        lines = [
+            "Short setups appear when the fast EMA dips below the slow EMA while RSI stays above the oversold band.",
+            f"Oversold threshold: {self.config.rsi_oversold}, overbought threshold: {self.config.rsi_overbought}.",
+        ]
         if state and state.last_signal == "SHORT":
             parts.append(f"Latest signal: SHORT (confidence {state.confidence or 0:.2f}).")
         if ai_snapshot and ai_snapshot.recommended_action == "SHORT":
-            parts.append("AI leans SHORT.")
-            parts.append(f"Confidence: {ai_snapshot.confidence * 100:.1f}%.")
-            parts.append(f"Expected move: {ai_snapshot.expected_move_pct:.2f}%.")
+            ai_confidence = ai_snapshot.confidence * 100.0
+            lines.append(
+                f"AI component favours SHORT with {ai_confidence:.1f}% confidence and {ai_snapshot.expected_move_pct:.2f}% expected move."
+            )
         if macro_insight:
-            if macro_insight.bias_score and macro_insight.bias_score < -0.05:
-                parts.append(f"Macro negative ({macro_insight.bias_score:+.2f}).")
-            elif macro_insight.bias_score and macro_insight.bias_score > 0.05:
-                parts.append(f"Macro supportive ({macro_insight.bias_score:+.2f}).")
-        return " ".join(parts)
+            if macro_insight.bias_score < -0.05:
+                driver = macro_insight.drivers[0] if macro_insight.drivers else "macro backdrop"
+                lines.append(
+                    f"Macro climate is risk-off ({macro_insight.bias_score:+.2f}) due to {driver}."
+                )
+            elif macro_insight.bias_score > 0.05:
+                lines.append(
+                    f"Macro bias is positive ({macro_insight.bias_score:+.2f}); keep shorts nimble."
+                )
+        return self._coalesce_lines(lines)
 
     def _answer_risk_question(
         self,
@@ -304,17 +309,15 @@ class QuestionAnsweringEngine:
         macro_insight: Optional[MacroInsight],
     ) -> str:
         del ai_snapshot
-        base = f"Risk per trade is capped at {self.config.risk_per_trade_pct}% of the balance."
-        base += f" Stop-loss: {self.config.stop_loss_pct * 100:.2f}%"
-        base += f"; take-profit: {self.config.take_profit_pct * 100:.2f}%."
+        base = (
+            f"Risk per trade is capped at {self.config.risk_per_trade_pct}% of the balance. "
+            f"Stop-loss is set at {self.config.stop_loss_pct * 100:.2f}% and take-profit at {self.config.take_profit_pct * 100:.2f}%."
+        )
         if state:
-            base += f" Current unrealized PnL: {state.unrealized_pnl_pct:.2f}%"
-            base += f"; position: {state.position}."
+            base += f" Current unrealized PnL sits at {state.unrealized_pnl_pct:.2f}% with position {state.position}."
         if macro_insight and macro_insight.interest_rate_outlook:
-            base += (
-                f" Rate backdrop: {macro_insight.interest_rate_outlook}."
-            )
-        return base
+            base += f" Rate backdrop: {macro_insight.interest_rate_outlook}."
+        return self._coalesce_lines([base])
 
     def _answer_ai_question(
         self,
@@ -327,18 +330,19 @@ class QuestionAnsweringEngine:
             return "AI predictions become available after the bot processes live candles."
         macro_line = ""
         if macro_insight and macro_insight.summary:
-            macro_line = f"Macro context: {macro_insight.summary}"
-
-        parts: List[str] = []
-        parts.append(f"AI model leans {ai_snapshot.recommended_action}.")
-        parts.append(f"Confidence: {ai_snapshot.confidence * 100:.1f}%.")
-        parts.append(f"Probabilities: long {ai_snapshot.probability_long * 100:.1f}%.")
-        parts.append(f"Short probability: {ai_snapshot.probability_short * 100:.1f}%.")
-        parts.append(f"Flat probability: {ai_snapshot.probability_flat * 100:.1f}%.")
-        parts.append(f"Expected move: {ai_snapshot.expected_move_pct:.2f}%.")
-        if macro_line:
-            parts.append(macro_line)
-        return " ".join(parts)
+            macro_line = f" Macro context: {macro_insight.summary}"
+        lines = [
+            (
+                f"AI model leans {ai_snapshot.recommended_action} with probability {ai_snapshot.confidence * 100:.1f}% "
+                f"(long {ai_snapshot.probability_long * 100:.1f}%, short {ai_snapshot.probability_short * 100:.1f}%, flat {ai_snapshot.probability_flat * 100:.1f}%)."
+            ),
+            (
+                f"Expected move: {ai_snapshot.expected_move_pct:.2f}% based on EMA spread {ai_snapshot.features.ema_gap_pct:.2f}% "
+                f"and momentum {ai_snapshot.features.momentum_pct:.2f}%."
+            ),
+            macro_line.strip(),
+        ]
+        return self._coalesce_lines(lines)
 
     def _answer_macro_question(
         self,
@@ -349,34 +353,67 @@ class QuestionAnsweringEngine:
         del ai_snapshot
         parts: List[str] = []
         if macro_insight:
-            if getattr(macro_insight, "summary", None):
-                parts.append(macro_insight.summary)
-            if getattr(macro_insight, "drivers", None):
-                parts.append("Key drivers: " + ", ".join(macro_insight.drivers[:3]) + ".")
-            if getattr(macro_insight, "interest_rate_outlook", None):
-                parts.append(f"Interest-rate outlook: {macro_insight.interest_rate_outlook}.")
-            if getattr(macro_insight, "political_risk", None):
-                parts.append(f"Political watch: {macro_insight.political_risk}.")
+            parts.append(macro_insight.summary)
+            if macro_insight.drivers:
+                parts.append(
+                    "Key drivers: " + ", ".join(macro_insight.drivers[:3]) + "."
+                )
+            if macro_insight.interest_rate_outlook:
+                parts.append(
+                    f"Interest-rate outlook: {macro_insight.interest_rate_outlook}."
+                )
+            if macro_insight.political_risk:
+                parts.append(
+                    f"Political watch: {macro_insight.political_risk}."
+                )
         else:
             parts.append(
-                "No macro catalysts registered yet. Upload a macro_events.json file"
+                "No macro catalysts registered yet. Upload a macro_events.json file or set MACRO_EVENTS_PATH for richer context."
             )
             parts.append("or set MACRO_EVENTS_PATH for richer context.")
         if state:
-            parts.append(f"Strategy tracks {state.symbol} with position {state.position}.")
-        return " ".join(parts)
+            parts.append(
+                f"Strategy currently tracks {state.symbol} with position {state.position}."
+            )
+        return self._coalesce_lines(parts)
 
     def _fallback_answer(
         self,
         state: Optional[BotState],
         macro_insight: Optional[MacroInsight],
     ) -> str:
-        base = f"The bot monitors {self.config.symbol} on {self.config.timeframe} candles."
-        base += f" EMA windows: {self.config.ema_fast}/{self.config.ema_slow}."
-        base += f" RSI period: {self.config.rsi_period}."
-        if state:
-            base += f" Current stance: {state.position} with last signal {state.last_signal}."
-        if macro_insight and macro_insight.summary:
-            base += f" Macro overlay: {macro_insight.summary}."
-        base += " Ask about buy, sell, risk, macro, or AI to get focused guidance."
-        return base
+        base_lines = [
+            (
+                f"The bot monitors {self.config.symbol} on {self.config.timeframe} candles using EMA {self.config.ema_fast}/{self.config.ema_slow} and RSI {self.config.rsi_period}."
+            ),
+            (
+                f"Current stance: {state.position} with last signal {state.last_signal}."
+                if state
+                else ""
+            ),
+            (
+                f"Macro overlay: {macro_insight.summary}."
+                if macro_insight and macro_insight.summary
+                else ""
+            ),
+            "Ask about buy, sell, risk, macro, or AI to get focused guidance.",
+        ]
+        return self._coalesce_lines(base_lines)
+
+    def _coalesce_lines(self, lines: Sequence[str]) -> str:
+        """Join response fragments while removing duplicates and blank entries."""
+
+        unique: List[str] = []
+        seen: set[str] = set()
+        for raw in lines:
+            if not raw:
+                continue
+            text = " ".join(str(raw).split()).strip()
+            if not text:
+                continue
+            key = text.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            unique.append(text)
+        return " ".join(unique)

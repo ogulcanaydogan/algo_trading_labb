@@ -24,6 +24,7 @@ class BotState:
     entry_price: Optional[float] = None
     position_size: float = 0.0
     balance: float = 10_000.0
+    initial_balance: float = 10_000.0
     unrealized_pnl_pct: float = 0.0
     last_signal: Optional[str] = None
     last_signal_reason: Optional[str] = None
@@ -212,3 +213,15 @@ def create_state_store(base_dir: Path) -> StateStore:
     signals_path = base_dir / "signals.json"
     equity_path = base_dir / "equity.json"
     return StateStore(state_path, signals_path, equity_path)
+
+
+def load_bot_state_from_path(path: Path) -> Optional[BotState]:
+    """Load a BotState from the given JSON file if it exists."""
+
+    if not path.exists() or not path.is_file():
+        return None
+
+    with path.open("r", encoding="utf-8") as handle:
+        payload = json.load(handle)
+
+    return BotState.from_dict(payload)
