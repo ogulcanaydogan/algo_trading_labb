@@ -67,6 +67,243 @@
         grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
         gap: 1rem;
       }
+      .portfolio-status {
+        margin-top: 1.5rem;
+      }
+      .portfolio-status-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
+      .portfolio-status-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1rem;
+      }
+      .portfolio-meta-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+        margin-top: 1.25rem;
+      }
+      .portfolio-summary-card {
+        border-radius: 14px;
+        padding: 1rem;
+        background: rgba(15, 23, 42, 0.9);
+        border: 1px solid rgba(59, 130, 246, 0.25);
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+      }
+      .portfolio-summary-card h4 {
+        margin: 0;
+        font-size: 0.9rem;
+        color: #cbd5f5;
+      }
+      .summary-value {
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+      .portfolio-position-card {
+        border-radius: 14px;
+        padding: 1rem;
+        background: rgba(15, 23, 42, 0.92);
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        min-height: 180px;
+      }
+      .portfolio-card-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.75rem;
+      }
+      .portfolio-card-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.35rem;
+      }
+      .portfolio-card-badges {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 0.35rem;
+      }
+      .portfolio-symbol {
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+      .portfolio-meta {
+        font-size: 0.8rem;
+        color: #94a3b8;
+      }
+      .portfolio-position {
+        font-size: 0.9rem;
+        padding: 0.2rem 0.75rem;
+        border-radius: 999px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border: 1px solid rgba(148, 163, 184, 0.3);
+      }
+      .portfolio-metrics {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+        font-size: 0.85rem;
+      }
+      .portfolio-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+      }
+      .portfolio-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #94a3b8;
+      }
+      .portfolio-value {
+        font-size: 1rem;
+        font-weight: 600;
+      }
+      .portfolio-note {
+        font-size: 0.85rem;
+        color: #cbd5f5;
+      }
+      .portfolio-ai {
+        font-size: 0.8rem;
+        color: #7dd3fc;
+      }
+      .portfolio-note.placeholder {
+        color: #fbbf24;
+      }
+      .portfolio-note.paused {
+        color: #f87171;
+      }
+      .portfolio-pause-reason {
+        color: #fecaca;
+      }
+      .portfolio-mode {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        border-radius: 999px;
+        padding: 0.15rem 0.6rem;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+      }
+      .portfolio-mode.live {
+        color: #f472b6;
+        border-color: rgba(244, 114, 182, 0.6);
+      }
+      .portfolio-mode.paper {
+        color: #38bdf8;
+        border-color: rgba(56, 189, 248, 0.6);
+      }
+      .portfolio-pause-pill {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        border-radius: 999px;
+        padding: 0.15rem 0.6rem;
+        border: 1px solid rgba(248, 113, 113, 0.7);
+        color: #fecaca;
+        background: rgba(127, 29, 29, 0.2);
+      }
+      .portfolio-guard-card ul {
+        margin: 0.25rem 0 0;
+        padding: 0;
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+      }
+      .portfolio-guard-card li {
+        font-size: 0.8rem;
+        color: #cbd5f5;
+      }
+      .portfolio-toggle {
+        border-radius: 999px;
+        padding: 0.35rem 0.9rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: opacity 0.2s ease;
+      }
+      .portfolio-toggle.pause {
+        background: rgba(248, 113, 113, 0.15);
+        border-color: rgba(248, 113, 113, 0.5);
+        color: #fecaca;
+      }
+      .portfolio-toggle.resume {
+        background: rgba(34, 197, 94, 0.15);
+        border-color: rgba(34, 197, 94, 0.5);
+        color: #bbf7d0;
+      }
+      .portfolio-toggle:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .portfolio-guard-controls {
+        border-top: 1px solid rgba(148, 163, 184, 0.2);
+        padding-top: 0.5rem;
+        margin-top: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+      }
+      .portfolio-guard-hint {
+        font-size: 0.75rem;
+        color: #94a3b8;
+        margin: 0;
+      }
+      .portfolio-placeholder-badge {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        border-radius: 999px;
+        padding: 0.15rem 0.6rem;
+        border: 1px dashed rgba(251, 191, 36, 0.6);
+        color: #fbbf24;
+      }
+      .chart-card,
+      .portfolio-chart-card {
+        margin-top: 1.25rem;
+        padding: 1.25rem;
+        border-radius: 16px;
+        background: rgba(15, 23, 42, 0.92);
+        border: 1px solid rgba(59, 130, 246, 0.25);
+        box-shadow: 0 16px 40px rgba(2, 6, 23, 0.45);
+      }
+      .portfolio-chart-card {
+        margin-top: 1.75rem;
+      }
+      .chart-card-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.75rem;
+      }
+      .chart-card-header h3,
+      .chart-card-header h4 {
+        margin: 0;
+        font-size: 1rem;
+      }
+      .chart-note {
+        font-size: 0.8rem;
+        color: #94a3b8;
+      }
+      .chart-canvas {
+        width: 100%;
+        height: 240px;
+        display: block;
+        margin-top: 0.75rem;
+      }
       .status-card {
         padding: 1rem;
         border-radius: 12px;
@@ -377,9 +614,7 @@
         background: rgba(30, 41, 59, 0.65);
       }
       #equity-canvas {
-        width: 100%;
-        height: 240px;
-        display: block;
+        height: 260px;
       }
       .error {
         margin-top: 0.75rem;
@@ -437,6 +672,56 @@
         </div>
       </div>
       <p id="status-error" class="error"></p>
+      <div class="portfolio-status" id="portfolio-status-section">
+        <div class="portfolio-status-header">
+          <h3>Portfolio Positions</h3>
+          <span class="status-subtle" id="portfolio-status-count"></span>
+        </div>
+        <div class="portfolio-meta-grid">
+          <div class="portfolio-summary-card">
+            <h4>Coverage</h4>
+            <p class="summary-value" id="portfolio-summary-overview">-</p>
+            <p class="status-subtle" id="portfolio-summary-subtext">
+              Configured bots will appear once detected.
+            </p>
+          </div>
+          <div class="portfolio-summary-card">
+            <h4>Positioning</h4>
+            <p class="summary-value" id="portfolio-summary-positions">-</p>
+            <p class="status-subtle" id="portfolio-summary-capital">-</p>
+          </div>
+          <div class="portfolio-summary-card">
+            <h4>Leaders</h4>
+            <p class="summary-value" id="portfolio-summary-leaders">-</p>
+            <p class="status-subtle" id="portfolio-summary-laggards">-</p>
+          </div>
+          <div class="portfolio-summary-card portfolio-guard-card">
+            <h4>Safety Controls</h4>
+            <p class="summary-value" id="portfolio-summary-guard">-</p>
+            <p class="status-subtle" id="portfolio-summary-guard-note">
+              Pause bots instantly when volatility spikes.
+            </p>
+            <ul id="portfolio-guard-list">
+              <li class="status-subtle">No manual pauses logged.</li>
+            </ul>
+          </div>
+        </div>
+        <p class="status-subtle" id="portfolio-status-empty">
+          No multi-market bots have reported their state yet.
+        </p>
+        <div class="portfolio-status-grid" id="portfolio-status-grid"></div>
+        <div class="portfolio-chart-card">
+          <div class="chart-card-header">
+            <h4>Capital Allocation</h4>
+            <span class="chart-note" id="portfolio-allocation-summary"></span>
+          </div>
+          <canvas id="portfolio-allocation-canvas" class="chart-canvas"></canvas>
+          <p class="status-subtle" id="portfolio-allocation-empty">
+            Allocation chart will populate once the bots publish balances.
+          </p>
+        </div>
+        <p id="portfolio-status-error" class="error"></p>
+      </div>
     </section>
 
     <section>
@@ -470,6 +755,16 @@
           <span>Flat</span>
           <strong id="ai-prob-flat">-</strong>
         </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <h3>Probability Mix</h3>
+          <span class="chart-note">Live share of LONG / SHORT / FLAT confidence.</span>
+        </div>
+        <canvas id="ai-probability-chart" class="chart-canvas"></canvas>
+        <p class="status-subtle" id="ai-probability-empty">
+          Probability graph will update once the AI layer publishes predictions.
+        </p>
       </div>
       <p class="ai-summary" id="ai-summary">AI summary will appear here once data is available.</p>
       <p id="ai-error" class="error"></p>
@@ -588,7 +883,9 @@
 
     <section>
       <h2>Equity Curve</h2>
-      <canvas id="equity-canvas"></canvas>
+      <div class="chart-card">
+        <canvas id="equity-canvas" class="chart-canvas"></canvas>
+      </div>
     </section>
 
     <script>
@@ -601,9 +898,44 @@
       const statusConfidence = document.getElementById("status-confidence");
       const statusRisk = document.getElementById("status-risk");
       const statusError = document.getElementById("status-error");
+      const portfolioStatusSection = document.getElementById("portfolio-status-section");
+      const portfolioStatusGrid = document.getElementById("portfolio-status-grid");
+      const portfolioStatusEmpty = document.getElementById("portfolio-status-empty");
+      const portfolioStatusCount = document.getElementById("portfolio-status-count");
+      const portfolioStatusError = document.getElementById("portfolio-status-error");
+      const portfolioSummaryOverview = document.getElementById(
+        "portfolio-summary-overview",
+      );
+      const portfolioSummarySubtext = document.getElementById(
+        "portfolio-summary-subtext",
+      );
+      const portfolioSummaryPositions = document.getElementById(
+        "portfolio-summary-positions",
+      );
+      const portfolioSummaryCapital = document.getElementById(
+        "portfolio-summary-capital",
+      );
+      const portfolioSummaryLeaders = document.getElementById(
+        "portfolio-summary-leaders",
+      );
+      const portfolioSummaryLaggards = document.getElementById(
+        "portfolio-summary-laggards",
+      );
+      const portfolioSummaryGuard = document.getElementById(
+        "portfolio-summary-guard",
+      );
+      const portfolioSummaryGuardNote = document.getElementById(
+        "portfolio-summary-guard-note",
+      );
+      const portfolioGuardList = document.getElementById("portfolio-guard-list");
       const lastUpdated = document.getElementById("last-updated");
       const signalsBody = document.getElementById("signals-body");
       const equityCanvas = document.getElementById("equity-canvas");
+      const aiProbabilityCanvas = document.getElementById("ai-probability-chart");
+      const aiProbabilityEmpty = document.getElementById("ai-probability-empty");
+      const portfolioAllocationCanvas = document.getElementById("portfolio-allocation-canvas");
+      const portfolioAllocationSummary = document.getElementById("portfolio-allocation-summary");
+      const portfolioAllocationEmpty = document.getElementById("portfolio-allocation-empty");
       const previewBadge = document.getElementById("preview-badge");
 
       const strategySymbol = document.getElementById("strategy-symbol");
@@ -648,24 +980,209 @@
       const playbookError = document.getElementById("playbook-error");
 
       const ctx = equityCanvas.getContext("2d");
+      const aiProbabilityCtx = aiProbabilityCanvas
+        ? aiProbabilityCanvas.getContext("2d")
+        : null;
+      const portfolioAllocationCtx = portfolioAllocationCanvas
+        ? portfolioAllocationCanvas.getContext("2d")
+        : null;
+
+      const CHART_COLORS = [
+        "#38bdf8",
+        "#f472b6",
+        "#facc15",
+        "#a78bfa",
+        "#34d399",
+        "#fb7185",
+        "#f97316",
+        "#22d3ee",
+      ];
 
       const urlParams = new URLSearchParams(window.location.search);
       const isPreviewMode = urlParams.get("demo") === "1" || window.location.pathname.includes("preview");
       previewBadge.classList.toggle("hidden", !isPreviewMode);
 
       let latestAiSnapshot = null;
+      let latestEquityPoints = [];
+      let latestPortfolioStatuses = [];
 
       const PREVIEW_STATE = {
-        symbol: "BTC/USDT",
+        symbol: "XAU/USD",
         position: "LONG",
-        entry_price: 67321.5,
-        position_size: 0.12,
-        balance: 10254.35,
-        unrealized_pnl_pct: 0.86,
+        entry_price: 2368.2,
+        position_size: 1.4,
+        balance: 10000,
+        unrealized_pnl_pct: 0.62,
         last_signal: "LONG",
-        confidence: 0.68,
-        risk_per_trade_pct: 0.5,
+        confidence: 0.66,
+        risk_per_trade_pct: 0.4,
+        initial_balance: 10000,
       };
+
+      const PREVIEW_PORTFOLIO_STATES = [
+        {
+          timestamp: new Date().toISOString(),
+          symbol: "XAU/USD",
+          position: "LONG",
+          position_size: 1.25,
+          balance: 10280,
+          initial_balance: 10000,
+          entry_price: 2365.2,
+          unrealized_pnl_pct: 0.82,
+          last_signal: "LONG",
+          confidence: 0.64,
+          risk_per_trade_pct: 0.4,
+          ai_action: "LONG",
+          ai_confidence: 0.62,
+          data_directory: "portfolio/xauusd",
+          asset_type: "commodity",
+          timeframe: "1h",
+          allocation_pct: 16.7,
+          paper_mode: true,
+          loop_interval_seconds: 180,
+          stop_loss_pct: 0.012,
+          take_profit_pct: 0.024,
+          is_paused: false,
+          pause_reason: null,
+          pause_updated_at: null,
+          is_placeholder: false,
+        },
+        {
+          timestamp: new Date().toISOString(),
+          symbol: "XAG/USD",
+          position: "FLAT",
+          position_size: 0,
+          balance: 10020,
+          initial_balance: 10000,
+          entry_price: null,
+          unrealized_pnl_pct: -0.12,
+          last_signal: "FLAT",
+          confidence: 0.48,
+          risk_per_trade_pct: 0.4,
+          ai_action: "FLAT",
+          ai_confidence: 0.51,
+          data_directory: "portfolio/xagusd",
+          asset_type: "commodity",
+          timeframe: "1h",
+          allocation_pct: 16.7,
+          paper_mode: true,
+          loop_interval_seconds: 180,
+          stop_loss_pct: 0.012,
+          take_profit_pct: 0.024,
+          is_paused: false,
+          pause_reason: null,
+          pause_updated_at: null,
+          is_placeholder: false,
+        },
+        {
+          timestamp: new Date().toISOString(),
+          symbol: "USOIL/USD",
+          position: "SHORT",
+          position_size: 8.2,
+          balance: 9950,
+          initial_balance: 10000,
+          entry_price: 76.8,
+          unrealized_pnl_pct: -0.22,
+          last_signal: "SHORT",
+          confidence: 0.55,
+          risk_per_trade_pct: 0.35,
+          ai_action: "SHORT",
+          ai_confidence: 0.58,
+          data_directory: "portfolio/usoilusd",
+          asset_type: "commodity",
+          timeframe: "1h",
+          allocation_pct: 16.7,
+          paper_mode: true,
+          loop_interval_seconds: 240,
+          stop_loss_pct: 0.015,
+          take_profit_pct: 0.03,
+          is_paused: true,
+          pause_reason: "Awaiting OPEC headlines",
+          pause_updated_at: new Date(Date.now() - 15 * 60_000).toISOString(),
+          is_placeholder: false,
+        },
+        {
+          timestamp: new Date().toISOString(),
+          symbol: "ETH/USDT",
+          position: "LONG",
+          position_size: 2.8,
+          balance: 10090,
+          initial_balance: 10000,
+          entry_price: 3645.8,
+          unrealized_pnl_pct: 0.36,
+          last_signal: "LONG",
+          confidence: 0.58,
+          risk_per_trade_pct: 0.45,
+          ai_action: "LONG",
+          ai_confidence: 0.57,
+          data_directory: "portfolio/ethusdt",
+          asset_type: "crypto",
+          timeframe: "30m",
+          allocation_pct: 16.7,
+          paper_mode: true,
+          loop_interval_seconds: 300,
+          stop_loss_pct: 0.01,
+          take_profit_pct: 0.02,
+          is_paused: false,
+          pause_reason: null,
+          pause_updated_at: null,
+          is_placeholder: false,
+        },
+        {
+          timestamp: new Date().toISOString(),
+          symbol: "NVDA",
+          position: "FLAT",
+          position_size: 0,
+          balance: 10000,
+          initial_balance: 10000,
+          entry_price: null,
+          unrealized_pnl_pct: 0.0,
+          last_signal: "FLAT",
+          confidence: 0.5,
+          risk_per_trade_pct: 0.35,
+          ai_action: "FLAT",
+          ai_confidence: 0.5,
+          data_directory: "portfolio/nvda",
+          asset_type: "equity",
+          timeframe: "1h",
+          allocation_pct: 16.7,
+          paper_mode: true,
+          loop_interval_seconds: 300,
+          stop_loss_pct: 0.009,
+          take_profit_pct: 0.018,
+          is_paused: false,
+          pause_reason: null,
+          pause_updated_at: null,
+          is_placeholder: false,
+        },
+        {
+          timestamp: new Date().toISOString(),
+          symbol: "MSFT",
+          position: "LONG",
+          position_size: 1.6,
+          balance: 10110,
+          initial_balance: 10000,
+          entry_price: 418.2,
+          unrealized_pnl_pct: 0.24,
+          last_signal: "LONG",
+          confidence: 0.6,
+          risk_per_trade_pct: 0.3,
+          ai_action: "LONG",
+          ai_confidence: 0.56,
+          data_directory: "portfolio/msft",
+          asset_type: "equity",
+          timeframe: "1h",
+          allocation_pct: 16.7,
+          paper_mode: true,
+          loop_interval_seconds: 300,
+          stop_loss_pct: 0.008,
+          take_profit_pct: 0.016,
+          is_paused: false,
+          pause_reason: null,
+          pause_updated_at: null,
+          is_placeholder: false,
+        },
+      ];
 
       const PREVIEW_AI = {
         recommended_action: "LONG",
@@ -721,16 +1238,16 @@
 
       const PREVIEW_SIGNALS = [
         {
-          symbol: "BTC/USDT",
+          symbol: "XAU/USD",
           decision: "LONG",
           confidence: 0.74,
-          reason: "EMA fast crossed above EMA slow; RSI rising.",
+          reason: "Gold momentum stays constructive above EMA stack.",
           ai_action: "LONG",
           ai_confidence: 0.7,
-          ai_expected_move_pct: 0.55,
+          ai_expected_move_pct: 0.35,
         },
         {
-          symbol: "BTC/USDT",
+          symbol: "XAU/USD",
           decision: "FLAT",
           confidence: 0.58,
           reason: "RSI midline rejection triggered risk filter.",
@@ -739,38 +1256,38 @@
           ai_expected_move_pct: 0.08,
         },
         {
-          symbol: "BTC/USDT",
+          symbol: "XAU/USD",
           decision: "SHORT",
-          confidence: 0.67,
+          confidence: 0.62,
           reason: "EMA fast slipped below EMA slow with RSI divergence.",
           ai_action: "SHORT",
-          ai_confidence: 0.66,
-          ai_expected_move_pct: -0.46,
+          ai_confidence: 0.6,
+          ai_expected_move_pct: -0.28,
         },
         {
-          symbol: "BTC/USDT",
+          symbol: "XAG/USD",
           decision: "LONG",
-          confidence: 0.62,
-          reason: "Mean reversion bounce with positive order flow.",
+          confidence: 0.57,
+          reason: "Silver mean reversion bounce with supportive macro bias.",
           ai_action: "LONG",
-          ai_confidence: 0.61,
-          ai_expected_move_pct: 0.42,
+          ai_confidence: 0.55,
+          ai_expected_move_pct: 0.18,
         },
       ];
 
       const PREVIEW_EQUITY_BASE = Array.from({ length: 32 }, (_, index) => 10000 + index * 24 + Math.sin(index / 1.8) * 18);
 
       const PREVIEW_STRATEGY = {
-        symbol: "BTC/USDT",
-        timeframe: "1m",
+        symbol: "XAU/USD",
+        timeframe: "1h",
         ema_fast: 12,
-        ema_slow: 26,
+        ema_slow: 34,
         rsi_period: 14,
-        rsi_overbought: 70,
-        rsi_oversold: 30,
-        risk_per_trade_pct: 0.5,
-        stop_loss_pct: 0.004,
-        take_profit_pct: 0.008,
+        rsi_overbought: 69,
+        rsi_oversold: 31,
+        risk_per_trade_pct: 0.4,
+        stop_loss_pct: 0.006,
+        take_profit_pct: 0.012,
         decision_rules: [
           "Go LONG when the fast EMA crosses above the slow EMA and RSI stays below the overbought threshold.",
           "Go SHORT when the fast EMA crosses below the slow EMA and RSI stays above the oversold threshold.",
@@ -788,197 +1305,251 @@
         generated_at: new Date().toISOString(),
         starting_balance: 10000,
         highlights: [
-          "Top performer: BTC/USDT on the short horizon (+1.85%).",
-          "Lagging setup: XAG/USD on the long horizon (-0.42%).",
-          "Average macro bias across tracked assets: +0.12.",
+          "Gold leads commodities on the swing horizon (+1.20%).",
+          "Ether rotation remains cautious while crude fades.",
+          "Average macro bias across tracked assets: +0.08.",
         ],
         commodities: [
           {
-            symbol: "BTC/USDT",
+            symbol: "XAU/USD",
             asset_class: "commodity",
-            macro_bias: 0.18,
-            macro_confidence: 0.62,
-            macro_summary: "Crypto desks position for dovish Fed guidance.",
+            macro_bias: 0.22,
+            macro_confidence: 0.64,
+            macro_summary: "Bullion demand improves as rate-cut odds creep higher.",
             macro_drivers: [
               "FOMC statement (dovish, medium impact)",
-              "Tariff review rhetoric (political, high impact)",
+              "Physical buying out of Asia (supportive, medium impact)",
             ],
             macro_interest_rate_outlook: "Fed signals a cautious cut later this year.",
-            macro_political_risk: "Tariff policy uncertainty under Trump agenda.",
+            macro_political_risk: "Tariff policy uncertainty keeps safe-haven bids alive.",
             horizons: [
               {
                 label: "short",
-                timeframe: "1m",
-                candles_tested: 720,
+                timeframe: "1h",
+                candles_tested: 640,
                 initial_balance: 10000,
-                final_balance: 10185,
-                total_return_pct: 1.85,
-                annualized_return_pct: 42.2,
-                sharpe_ratio: 1.4,
-                win_rate: 58.2,
-                trades: 34,
-                macro_bias: 0.18,
-                macro_summary: "Crypto desks position for dovish Fed guidance.",
+                final_balance: 10120,
+                total_return_pct: 1.2,
+                annualized_return_pct: 18.4,
+                sharpe_ratio: 1.1,
+                win_rate: 57.2,
+                trades: 28,
+                macro_bias: 0.22,
+                macro_summary: "Bullion demand improves as rate-cut odds creep higher.",
               },
               {
-                label: "medium",
-                timeframe: "15m",
+                label: "swing",
+                timeframe: "4h",
                 candles_tested: 480,
                 initial_balance: 10000,
-                final_balance: 10240,
-                total_return_pct: 2.4,
-                annualized_return_pct: 35.8,
-                sharpe_ratio: 1.12,
-                win_rate: 54.6,
-                trades: 21,
-                macro_bias: 0.18,
-                macro_summary: "Crypto desks position for dovish Fed guidance.",
-              },
-              {
-                label: "long",
-                timeframe: "1h",
-                candles_tested: 360,
-                initial_balance: 10000,
-                final_balance: 10042,
-                total_return_pct: 0.42,
-                annualized_return_pct: 9.1,
-                sharpe_ratio: 0.54,
-                win_rate: 51.2,
-                trades: 12,
-                macro_bias: 0.18,
-                macro_summary: "Crypto desks position for dovish Fed guidance.",
+                final_balance: 10210,
+                total_return_pct: 2.1,
+                annualized_return_pct: 26.5,
+                sharpe_ratio: 1.25,
+                win_rate: 59.5,
+                trades: 22,
+                macro_bias: 0.22,
+                macro_summary: "Bullion demand improves as rate-cut odds creep higher.",
               },
             ],
             notes: [
-              "Best horizon: short (+1.85% return).",
-              "Most pressured horizon: long (+0.42% return).",
-              "Macro stance is supportive (bias +0.18, confidence 0.62).",
+              "Best horizon: swing (+2.10% return).",
+              "Macro stance remains bullish (bias +0.22, confidence 0.64).",
+              "Watch for CPI prints to confirm rate-cut narrative.",
             ],
           },
           {
-            symbol: "XAU/USD",
-            asset_class: "commodity",
-            macro_bias: 0.11,
-            macro_confidence: 0.58,
-            macro_summary: "Gold benefits from safe-haven demand amid policy uncertainty.",
+            symbol: "ETH/USDT",
+            asset_class: "crypto",
+            macro_bias: 0.05,
+            macro_confidence: 0.52,
+            macro_summary: "Rotation stays choppy as liquidity hunts alt L1s.",
             macro_drivers: [
-              "Global PMI slowdown (macro, medium impact)",
-              "FOMC statement (dovish, medium impact)",
+              "Spot ETF inflows (bullish, medium impact)",
+              "Dollar strength (bearish, medium impact)",
             ],
-            macro_interest_rate_outlook: "Lower-for-longer yields keep bullion attractive.",
+            macro_interest_rate_outlook: "Crypto volatility still tied to dollar swings.",
+            macro_political_risk: "US ETF approvals under ongoing review.",
+            horizons: [
+              {
+                label: "rotation",
+                timeframe: "30m",
+                candles_tested: 720,
+                initial_balance: 10000,
+                final_balance: 10068,
+                total_return_pct: 0.68,
+                annualized_return_pct: 14.2,
+                sharpe_ratio: 0.74,
+                win_rate: 54.1,
+                trades: 32,
+                macro_bias: 0.05,
+                macro_summary: "Rotation stays choppy as liquidity hunts alt L1s.",
+              },
+              {
+                label: "trend",
+                timeframe: "2h",
+                candles_tested: 360,
+                initial_balance: 10000,
+                final_balance: 10132,
+                total_return_pct: 1.32,
+                annualized_return_pct: 17.9,
+                sharpe_ratio: 0.92,
+                win_rate: 55.6,
+                trades: 20,
+                macro_bias: 0.05,
+                macro_summary: "Rotation stays choppy as liquidity hunts alt L1s.",
+              },
+            ],
+            notes: [
+              "Best horizon: trend (+1.32% return).",
+              "Macro stance is balanced (bias +0.05, confidence 0.52).",
+              "Watch ETF flow data for confirmation.",
+            ],
+          },
+          {
+            symbol: "USOIL/USD",
+            asset_class: "commodity",
+            macro_bias: -0.12,
+            macro_confidence: 0.57,
+            macro_summary: "Crude sags as supply rebounds and demand revisions bite.",
+            macro_drivers: [
+              "DOE inventory build (bearish, medium impact)",
+              "China PMI wobble (bearish, high impact)",
+            ],
+            macro_interest_rate_outlook: "Higher for longer keeps demand expectations muted.",
+            macro_political_risk: "OPEC+ cohesion under scrutiny as prices slip.",
+            horizons: [
+              {
+                label: "intraday",
+                timeframe: "1h",
+                candles_tested: 600,
+                initial_balance: 10000,
+                final_balance: 9988,
+                total_return_pct: -0.12,
+                annualized_return_pct: -1.8,
+                sharpe_ratio: -0.24,
+                win_rate: 46.2,
+                trades: 30,
+                macro_bias: -0.12,
+                macro_summary: "Crude sags as supply rebounds and demand revisions bite.",
+              },
+              {
+                label: "macro",
+                timeframe: "4h",
+                candles_tested: 420,
+                initial_balance: 10000,
+                final_balance: 9965,
+                total_return_pct: -0.35,
+                annualized_return_pct: -4.6,
+                sharpe_ratio: -0.41,
+                win_rate: 44.8,
+                trades: 18,
+                macro_bias: -0.12,
+                macro_summary: "Crude sags as supply rebounds and demand revisions bite.",
+              },
+            ],
+            notes: [
+              "Best horizon: intraday (-0.12% return).",
+              "Macro stance is bearish (bias -0.12, confidence 0.57).",
+              "Focus on DOE/IEA data to confirm the downside.",
+            ],
+          },
+          {
+            symbol: "XAG/USD",
+            asset_class: "commodity",
+            macro_bias: -0.04,
+            macro_confidence: 0.49,
+            macro_summary: "Silver chops sideways as industrial demand cools.",
+            macro_drivers: [
+              "Manufacturing surveys (bearish, medium impact)",
+              "Gold beta (supportive, low impact)",
+            ],
+            macro_interest_rate_outlook: "Range-bound rates keep silver tethered to gold.",
             macro_political_risk: "Trade rhetoric keeps volatility elevated.",
             horizons: [
               {
                 label: "short",
-                timeframe: "1m",
-                candles_tested: 720,
-                initial_balance: 10000,
-                final_balance: 10092,
-                total_return_pct: 0.92,
-                annualized_return_pct: 21.1,
-                sharpe_ratio: 0.98,
-                win_rate: 56.5,
-                trades: 28,
-                macro_bias: 0.11,
-                macro_summary: "Gold benefits from safe-haven demand amid policy uncertainty.",
-              },
-              {
-                label: "medium",
-                timeframe: "15m",
-                candles_tested: 480,
-                initial_balance: 10000,
-                final_balance: 10138,
-                total_return_pct: 1.38,
-                annualized_return_pct: 19.4,
-                sharpe_ratio: 0.87,
-                win_rate: 53.1,
-                trades: 18,
-                macro_bias: 0.11,
-                macro_summary: "Gold benefits from safe-haven demand amid policy uncertainty.",
-              },
-              {
-                label: "long",
                 timeframe: "1h",
-                candles_tested: 360,
+                candles_tested: 640,
                 initial_balance: 10000,
-                final_balance: 10220,
-                total_return_pct: 2.2,
-                annualized_return_pct: 23.5,
-                sharpe_ratio: 1.05,
-                win_rate: 59.4,
-                trades: 15,
-                macro_bias: 0.11,
-                macro_summary: "Gold benefits from safe-haven demand amid policy uncertainty.",
+                final_balance: 9996,
+                total_return_pct: -0.04,
+                annualized_return_pct: -0.6,
+                sharpe_ratio: -0.08,
+                win_rate: 48.1,
+                trades: 26,
+                macro_bias: -0.04,
+                macro_summary: "Silver chops sideways as industrial demand cools.",
+              },
+              {
+                label: "carry",
+                timeframe: "4h",
+                candles_tested: 420,
+                initial_balance: 10000,
+                final_balance: 10032,
+                total_return_pct: 0.32,
+                annualized_return_pct: 4.2,
+                sharpe_ratio: 0.35,
+                win_rate: 52.2,
+                trades: 16,
+                macro_bias: -0.04,
+                macro_summary: "Silver chops sideways as industrial demand cools.",
               },
             ],
             notes: [
-              "Best horizon: long (+2.20% return).",
-              "Most pressured horizon: short (+0.92% return).",
-              "Macro stance is supportive (bias +0.11, confidence 0.58).",
+              "Best horizon: carry (+0.32% return).",
+              "Macro stance is flat (bias -0.04, confidence 0.49).",
+              "Need stronger PMI data for a decisive push.",
             ],
           },
         ],
         equities: [
           {
-            symbol: "AAPL",
+            symbol: "NVDA",
             asset_class: "equity",
-            macro_bias: 0.05,
-            macro_confidence: 0.55,
-            macro_summary: "Tech mega-caps track softer yields and resilient consumer demand.",
+            macro_bias: 0.14,
+            macro_confidence: 0.6,
+            macro_summary: "AI hardware cycle keeps earnings revisions trending up.",
             macro_drivers: [
+              "AI capex plans (bullish, high impact)",
               "FOMC statement (dovish, medium impact)",
-              "Global PMI slowdown (macro, medium impact)",
             ],
             macro_interest_rate_outlook: "Lower yields extend duration appetite for growth stocks.",
-            macro_political_risk: "Regulatory noise remains contained.",
+            macro_political_risk: "Export controls remain a headline risk but manageable.",
             horizons: [
               {
                 label: "short",
-                timeframe: "1m",
-                candles_tested: 720,
-                initial_balance: 10000,
-                final_balance: 10048,
-                total_return_pct: 0.48,
-                annualized_return_pct: 11.3,
-                sharpe_ratio: 0.62,
-                win_rate: 52.4,
-                trades: 25,
-                macro_bias: 0.05,
-                macro_summary: "Tech mega-caps track softer yields and resilient consumer demand.",
-              },
-              {
-                label: "medium",
-                timeframe: "15m",
-                candles_tested: 480,
-                initial_balance: 10000,
-                final_balance: 10102,
-                total_return_pct: 1.02,
-                annualized_return_pct: 14.8,
-                sharpe_ratio: 0.76,
-                win_rate: 55.2,
-                trades: 19,
-                macro_bias: 0.05,
-                macro_summary: "Tech mega-caps track softer yields and resilient consumer demand.",
-              },
-              {
-                label: "long",
                 timeframe: "1h",
+                candles_tested: 600,
+                initial_balance: 10000,
+                final_balance: 10078,
+                total_return_pct: 0.78,
+                annualized_return_pct: 12.8,
+                sharpe_ratio: 0.71,
+                win_rate: 55.2,
+                trades: 24,
+                macro_bias: 0.14,
+                macro_summary: "AI hardware cycle keeps earnings revisions trending up.",
+              },
+              {
+                label: "position",
+                timeframe: "4h",
                 candles_tested: 360,
                 initial_balance: 10000,
-                final_balance: 10340,
-                total_return_pct: 3.4,
-                annualized_return_pct: 36.7,
-                sharpe_ratio: 1.22,
-                win_rate: 61.1,
-                trades: 14,
-                macro_bias: 0.05,
-                macro_summary: "Tech mega-caps track softer yields and resilient consumer demand.",
+                final_balance: 10280,
+                total_return_pct: 2.8,
+                annualized_return_pct: 32.5,
+                sharpe_ratio: 1.18,
+                win_rate: 60.1,
+                trades: 15,
+                macro_bias: 0.14,
+                macro_summary: "AI hardware cycle keeps earnings revisions trending up.",
               },
             ],
             notes: [
-              "Best horizon: long (+3.40% return).",
-              "Most pressured horizon: short (+0.48% return).",
-              "Macro stance is balanced (bias +0.05, confidence 0.55).",
+              "Best horizon: position (+2.80% return).",
+              "Macro stance is supportive (bias +0.14, confidence 0.60).",
+              "Keep an eye on export-control headlines.",
             ],
           },
           {
@@ -996,55 +1567,53 @@
             horizons: [
               {
                 label: "short",
-                timeframe: "1m",
-                candles_tested: 720,
+                timeframe: "1h",
+                candles_tested: 600,
                 initial_balance: 10000,
                 final_balance: 10066,
                 total_return_pct: 0.66,
-                annualized_return_pct: 15.5,
-                sharpe_ratio: 0.74,
+                annualized_return_pct: 10.4,
+                sharpe_ratio: 0.64,
                 win_rate: 54.3,
-                trades: 26,
-                macro_bias: 0.08,
-                macro_summary: "Cloud demand holds firm as enterprise budgets normalize.",
-              },
-              {
-                label: "medium",
-                timeframe: "15m",
-                candles_tested: 480,
-                initial_balance: 10000,
-                final_balance: 10158,
-                total_return_pct: 1.58,
-                annualized_return_pct: 21.6,
-                sharpe_ratio: 0.93,
-                win_rate: 56.7,
                 trades: 20,
                 macro_bias: 0.08,
                 macro_summary: "Cloud demand holds firm as enterprise budgets normalize.",
               },
               {
                 label: "long",
-                timeframe: "1h",
+                timeframe: "4h",
                 candles_tested: 360,
                 initial_balance: 10000,
-                final_balance: 10280,
-                total_return_pct: 2.8,
-                annualized_return_pct: 30.2,
-                sharpe_ratio: 1.08,
-                win_rate: 60.3,
-                trades: 13,
+                final_balance: 10240,
+                total_return_pct: 2.4,
+                annualized_return_pct: 28.1,
+                sharpe_ratio: 1.02,
+                win_rate: 58.7,
+                trades: 14,
                 macro_bias: 0.08,
                 macro_summary: "Cloud demand holds firm as enterprise budgets normalize.",
               },
             ],
             notes: [
-              "Best horizon: long (+2.80% return).",
-              "Most pressured horizon: short (+0.66% return).",
+              "Best horizon: long (+2.40% return).",
               "Macro stance is supportive (bias +0.08, confidence 0.60).",
+              "Monitor enterprise AI spend for confirmation.",
             ],
           },
         ],
       };
+
+      function escapeHtml(value) {
+        if (typeof value !== "string") {
+          return "";
+        }
+        return value
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
 
       function formatNumber(value, fractionDigits = 2) {
         return typeof value === "number" && Number.isFinite(value)
@@ -1073,6 +1642,30 @@
         return typeof value === "number" && Number.isFinite(value)
           ? `${(value * 100).toFixed(fractionDigits)} %`
           : "-";
+      }
+
+      function formatRelativeTime(timestamp) {
+        if (!timestamp) {
+          return null;
+        }
+        const date = new Date(timestamp);
+        if (Number.isNaN(date.getTime())) {
+          return null;
+        }
+        const diffMs = Date.now() - date.getTime();
+        if (diffMs < 45_000) {
+          return "moments ago";
+        }
+        const diffMinutes = Math.round(diffMs / 60_000);
+        if (diffMinutes < 60) {
+          return `${diffMinutes} min${diffMinutes === 1 ? "" : "s"} ago`;
+        }
+        const diffHours = Math.round(diffMinutes / 60);
+        if (diffHours < 24) {
+          return `${diffHours} hr${diffHours === 1 ? "" : "s"} ago`;
+        }
+        const diffDays = Math.round(diffHours / 24);
+        return `${diffDays} d${diffDays === 1 ? "" : "s"} ago`;
       }
 
       function formatFeatureSnapshot(features) {
@@ -1134,17 +1727,30 @@
         return text.charAt(0).toUpperCase() + text.slice(1);
       }
 
-      function drawEquityCurve(points) {
-        const width = equityCanvas.clientWidth;
-        const height = equityCanvas.clientHeight;
+      function prepareCanvas(canvas, context) {
+        if (!canvas || !context) {
+          return { width: 0, height: 0, ready: false };
+        }
+        const width = canvas.clientWidth || canvas.parentElement?.clientWidth || 0;
+        const height = canvas.clientHeight || canvas.parentElement?.clientHeight || 0;
+        if (!width || !height) {
+          canvas.width = 0;
+          canvas.height = 0;
+          return { width, height, ready: false };
+        }
         const ratio = window.devicePixelRatio || 1;
+        canvas.width = width * ratio;
+        canvas.height = height * ratio;
+        context.setTransform(ratio, 0, 0, ratio, 0, 0);
+        context.clearRect(0, 0, width, height);
+        return { width, height, ready: true };
+      }
 
-        equityCanvas.width = width * ratio;
-        equityCanvas.height = height * ratio;
-        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-        ctx.clearRect(0, 0, width, height);
+      function drawEquityCurve(points) {
+        latestEquityPoints = Array.isArray(points) ? points.slice() : [];
+        const { width, height, ready } = prepareCanvas(equityCanvas, ctx);
 
-        if (!points.length) {
+        if (!ready || !points.length) {
           return;
         }
 
@@ -1182,6 +1788,156 @@
         ctx.lineTo(0, height);
         ctx.closePath();
         ctx.fill();
+      }
+
+      function drawAiProbabilityChart(ai) {
+        if (!aiProbabilityCanvas || !aiProbabilityCtx) {
+          return;
+        }
+        const { width, height, ready } = prepareCanvas(
+          aiProbabilityCanvas,
+          aiProbabilityCtx,
+        );
+        if (!ready) {
+          if (aiProbabilityEmpty) {
+            aiProbabilityEmpty.classList.remove("hidden");
+          }
+          return;
+        }
+        const dataset = [
+          { label: "LONG", value: ai?.probability_long ?? 0, color: "#34d399" },
+          { label: "SHORT", value: ai?.probability_short ?? 0, color: "#fb7185" },
+          { label: "FLAT", value: ai?.probability_flat ?? 0, color: "#eab308" },
+        ].map((entry) => ({
+          ...entry,
+          value:
+            typeof entry.value === "number" && Number.isFinite(entry.value)
+              ? Math.max(entry.value, 0)
+              : 0,
+        }));
+        const hasProbabilities =
+          ai &&
+          ai.recommended_action &&
+          dataset.some((entry) => entry.value > 0);
+        if (!hasProbabilities) {
+          if (aiProbabilityEmpty) {
+            aiProbabilityEmpty.textContent = isPreviewMode
+              ? "Preview probabilities will animate once the demo warms up."
+              : "Probability graph will update once the AI layer publishes predictions.";
+            aiProbabilityEmpty.classList.remove("hidden");
+          }
+          aiProbabilityCtx.fillStyle = "rgba(148, 163, 184, 0.8)";
+          aiProbabilityCtx.font = "14px 'Inter', system-ui, sans-serif";
+          aiProbabilityCtx.textAlign = "left";
+          aiProbabilityCtx.textBaseline = "middle";
+          aiProbabilityCtx.fillText("Awaiting AI probabilities...", 16, height / 2);
+          return;
+        }
+        if (aiProbabilityEmpty) {
+          aiProbabilityEmpty.classList.add("hidden");
+        }
+        aiProbabilityCtx.font = "13px 'Inter', system-ui, sans-serif";
+        aiProbabilityCtx.textBaseline = "middle";
+        aiProbabilityCtx.textAlign = "center";
+        const maxValue = Math.max(...dataset.map((entry) => entry.value), 0.01);
+        const barWidth = width / dataset.length;
+        dataset.forEach((entry, index) => {
+          const normalized = entry.value / maxValue;
+          const barHeight = normalized * (height - 70);
+          const x = index * barWidth + barWidth / 2;
+          const barX = x - barWidth * 0.3;
+          const barY = height - barHeight - 36;
+          const barH = Math.max(barHeight, 4);
+          aiProbabilityCtx.fillStyle = entry.color;
+          aiProbabilityCtx.fillRect(barX, barY, barWidth * 0.6, barH);
+          aiProbabilityCtx.fillStyle = "#e2e8f0";
+          aiProbabilityCtx.fillText(`${(entry.value * 100).toFixed(1)}%`, x, barY - 12);
+          aiProbabilityCtx.fillText(entry.label, x, height - 12);
+        });
+      }
+
+      function drawPortfolioAllocationChart(statuses, preview = false) {
+        if (!portfolioAllocationCanvas || !portfolioAllocationCtx) {
+          return;
+        }
+        const normalized = Array.isArray(statuses) ? statuses : [];
+        const { width, height, ready } = prepareCanvas(
+          portfolioAllocationCanvas,
+          portfolioAllocationCtx,
+        );
+        const dataset = normalized
+          .map((state) => {
+            const hasBalance =
+              typeof state.balance === "number" && Number.isFinite(state.balance);
+            const hasInitial =
+              typeof state.initial_balance === "number" &&
+              Number.isFinite(state.initial_balance);
+            const balanceValue = hasBalance ? Math.max(state.balance, 0) : 0;
+            const fallbackValue = hasInitial ? Math.max(state.initial_balance, 0) : 0;
+            const value = balanceValue || fallbackValue;
+            return {
+              label: state.symbol || "-",
+              value,
+            };
+          })
+          .filter((entry) => entry.value > 0);
+        if (!ready) {
+          if (!dataset.length && portfolioAllocationEmpty) {
+            portfolioAllocationEmpty.textContent = preview
+              ? "Preview allocation chart will appear shortly."
+              : "Allocation chart will populate once the bots publish balances.";
+            portfolioAllocationEmpty.classList.remove("hidden");
+          }
+          if (portfolioAllocationSummary) {
+            portfolioAllocationSummary.textContent = "";
+          }
+          return;
+        }
+        if (!dataset.length) {
+          if (portfolioAllocationSummary) {
+            portfolioAllocationSummary.textContent = "";
+          }
+          if (portfolioAllocationEmpty) {
+            portfolioAllocationEmpty.textContent = preview
+              ? "Preview allocation chart will appear shortly."
+              : "Allocation chart will populate once the bots publish balances.";
+            portfolioAllocationEmpty.classList.remove("hidden");
+          }
+          return;
+        }
+        if (portfolioAllocationEmpty) {
+          portfolioAllocationEmpty.classList.add("hidden");
+        }
+        const total = dataset.reduce((sum, entry) => sum + entry.value, 0) || 1;
+        const top = dataset.reduce(
+          (acc, entry) => (entry.value > acc.value ? entry : acc),
+          dataset[0],
+        );
+        if (portfolioAllocationSummary) {
+          const topShare = ((top.value / total) * 100).toFixed(1);
+          portfolioAllocationSummary.textContent = `Total deployed: ${formatNumber(
+            total,
+          )} · Top weight ${top.label} ${topShare}%`;
+        }
+        const leftMargin = 130;
+        const rightMargin = 32;
+        const availableWidth = Math.max(width - leftMargin - rightMargin, 24);
+        const step = height / dataset.length;
+        const barHeight = Math.max(10, step - 12);
+        portfolioAllocationCtx.font = "12px 'Inter', system-ui, sans-serif";
+        portfolioAllocationCtx.textBaseline = "middle";
+        dataset.forEach((entry, index) => {
+          const share = entry.value / total;
+          const length = Math.max(share * availableWidth, 4);
+          const y = index * step + step / 2;
+          portfolioAllocationCtx.fillStyle = CHART_COLORS[index % CHART_COLORS.length];
+          portfolioAllocationCtx.fillRect(leftMargin, y - barHeight / 2, length, barHeight);
+          portfolioAllocationCtx.fillStyle = "#e2e8f0";
+          portfolioAllocationCtx.textAlign = "right";
+          portfolioAllocationCtx.fillText(entry.label, leftMargin - 12, y);
+          portfolioAllocationCtx.textAlign = "left";
+          portfolioAllocationCtx.fillText(`${(share * 100).toFixed(1)}%`, leftMargin + length + 8, y);
+        });
       }
 
       function renderStrategy(strategy) {
@@ -1233,6 +1989,7 @@
             aiError.textContent =
               "AI insights will populate after the bot produces a few loops of data.";
           }
+          drawAiProbabilityChart(null);
           return;
         }
 
@@ -1251,6 +2008,7 @@
         aiProbFlat.textContent = formatRatioPercent(ai.probability_flat);
         aiFeatures.textContent = formatFeatureSnapshot(ai.features);
         latestAiSnapshot = { ...ai, features: { ...(ai.features || {}) } };
+        drawAiProbabilityChart(latestAiSnapshot);
       }
 
       function renderMacro(macro, { preview } = { preview: false }) {
@@ -1295,6 +2053,421 @@
         macroEventsList.innerHTML = events.length
           ? events.map((event) => `<li>${event}</li>`).join("")
           : '<li class="status-subtle">No recent catalysts captured.</li>';
+      }
+
+      function renderPortfolioSummary(statuses, preview = false) {
+        if (
+          !portfolioSummaryOverview ||
+          !portfolioSummarySubtext ||
+          !portfolioSummaryPositions ||
+          !portfolioSummaryCapital ||
+          !portfolioSummaryLeaders ||
+          !portfolioSummaryLaggards
+        ) {
+          return;
+        }
+
+        const normalized = Array.isArray(statuses) ? statuses : [];
+        if (!normalized.length) {
+          portfolioSummaryOverview.textContent = preview
+            ? "Previewing configuration..."
+            : "-";
+          portfolioSummarySubtext.textContent =
+            "Configured bots will appear once detected.";
+          portfolioSummaryPositions.textContent = "Awaiting live positions";
+          portfolioSummaryCapital.textContent = "-";
+          portfolioSummaryLeaders.textContent = "-";
+          portfolioSummaryLaggards.textContent = "-";
+          if (portfolioSummaryGuard) {
+            portfolioSummaryGuard.textContent = preview
+              ? "Preview"
+              : "-";
+          }
+          if (portfolioSummaryGuardNote) {
+            portfolioSummaryGuardNote.textContent =
+              "Pause bots instantly when volatility spikes.";
+          }
+          if (portfolioGuardList) {
+            portfolioGuardList.innerHTML =
+              '<li class="status-subtle">No manual pauses logged.</li>';
+          }
+          return;
+        }
+
+        const configuredCount = normalized.length;
+        const reporting = normalized.filter((state) => !state.is_placeholder);
+        const reportingCount = reporting.length;
+        const pausedStates = normalized.filter((state) => state.is_paused);
+        const typeCounts = normalized.reduce((acc, state) => {
+          const key = (state.asset_type || "other").toLowerCase();
+          acc[key] = (acc[key] || 0) + 1;
+          return acc;
+        }, {});
+        const typeLine = Object.entries(typeCounts)
+          .sort((a, b) => b[1] - a[1])
+          .map(([type, count]) => `${titleCase(type)} ${count}`)
+          .join(" · ");
+
+        portfolioSummaryOverview.textContent = `${configuredCount} configured`;
+        portfolioSummarySubtext.textContent = [
+          `${reportingCount} reporting`,
+          typeLine,
+        ]
+          .filter(Boolean)
+          .join(" · ") || "Configured bots will appear once detected.";
+
+        const totalInitial = normalized.reduce((sum, state) => {
+          const value =
+            typeof state.initial_balance === "number" &&
+            Number.isFinite(state.initial_balance)
+              ? Math.max(state.initial_balance, 0)
+              : 0;
+          return sum + value;
+        }, 0);
+        const liveCapital = reporting.reduce((sum, state) => {
+          const value =
+            typeof state.balance === "number" && Number.isFinite(state.balance)
+              ? Math.max(state.balance, 0)
+              : 0;
+          return sum + value;
+        }, 0);
+        portfolioSummaryCapital.textContent = `Target ${formatNumber(
+          totalInitial,
+        )} · Live ${formatNumber(liveCapital)}`;
+
+        if (!reporting.length) {
+          const pausedSuffix = pausedStates.length
+            ? ` · Paused ${pausedStates.length}`
+            : "";
+          portfolioSummaryPositions.textContent = `Awaiting live positions${pausedSuffix}`;
+        } else {
+          const positionCounts = reporting.reduce(
+            (acc, state) => {
+              const key = (state.position || "FLAT").toUpperCase();
+              acc[key] = (acc[key] || 0) + 1;
+              return acc;
+            },
+            { LONG: 0, SHORT: 0, FLAT: 0 },
+          );
+          const pausedSuffix = pausedStates.length
+            ? ` · Paused ${pausedStates.length}`
+            : "";
+          portfolioSummaryPositions.textContent = `Long ${positionCounts.LONG} · Short ${positionCounts.SHORT} · Flat ${positionCounts.FLAT}${pausedSuffix}`;
+        }
+
+        const pnlLeaders = reporting
+          .filter(
+            (state) =>
+              typeof state.unrealized_pnl_pct === "number" &&
+              Number.isFinite(state.unrealized_pnl_pct),
+          )
+          .sort((a, b) => b.unrealized_pnl_pct - a.unrealized_pnl_pct);
+        const leader = pnlLeaders[0];
+        const laggard = pnlLeaders[pnlLeaders.length - 1];
+
+        portfolioSummaryLeaders.textContent = leader
+          ? `${leader.symbol} ${formatSignedPercent(leader.unrealized_pnl_pct)}`
+          : "No reporting leaders yet.";
+        portfolioSummaryLaggards.textContent = laggard
+          ? `${laggard.symbol} ${formatSignedPercent(laggard.unrealized_pnl_pct)}`
+          : "No reporting laggards yet.";
+
+        if (portfolioSummaryGuard) {
+          portfolioSummaryGuard.textContent = pausedStates.length
+            ? `${pausedStates.length} paused`
+            : "All running";
+        }
+        if (portfolioSummaryGuardNote) {
+          portfolioSummaryGuardNote.textContent = pausedStates.length
+            ? "Manual circuit breaker engaged on volatile markets."
+            : "Pause bots instantly when volatility spikes.";
+        }
+        if (portfolioGuardList) {
+          if (!pausedStates.length) {
+            portfolioGuardList.innerHTML =
+              '<li class="status-subtle">No manual pauses logged.</li>';
+          } else {
+            const items = pausedStates.slice(0, 3).map((state) => {
+              const timing = formatRelativeTime(state.pause_updated_at);
+              const timingText = timing ? ` · ${timing}` : "";
+              const reason = state.pause_reason
+                ? escapeHtml(state.pause_reason)
+                : "Manual pause";
+              return `<li><strong>${escapeHtml(state.symbol || "-")}</strong>${timingText}<br /><span class="status-subtle">${reason}</span></li>`;
+            });
+            portfolioGuardList.innerHTML = items.join("");
+            if (pausedStates.length > 3) {
+              portfolioGuardList.innerHTML += `<li class="status-subtle">+${pausedStates.length - 3} more paused.</li>`;
+            }
+          }
+        }
+      }
+
+      function renderPortfolioStatuses(statuses, { preview } = { preview: false }) {
+        portfolioStatusError.textContent = "";
+
+        const normalized = Array.isArray(statuses) ? statuses : [];
+        const sorted = [...normalized].sort((a, b) =>
+          (a.symbol || "").localeCompare(b.symbol || ""),
+        );
+        latestPortfolioStatuses = sorted.map((state) => ({ ...state }));
+
+        if (!normalized.length) {
+          portfolioStatusGrid.innerHTML = "";
+          portfolioStatusCount.textContent = "";
+          portfolioStatusEmpty.classList.remove("hidden");
+          portfolioStatusEmpty.textContent = preview
+            ? "Preview portfolio bots animate once data is available."
+            : "No portfolio bots have published a state file yet.";
+          renderPortfolioSummary([], preview);
+          drawPortfolioAllocationChart([], preview);
+          return;
+        }
+
+        portfolioStatusEmpty.classList.add("hidden");
+        const reportingCount = normalized.filter((state) => !state.is_placeholder).length;
+        portfolioStatusCount.textContent = `${reportingCount} reporting / ${normalized.length} configured`;
+
+        const cards = sorted
+          .map((state) => {
+            const symbolLabel = escapeHtml(state.symbol || "-");
+            const confidenceSource =
+              typeof state.confidence === "number"
+                ? state.confidence
+                : typeof state.ai_confidence === "number"
+                ? state.ai_confidence
+                : null;
+            const confidenceText = formatRatioPercent(confidenceSource);
+            const riskText = formatPercent(state.risk_per_trade_pct);
+            const sizeText = formatNumber(state.position_size, 4);
+            const pnLText = formatSignedPercent(state.unrealized_pnl_pct);
+            const entryText = formatNumber(state.entry_price);
+            const startingCapital = formatNumber(
+              typeof state.initial_balance === "number"
+                ? state.initial_balance
+                : state.balance,
+            );
+            const lastSignal = state.last_signal
+              ? `Last signal: ${escapeHtml(state.last_signal)}`
+              : "Last signal: -";
+            const aiActionText = state.ai_action
+              ? escapeHtml(state.ai_action)
+              : null;
+            const aiLine = aiActionText
+              ? `<div class="portfolio-ai">AI: ${aiActionText} · ${formatRatioPercent(
+                  state.ai_confidence
+                )}</div>`
+              : "";
+            const dataDir = state.data_directory
+              ? `${escapeHtml(state.data_directory)}`
+              : "";
+            const assetType = state.asset_type
+              ? escapeHtml(titleCase(state.asset_type))
+              : null;
+            const timeframe = state.timeframe
+              ? escapeHtml(state.timeframe.toUpperCase())
+              : null;
+            const allocation =
+              typeof state.allocation_pct === "number"
+                ? `${state.allocation_pct.toFixed(1)}% alloc`
+                : null;
+            const metaLine = [assetType, timeframe, allocation]
+              .filter(Boolean)
+              .join(" · ");
+            const modeBadge =
+              typeof state.paper_mode === "boolean"
+                ? `<span class="portfolio-mode ${state.paper_mode ? "paper" : "live"}">${
+                    state.paper_mode ? "Paper" : "Live"
+                  }</span>`
+                : "";
+            const placeholderBadge = state.is_placeholder
+              ? '<span class="portfolio-placeholder-badge">Awaiting data</span>'
+              : "";
+            const isPaused = Boolean(state.is_paused);
+            const pauseBadge = isPaused
+              ? '<span class="portfolio-pause-pill">Paused</span>'
+              : "";
+            const badges = [modeBadge, placeholderBadge, pauseBadge]
+              .filter(Boolean)
+              .join("");
+            const pauseTiming = formatRelativeTime(state.pause_updated_at);
+            const pauseReason = state.pause_reason
+              ? escapeHtml(state.pause_reason)
+              : null;
+            let noteText;
+            let noteClass = "portfolio-note";
+            if (state.is_placeholder) {
+              noteText = "Awaiting first heartbeat from bot.";
+              noteClass = "portfolio-note placeholder";
+            } else if (isPaused) {
+              const timingText = pauseTiming ? ` · ${pauseTiming}` : "";
+              const reasonText = pauseReason ? ` — ${pauseReason}` : "";
+              noteText = `Trading paused${timingText}${reasonText}`;
+              noteClass = "portfolio-note paused";
+            } else {
+              noteText = lastSignal;
+            }
+            const stopLossText =
+              typeof state.stop_loss_pct === "number"
+                ? formatPercent(state.stop_loss_pct * 100)
+                : "-";
+            const takeProfitText =
+              typeof state.take_profit_pct === "number"
+                ? formatPercent(state.take_profit_pct * 100)
+                : "-";
+            const pauseButtonAction = isPaused ? "resume" : "pause";
+            const pauseButtonLabel = isPaused ? "Resume Trading" : "Pause Trading";
+            const pauseButtonClass = isPaused ? "resume" : "pause";
+            const controlDisabled = isPreviewMode ? "disabled" : "";
+            const pauseReasonAttr = pauseReason ? pauseReason : "";
+            const guardHint = isPaused
+              ? "Resume once markets calm down."
+              : "Use to halt orders during turbulence.";
+
+            return `
+              <div class="portfolio-position-card">
+                <div class="portfolio-card-header">
+                  <div>
+                    <div class="portfolio-symbol">${symbolLabel}</div>
+                    ${metaLine ? `<div class="portfolio-meta">${metaLine}</div>` : ""}
+                    <div class="status-subtle">${dataDir}</div>
+                  </div>
+                  <div class="portfolio-card-actions">
+                    ${badges ? `<div class="portfolio-card-badges">${badges}</div>` : ""}
+                    <span class="portfolio-position">${state.position || "-"}</span>
+                  </div>
+                </div>
+                <div class="portfolio-metrics">
+                  <div class="portfolio-row">
+                    <span class="portfolio-label">Balance</span>
+                    <span class="portfolio-value">${formatNumber(state.balance)}</span>
+                  </div>
+                  <div class="portfolio-row">
+                    <span class="portfolio-label">Starting</span>
+                    <span class="portfolio-value">${startingCapital}</span>
+                  </div>
+                  <div class="portfolio-row">
+                    <span class="portfolio-label">Unrealized PnL</span>
+                    <span class="portfolio-value">${pnLText}</span>
+                  </div>
+                  <div class="portfolio-row">
+                    <span class="portfolio-label">Entry</span>
+                    <span class="portfolio-value">${entryText}</span>
+                  </div>
+                  <div class="portfolio-row">
+                    <span class="portfolio-label">Position Size</span>
+                    <span class="portfolio-value">${sizeText}</span>
+                  </div>
+                  <div class="portfolio-row">
+                    <span class="portfolio-label">Risk / Conf.</span>
+                    <span class="portfolio-value">${riskText} · ${confidenceText}</span>
+                  </div>
+                  <div class="portfolio-row">
+                    <span class="portfolio-label">AI Action</span>
+                    <span class="portfolio-value">${aiActionText || "-"}</span>
+                  </div>
+                  <div class="portfolio-row">
+                    <span class="portfolio-label">Stop / Take</span>
+                    <span class="portfolio-value">${stopLossText} · ${takeProfitText}</span>
+                  </div>
+                </div>
+                <p class="${noteClass}">${noteText}</p>
+                ${aiLine}
+                <div class="portfolio-guard-controls">
+                  <button
+                    class="portfolio-toggle ${pauseButtonClass}"
+                    data-symbol="${symbolLabel}"
+                    data-action="${pauseButtonAction}"
+                    data-current-reason="${pauseReasonAttr}"
+                    ${controlDisabled}
+                  >
+                    ${pauseButtonLabel}
+                  </button>
+                  <p class="portfolio-guard-hint">${guardHint}</p>
+                  ${pauseTiming ? `<p class="portfolio-guard-hint">Paused ${pauseTiming}</p>` : ""}
+                  ${pauseReason ? `<p class="portfolio-guard-hint portfolio-pause-reason">${pauseReason}</p>` : ""}
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+
+        portfolioStatusGrid.innerHTML = cards;
+        renderPortfolioSummary(sorted, preview);
+        drawPortfolioAllocationChart(latestPortfolioStatuses, preview);
+      }
+
+      portfolioStatusGrid.addEventListener("click", (event) => {
+        const button = event.target.closest(".portfolio-toggle");
+        if (!button) {
+          return;
+        }
+        if (isPreviewMode) {
+          portfolioStatusError.textContent =
+            "Pause/resume controls are disabled in preview mode.";
+          return;
+        }
+        const symbol = button.dataset.symbol;
+        if (!symbol) {
+          return;
+        }
+        const action = button.dataset.action;
+        const defaultReason = button.dataset.currentReason || "";
+        if (action === "pause") {
+          let reason = window.prompt(
+            "Reason for pausing this bot? (optional)",
+            defaultReason || "Manual dashboard pause",
+          );
+          if (reason === null) {
+            return;
+          }
+          reason = reason.trim();
+          sendPortfolioControlUpdate(symbol, true, reason || null, button);
+        } else {
+          sendPortfolioControlUpdate(symbol, false, null, button);
+        }
+      });
+
+      async function refreshPortfolioStatusesOnly() {
+        try {
+          const portfolioStatuses = await fetchJSON("/portfolio/status").catch(
+            () => [],
+          );
+          renderPortfolioStatuses(portfolioStatuses, { preview: false });
+        } catch (error) {
+          console.error(error);
+          portfolioStatusError.textContent =
+            "Unable to refresh portfolio states after updating controls.";
+        }
+      }
+
+      async function sendPortfolioControlUpdate(symbol, paused, reason, button) {
+        if (!button) {
+          return;
+        }
+        const previousLabel = button.textContent;
+        button.disabled = true;
+        button.textContent = paused ? "Pausing..." : "Resuming...";
+        try {
+          const response = await fetch("/portfolio/controls", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ symbol, paused, reason }),
+          });
+          if (!response.ok) {
+            throw new Error(`Control update failed with status ${response.status}`);
+          }
+          await refreshPortfolioStatusesOnly();
+        } catch (error) {
+          console.error(error);
+          portfolioStatusError.textContent =
+            "Unable to update safety controls. Ensure the API is reachable.";
+        } finally {
+          button.disabled = false;
+          button.textContent = previousLabel;
+        }
       }
 
       function formatPlaybookHorizon(horizon) {
@@ -1415,6 +2588,7 @@
         ai,
         macro,
         playbook,
+        portfolioStatuses,
         { preview } = { preview: false },
       ) {
         statusError.textContent = "";
@@ -1455,6 +2629,7 @@
         renderStrategy(strategy);
         renderAI(ai, { preview });
         renderMacro(macro, { preview });
+        renderPortfolioStatuses(portfolioStatuses, { preview });
         renderPlaybook(playbook, { preview });
       }
 
@@ -1526,6 +2701,12 @@
         submitQuestion(question);
       });
 
+      window.addEventListener("resize", () => {
+        drawEquityCurve(latestEquityPoints);
+        drawAiProbabilityChart(latestAiSnapshot);
+        drawPortfolioAllocationChart(latestPortfolioStatuses, isPreviewMode);
+      });
+
       async function fetchJSON(path) {
         const response = await fetch(path);
         if (!response.ok) {
@@ -1536,25 +2717,27 @@
 
       async function refresh() {
         try {
-          const [status, signals, equity, strategy, ai, macro, playbook] = await Promise.all([
-          const [status, signals, equity, strategy, ai, macro] = await Promise.all([
-            fetchJSON("/status"),
-            fetchJSON("/signals?limit=20"),
-            fetchJSON("/equity"),
-            fetchJSON("/strategy"),
-            fetchJSON("/ai/prediction").catch(() => null),
-            fetchJSON("/macro/insights").catch(() => null),
-            fetchJSON("/portfolio/playbook").catch(() => null),
-          ]);
+          const [status, signals, equity, strategy, ai, macro, playbook, portfolioStatuses] =
+            await Promise.all([
+              fetchJSON("/status"),
+              fetchJSON("/signals?limit=20"),
+              fetchJSON("/equity"),
+              fetchJSON("/strategy"),
+              fetchJSON("/ai/prediction").catch(() => null),
+              fetchJSON("/macro/insights").catch(() => null),
+              fetchJSON("/portfolio/playbook").catch(() => null),
+              fetchJSON("/portfolio/status").catch(() => []),
+            ]);
 
-          render(status, signals, equity, strategy, ai, macro, playbook, { preview: false });
-          ]);
-
-          render(status, signals, equity, strategy, ai, macro, { preview: false });
+          render(status, signals, equity, strategy, ai, macro, playbook, portfolioStatuses, {
+            preview: false,
+          });
         } catch (error) {
           console.error(error);
           statusError.textContent =
             "Unable to load live data. Ensure the bot is running and producing state files.";
+          portfolioStatusError.textContent =
+            "Portfolio states unavailable. Verify each asset is writing data_dir/state.json.";
         }
       }
 
@@ -1672,8 +2855,38 @@
           });
         });
 
-        render(status, signals, equity, PREVIEW_STRATEGY, ai, macro, playbook, { preview: true });
-        render(status, signals, equity, PREVIEW_STRATEGY, ai, macro, { preview: true });
+        const portfolioStatuses = PREVIEW_PORTFOLIO_STATES.map((state, index) => {
+          const confidenceShift = Math.sin(now / 3600 + index) * 0.08;
+          const pnlShift = Math.cos(now / 3700 + index) * 0.25;
+          const balanceShift = Math.sin(now / 3300 + index) * 65;
+          return {
+            ...state,
+            timestamp: new Date(now - index * 45_000).toISOString(),
+            balance: state.balance + balanceShift,
+            unrealized_pnl_pct: parseFloat((state.unrealized_pnl_pct + pnlShift).toFixed(2)),
+            confidence: Math.min(
+              Math.max((state.confidence ?? 0.5) + confidenceShift, 0),
+              1,
+            ),
+            ai_confidence: Math.min(
+              Math.max((state.ai_confidence ?? 0.5) + confidenceShift * 0.8, 0),
+              1,
+            ),
+            position_size: Math.max(state.position_size + confidenceShift * 0.2, 0),
+          };
+        });
+
+        render(
+          status,
+          signals,
+          equity,
+          PREVIEW_STRATEGY,
+          ai,
+          macro,
+          playbook,
+          portfolioStatuses,
+          { preview: true },
+        );
       }
 
       if (isPreviewMode) {
