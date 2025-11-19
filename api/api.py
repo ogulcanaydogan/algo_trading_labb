@@ -349,7 +349,7 @@ def read_status(store: StateStore = Depends(get_store)) -> BotStateResponse:
     payload = store.get_state_dict()
     if not payload:
         raise HTTPException(status_code=404, detail="State not found.")
-    return BotStateResponse(**payload)
+    return BotStateResponse.model_validate(payload)
 
 
 @app.get("/signals", response_model=List[SignalResponse])
@@ -359,14 +359,14 @@ def read_signals(
 ) -> List[SignalResponse]:
     store.load()
     signals = store.get_signals(limit)
-    return [SignalResponse(**item) for item in signals]
+    return [SignalResponse.model_validate(item) for item in signals]
 
 
 @app.get("/equity", response_model=List[EquityPointResponse])
 def read_equity(store: StateStore = Depends(get_store)) -> List[EquityPointResponse]:
     store.load()
     curve = store.get_equity_curve()
-    return [EquityPointResponse(**point) for point in curve]
+    return [EquityPointResponse.model_validate(point) for point in curve]
 
 
 @app.get("/strategy", response_model=StrategyOverviewResponse)
@@ -387,7 +387,9 @@ def read_strategy_overview(
         per_asset_path = STATE_DIR / "portfolio" / safe / "strategy_config.json"
         overrides = load_overrides(per_asset_path)
         if overrides:
-            merged = merge_config(StrategyConfig(symbol=symbol, timeframe=config.timeframe), overrides)
+            merged = merge_config(
+                StrategyConfig(symbol=symbol, timeframe=config.timeframe), overrides
+            )
             config = merged
         else:
             # fall back to global overrides
@@ -441,8 +443,12 @@ def list_portfolio_strategies() -> List[StrategyOverviewResponse]:
         if not overrides:
             continue
         symbol = str(overrides.get("symbol") or item.name)
-        timeframe = str(overrides.get("timeframe") or StrategyConfig.from_env().timeframe)
-        cfg = merge_config(StrategyConfig(symbol=symbol, timeframe=timeframe), overrides)
+        timeframe = str(
+            overrides.get("timeframe") or StrategyConfig.from_env().timeframe
+        )
+        cfg = merge_config(
+            StrategyConfig(symbol=symbol, timeframe=timeframe), overrides
+        )
         results.append(
             StrategyOverviewResponse(
                 symbol=cfg.symbol,
@@ -578,7 +584,7 @@ def read_macro_insights(store: StateStore = Depends(get_store)) -> MacroInsightR
     events_payload: List[MacroEventResponse] = []
     for item in payload.get("macro_events") or []:
         if isinstance(item, dict) and item.get("title"):
-            events_payload.append(MacroEventResponse(**item))
+            events_payload.append(MacroEventResponse.model_validate(item))
 
     return MacroInsightResponse(
         timestamp=payload["timestamp"],
@@ -606,7 +612,7 @@ def read_portfolio_playbook(
     if not playbook:
         raise HTTPException(status_code=404, detail="Portfolio playbook unavailable.")
 
-    return PortfolioPlaybookResponse(**playbook)
+    return PortfolioPlaybookResponse.model_validate(playbook)
 
 
 @app.get("/portfolio/status", response_model=List[PortfolioBotStatusResponse])
@@ -634,4 +640,3 @@ def load_dashboard_template() -> str:
 async def dashboard() -> HTMLResponse:
     """Serve a lightweight HTML dashboard for quick monitoring."""
     return HTMLResponse(content=load_dashboard_template())
-

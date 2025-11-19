@@ -8,6 +8,9 @@ import logging
 from typing import Optional, Dict, Literal
 from datetime import datetime, timezone
 from dataclasses import dataclass
+from pathlib import Path
+
+from .state import create_state_store, SignalEvent
 
 logger = logging.getLogger(__name__)
 
@@ -121,6 +124,30 @@ class TradingManager:
                 "signal_info": signal_info,
             }
 
+            # Persist simulated execution to StateStore so UI/dashboard reflects DRY RUN trades
+            try:
+                store = create_state_store(Path("./data"))
+                store.update_state(
+                    symbol=self.symbol,
+                    position=direction,
+                    entry_price=current_price,
+                    position_size=size,
+                    last_signal=direction,
+                    last_signal_reason=signal_info.get("reason") if isinstance(signal_info, dict) else "Simulated DRY RUN",
+                    confidence=signal_info.get("confidence") if isinstance(signal_info, dict) else None,
+                )
+                # record a signal event for history
+                evt = SignalEvent(
+                    timestamp=datetime.now(timezone.utc),
+                    symbol=self.symbol,
+                    decision=direction,
+                    confidence=float(signal_info.get("confidence", 0.0)) if isinstance(signal_info, dict) else 0.0,
+                    reason=signal_info.get("reason", "Simulated DRY RUN") if isinstance(signal_info, dict) else "Simulated DRY RUN",
+                )
+                store.record_signal(evt)
+            except Exception:
+                logger.exception("Failed to persist DRY RUN execution to StateStore")
+
             return OrderResult(
                 success=True,
                 order_id=f"DRY_RUN_{datetime.now().timestamp()}",
@@ -210,6 +237,28 @@ class TradingManager:
             )
 
             self.current_position = None
+
+            # Persist simulated close to StateStore so UI/dashboard reflects the DRY RUN close
+            try:
+                store = create_state_store(Path("./data"))
+                store.update_state(
+                    symbol=self.symbol,
+                    position="FLAT",
+                    entry_price=None,
+                    position_size=0.0,
+                    last_signal="FLAT",
+                    last_signal_reason=reason,
+                )
+                evt = SignalEvent(
+                    timestamp=datetime.now(timezone.utc),
+                    symbol=self.symbol,
+                    decision="FLAT",
+                    confidence=0.0,
+                    reason=reason,
+                )
+                store.record_signal(evt)
+            except Exception:
+                logger.exception("Failed to persist DRY RUN close to StateStore")
 
             return OrderResult(
                 success=True,
