@@ -1,0 +1,105 @@
+# Example configuration for the Multi-Market Portfolio Playbook.
+#
+# Save a copy as data/playbook.assets.yml (or similar) and point
+# PLAYBOOK_ASSETS_PATH or run_playbook.py --assets to the file.
+# Each asset can optionally override the horizon list so that
+# different strategies are applied to different conditions.
+#
+# File keys:
+#   horizons: (optional) default horizon definitions used by every asset.
+#   commodities / equities: asset lists grouped by panel.
+#   assets: alternative flat list if you prefer not to split by group.
+#
+# Every asset entry accepts:
+#   symbol        - display symbol inside the playbook cards.
+#   asset_class   - crypto, commodity, equity, forex, index, etc.
+#   data_symbol   - optional data-source ticker (e.g. GC=F on Yahoo Finance).
+#   macro_symbol  - optional symbol override for the macro sentiment engine.
+#   group         - overrides which column the asset appears in (commodity/equity).
+#   horizons      - optional per-asset horizon definitions.
+#
+# The "commodities" block intentionally mixes hard commodities, energies,
+# and crypto/metal crosses so you can inspect everything the user requested
+# (Commodities, Crypto & Metals) in one column, while "equities" hosts the
+# large-cap stock exposure.
+
+horizons:
+  - label: micro
+    timeframe: 5m
+    lookback: 720
+    ema_fast: 8
+    ema_slow: 21
+    rsi_overbought: 68
+    rsi_oversold: 32
+  - label: swing
+    timeframe: 4h
+    lookback: 720
+    ema_fast: 21
+    ema_slow: 55
+    rsi_overbought: 70
+    rsi_oversold: 30
+  - label: long
+    timeframe: 1d
+    lookback: 365
+    ema_fast: 20
+    ema_slow: 50
+    rsi_overbought: 72
+    rsi_oversold: 28
+
+commodities:
+  - symbol: XAU/USD
+    asset_class: commodity
+    data_symbol: GC=F
+    macro_symbol: XAUUSD
+    horizons:
+      - label: gold-intraday
+        timeframe: 15m
+        lookback: 640
+        ema_fast: 12
+        ema_slow: 26
+        rsi_overbought: 69
+        rsi_oversold: 31
+      - label: gold-position
+        timeframe: 4h
+        lookback: 540
+        ema_fast: 21
+        ema_slow: 55
+        rsi_overbought: 71
+        rsi_oversold: 29
+  - symbol: XAG/USD
+    asset_class: commodity
+    data_symbol: SI=F
+    macro_symbol: XAGUSD
+  - symbol: USOIL/USD
+    asset_class: commodity
+    data_symbol: CL=F
+    macro_symbol: USOILUSD
+  - symbol: ETH/USDT
+    asset_class: crypto
+    macro_symbol: ETHUSD
+    horizons:
+      - label: ether-rotation
+        timeframe: 30m
+        lookback: 720
+        ema_fast: 9
+        ema_slow: 30
+        rsi_overbought: 66
+        rsi_oversold: 34
+  - symbol: SOL/USDT
+    asset_class: crypto
+    macro_symbol: SOLUSD
+
+# Assets under the "equities" block are rendered in the right column.
+equities:
+  - symbol: NVDA
+    asset_class: equity
+    data_symbol: NVDA
+  - symbol: MSFT
+    asset_class: equity
+    data_symbol: MSFT
+  - symbol: AAPL
+    asset_class: equity
+    data_symbol: AAPL
+  - symbol: META
+    asset_class: equity
+    data_symbol: META

@@ -50,6 +50,65 @@ class BotStateResponse(BaseModel):
     portfolio_playbook: Optional[PortfolioPlaybookResponse] = None
 
 
+class PortfolioBotStatusResponse(BaseModel):
+    """Slim status payload for each asset tracked inside the portfolio runner."""
+
+    timestamp: datetime
+    symbol: str
+    position: Literal["LONG", "SHORT", "FLAT"]
+    position_size: float
+    balance: float
+    initial_balance: float = Field(
+        ..., description="Starting capital allocated to this portfolio bot."
+    )
+    entry_price: Optional[float] = None
+    unrealized_pnl_pct: float
+    last_signal: Optional[str] = None
+    confidence: Optional[float] = None
+    risk_per_trade_pct: float
+    ai_action: Optional[str] = None
+    ai_confidence: Optional[float] = Field(None, ge=0.0, le=1.0)
+    data_directory: str = Field(
+        ..., description="Relative data directory that produced this status payload."
+    )
+    asset_type: Optional[str] = Field(
+        None, description="Asset class label assigned in the portfolio config."
+    )
+    timeframe: Optional[str] = Field(
+        None, description="Primary timeframe configured for the bot."
+    )
+    allocation_pct: Optional[float] = Field(
+        None, description="Share of the total portfolio allocated to this asset."
+    )
+    paper_mode: Optional[bool] = Field(
+        None, description="Indicates whether the asset runs in paper or live trading."
+    )
+    loop_interval_seconds: Optional[int] = Field(
+        None, description="Configured loop cadence for the asset-specific runner."
+    )
+    stop_loss_pct: Optional[float] = Field(
+        None, description="Stop-loss percentage configured for this bot."
+    )
+    take_profit_pct: Optional[float] = Field(
+        None, description="Take-profit percentage configured for this bot."
+    )
+    is_paused: bool = Field(
+        False,
+        description="True when manual controls have paused execution for the bot."
+    )
+    pause_reason: Optional[str] = Field(
+        None, description="Optional note explaining why the bot is paused."
+    )
+    pause_updated_at: Optional[datetime] = Field(
+        None,
+        description="Timestamp for the latest pause/resume toggle, when known."
+    )
+    is_placeholder: bool = Field(
+        False,
+        description="True when the entry is synthesized from configuration and no bot heartbeat has been observed yet.",
+    )
+
+
 class PlaybookHorizonResponse(BaseModel):
     label: str
     timeframe: str
@@ -143,6 +202,23 @@ class AIQuestionRequest(BaseModel):
 class AIAnswerResponse(BaseModel):
     question: str
     answer: str
+
+
+class PortfolioControlUpdateRequest(BaseModel):
+    symbol: str = Field(..., min_length=1)
+    paused: bool
+    reason: Optional[str] = Field(
+        None,
+        max_length=280,
+        description="Optional note describing why the bot was paused.",
+    )
+
+
+class PortfolioControlStateResponse(BaseModel):
+    symbol: str
+    paused: bool
+    reason: Optional[str] = None
+    updated_at: Optional[datetime] = None
 
 
 class MacroEventResponse(BaseModel):
