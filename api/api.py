@@ -1,15 +1,18 @@
 from __future__ import annotations
 
+import json
 import os
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse
 
 from bot.ai import FeatureSnapshot, PredictionSnapshot, QuestionAnsweringEngine
+from bot.control import load_bot_control, update_bot_control
 from bot.macro import MacroInsight
-from bot.state import StateStore, create_state_store
+from bot.state import StateStore, create_state_store, load_bot_state_from_path
 from bot.strategy import StrategyConfig
 from bot.market_data import sanitize_symbol_for_fs
 from bot.config_loader import load_overrides, merge_config
@@ -22,6 +25,9 @@ from .schemas import (
     EquityPointResponse,
     MacroEventResponse,
     MacroInsightResponse,
+    PortfolioBotStatusResponse,
+    PortfolioControlStateResponse,
+    PortfolioControlUpdateRequest,
     PortfolioPlaybookResponse,
     SignalResponse,
     StrategyOverviewResponse,
@@ -29,6 +35,9 @@ from .schemas import (
 
 STATE_DIR = Path(os.getenv("DATA_DIR", "./data"))
 DASHBOARD_TEMPLATE = Path(__file__).with_name("dashboard.html")
+PORTFOLIO_CONFIG_PATH = Path(
+    os.getenv("PORTFOLIO_CONFIG_PATH", str(STATE_DIR / "portfolio.json"))
+).expanduser()
 
 app = FastAPI(
     title="Algo Trading Lab Status API",
@@ -44,6 +53,294 @@ def get_store() -> StateStore:
     if _state_store is None:
         _state_store = create_state_store(STATE_DIR)
     return _state_store
+
+
+def _load_portfolio_config_payload() -> Dict[str, Any]:
+    """Best-effort loader for the portfolio.json definition file."""
+
+    if not PORTFOLIO_CONFIG_PATH.exists():
+        return {}
+    try:
+        with PORTFOLIO_CONFIG_PATH.open("r", encoding="utf-8") as handle:
+            return json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def _build_asset_index(config_payload: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    asset_map: Dict[str, Dict[str, Any]] = {}
+    for asset in config_payload.get("assets", []):
+        symbol_value = str(asset.get("symbol") or "").strip()
+        if not symbol_value:
+            continue
+        asset_map[symbol_value.upper()] = asset
+    return asset_map
+
+
+def _resolve_asset_data_dir(
+    symbol_key: str,
+    asset_map: Dict[str, Dict[str, Any]],
+    portfolio_dir: Path,
+) -> Path:
+    asset = asset_map.get(symbol_key)
+    if asset and asset.get("data_dir"):
+        return Path(asset["data_dir"]).expanduser()
+    symbol_value = asset.get("symbol") if asset else symbol_key
+    safe = sanitize_symbol_for_fs(str(symbol_value))
+    return portfolio_dir / safe
+
+
+def _derive_asset_metadata(
+    asset: Optional[Dict[str, Any]],
+    *,
+    default_timeframe: Optional[str],
+    default_loop_interval: Optional[int],
+    default_paper_mode: Optional[bool],
+    default_stop_loss_pct: Optional[float],
+    default_take_profit_pct: Optional[float],
+) -> Dict[str, Any]:
+    """Return a dict of optional metadata for dashboard consumption."""
+
+    if not asset:
+        return {}
+
+    allocation_value = asset.get("allocation_pct")
+    loop_value = asset.get("loop_interval_seconds")
+    if loop_value is not None:
+        try:
+            loop_value = int(loop_value)
+        except (TypeError, ValueError):
+            loop_value = None
+    elif default_loop_interval is not None:
+        loop_value = default_loop_interval
+
+    paper_mode_value = asset.get("paper_mode")
+    if paper_mode_value is None:
+        paper_mode_value = default_paper_mode
+    if paper_mode_value is not None:
+        paper_mode_value = bool(paper_mode_value)
+
+    timeframe_value = asset.get("timeframe") or default_timeframe
+    stop_loss_value = asset.get("stop_loss_pct")
+    if stop_loss_value is None:
+        stop_loss_value = default_stop_loss_pct
+    take_profit_value = asset.get("take_profit_pct")
+    if take_profit_value is None:
+        take_profit_value = default_take_profit_pct
+
+    return {
+        "asset_type": asset.get("asset_type"),
+        "timeframe": timeframe_value,
+        "allocation_pct": float(allocation_value)
+        if allocation_value is not None
+        else None,
+        "paper_mode": paper_mode_value,
+        "loop_interval_seconds": loop_value,
+        "stop_loss_pct": float(stop_loss_value)
+        if stop_loss_value is not None
+        else None,
+        "take_profit_pct": float(take_profit_value)
+        if take_profit_value is not None
+        else None,
+    }
+
+
+def load_portfolio_states(
+    symbol: Optional[str] = None,
+) -> List[PortfolioBotStatusResponse]:
+    """Load per-asset states from DATA_DIR/portfolio and config fallbacks."""
+
+    portfolio_dir = STATE_DIR / "portfolio"
+    symbol_filter = symbol.upper() if symbol else None
+
+    config_payload = _load_portfolio_config_payload()
+    asset_map = _build_asset_index(config_payload)
+    default_risk_pct = config_payload.get("default_risk_per_trade_pct")
+    default_risk_pct = float(default_risk_pct) if default_risk_pct is not None else None
+    default_timeframe = config_payload.get("default_timeframe")
+    default_loop_interval = config_payload.get("default_loop_interval_seconds")
+    default_loop_interval = (
+        int(default_loop_interval) if default_loop_interval is not None else None
+    )
+    default_paper_mode = config_payload.get("default_paper_mode")
+    default_stop_loss_pct = config_payload.get("default_stop_loss_pct")
+    default_stop_loss_pct = (
+        float(default_stop_loss_pct) if default_stop_loss_pct is not None else None
+    )
+    default_take_profit_pct = config_payload.get("default_take_profit_pct")
+    default_take_profit_pct = (
+        float(default_take_profit_pct) if default_take_profit_pct is not None else None
+    )
+    portfolio_capital = float(config_payload.get("portfolio_capital", 0.0))
+
+    results: Dict[str, PortfolioBotStatusResponse] = {}
+
+    if portfolio_dir.exists():
+        for item in sorted(portfolio_dir.iterdir()):
+            if not item.is_dir():
+                continue
+            state_file = item / "state.json"
+            state = load_bot_state_from_path(state_file)
+            if state is None:
+                continue
+            symbol_value = state.symbol or ""
+            symbol_key = symbol_value.upper()
+            if symbol_filter and symbol_key != symbol_filter:
+                continue
+            try:
+                relative_dir = item.relative_to(STATE_DIR)
+            except ValueError:
+                relative_dir = item
+
+            metadata = _derive_asset_metadata(
+                asset_map.get(symbol_key),
+                default_timeframe=default_timeframe,
+                default_loop_interval=default_loop_interval,
+                default_paper_mode=default_paper_mode,
+                default_stop_loss_pct=default_stop_loss_pct,
+                default_take_profit_pct=default_take_profit_pct,
+            )
+            control = load_bot_control(item)
+            results[symbol_key] = PortfolioBotStatusResponse(
+                timestamp=state.timestamp,
+                symbol=state.symbol,
+                position=state.position,
+                position_size=state.position_size,
+                balance=state.balance,
+                initial_balance=state.initial_balance or state.balance,
+                entry_price=state.entry_price,
+                unrealized_pnl_pct=state.unrealized_pnl_pct,
+                last_signal=state.last_signal,
+                confidence=state.confidence,
+                risk_per_trade_pct=state.risk_per_trade_pct,
+                ai_action=state.ai_action,
+                ai_confidence=state.ai_confidence,
+                data_directory=str(relative_dir),
+                is_paused=control.paused,
+                pause_reason=control.reason,
+                pause_updated_at=control.updated_at,
+                is_placeholder=False,
+                **metadata,
+            )
+
+    for symbol_key, asset in asset_map.items():
+        if symbol_filter and symbol_key != symbol_filter:
+            continue
+        if symbol_key in results:
+            continue
+
+        data_dir_path = _resolve_asset_data_dir(
+            symbol_key,
+            asset_map,
+            portfolio_dir,
+        )
+        try:
+            relative_dir = data_dir_path.relative_to(STATE_DIR)
+        except ValueError:
+            relative_dir = data_dir_path
+
+        allocation_pct = asset.get("allocation_pct")
+        starting_balance = asset.get("starting_balance")
+        if starting_balance is None and allocation_pct is not None and portfolio_capital:
+            starting_balance = (portfolio_capital * float(allocation_pct)) / 100.0
+        balance_value = float(starting_balance) if starting_balance is not None else 0.0
+
+        risk_value = asset.get("risk_per_trade_pct")
+        if risk_value is None:
+            risk_value = default_risk_pct
+        risk_value = float(risk_value) if risk_value is not None else 0.0
+
+        metadata = _derive_asset_metadata(
+            asset,
+            default_timeframe=default_timeframe,
+            default_loop_interval=default_loop_interval,
+            default_paper_mode=default_paper_mode,
+            default_stop_loss_pct=default_stop_loss_pct,
+            default_take_profit_pct=default_take_profit_pct,
+        )
+        control = load_bot_control(data_dir_path)
+
+        results[symbol_key] = PortfolioBotStatusResponse(
+            timestamp=datetime.now(timezone.utc),
+            symbol=asset["symbol"],
+            position="FLAT",
+            position_size=0.0,
+            balance=balance_value,
+            initial_balance=balance_value,
+            entry_price=None,
+            unrealized_pnl_pct=0.0,
+            last_signal=None,
+            confidence=None,
+            risk_per_trade_pct=risk_value,
+            ai_action=None,
+            ai_confidence=None,
+            data_directory=str(relative_dir),
+            is_paused=control.paused,
+            pause_reason=control.reason,
+            pause_updated_at=control.updated_at,
+            is_placeholder=True,
+            **metadata,
+        )
+
+    results_list = list(results.values())
+    results_list.sort(key=lambda entry: (entry.symbol or ""))
+    return results_list
+
+
+@app.get("/portfolio/controls", response_model=List[PortfolioControlStateResponse])
+def read_portfolio_controls(
+    symbol: Optional[str] = Query(default=None),
+) -> List[PortfolioControlStateResponse]:
+    """Expose the current manual pause states for configured bots."""
+
+    statuses = load_portfolio_states(symbol)
+    return [
+        PortfolioControlStateResponse(
+            symbol=entry.symbol,
+            paused=entry.is_paused,
+            reason=entry.pause_reason,
+            updated_at=entry.pause_updated_at,
+        )
+        for entry in statuses
+    ]
+
+
+@app.post("/portfolio/controls", response_model=PortfolioControlStateResponse)
+def update_portfolio_control(
+    payload: PortfolioControlUpdateRequest,
+) -> PortfolioControlStateResponse:
+    """Toggle manual pause/resume for a specific configured bot."""
+
+    symbol_value = payload.symbol.strip()
+    if not symbol_value:
+        raise HTTPException(status_code=400, detail="Symbol is required.")
+    symbol_key = symbol_value.upper()
+
+    config_payload = _load_portfolio_config_payload()
+    asset_map = _build_asset_index(config_payload)
+    asset = asset_map.get(symbol_key)
+    if asset is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Symbol is not part of the configured portfolio.",
+        )
+
+    portfolio_dir = STATE_DIR / "portfolio"
+    data_dir = _resolve_asset_data_dir(symbol_key, asset_map, portfolio_dir)
+    reason_value = payload.reason.strip() if payload.reason else None
+    control = update_bot_control(
+        data_dir,
+        paused=payload.paused,
+        reason=reason_value,
+    )
+
+    resolved_symbol = asset.get("symbol") or symbol_key
+    return PortfolioControlStateResponse(
+        symbol=resolved_symbol,
+        paused=control.paused,
+        reason=control.reason,
+        updated_at=control.updated_at,
+    )
 
 
 @app.get("/status", response_model=BotStateResponse)
@@ -73,9 +370,9 @@ def read_equity(store: StateStore = Depends(get_store)) -> List[EquityPointRespo
 
 
 @app.get("/strategy", response_model=StrategyOverviewResponse)
-def read_strategy_overview() -> StrategyOverviewResponse:
-    config = StrategyConfig.from_env()
-def read_strategy_overview(symbol: Optional[str] = Query(default=None)) -> StrategyOverviewResponse:
+def read_strategy_overview(
+    symbol: Optional[str] = Query(default=None),
+) -> StrategyOverviewResponse:
     """Return the active strategy settings.
 
     If a symbol is provided, the API will try to load the per-asset overrides from
@@ -310,6 +607,18 @@ def read_portfolio_playbook(
         raise HTTPException(status_code=404, detail="Portfolio playbook unavailable.")
 
     return PortfolioPlaybookResponse(**playbook)
+
+
+@app.get("/portfolio/status", response_model=List[PortfolioBotStatusResponse])
+def read_portfolio_status(
+    symbol: Optional[str] = Query(default=None),
+) -> List[PortfolioBotStatusResponse]:
+    """Expose each running asset's status for the dashboard."""
+
+    statuses = load_portfolio_states(symbol)
+    if symbol and not statuses:
+        raise HTTPException(status_code=404, detail=f"No state found for symbol {symbol}.")
+    return statuses
 
 
 def load_dashboard_template() -> str:
