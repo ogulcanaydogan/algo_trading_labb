@@ -249,7 +249,7 @@ class HealthCheckResponse(BaseModel):
     status: Literal["healthy", "degraded", "unhealthy"]
     timestamp: datetime
     uptime_seconds: float
-    version: str
-    components: Dict[str, str]
+    bot_last_update: Optional[datetime] = None
     bot_stale: bool
     stale_threshold_seconds: Optional[int] = None
+    components: Dict[str, str]
