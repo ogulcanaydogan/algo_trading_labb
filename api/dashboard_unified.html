@@ -120,6 +120,249 @@
             50% { opacity: 0.5; }
         }
 
+        /* Header Controls */
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .control-icon-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: var(--bg-hover);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .control-icon-btn:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border-color: rgba(148, 163, 184, 0.4);
+        }
+
+        .control-icon-btn.active {
+            background: var(--accent-overview);
+            color: white;
+            border-color: var(--accent-overview);
+        }
+
+        /* Refresh Countdown */
+        .refresh-countdown {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            padding: var(--spacing-xs) var(--spacing-sm);
+            background: var(--bg-hover);
+            border-radius: var(--radius-sm);
+        }
+
+        .countdown-bar {
+            width: 40px;
+            height: 4px;
+            background: var(--bg-input);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .countdown-progress {
+            height: 100%;
+            background: var(--accent-cyan);
+            transition: width 1s linear;
+        }
+
+        /* Fullscreen Mode */
+        body.fullscreen-mode .header,
+        body.fullscreen-mode .tab-navigation,
+        body.fullscreen-mode .footer {
+            display: none;
+        }
+
+        body.fullscreen-mode .main-content {
+            padding: var(--spacing-sm);
+            max-width: 100%;
+        }
+
+        body.fullscreen-mode .tab-content {
+            display: block !important;
+        }
+
+        /* Collapsible Cards */
+        .card-header.collapsible {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .card-header.collapsible:hover {
+            opacity: 0.8;
+        }
+
+        .collapse-icon {
+            transition: transform 0.2s ease;
+            font-size: 0.8rem;
+        }
+
+        .card-header.collapsed .collapse-icon {
+            transform: rotate(-90deg);
+        }
+
+        .card-body.collapsed {
+            display: none;
+        }
+
+        /* Keyboard Shortcut Hints */
+        .shortcut-hint {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            background: var(--bg-input);
+            padding: 2px 4px;
+            border-radius: 3px;
+            margin-left: var(--spacing-xs);
+        }
+
+        /* Export Button */
+        .export-btn {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            padding: var(--spacing-xs) var(--spacing-sm);
+            background: var(--bg-hover);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+
+        .export-btn:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        /* Notification Badge */
+        .notification-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            width: 8px;
+            height: 8px;
+            background: var(--signal-short);
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: var(--spacing-lg);
+            right: var(--spacing-lg);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+        }
+
+        .toast {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-sm) var(--spacing-md);
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-md);
+            animation: slideIn 0.3s ease;
+            max-width: 350px;
+        }
+
+        .toast.success { border-left: 3px solid var(--signal-long); }
+        .toast.warning { border-left: 3px solid var(--regime-sideways); }
+        .toast.error { border-left: 3px solid var(--signal-short); }
+        .toast.info { border-left: 3px solid var(--accent-cyan); }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: var(--spacing-sm);
+                padding: var(--spacing-sm);
+            }
+
+            .header-status {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: var(--spacing-sm);
+            }
+
+            .tab-navigation {
+                overflow-x: auto;
+                padding: var(--spacing-sm);
+            }
+
+            .tab-button {
+                min-width: 80px;
+                padding: var(--spacing-xs) var(--spacing-sm);
+                font-size: 0.8rem;
+            }
+
+            .grid-4, .grid-5 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .grid-3 {
+                grid-template-columns: 1fr;
+            }
+
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+
+            .main-content {
+                padding: var(--spacing-sm);
+            }
+
+            .card {
+                padding: var(--spacing-sm);
+            }
+
+            .summary-value {
+                font-size: 1.25rem;
+            }
+
+            .shortcut-hint {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .grid-4, .grid-5 {
+                grid-template-columns: 1fr;
+            }
+
+            .logo span:not(.logo-icon) {
+                display: none;
+            }
+
+            .status-indicator span:first-child {
+                display: none;
+            }
+        }
+
         /* Tab Navigation */
         .tab-navigation {
             display: flex;
@@ -1039,26 +1282,53 @@
                 <span>Last update: </span>
                 <span id="lastUpdate">--:--:--</span>
             </div>
+            <div class="refresh-countdown" title="Next data refresh">
+                <span id="refreshCountdown">30s</span>
+                <div class="countdown-bar">
+                    <div class="countdown-progress" id="countdownProgress" style="width: 100%"></div>
+                </div>
+            </div>
+            <div class="header-controls">
+                <button class="control-icon-btn" id="soundToggle" title="Toggle sound alerts (S)">
+                    🔔
+                </button>
+                <button class="control-icon-btn" id="notificationToggle" title="Toggle browser notifications (N)" style="position: relative;">
+                    📢
+                </button>
+                <button class="control-icon-btn" id="fullscreenToggle" title="Toggle fullscreen (F)">
+                    ⛶
+                </button>
+                <button class="export-btn" id="exportBtn" title="Export data (E)">
+                    📥 Export
+                </button>
+            </div>
         </div>
     </header>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
 
     <!-- Tab Navigation -->
     <nav class="tab-navigation">
         <button class="tab-button active" data-tab="overview">
             <span class="tab-icon">📊</span>
             <span>Overview</span>
+            <span class="shortcut-hint">1</span>
         </button>
         <button class="tab-button" data-tab="crypto">
             <span class="tab-icon">₿</span>
             <span>Crypto</span>
+            <span class="shortcut-hint">2</span>
         </button>
         <button class="tab-button" data-tab="commodity">
             <span class="tab-icon">🥇</span>
             <span>Commodities</span>
+            <span class="shortcut-hint">3</span>
         </button>
         <button class="tab-button" data-tab="stock">
             <span class="tab-icon">📈</span>
             <span>Stocks</span>
+            <span class="shortcut-hint">4</span>
         </button>
     </nav>
 
@@ -1618,6 +1888,247 @@
         // Trading log state
         let tradingLogEntries = [];
         const maxLogEntries = 100;
+
+        // Feature states
+        let soundEnabled = localStorage.getItem('soundEnabled') === 'true';
+        let notificationsEnabled = localStorage.getItem('notificationsEnabled') === 'true';
+        let refreshCountdown = 30;
+        let refreshInterval = null;
+        let lastSignals = {};
+
+        // Toast notification system
+        function showToast(message, type = 'info', duration = 4000) {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <span>${type === 'success' ? '✓' : type === 'warning' ? '⚠' : type === 'error' ? '✕' : 'ℹ'}</span>
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+
+        // Sound alert
+        function playAlertSound(type = 'signal') {
+            if (!soundEnabled) return;
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                if (type === 'long') {
+                    osc.frequency.value = 880; // High pitch for long
+                } else if (type === 'short') {
+                    osc.frequency.value = 440; // Lower pitch for short
+                } else {
+                    osc.frequency.value = 660;
+                }
+
+                gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + 0.3);
+            } catch (e) {
+                console.log('Audio not supported');
+            }
+        }
+
+        // Browser notifications
+        async function requestNotificationPermission() {
+            if (!('Notification' in window)) {
+                showToast('Browser notifications not supported', 'warning');
+                return false;
+            }
+            if (Notification.permission === 'granted') return true;
+            const permission = await Notification.requestPermission();
+            return permission === 'granted';
+        }
+
+        function sendBrowserNotification(title, body, type = 'info') {
+            if (!notificationsEnabled || Notification.permission !== 'granted') return;
+            try {
+                new Notification(title, {
+                    body: body,
+                    icon: type === 'long' ? '📈' : type === 'short' ? '📉' : '📊',
+                    tag: 'trading-signal',
+                    renotify: true
+                });
+            } catch (e) {
+                console.log('Notification error:', e);
+            }
+        }
+
+        // Toggle functions
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            localStorage.setItem('soundEnabled', soundEnabled);
+            updateControlStates();
+            showToast(`Sound alerts ${soundEnabled ? 'enabled' : 'disabled'}`, 'info');
+            if (soundEnabled) playAlertSound();
+        }
+
+        async function toggleNotifications() {
+            if (!notificationsEnabled) {
+                const granted = await requestNotificationPermission();
+                if (granted) {
+                    notificationsEnabled = true;
+                    localStorage.setItem('notificationsEnabled', 'true');
+                    showToast('Browser notifications enabled', 'success');
+                } else {
+                    showToast('Notification permission denied', 'error');
+                }
+            } else {
+                notificationsEnabled = false;
+                localStorage.setItem('notificationsEnabled', 'false');
+                showToast('Browser notifications disabled', 'info');
+            }
+            updateControlStates();
+        }
+
+        function toggleFullscreen() {
+            document.body.classList.toggle('fullscreen-mode');
+            const isFullscreen = document.body.classList.contains('fullscreen-mode');
+            showToast(`Fullscreen mode ${isFullscreen ? 'enabled' : 'disabled'}`, 'info');
+            updateControlStates();
+        }
+
+        function updateControlStates() {
+            const soundBtn = document.getElementById('soundToggle');
+            const notifBtn = document.getElementById('notificationToggle');
+            const fullscreenBtn = document.getElementById('fullscreenToggle');
+
+            if (soundBtn) {
+                soundBtn.classList.toggle('active', soundEnabled);
+                soundBtn.textContent = soundEnabled ? '🔔' : '🔕';
+            }
+            if (notifBtn) {
+                notifBtn.classList.toggle('active', notificationsEnabled);
+            }
+            if (fullscreenBtn) {
+                fullscreenBtn.classList.toggle('active', document.body.classList.contains('fullscreen-mode'));
+                fullscreenBtn.textContent = document.body.classList.contains('fullscreen-mode') ? '⛶' : '⛶';
+            }
+        }
+
+        // Refresh countdown
+        function startRefreshCountdown() {
+            refreshCountdown = 30;
+            if (refreshInterval) clearInterval(refreshInterval);
+            refreshInterval = setInterval(() => {
+                refreshCountdown--;
+                const el = document.getElementById('refreshCountdown');
+                const progress = document.getElementById('countdownProgress');
+                if (el) el.textContent = `${refreshCountdown}s`;
+                if (progress) progress.style.width = `${(refreshCountdown / 30) * 100}%`;
+
+                if (refreshCountdown <= 0) {
+                    refreshCountdown = 30;
+                    // Data refresh happens via existing intervals
+                }
+            }, 1000);
+        }
+
+        // Data export
+        function exportData() {
+            const data = {
+                exported_at: new Date().toISOString(),
+                portfolio: {
+                    crypto: state.markets.crypto,
+                    commodity: state.markets.commodity,
+                    stock: state.markets.stock
+                },
+                signals: tradingLogEntries.slice(0, 50)
+            };
+
+            // Create CSV for equity data
+            let csv = 'timestamp,market,total_value,pnl,pnl_pct\n';
+            ['crypto', 'commodity', 'stock'].forEach(market => {
+                const m = state.markets[market];
+                csv += `${new Date().toISOString()},${market},${m.total_value || 0},${m.pnl || 0},${m.pnl_pct || 0}\n`;
+            });
+
+            // Download CSV
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `trading_data_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            showToast('Data exported successfully', 'success');
+        }
+
+        // Keyboard shortcuts
+        function handleKeyboardShortcuts(e) {
+            // Ignore if typing in input
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            const key = e.key.toLowerCase();
+            const tabs = ['overview', 'crypto', 'commodity', 'stock'];
+
+            // Number keys 1-4 for tabs
+            if (key >= '1' && key <= '4') {
+                const tabIndex = parseInt(key) - 1;
+                const tabBtn = document.querySelector(`[data-tab="${tabs[tabIndex]}"]`);
+                if (tabBtn) tabBtn.click();
+            }
+
+            // S for sound
+            if (key === 's') toggleSound();
+            // N for notifications
+            if (key === 'n') toggleNotifications();
+            // F for fullscreen
+            if (key === 'f') toggleFullscreen();
+            // E for export
+            if (key === 'e') exportData();
+            // Escape to exit fullscreen
+            if (key === 'escape' && document.body.classList.contains('fullscreen-mode')) {
+                toggleFullscreen();
+            }
+        }
+
+        // Check for new signals and alert
+        function checkForNewSignals(signals) {
+            if (!signals || !Array.isArray(signals)) return;
+
+            signals.forEach(signal => {
+                const key = `${signal.symbol}_${signal.timestamp}`;
+                if (!lastSignals[key] && signal.decision !== 'FLAT') {
+                    lastSignals[key] = true;
+
+                    // Play sound
+                    playAlertSound(signal.decision.toLowerCase());
+
+                    // Show toast
+                    const type = signal.decision === 'LONG' ? 'success' : 'warning';
+                    showToast(`${signal.symbol}: ${signal.decision} signal (${(signal.confidence * 100).toFixed(0)}%)`, type);
+
+                    // Browser notification
+                    sendBrowserNotification(
+                        `${signal.decision} Signal`,
+                        `${signal.symbol} - Confidence: ${(signal.confidence * 100).toFixed(0)}%`,
+                        signal.decision.toLowerCase()
+                    );
+                }
+            });
+
+            // Clean old signals (keep last 100)
+            const keys = Object.keys(lastSignals);
+            if (keys.length > 100) {
+                keys.slice(0, keys.length - 100).forEach(k => delete lastSignals[k]);
+            }
+        }
 
         // WebSocket connection
         let ws = null;
@@ -3344,7 +3855,23 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('DOMContentLoaded - Starting performance metrics fetch');
+            console.log('DOMContentLoaded - Starting initialization');
+
+            // Set up control buttons
+            document.getElementById('soundToggle')?.addEventListener('click', toggleSound);
+            document.getElementById('notificationToggle')?.addEventListener('click', toggleNotifications);
+            document.getElementById('fullscreenToggle')?.addEventListener('click', toggleFullscreen);
+            document.getElementById('exportBtn')?.addEventListener('click', exportData);
+
+            // Set up keyboard shortcuts
+            document.addEventListener('keydown', handleKeyboardShortcuts);
+
+            // Initialize control states
+            updateControlStates();
+
+            // Start refresh countdown
+            startRefreshCountdown();
+
             // Fetch performance metrics immediately
             fetch('/api/portfolio/stats?market_type=all')
                 .then(r => {
