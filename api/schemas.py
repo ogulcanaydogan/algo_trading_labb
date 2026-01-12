@@ -242,3 +242,14 @@ class MacroInsightResponse(BaseModel):
     interest_rate_outlook: Optional[str] = None
     political_risk: Optional[str] = None
     events: List[MacroEventResponse] = Field(default_factory=list)
+
+
+class HealthCheckResponse(BaseModel):
+    """Response model for health check endpoint."""
+    status: Literal["healthy", "degraded", "unhealthy"]
+    timestamp: datetime
+    uptime_seconds: float
+    version: str
+    components: Dict[str, str]
+    bot_stale: bool
+    stale_threshold_seconds: Optional[int] = None
