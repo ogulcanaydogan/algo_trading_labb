@@ -2640,24 +2640,21 @@
                 // Update individual market values
                 const markets = data.markets || {};
 
-                if (markets.crypto && markets.crypto.total_value) {
+                if (markets.crypto) {
                     const crypto = markets.crypto;
-                    // Sync state with API data for consistency
-                    state.markets.crypto.total_value = crypto.total_value;
-                    state.markets.crypto.pnl = crypto.pnl;
-                    state.markets.crypto.pnl_pct = crypto.pnl_pct;
-                    state.markets.crypto.cash_balance = crypto.cash_balance;
+                    // Use state.markets values (from fetchMarketData) for overview card to match pie chart
+                    const cryptoValue = state.markets.crypto.total_value || 0;
 
-                    document.getElementById('cryptoValue').textContent = formatCurrency(crypto.total_value);
-                    const pnlClass = crypto.pnl >= 0 ? 'positive' : 'negative';
+                    document.getElementById('cryptoValue').textContent = formatCurrency(cryptoValue);
+                    const pnlClass = (state.markets.crypto.pnl || 0) >= 0 ? 'positive' : 'negative';
                     document.getElementById('cryptoPnl').className = `summary-change ${pnlClass}`;
-                    document.getElementById('cryptoPnl').textContent = `${formatCurrency(crypto.pnl)} (${formatPercent(crypto.pnl_pct)})`;
+                    document.getElementById('cryptoPnl').textContent = `${formatCurrency(state.markets.crypto.pnl || 0)} (${formatPercent(state.markets.crypto.pnl_pct || 0)})`;
 
                     // Update market stats
-                    document.getElementById('cryptoTotalValue').textContent = formatCurrency(crypto.total_value);
+                    document.getElementById('cryptoTotalValue').textContent = formatCurrency(cryptoValue);
                     document.getElementById('cryptoPositions').textContent = crypto.positions_count || 0;
-                    document.getElementById('cryptoCash').textContent = formatCurrency(crypto.cash_balance);
-                    document.getElementById('cryptoPnlToday').textContent = formatPercent(crypto.pnl_pct);
+                    document.getElementById('cryptoCash').textContent = formatCurrency(state.markets.crypto.cash_balance || 0);
+                    document.getElementById('cryptoPnlToday').textContent = formatPercent(state.markets.crypto.pnl_pct || 0);
 
                     // Update win rate from stored market data
                     const cryptoAiFeatures = state.markets.crypto.ai_features || {};
@@ -2692,24 +2689,21 @@
                     }
                 }
 
-                if (markets.commodity && markets.commodity.total_value) {
+                if (markets.commodity) {
                     const commodity = markets.commodity;
-                    // Sync state with API data for consistency
-                    state.markets.commodity.total_value = commodity.total_value;
-                    state.markets.commodity.pnl = commodity.pnl;
-                    state.markets.commodity.pnl_pct = commodity.pnl_pct;
-                    state.markets.commodity.cash_balance = commodity.cash_balance;
+                    // Use state.markets values (from fetchMarketData) for overview card to match pie chart
+                    const commodityValue = state.markets.commodity.total_value || 0;
 
-                    document.getElementById('commodityValue').textContent = formatCurrency(commodity.total_value);
-                    const pnlClass = commodity.pnl >= 0 ? 'positive' : 'negative';
+                    document.getElementById('commodityValue').textContent = formatCurrency(commodityValue);
+                    const pnlClass = (state.markets.commodity.pnl || 0) >= 0 ? 'positive' : 'negative';
                     document.getElementById('commodityPnl').className = `summary-change ${pnlClass}`;
-                    document.getElementById('commodityPnl').textContent = `${formatCurrency(commodity.pnl)} (${formatPercent(commodity.pnl_pct)})`;
+                    document.getElementById('commodityPnl').textContent = `${formatCurrency(state.markets.commodity.pnl || 0)} (${formatPercent(state.markets.commodity.pnl_pct || 0)})`;
 
                     // Update market stats
-                    document.getElementById('commodityTotalValue').textContent = formatCurrency(commodity.total_value);
+                    document.getElementById('commodityTotalValue').textContent = formatCurrency(commodityValue);
                     document.getElementById('commodityPositions').textContent = commodity.positions_count || 0;
-                    document.getElementById('commodityCash').textContent = formatCurrency(commodity.cash_balance);
-                    document.getElementById('commodityPnlToday').textContent = formatPercent(commodity.pnl_pct);
+                    document.getElementById('commodityCash').textContent = formatCurrency(state.markets.commodity.cash_balance || 0);
+                    document.getElementById('commodityPnlToday').textContent = formatPercent(state.markets.commodity.pnl_pct || 0);
 
                     // Update win rate from stored market data
                     const commodityAiFeatures = state.markets.commodity.ai_features || {};
@@ -2719,24 +2713,21 @@
                     commodityWinRateEl.style.color = commodityWinRate >= 0.5 ? '#10b981' : commodityWinRate > 0 ? '#f59e0b' : '#64748b';
                 }
 
-                if (markets.stock && markets.stock.total_value) {
+                if (markets.stock) {
                     const stock = markets.stock;
-                    // Sync state with API data for consistency
-                    state.markets.stock.total_value = stock.total_value;
-                    state.markets.stock.pnl = stock.pnl;
-                    state.markets.stock.pnl_pct = stock.pnl_pct;
-                    state.markets.stock.cash_balance = stock.cash_balance;
+                    // Use state.markets values (from fetchMarketData) for overview card to match pie chart
+                    const stockValue = state.markets.stock.total_value || 0;
 
-                    document.getElementById('stockValue').textContent = formatCurrency(stock.total_value);
-                    const pnlClass = stock.pnl >= 0 ? 'positive' : 'negative';
+                    document.getElementById('stockValue').textContent = formatCurrency(stockValue);
+                    const pnlClass = (state.markets.stock.pnl || 0) >= 0 ? 'positive' : 'negative';
                     document.getElementById('stockPnl').className = `summary-change ${pnlClass}`;
-                    document.getElementById('stockPnl').textContent = `${formatCurrency(stock.pnl)} (${formatPercent(stock.pnl_pct)})`;
+                    document.getElementById('stockPnl').textContent = `${formatCurrency(state.markets.stock.pnl || 0)} (${formatPercent(state.markets.stock.pnl_pct || 0)})`;
 
                     // Update market stats
-                    document.getElementById('stockTotalValue').textContent = formatCurrency(stock.total_value);
+                    document.getElementById('stockTotalValue').textContent = formatCurrency(stockValue);
                     document.getElementById('stockPositions').textContent = stock.positions_count || 0;
-                    document.getElementById('stockCash').textContent = formatCurrency(stock.cash_balance);
-                    document.getElementById('stockPnlToday').textContent = formatPercent(stock.pnl_pct);
+                    document.getElementById('stockCash').textContent = formatCurrency(state.markets.stock.cash_balance || 0);
+                    document.getElementById('stockPnlToday').textContent = formatPercent(state.markets.stock.pnl_pct || 0);
 
                     // Update win rate from stored market data
                     const stockAiFeatures = state.markets.stock.ai_features || {};
@@ -2751,10 +2742,11 @@
                 document.getElementById('totalPnl').className = `summary-change ${totalPnlClass}`;
                 document.getElementById('totalPnl').textContent = `${formatCurrency(data.total_pnl)} (${formatPercent(data.total_pnl_pct)})`;
 
-                // Update portfolio allocation pie chart
-                const cryptoVal = (markets.crypto && markets.crypto.total_value) ? markets.crypto.total_value : 0;
-                const commodityVal = (markets.commodity && markets.commodity.total_value) ? markets.commodity.total_value : 0;
-                const stockVal = (markets.stock && markets.stock.total_value) ? markets.stock.total_value : 0;
+                // Update portfolio allocation pie chart using state.markets (from fetchMarketData API)
+                // This ensures pie chart shows values from /api/markets/*/summary, not /api/bot/state/all
+                const cryptoVal = state.markets.crypto.total_value || 0;
+                const commodityVal = state.markets.commodity.total_value || 0;
+                const stockVal = state.markets.stock.total_value || 0;
                 updatePortfolioAllocation(cryptoVal, commodityVal, stockVal);
 
             } catch (error) {
