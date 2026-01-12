@@ -680,6 +680,90 @@
             to { transform: rotate(360deg); }
         }
 
+        /* Skeleton Loading Animation */
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .skeleton {
+            background: linear-gradient(
+                90deg,
+                var(--bg-hover) 25%,
+                rgba(255, 255, 255, 0.1) 50%,
+                var(--bg-hover) 75%
+            );
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: var(--radius-sm);
+        }
+
+        .skeleton-text {
+            height: 1em;
+            width: 60%;
+            display: inline-block;
+        }
+
+        .skeleton-value {
+            height: 2rem;
+            width: 80%;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .skeleton-small {
+            height: 0.875rem;
+            width: 50%;
+        }
+
+        /* Loading overlay for cards */
+        .card-loading {
+            position: relative;
+            pointer-events: none;
+        }
+
+        .card-loading::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 15, 26, 0.7);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Section timestamp */
+        .section-timestamp {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+        }
+
+        .section-timestamp .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--signal-long);
+        }
+
+        .section-timestamp.stale .dot {
+            background: var(--signal-flat);
+        }
+
+        .section-timestamp.error .dot {
+            background: var(--signal-short);
+        }
+
+        /* Loading state for summary values */
+        .summary-value.loading-state {
+            color: var(--text-muted);
+        }
+
         /* Control Button */
         .control-btn {
             padding: var(--spacing-xs) var(--spacing-sm);
@@ -983,26 +1067,33 @@
         <!-- Overview Tab -->
         <div id="overview" class="tab-content active">
             <!-- Portfolio Summary -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-sm);">
+                <span style="font-size: 0.8rem; color: var(--text-secondary);">Portfolio Overview</span>
+                <div class="section-timestamp" id="portfolioTimestamp">
+                    <span class="dot"></span>
+                    <span>--</span>
+                </div>
+            </div>
             <div class="grid-4">
-                <div class="card summary-card">
-                    <div class="summary-value" id="totalPortfolioValue">$0.00</div>
+                <div class="card summary-card" id="totalPortfolioCard">
+                    <div class="summary-value loading-state" id="totalPortfolioValue"><span class="skeleton skeleton-text"></span></div>
                     <div class="summary-label">Total Portfolio Value</div>
-                    <div class="summary-change positive" id="totalPnl">+$0.00 (0.00%)</div>
+                    <div class="summary-change positive" id="totalPnl"><span class="skeleton skeleton-small"></span></div>
                 </div>
-                <div class="card summary-card">
-                    <div class="summary-value" id="cryptoValue">$0.00</div>
+                <div class="card summary-card" id="cryptoCard">
+                    <div class="summary-value loading-state" id="cryptoValue"><span class="skeleton skeleton-text"></span></div>
                     <div class="summary-label">Crypto</div>
-                    <div class="summary-change" id="cryptoPnl">--</div>
+                    <div class="summary-change" id="cryptoPnl"><span class="skeleton skeleton-small"></span></div>
                 </div>
-                <div class="card summary-card">
-                    <div class="summary-value" id="commodityValue">$0.00</div>
+                <div class="card summary-card" id="commodityCard">
+                    <div class="summary-value loading-state" id="commodityValue"><span class="skeleton skeleton-text"></span></div>
                     <div class="summary-label">Commodities</div>
-                    <div class="summary-change" id="commodityPnl">--</div>
+                    <div class="summary-change" id="commodityPnl"><span class="skeleton skeleton-small"></span></div>
                 </div>
-                <div class="card summary-card">
-                    <div class="summary-value" id="stockValue">$0.00</div>
+                <div class="card summary-card" id="stockCard">
+                    <div class="summary-value loading-state" id="stockValue"><span class="skeleton skeleton-text"></span></div>
                     <div class="summary-label">Stocks</div>
-                    <div class="summary-change" id="stockPnl">--</div>
+                    <div class="summary-change" id="stockPnl"><span class="skeleton skeleton-small"></span></div>
                 </div>
             </div>
 
@@ -1012,7 +1103,13 @@
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">Performance Metrics</h3>
-                        <span class="card-badge" style="background: rgba(59, 130, 246, 0.2); color: #93c5fd;">Risk-Adjusted</span>
+                        <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                            <div class="section-timestamp" id="metricsTimestamp">
+                                <span class="dot"></span>
+                                <span>--</span>
+                            </div>
+                            <span class="card-badge" style="background: rgba(59, 130, 246, 0.2); color: #93c5fd;">Risk-Adjusted</span>
+                        </div>
                     </div>
                     <div class="grid-4" style="gap: var(--spacing-sm);">
                         <div class="stat-card" style="padding: var(--spacing-sm);">
@@ -1248,6 +1345,13 @@
 
         <!-- Crypto Tab -->
         <div id="crypto" class="tab-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-sm);">
+                <span style="font-size: 0.8rem; color: var(--text-secondary);">Crypto Markets</span>
+                <div class="section-timestamp" id="cryptoTimestamp">
+                    <span class="dot"></span>
+                    <span>--</span>
+                </div>
+            </div>
             <div class="grid-5">
                 <div class="stat-card">
                     <div class="stat-value" id="cryptoTotalValue">$0</div>
@@ -1319,6 +1423,13 @@
 
         <!-- Commodity Tab -->
         <div id="commodity" class="tab-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-sm);">
+                <span style="font-size: 0.8rem; color: var(--text-secondary);">Commodity Markets</span>
+                <div class="section-timestamp" id="commodityTimestamp">
+                    <span class="dot"></span>
+                    <span>--</span>
+                </div>
+            </div>
             <div class="grid-5">
                 <div class="stat-card">
                     <div class="stat-value" id="commodityTotalValue">$0</div>
@@ -1390,6 +1501,13 @@
 
         <!-- Stock Tab -->
         <div id="stock" class="tab-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-sm);">
+                <span style="font-size: 0.8rem; color: var(--text-secondary);">Stock Markets</span>
+                <div class="section-timestamp" id="stockTimestamp">
+                    <span class="dot"></span>
+                    <span>--</span>
+                </div>
+            </div>
             <div class="grid-5">
                 <div class="stat-card">
                     <div class="stat-value" id="stockTotalValue">$0</div>
@@ -1470,15 +1588,24 @@
         const state = {
             activeTab: 'overview',
             markets: {
-                crypto: { assets: [], signals: [], portfolio: null, loading: true },
-                commodity: { assets: [], signals: [], portfolio: null, loading: true },
-                stock: { assets: [], signals: [], portfolio: null, loading: true },
+                crypto: { assets: [], signals: [], portfolio: null, loading: true, lastUpdate: null },
+                commodity: { assets: [], signals: [], portfolio: null, loading: true, lastUpdate: null },
+                stock: { assets: [], signals: [], portfolio: null, loading: true, lastUpdate: null },
             },
             macro: { bias: 'Neutral', vix: null, dxy: null, btcDom: null },
             lastUpdate: null,
             connected: false,
             dlEnabled: false,
             dlModelSelection: null,
+            // Section-specific timestamps
+            sectionUpdates: {
+                portfolio: null,
+                crypto: null,
+                commodity: null,
+                stock: null,
+                charts: null,
+                metrics: null,
+            },
             // WebSocket state
             useWebSocket: true,
             wsConnected: false,
@@ -1495,6 +1622,57 @@
         // WebSocket connection
         let ws = null;
         let wsPingInterval = null;
+
+        // Format relative time (e.g., "5s ago", "2m ago")
+        function formatRelativeTime(date) {
+            if (!date) return '--';
+            const now = new Date();
+            const diff = Math.floor((now - date) / 1000);
+
+            if (diff < 5) return 'just now';
+            if (diff < 60) return `${diff}s ago`;
+            if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+            return date.toLocaleTimeString();
+        }
+
+        // Update section timestamp display
+        function updateSectionTimestamp(section, elementId) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+
+            const timestamp = state.sectionUpdates[section];
+            const now = new Date();
+            const isStale = timestamp && (now - timestamp) > 120000; // 2 minutes
+
+            el.innerHTML = `
+                <span class="dot"></span>
+                <span>${formatRelativeTime(timestamp)}</span>
+            `;
+            el.className = `section-timestamp${isStale ? ' stale' : ''}`;
+        }
+
+        // Update all section timestamps
+        function updateAllTimestamps() {
+            updateSectionTimestamp('portfolio', 'portfolioTimestamp');
+            updateSectionTimestamp('crypto', 'cryptoTimestamp');
+            updateSectionTimestamp('commodity', 'commodityTimestamp');
+            updateSectionTimestamp('stock', 'stockTimestamp');
+            updateSectionTimestamp('metrics', 'metricsTimestamp');
+        }
+
+        // Set loading state for a summary card
+        function setSummaryLoading(elementId, isLoading) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+
+            if (isLoading) {
+                el.classList.add('loading-state');
+                el.innerHTML = '<span class="skeleton skeleton-text"></span>';
+            } else {
+                el.classList.remove('loading-state');
+            }
+        }
 
         // Build WebSocket URL based on current location
         function getWebSocketUrl() {
@@ -2339,7 +2517,12 @@
                 }
 
                 // Update timestamp
-                document.getElementById('metricsLastUpdate').textContent = `Updated: ${new Date().toLocaleTimeString()}`;
+                state.sectionUpdates.metrics = new Date();
+                updateSectionTimestamp('metrics', 'metricsTimestamp');
+                const metricsLastUpdateEl = document.getElementById('metricsLastUpdate');
+                if (metricsLastUpdateEl) {
+                    metricsLastUpdateEl.textContent = `Updated: ${new Date().toLocaleTimeString()}`;
+                }
 
             } catch (error) {
                 console.error('Error fetching performance metrics:', error);
@@ -2538,7 +2721,10 @@
                 console.log(`fetchMarketData(${marketType}): received ${data.assets?.length || 0} assets, value=$${data.total_value?.toFixed(2) || 0}`);
                 state.markets[marketType].assets = data.assets || [];
                 state.markets[marketType].loading = false;
+                state.markets[marketType].lastUpdate = new Date();
+                state.sectionUpdates[marketType] = new Date();
                 state.connected = true;
+                updateSectionTimestamp(marketType, `${marketType}Timestamp`);
 
                 // Store portfolio data from API response
                 state.markets[marketType].total_value = data.total_value || 0;
@@ -2634,6 +2820,14 @@
                 if (!response.ok) return;
 
                 const data = await response.json();
+
+                // Update portfolio timestamp and clear loading states
+                state.sectionUpdates.portfolio = new Date();
+                document.getElementById('totalPortfolioValue').classList.remove('loading-state');
+                document.getElementById('cryptoValue').classList.remove('loading-state');
+                document.getElementById('commodityValue').classList.remove('loading-state');
+                document.getElementById('stockValue').classList.remove('loading-state');
+                updateSectionTimestamp('portfolio', 'portfolioTimestamp');
 
                 // Note: totalPortfolioValue is updated by updatePortfolioAllocation at end of this function
 
@@ -3214,7 +3408,13 @@
                             const sign = metrics.total_return_pct >= 0 ? '+' : '';
                             document.getElementById('totalReturn').textContent = `${sign}${metrics.total_return_pct.toFixed(2)}%`;
                         }
-                        document.getElementById('metricsLastUpdate').textContent = `Updated: ${new Date().toLocaleTimeString()}`;
+                        // Update metrics timestamp
+                        state.sectionUpdates.metrics = new Date();
+                        updateSectionTimestamp('metrics', 'metricsTimestamp');
+                        const metricsLastUpdateEl = document.getElementById('metricsLastUpdate');
+                        if (metricsLastUpdateEl) {
+                            metricsLastUpdateEl.textContent = `Updated: ${new Date().toLocaleTimeString()}`;
+                        }
                     })
                     .catch(err => console.error('Performance metrics error:', err));
             }, 2000);
@@ -3242,6 +3442,9 @@
 
             // Poll trading log every 10 seconds
             setInterval(fetchTradingLog, 10000);
+
+            // Update relative timestamps every 10 seconds
+            setInterval(updateAllTimestamps, 10000);
         });
 
         // Clean up on page unload
