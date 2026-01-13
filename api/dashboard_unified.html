@@ -5265,6 +5265,7 @@
 
         // Initialize equity chart
         let equityChart = null;
+        let equitySeries = null;
         async function initEquityChart() {
             try {
                 const container = document.getElementById('equityChart');
@@ -5287,37 +5288,15 @@
                     },
                 });
 
-                const areaSeries = equityChart.addAreaSeries({
+                equitySeries = equityChart.addAreaSeries({
                     lineColor: '#10b981',
                     topColor: 'rgba(16, 185, 129, 0.4)',
                     bottomColor: 'rgba(16, 185, 129, 0.0)',
                     lineWidth: 2,
                 });
 
-                // Fetch real equity data from API
-                try {
-                    const response = await fetch('/equity');
-                    const equityData = await response.json();
-                    if (equityData && equityData.length > 0) {
-                        const chartData = equityData.map(d => ({
-                            time: Math.floor(new Date(d.timestamp).getTime() / 1000),
-                            value: d.value
-                        }));
-                        areaSeries.setData(chartData);
-                    } else {
-                        // Fallback to sample data if no real data
-                        const now = Math.floor(Date.now() / 1000);
-                        const data = [];
-                        let value = 10000;
-                        for (let i = 100; i >= 0; i--) {
-                            value += (Math.random() - 0.48) * 50;
-                            data.push({ time: now - i * 3600, value: value });
-                        }
-                        areaSeries.setData(data);
-                    }
-                } catch (error) {
-                    console.error('Error fetching equity data:', error);
-                }
+                // Initial data load
+                await updateEquityChart();
 
                 window.addEventListener('resize', () => {
                     if (equityChart) {
@@ -5326,6 +5305,47 @@
                 });
             } catch (error) {
                 console.error('Error initializing equity chart:', error);
+            }
+        }
+
+        // Update equity chart with fresh data
+        async function updateEquityChart() {
+            if (!equitySeries) return;
+
+            try {
+                const response = await fetch('/equity');
+                const equityData = await response.json();
+
+                if (equityData && equityData.length > 0) {
+                    // Sort by timestamp and remove duplicates
+                    const seen = new Set();
+                    const chartData = equityData
+                        .map(d => ({
+                            time: Math.floor(new Date(d.timestamp).getTime() / 1000),
+                            value: d.value || d.balance || 10000
+                        }))
+                        .filter(d => {
+                            if (seen.has(d.time)) return false;
+                            seen.add(d.time);
+                            return true;
+                        })
+                        .sort((a, b) => a.time - b.time);
+
+                    equitySeries.setData(chartData);
+                    console.log(`Equity chart updated with ${chartData.length} points`);
+                } else {
+                    // Generate current portfolio value as a data point
+                    const now = Math.floor(Date.now() / 1000);
+                    const totalValue = (state.markets.crypto.total_value || 0) +
+                                      (state.markets.commodity.total_value || 0) +
+                                      (state.markets.stock.total_value || 0);
+
+                    if (totalValue > 0) {
+                        equitySeries.setData([{ time: now, value: totalValue }]);
+                    }
+                }
+            } catch (error) {
+                console.error('Error updating equity chart:', error);
             }
         }
 
@@ -5656,6 +5676,10 @@
 
             // Final portfolio update to ensure all values are in sync
             updateTotalPortfolio();
+
+            // Update equity chart
+            await updateEquityChart();
+            console.log('fetchAllData: equity chart updated');
 
             // Visual feedback that refresh happened
             const portfolioCard = document.getElementById('totalPortfolioCard');
