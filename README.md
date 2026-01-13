@@ -1,46 +1,46 @@
 # Algo Trading Lab
 
-Algo Trading Lab; çoklu varlıklar için sinyal üretebilen, risk yönetimi yapan ve ileride hem paper-trading hem de gerçek işlemleri destekleyecek şekilde tasarlanmış modüler bir trading bot iskeletidir.
+Algo Trading Lab is a modular trading bot framework designed for multi-asset signal generation, risk management, and support for both paper trading and live trading.
 
-## Özellikler
-- Python tabanlı bot döngüsü (EMA crossover + RSI onayı) ve JSON tabanlı state saklama.
-- Paper trading modu için sentetik veri üreticisi; ileride ccxt ile gerçek borsa entegrasyonuna hazır.
-- FastAPI servisi aracılığıyla `/status`, `/signals`, `/equity`, `/strategy` endpoint’leri ve dahili web dashboard'u.
-- Yapay zekâ katmanı için `/ai/prediction` (tahmin) ve `/ai/question` (soru-cevap) endpoint’leri ile dashboard üzerindeki AI Insights bölümü.
-- Trump gibi politik aktörlerin kararları ve Fed faiz beklentileri gibi makro başlıkları skorlayan makro motoru; `/macro/insights` endpoint’i ve dashboard üzerindeki **Macro & News Pulse** paneli ile son katalizörleri takip eder.
-- Çoklu piyasa portföyü için `/portfolio/playbook` endpoint’i ve dashboard’daki **Multi-Market Portfolio Playbook** paneli; BTC, ETH, altın, gümüş ve petrol gibi emtia/kripto başlıklarını; AAPL, MSFT gibi mega-cap hisseleri kısa/orta/uzun vadeli strateji dökümleriyle ve makro özetleriyle birlikte sunar.
-- EMA/RSI aralığı, RSI eşikleri ve makro bias'ı birlikte değerlendiren yeni **strateji arama (research) aracı** ile grid-search denemelerini kod yazmadan başlatabilirsiniz.
-- *Yeni:* Hisse, endeks, altın ve emtia gibi kripto dışı varlıklardan veri çekebilen (opsiyonel `yfinance`) piyasa veri katmanı.
-- *Yeni:* Portföy seviyesinde çoklu varlık çalıştırıcısı; her enstrüman için ayrı risk parametreleri ve veri klasörü ile eş zamanlı bot döngüleri.
-- FastAPI servisi aracılığıyla `/status`, `/signals`, `/equity`, `/strategy` endpoint’leri ve dahili web dashboard'u.
-- Yapay zekâ katmanı için `/ai/prediction` (tahmin) ve `/ai/question` (soru-cevap) endpoint’leri ile dashboard üzerindeki AI Insights bölümü.
-- Trump gibi politik aktörlerin kararları ve Fed faiz beklentileri gibi makro başlıkları skorlayan makro motoru; `/macro/insights` endpoint’i ve dashboard üzerindeki **Macro & News Pulse** paneli ile son katalizörleri takip eder.
-- Docker + docker-compose ile 7/24 çalışacak şekilde konteynerleştirme.
-- İlerleyen fazlarda self-supervised learning modelinin entegre edilebilmesi için ayrıştırılmış strateji ve state katmanı.
+## Features
+- Python-based bot loop (EMA crossover + RSI confirmation) with JSON-based state storage.
+- Synthetic data generator for paper trading mode; ready for real exchange integration via ccxt.
+- FastAPI service with `/status`, `/signals`, `/equity`, `/strategy` endpoints and built-in web dashboard.
+- AI layer with `/ai/prediction` (forecasting) and `/ai/question` (Q&A) endpoints, plus AI Insights section on the dashboard.
+- Macro engine scoring political events (e.g., Trump decisions) and Fed rate expectations; `/macro/insights` endpoint and **Macro & News Pulse** dashboard panel track recent catalysts.
+- Multi-market portfolio via `/portfolio/playbook` endpoint and **Multi-Market Portfolio Playbook** dashboard panel; covers crypto (BTC, ETH), commodities (gold, silver, oil), and mega-cap stocks (AAPL, MSFT) with short/medium/long-term strategy breakdowns and macro summaries.
+- **Strategy research tool** evaluating EMA/RSI ranges, RSI thresholds, and macro bias together for code-free grid-search experiments.
+- *New:* Market data layer supporting non-crypto assets (stocks, indices, gold, commodities) via optional `yfinance`.
+- *New:* Portfolio-level multi-asset runner with separate risk parameters and data folders per instrument for concurrent bot loops.
+- Docker + docker-compose containerization for 24/7 operation.
+- Decoupled strategy and state layers for future self-supervised learning model integration.
 
-## Dizin Yapısı
+## Directory Structure
 ```
 algo_trading_lab/
 ├── bot/
-│   ├── ai.py           # Heuristik AI tahmincisi ve soru-cevap motoru
-│   ├── bot.py          # Ana loop ve risk yönetimi
-│   ├── market_data.py  # ccxt/yfinance/paper veri sağlayıcıları
+│   ├── ai.py           # Heuristic AI predictor and Q&A engine
+│   ├── bot.py          # Main loop and risk management
+│   ├── market_data.py  # ccxt/yfinance/paper data providers
 │   ├── exchange.py     # ccxt wrapper + paper-exchange mock
-│   ├── research.py     # EMA/RSI parametre araması ve makro farkındalıkla grid search
-│   ├── state.py        # JSON tabanlı state/signals/equity saklama
-│   ├── strategy.py     # EMA/RSI stratejisi ve pozisyon boyutu hesapları
-│   ├── portfolio.py    # Çoklu varlık portföy koşucusu
-│   ├── backtesting.py  # Backtest motoru
-│   └── trading.py      # Gerçek işlem yöneticisi
+│   ├── research.py     # EMA/RSI parameter search with macro-aware grid search
+│   ├── state.py        # JSON-based state/signals/equity storage
+│   ├── strategy.py     # EMA/RSI strategy and position sizing calculations
+│   ├── portfolio.py    # Multi-asset portfolio runner
+│   ├── backtesting.py  # Backtest engine
+│   └── trading.py      # Live trade manager
 ├── api/
-│   ├── api.py          # FastAPI uygulaması
-│   └── schemas.py      # Pydantic response şemaları
-├── data/               # State dosyaları, örnek OHLCV ve makro event setleri
-├── data/               # State dosyaları (docker volume ile paylaşılır)
-├── test_binance_testnet.py  # Testnet bağlantı testi
-├── run_backtest.py     # Backtest çalıştırma scripti
-├── run_live_trading.py # Canlı trading scripti
-├── run_portfolio.py    # Çoklu varlık botunu başlatan script
+│   ├── api.py          # FastAPI application
+│   └── schemas.py      # Pydantic response schemas
+├── scripts/            # All runnable scripts (organized by category)
+│   ├── trading/        # Trading bots (run_multi_market.py, etc.)
+│   ├── ml/             # ML training scripts
+│   ├── backtest/       # Backtesting scripts
+│   ├── tools/          # Utilities (optimizer, telegram setup)
+│   └── demo/           # Demo and smoke tests
+├── data/               # State files, sample OHLCV, and macro event sets
+├── docs/               # Documentation
+├── tests/              # Test files
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
@@ -48,151 +48,151 @@ algo_trading_lab/
 └── README.md
 ```
 
-## Başlangıç
+## Getting Started
 
-### Binance Spot Testnet Kurulumu
-1. https://testnet.binance.vision/ adresine gidin ve API anahtarı oluşturun
-2. API Key ve Secret Key'i kopyalayın
-3. `.env` dosyasını düzenleyin:
+### Binance Spot Testnet Setup
+1. Go to https://testnet.binance.vision/ and create an API key
+2. Copy the API Key and Secret Key
+3. Edit the `.env` file:
    ```bash
    cp .env.example .env
    ```
-4. `.env` içerisinde testnet bilgilerini güncelleyin:
+4. Update testnet credentials in `.env`:
    ```bash
    BINANCE_TESTNET_ENABLED=true
    BINANCE_TESTNET_API_KEY=your_api_key_here
    BINANCE_TESTNET_API_SECRET=your_secret_key_here
-   PAPER_MODE=false  # Testnet kullanmak için false yapın
+   PAPER_MODE=false  # Set to false to use testnet
    ```
 
-### Test Bağlantısı
-Binance testnet bağlantınızı test etmek için:
+### Test Connection
+Test your Binance testnet connection:
 ```bash
 python test_binance_testnet.py
 ```
 
-## 🎯 Strateji Testi ve Al-Sat Kararları
+## Strategy Testing and Trading Decisions
 
-### 1. Backtest (Geçmiş Veri Testi)
-Stratejinizi geçmiş verilerle test edin:
+### 1. Backtest (Historical Data Testing)
+Test your strategy with historical data:
 
 ```bash
-python run_backtest.py
+python scripts/backtest/run_backtest.py
 ```
 
-Bu script ile:
-- Geçmiş verilerde stratejinizi test edebilirsiniz
-- Win rate, profit factor, max drawdown gibi metrikleri görebilirsiniz
-- Farklı parametrelerle deneme yapabilirsiniz
-- Sonuçları JSON dosyasına kaydedebilirsiniz
+With this script you can:
+- Test your strategy on historical data
+- View metrics like win rate, profit factor, max drawdown
+- Experiment with different parameters
+- Save results to a JSON file
 
-**Örnek Çıktı:**
+**Example Output:**
 ```
 ============================================================
-BACKTEST SONUÇLARI
+BACKTEST RESULTS
 ============================================================
-Başlangıç Bakiyesi: $10,000.00
-Bitiş Bakiyesi: $11,250.00
-Toplam P&L: $1,250.00 (12.50%)
+Starting Balance: $10,000.00
+Ending Balance: $11,250.00
+Total P&L: $1,250.00 (12.50%)
 
-Toplam İşlem: 45
-Kazanan: 28 | Kaybeden: 17
+Total Trades: 45
+Winners: 28 | Losers: 17
 Win Rate: 62.22%
-Ortalama Kazanç: $120.50
-Ortalama Kayıp: $65.30
+Average Win: $120.50
+Average Loss: $65.30
 Profit Factor: 1.85
 Max Drawdown: $450.00 (4.50%)
 Sharpe Ratio: 1.42
 ============================================================
 ```
 
-### 2. Canlı Trading (Testnet veya Gerçek)
-Stratejinizi canlı olarak çalıştırın:
+### 2. Live Trading (Testnet or Real)
+Run your strategy live:
 
 ```bash
-python run_live_trading.py
+python scripts/trading/run_live_trading.py
 ```
 
-**3 Mod Seçeneği:**
-1. **DRY RUN**: Sadece log tutar, gerçek emir göndermez (güvenli test)
-2. **TESTNET**: Binance testnet'te gerçek emir gönderir (test parası)
-3. **LIVE**: GERÇEK BORSADA işlem yapar (DİKKAT!)
+**3 Mode Options:**
+1. **DRY RUN**: Only logs, doesn't send real orders (safe testing)
+2. **TESTNET**: Sends real orders on Binance testnet (test money)
+3. **LIVE**: Trades on REAL EXCHANGE (CAUTION!)
 
-**Önerilen İş Akışı:**
+**Recommended Workflow:**
 ```
-1. Backtest ile stratejiyi test et
-   └─> Win rate > %55 ve Profit Factor > 1.5 ise devam et
-   
-2. DRY RUN modunda canlı veri ile test et (1-2 gün)
-   └─> Sinyaller mantıklı mı kontrol et
-   
-3. TESTNET modunda gerçek emirlerle test et (1 hafta)
-   └─> Emir gönderimi, stop loss, take profit çalışıyor mu?
-   
-4. Küçük sermaye ile LIVE teste geç
-   └─> Risk yönetimini doğrula
+1. Test strategy with backtest
+   └─> Continue if win rate > 55% and Profit Factor > 1.5
 
-5. Tam sermaye ile production
+2. Test with live data in DRY RUN mode (1-2 days)
+   └─> Check if signals make sense
+
+3. Test with real orders in TESTNET mode (1 week)
+   └─> Verify order execution, stop loss, take profit work
+
+4. Move to LIVE with small capital
+   └─> Validate risk management
+
+5. Full capital production
 ```
 
-### 3. Portföy Botu (Çoklu Varlık)
-Kripto dışı varlıkları (hisse, ETF, altın, endeks vb.) aynı loop içinde takip etmek için yeni portföy koşucusunu kullanın.
+### 3. Portfolio Bot (Multi-Asset)
+Use the portfolio runner to track non-crypto assets (stocks, ETFs, gold, indices) in the same loop.
 
-1. Örnek konfigürasyonu çoğaltın:
+1. Copy the example configuration:
    ```bash
    cp data/portfolio.sample.json data/portfolio.json
    ```
-2. Dosya içindeki `assets` listesine istediğiniz sembolleri ekleyin. `asset_type` alanı `crypto`, `equity`, `commodity`, `forex` gibi değerler alabilir. Yahoo Finance ile veri çekilecekse `data_symbol` alanına ilgili ticker'ı (`GC=F`, `^GSPC`, `AAPL` vb.) yazın.
-3. Toplam sermayeyi (`portfolio_capital`) ve her varlığın payını (`allocation_pct`) belirleyin. Boş bırakılanlar kalan yüzdeyi eşit böler.
-4. Botu başlatın:
+2. Add desired symbols to the `assets` list. The `asset_type` field accepts values like `crypto`, `equity`, `commodity`, `forex`. For Yahoo Finance data, enter the relevant ticker in `data_symbol` (`GC=F`, `^GSPC`, `AAPL`, etc.).
+3. Set total capital (`portfolio_capital`) and each asset's allocation (`allocation_pct`). Empty allocations split remaining percentage equally.
+4. Start the bot:
    ```bash
-   python run_portfolio.py --config data/portfolio.json
+   python scripts/trading/run_portfolio.py --config data/portfolio.json
    ```
 
-> **Not:** Hisse/emtia verisi çekebilmek için `pip install yfinance` kurulu olmalıdır. Makro duyarlılık motoru her varlık için `macro_symbol` tanımlanırsa ilgili katalizörleri ayrı ayrı raporlar.
+> **Note:** `pip install yfinance` is required to fetch stock/commodity data. The macro sensitivity engine reports catalysts separately for each asset if `macro_symbol` is defined.
 
-### Ortam Değişkenleri
-1. Ortam değişkenlerini düzenleyin:
+### Environment Variables
+1. Edit environment variables:
    ```bash
    cp .env.example .env
-   # .env içindeki değerleri ihtiyacınıza göre güncelleyin
+   # Update values in .env as needed
    ```
-   - Binance Futures veya Spot testnet anahtarlarınız varsa `.env` içine `BINANCE_TESTNET_API_KEY`, `BINANCE_TESTNET_SECRET` ve `BINANCE_TESTNET_USE_FUTURES=true/false` gibi alanları ekleyin. Ayrıntılı entegrasyon adımları için [docs/binance_testnet_guide.md](docs/binance_testnet_guide.md) dosyasına bakabilirsiniz.
-2. Konteynerleri ayağa kaldırın:
+   - For Binance Futures or Spot testnet keys, add `BINANCE_TESTNET_API_KEY`, `BINANCE_TESTNET_SECRET`, and `BINANCE_TESTNET_USE_FUTURES=true/false` to `.env`. See [docs/binance_testnet_guide.md](docs/binance_testnet_guide.md) for detailed integration steps.
+2. Start containers:
    ```bash
    docker-compose up --build
    ```
-3. FastAPI arayüzü varsayılan olarak `http://localhost:8000/docs` adresinde çalışır.
-4. Yönetim dashboard'una `http://localhost:8000/dashboard` adresinden erişebilirsiniz.
-   - Bot henüz çalışmıyorsa bile `/dashboard/preview` (veya `?demo=1` parametresi) ile canlı önizlemeyi görebilirsiniz.
-   - Dashboard üzerindeki **AI Insights** bölümü, `/ai/prediction` ve `/ai/question` endpoint'lerinden gelen verilerle modelin önerdiği aksiyonu, olasılık dağılımını ve açıklamasını gösterir.
-   - **Decision Playbook** bölümü, botun ne zaman LONG/SHORT olacağını ve risk yönetimini nasıl yaptığını `/strategy` endpoint'inden aldığı verilere göre özetler.
+3. FastAPI interface runs at `http://localhost:8000/docs` by default.
+4. Access the management dashboard at `http://localhost:8000`.
+   - Even if the bot isn't running, view a live preview via `/dashboard/preview` (or `?demo=1` parameter).
+   - The **AI Insights** section shows model-recommended actions, probability distributions, and explanations from `/ai/prediction` and `/ai/question` endpoints.
+   - The **Decision Playbook** section summarizes when the bot goes LONG/SHORT and how it manages risk based on `/strategy` endpoint data.
 
-## Dashboard nasıl görünüyor?
+## Dashboard Overview
 
-![Dashboard önizleme](docs/dashboard_preview.svg)
+![Dashboard preview](docs/dashboard_preview.svg)
 
-Dashboard, tek sayfalık bir arayüz içinde aşağıdaki bloklarla organize edilmiştir:
-- **Üst durum şeridi:** Seçili sembol, pozisyon, giriş fiyatı, gerçekleşmemiş PnL ve bot çalışma modunu gösteren renk kodlu kartlar.
-- **Signal Stream:** Sağ tarafta son sinyaller, emir özetleri ve AI tahminlerine ait kısa açıklamalar kronolojik olarak akar.
-- **Equity & Risk:** Orta bölümde equity eğrisi, günlük PnL şeridi ve risk parametreleri yan yana yer alır. Preview modunda örnek veri, canlı modda state dosyasındaki gerçek değerler gösterilir.
-- **AI Insights:** AI aksiyonu, olasılıklar, açıklayıcı özellikler (EMA açığı, momentum vb.) ve kısa anlatım kutucuğu.
-- **Decision Playbook:** EMA/RSI eşiklerini, stop-loss/take-profit örneklerini ve pozisyon boyutu formülünü, canlı strateji konfigürasyonuna göre açıklar.
-- **Macro & News Pulse:** Trump/Fed gibi katalizörleri, makro bias skorunu, faiz görünümünü ve siyasi risk özetlerini listeler.
-- **Multi-Market Portfolio Playbook:** BTC, ETH, XAU, XAG, petrol ve mega-cap hisseler için kısa/orta/uzun vadeli performans özetlerini, makro bias skorlarını ve strateji notlarını yan yana gösterir.
-- **Assistant formu:** Dashboard alt kısmındaki form ile `/ai/question` endpoint’ine soru gönderebilir, cevapları gerçek zamanlı görebilirsiniz; preview modunda örnek sorular hazır gelir.
+The dashboard is organized as a single-page interface with the following blocks:
+- **Top status bar:** Color-coded cards showing selected symbol, position, entry price, unrealized PnL, and bot operation mode.
+- **Signal Stream:** Recent signals, order summaries, and brief AI prediction explanations flow chronologically on the right side.
+- **Equity & Risk:** Equity curve, daily PnL bar chart, and risk parameters displayed side by side in the center. Preview mode shows sample data; live mode shows actual values from state files.
+- **AI Insights:** AI action, probabilities, explanatory features (EMA gap, momentum, etc.), and brief narrative box.
+- **Decision Playbook:** Explains EMA/RSI thresholds, stop-loss/take-profit examples, and position sizing formula based on live strategy configuration.
+- **Macro & News Pulse:** Lists catalysts like Trump/Fed, macro bias score, rate outlook, and political risk summaries.
+- **Multi-Market Portfolio Playbook:** Shows short/medium/long-term performance summaries, macro bias scores, and strategy notes for BTC, ETH, XAU, XAG, oil, and mega-cap stocks side by side.
+- **Assistant form:** Send questions to the `/ai/question` endpoint and see real-time responses; preview mode includes sample questions.
 
-`/dashboard/preview` rotası bu bileşenlerin tamamını örnek veriyle render eder; bu sayede botu başlatmadan arayüzü inceleyebilir ve tasarımı özelleştirebilirsiniz. Daha ayrıntılı bir bölümlendirme ve hem SVG hem ASCII yerleşim krokisi için [docs/ui_walkthrough.md](docs/ui_walkthrough.md) dosyasına göz atabilirsiniz.
+The `/dashboard/preview` route renders all components with sample data, allowing you to explore and customize the interface without starting the bot. For more detailed breakdown and both SVG and ASCII layout sketches, see [docs/ui_walkthrough.md](docs/ui_walkthrough.md).
 
-## Strateji arama aracını çalıştırma
+## Running the Strategy Research Tool
 
-Trump/Fed haberlerine duyarlı parametre setleri denemek için `bot/research.py` içindeki araçla brute-force grid search yapabilirsiniz. Varsayılan olarak sentetik `PaperExchangeClient` verisi üretir; elinizde CSV varsa onu da kullanabilirsiniz.
+Use the grid search tool in `bot/research.py` to try parameter sets sensitive to Trump/Fed news. By default it generates synthetic `PaperExchangeClient` data; you can also use your own CSV.
 
 ```bash
-# Sentetik veri ve varsayılan parametre aralığı ile 500 mumluk test
+# Synthetic data with default parameter range, 500 candles
 python -m bot.research --symbol BTC/USDT --timeframe 1m --lookback 500
 
-# Kendi CSV dosyanız (timestamp,open,high,low,close,volume) ve makro event'leriyle
+# Your own CSV file (timestamp,open,high,low,close,volume) with macro events
 python -m bot.research \
   --csv data/sample_ohlcv.csv \
   --macro-events data/macro_events.sample.json \
@@ -202,49 +202,46 @@ python -m bot.research \
   --rsi-oversold 20,25,30
 ```
 
-Komut tamamlandığında Sharpe, toplam getiri, kazanma oranı ve makro bias'ı birlikte skorlayan en iyi kombinasyonlar listelenir. Çıktıdaki `EMA`, `RSI` değerlerini `.env` veya dashboard’un **Decision Playbook** paneline taşıyarak canlı bota uygulayabilirsiniz. Örnek CSV için `data/sample_ohlcv.csv` dosyasına bakabilirsiniz.
-- **Assistant formu:** Dashboard alt kısmındaki form ile `/ai/question` endpoint’ine soru gönderebilir, cevapları gerçek zamanlı görebilirsiniz; preview modunda örnek sorular hazır gelir.
+When complete, the best combinations scoring Sharpe, total return, win rate, and macro bias together are listed. Transfer the `EMA`, `RSI` values from the output to `.env` or the dashboard's **Decision Playbook** panel to apply to the live bot. See `data/sample_ohlcv.csv` for an example CSV.
 
-`/dashboard/preview` rotası bu bileşenlerin tamamını örnek veriyle render eder; bu sayede botu başlatmadan arayüzü inceleyebilir ve tasarımı özelleştirebilirsiniz. Daha ayrıntılı bir bölümlendirme ve ASCII yerleşim krokisi için [docs/ui_walkthrough.md](docs/ui_walkthrough.md) dosyasına göz atabilirsiniz.
+## What Can I Improve?
+The following areas can be easily extended initially:
+1. **Visual theme and brand identity:** Tailwind-inspired utility classes exist in `api/dashboard.html`; modify CSS in `<style>` blocks or add an external CSS file for your color palette.
+2. **Chart libraries:** Currently using lightweight SVG charts. Add Highcharts, Plotly, or TradingView widgets for more detailed charts.
+3. **Multi-instrument support:** Expand the dashboard symbol selector to display signals/equity for multiple assets simultaneously.
+4. **Notifications and alerts:** Send browser notifications for new signals or critical macro events via WebSocket/Server-Sent Events.
+5. **User management:** Add an auth layer on FastAPI to password-protect the dashboard.
 
-## Neleri geliştirebilirim?
-Aşağıdaki alanlar ilk etapta kolayca genişletilebilir:
-1. **Görsel tema ve marka kimliği:** `api/dashboard.html` içinde Tailwind-esintili yardımcı sınıflar bulunuyor; kendi renk paletinizi eklemek için `<style>` bloklarındaki CSS değiştirilebilir veya harici bir CSS dosyası eklenebilir.
-2. **Grafik kütüphaneleri:** Şu an lightweight SVG grafikleri kullanılıyor. Highcharts, Plotly veya TradingView widget’ını ekleyerek daha detaylı grafikler sunabilirsiniz.
-3. **Çoklu enstrüman desteği:** Dashboard’daki sembol seçiciyi genişleterek aynı anda birden fazla varlık için sinyal/equity görüntüleme imkânı ekleyebilirsiniz.
-4. **Bildirim ve uyarılar:** WebSocket/Server-Sent Events kanalıyla yeni sinyaller veya kritik makro olaylar için tarayıcı bildirimleri göndermek mümkün.
-5. **Kullanıcı yönetimi:** FastAPI tarafında auth katmanı ekleyip dashboard’u parola korumalı hale getirebilirsiniz.
+## Long-Term Vision and AI Roadmap
 
-## Uzun Vadeli Vizyon ve Yapay Zekâ Yol Haritası
+For more detailed recommendations on strategy research, macro awareness, local SSL training processes, and high-frequency execution, see [docs/product_vision_and_ai_roadmap.md](docs/product_vision_and_ai_roadmap.md). This document consolidates advanced ideas including multi-market coverage, news-feed catalyst evaluation, self-supervised learning pipeline, reinforcement-based policy optimization, and operator interface improvements.
 
-Strateji arama, makro farkındalık, yerel SSL eğitim süreçleri ve yüksek frekanslı yürütme için daha ayrıntılı öneriler arıyorsanız [docs/product_vision_and_ai_roadmap.md](docs/product_vision_and_ai_roadmap.md) dosyasına göz atabilirsiniz. Bu belge; çoklu piyasa kapsamı, haber akışından gelen katalizörlerin değerlendirilmesi, self-supervised öğrenme hattı, reinforcement tabanlı politika optimizasyonu ve operatör arayüzü geliştirmeleri gibi ileri seviye fikirleri tek çatı altında toplar.
+## High Frequency Trading (HFT) Roadmap
+Important technical developments when approaching HFT:
+1. **Low-latency data streaming:** Use Binance WebSocket (ccxt.pro or python-binance) instead of REST calls for millisecond-level price updates.
+2. **Asynchronous bot loop:** Make data fetching, signal calculation, and order submission `asyncio`-based in `bot/bot.py` for concurrency across multiple assets.
+3. **Order book monitoring:** Read level-2 order book data instead of just OHLCV to generate microstructure signals (spread, imbalance).
+4. **Risk guardrails:** Errors grow fast in HFT; add automatic circuit breakers for latency, failed order counts, or consecutive loss limits.
+5. **Performance measurement:** Track average latency, fill rate, slippage, and PnL distribution with Prometheus metrics; add real-time charts to Grafana or custom dashboard.
+6. **Backtest & simulation:** Simulate HFT strategy scenarios on second/minute data with vectorbt/backtrader and compare with real environment.
 
-## High Frequency Trading (HFT) yol haritası
-HFT’ye yaklaşırken aşağıdaki teknik geliştirmeler önemlidir:
-1. **Düşük gecikmeli veri akışı:** REST çağrıları yerine Binance WebSocket (ccxt.pro veya python-binance) kullanarak milisaniye seviyesinde fiyat güncellemeleri alın.
-2. **Asenkron bot döngüsü:** `bot/bot.py` içinde veri alma, sinyal hesaplama ve emir gönderme adımlarını `asyncio` tabanlı hale getirip aynı anda birden fazla varlık için concurrency sağlayın.
-3. **Order book izleme:** Yalnızca OHLCV yerine seviye-2 order book verilerini okuyup mikro yapı sinyalleri (spread, imbalance) üretin.
-4. **Risk guardrail’leri:** HFT’de hatalar hızlı büyür; latency, başarısız emir sayısı veya art arda zarar limitleri için otomatik circuit breaker’lar ekleyin.
-5. **Performans ölçümü:** Prometheus metrikleriyle ortalama latency, fill oranı, kayma (slippage) ve PnL dağılımını takip edin; Grafana veya özel dashboard’a gerçek zamanlı grafikler ekleyin.
-6. **Backtest & simülasyon:** vectorbt/backtrader ile saniyelik/dakikalık veri üzerinde HFT stratejisi senaryolarını simüle edip gerçek ortamla kıyaslayın.
+These roadmap steps can be gradually integrated into the existing architecture to transform UI insights into a millisecond-scale decision support system.
 
-Bu yol haritasındaki adımlar, mevcut mimariye kademeli olarak entegre edilerek UI’nın sunduğu içgörüleri milisaniye ölçekli karar destek sistemine dönüştürmenize yardımcı olur.
+## AI-Powered Prediction and Q&A
+- **AI Prediction (`GET /ai/prediction`)**: Returns the AI assessment from the last loop. Response includes recommended action (`LONG`/`SHORT`/`FLAT`), confidence score, long/short/flat probabilities, expected move percentage, and a quick summary of main features used.
+- **AI Question (`POST /ai/question`)**: Ask strategy-related questions with a JSON body like `{ "question": "When should I buy?" }`. The engine responds using current state and AI prediction.
+- Test the same Q&A experience from the browser using the dashboard form; preview mode simulates sample responses.
+- Adding keywords like `macro`, `Trump`, `Fed`, `rates` to your questions prompts the AI engine to include insights from the macro module in its response.
 
-## AI Destekli Tahmin ve Soru-Cevap
-- **AI Prediction (`GET /ai/prediction`)**: Son loop’taki yapay zekâ değerlendirmesini döndürür. Yanıt, önerilen aksiyon (`LONG`/`SHORT`/`FLAT`), güven skoru, uzun/kısa/düz olasılıkları, beklenen hareket yüzdesi ve kullanılan ana özelliklerin hızlı özetini içerir.
-- **AI Question (`POST /ai/question`)**: JSON gövdesinde `{ "question": "When should I buy?" }` benzeri bir istekle stratejiye dair sorular sorabilirsiniz. Motor, güncel state ve AI tahminini kullanarak yanıt verir.
-- Dashboard’daki formu kullanarak aynı soru-cevap deneyimini tarayıcıdan da test edebilirsiniz; preview modunda örnek yanıtlar simüle edilir.
-- Sorularınıza `macro`, `Trump`, `Fed`, `rates` gibi anahtar kelimeler eklerseniz AI motoru makro modülden gelen öngörüleri de yanıtına dahil eder.
+## Multi-Market Portfolio Playbook
+- **Endpoint (`GET /portfolio/playbook`)**: Collects crypto/commodity symbols like BTC, ETH, XAU, XAG, USOIL and mega-cap stocks like AAPL, MSFT, AMZN, GOOG, TSLA, NVDA from the bot's state file. Calculates expected return, Sharpe, win rate, trade count, and macro bias values for short (1m), medium (15m), and long (1h) horizons per asset.
+- **Starting balance scenario**: Requires no request body; references `STARTING_BALANCE` from bot configuration and returns starting/ending balance info for each horizon.
+- **Macro narratives**: Macro summaries and driver lists from events like Trump tariffs or Fed rate path are included in the same response; dashboard cards show brief notes, rate/policy warnings, and "best / most challenged horizon" headings.
+- **Long/short-term ideas**: The **Multi-Market Portfolio Playbook** dashboard panel uses JSON from this endpoint to visually show which asset stands out at which horizon, which is under pressure, and how the macro environment affects risk appetite. The preview route renders the same panel with sample data.
 
-## Çoklu Piyasa Portföy Playbook'u
-- **Endpoint (`GET /portfolio/playbook`)**: Botun kaydettiği state dosyasından BTC, ETH, XAU, XAG, USOIL gibi emtia/kripto sembollerini ve AAPL, MSFT, AMZN, GOOG, TSLA, NVDA gibi mega-cap hisseleri toplar. Her varlık için kısa (1m), orta (15m) ve uzun (1h) ufuklarda beklenen getiri, Sharpe, kazanma oranı, işlem sayısı ve makro bias değerleri hesaplanır.
-- **Başlangıç bakiyesi senaryosu**: İstek gövdesi gerektirmez; bot konfigürasyonundaki `STARTING_BALANCE` değeri referans alınır ve her ufukta başlangıç/son bakiye bilgisi döner.
-- **Makro anlatılar**: Trump’ın tarifeleri veya Fed faiz patikası gibi olaylardan gelen makro özetler ve driver listeleri aynı yanıt içinde yer alır; dashboard üzerindeki kartlarda kısa notlar, faiz/politika uyarıları ve “en iyi / en zorlanan horizon” başlıkları görünür.
-- **Uzun/kısa vadeli fikirler**: Dashboard’daki **Multi-Market Portfolio Playbook** paneli, bu endpoint’ten gelen JSON’u kullanarak hangi varlığın hangi ufukta öne çıktığını, hangisinin baskılandığını ve makro ortamın risk iştahını nasıl etkilediğini görsel olarak sunar. Preview rotası da aynı paneli örnek verilerle render eder.
-
-## Makro & Haber Farkındalığı
-- Bot döngüsü her turda `bot/macro.py` içindeki `MacroSentimentEngine` ile makro/politik olay listesini değerlendirir. Varsayılan olarak Trump’ın tarifeleri ve Fed toplantı rehberliği gibi örnek olaylar gelir; kendi olaylarınızı `data/macro_events.json` benzeri bir dosyayla genişletebilirsiniz.
-- Özel olaylar eklemek için JSON listesi kullanın. Örnek yapı `data/macro_events.sample.json` içinde yer alır:
+## Macro & News Awareness
+- The bot loop evaluates macro/political event lists each round using `MacroSentimentEngine` in `bot/macro.py`. Default includes sample events like Trump tariffs and Fed meeting guidance; extend with your own events via a `data/macro_events.json` file.
+- Use a JSON list to add custom events. Example structure in `data/macro_events.sample.json`:
   ```json
   [
     {
@@ -265,20 +262,20 @@ Bu yol haritasındaki adımlar, mevcut mimariye kademeli olarak entegre edilerek
     }
   ]
   ```
-- Dosyayı botun eriştiği `DATA_DIR` altında `macro_events.json` adıyla saklayın ve `.env` içinde `MACRO_EVENTS_PATH=data/macro_events.json` şeklinde işaret edin. `MACRO_REFRESH_SECONDS` ile yükleme aralığını (varsayılan 300 sn) değiştirebilirsiniz.
-- `/macro/insights` endpoint’i ve dashboard’daki **Macro & News Pulse** paneli; özet makro bias skorunu, güven seviyesini, faiz beklentilerini ve son katalizör listesini JSON veya görsel olarak sunar. Bu sinyaller AI tahminine ağırlık olarak eklenir, böylece haber akışı LONG/SHORT kararlarını güçlendirebilir veya zayıflatabilir.
+- Save the file as `macro_events.json` under `DATA_DIR` accessed by the bot and point to it with `MACRO_EVENTS_PATH=data/macro_events.json` in `.env`. Change the refresh interval (default 300 sec) with `MACRO_REFRESH_SECONDS`.
+- The `/macro/insights` endpoint and **Macro & News Pulse** dashboard panel present the summary macro bias score, confidence level, rate expectations, and recent catalyst list as JSON or visuals. These signals are added as weights to AI predictions, allowing news flow to strengthen or weaken LONG/SHORT decisions.
 
-## Lokal Geliştirme
+## Local Development
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-export $(grep -v '^#' .env | xargs)  # veya dotenv kullanın
-python -m bot.bot  # bot döngüsünü başlatır
+export $(grep -v '^#' .env | xargs)  # or use dotenv
+python -m bot.bot  # starts bot loop
 uvicorn api.api:app --reload
 ```
 
-## Örnek State Çıktısı
+## Example State Output
 ```json
 {
   "timestamp": "2025-10-28T16:32:00Z",
@@ -337,19 +334,17 @@ uvicorn api.api:app --reload
 }
 ```
 
-## Notlar
-- `requirements.txt` dosyası temel bağımlılıkları içerir. SSL/ML entegrasyonu için PyTorch ve PyTorch Lightning ek olarak kurulmalıdır (platforma göre whl dosyaları değişir).
-- **Testnet Kullanımı**: `.env` dosyasında `BINANCE_TESTNET_ENABLED=true` ve `PAPER_MODE=false` yaparak Binance Spot Testnet'i kullanabilirsiniz.
-- **Production Kullanımı**: Gerçek borsa kullanımı için `.env` dosyasındaki `PAPER_MODE=false`, `BINANCE_TESTNET_ENABLED=false` ve `EXCHANGE_API_KEY`, `EXCHANGE_API_SECRET` alanlarını güncelleyin.
-- Çoklu enstrüman desteği için `docker-compose` içerisine aynı imajdan türetilmiş yeni servisler eklenebilir veya bot loop'u parametre alacak şekilde genişletilebilir.
+## Notes
+- `requirements.txt` contains base dependencies. PyTorch and PyTorch Lightning must be installed separately for SSL/ML integration (whl files vary by platform).
+- **Testnet Usage**: Set `BINANCE_TESTNET_ENABLED=true` and `PAPER_MODE=false` in `.env` to use Binance Spot Testnet.
+- **Production Usage**: For real exchange trading, update `PAPER_MODE=false`, `BINANCE_TESTNET_ENABLED=false`, and `EXCHANGE_API_KEY`, `EXCHANGE_API_SECRET` fields in `.env`.
+- For multi-instrument support, add new services derived from the same image in `docker-compose` or extend the bot loop to accept parameters.
 
-## High Frequency Trading (HFT) için Öneriler
-- Binance Futures Testnet kullanın (daha gerçekçi): https://testnet.binancefuture.com
-- REST API yerine WebSocket ile order book ve trade stream'leri dinleyin
-- Latency optimizasyonu için sunucunuzu Binance'e yakın bir bölgede çalıştırın
-- Rate limit ve order matching test edilmelidir
+## HFT Recommendations
+- Use Binance Futures Testnet (more realistic): https://testnet.binancefuture.com
+- Listen to order book and trade streams via WebSocket instead of REST API
+- Run your server in a region close to Binance for latency optimization
+- Rate limits and order matching should be tested
 
-
-
-## Backend ve Frontend Açıkları
-Proje hangi alanlarda henüz eksik diye hızlıca bakmak için [`docs/backend_frontend_gaps.md`](docs/backend_frontend_gaps.md) dosyasına göz atın. Bu doküman hem sunucu tarafında (borsa entegrasyonu, risk yönetimi, dağıtım) hem de arayüz tarafında (component mimarisi, gerçek zamanlı veri akışı, erişilebilirlik) tamamlanması gereken somut maddeleri kontrol listesi şeklinde sunar.
+## Backend and Frontend Gaps
+To quickly see where the project is still incomplete, check [`docs/backend_frontend_gaps.md`](docs/backend_frontend_gaps.md). This document presents concrete items to be completed on both server side (exchange integration, risk management, deployment) and interface side (component architecture, real-time data flow, accessibility) as a checklist.

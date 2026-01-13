@@ -1,0 +1,91 @@
+{
+  "timestamp": "2026-01-13T15:36:24.452260",
+  "market_type": "stock",
+  "total_value": 9986.590164445437,
+  "cash_balance": 2.0981140551157296e-05,
+  "initial_capital": 10000.0,
+  "pnl": -13.40983555456296,
+  "pnl_pct": -0.1340983555456296,
+  "positions": {
+    "MSFT": {
+      "quantity": 2.83811,
+      "price": 467.3699951171875,
+      "value": 1326.447456842041
+    },
+    "AAPL": {
+      "quantity": 5.204712,
+      "price": 259.80999755859375,
+      "value": 1352.2362120131836
+    },
+    "NVDA": {
+      "quantity": 13.798007,
+      "price": 184.09500122070312,
+      "value": 2540.1441155082703
+    },
+    "GOOGL": {
+      "quantity": 10.203165,
+      "price": 335.8349914550781,
+      "value": 3426.5798305897524
+    },
+    "AMZN": {
+      "quantity": 5.495974,
+      "price": 244.02999877929688,
+      "value": 1341.1825285110474
+    }
+  },
+  "positions_count": 5,
+  "current_weights": {
+    "MSFT": 0.1328228589538499,
+    "AAPL": 0.13540519734428036,
+    "NVDA": 0.25435549809100694,
+    "GOOGL": 0.3431180987870281,
+    "AMZN": 0.13429834472290314
+  },
+  "optimization_method": "risk_parity",
+  "signals": {
+    "AAPL": {
+      "signal": "FLAT",
+      "regime": "strong_bear",
+      "confidence": 0.5239463734088666,
+      "price": 259.80999755859375,
+      "dl_prediction": null
+    },
+    "MSFT": {
+      "signal": "FLAT",
+      "regime": "strong_bear",
+      "confidence": 0.5320041976951001,
+      "price": 467.3699951171875,
+      "dl_prediction": null
+    },
+    "GOOGL": {
+      "signal": "LONG",
+      "regime": "strong_bull",
+      "confidence": 0.490272373540856,
+      "price": 335.8349914550781,
+      "dl_prediction": null
+    },
+    "NVDA": {
+      "signal": "FLAT",
+      "regime": "sideways",
+      "confidence": 0.6129032258064515,
+      "price": 184.09500122070312,
+      "dl_prediction": null
+    },
+    "AMZN": {
+      "signal": "LONG",
+      "regime": "strong_bull",
+      "confidence": 0.490272373540856,
+      "price": 244.02999877929688,
+      "dl_prediction": null
+    }
+  },
+  "deep_learning_enabled": false,
+  "dl_model_selection": null,
+  "stocks": [
+    "AAPL",
+    "MSFT",
+    "GOOGL",
+    "NVDA",
+    "AMZN"
+  ]
+}

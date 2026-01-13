@@ -1,0 +1,19 @@
+{
+  "mode": "paper_live_data",
+  "status": "stopped",
+  "timestamp": "2026-01-13T01:26:28.397746",
+  "initial_capital": 10000.0,
+  "current_balance": 10000.0,
+  "peak_balance": 10000.0,
+  "positions": {},
+  "total_trades": 0,
+  "winning_trades": 0,
+  "losing_trades": 0,
+  "total_pnl": 0.0,
+  "max_drawdown_pct": 0.0,
+  "mode_started_at": "2026-01-13T01:18:26.178225",
+  "days_in_mode": 0,
+  "daily_trades": 0,
+  "daily_pnl": 0.0,
+  "daily_date": "2026-01-13"
+}

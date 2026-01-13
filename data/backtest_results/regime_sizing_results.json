@@ -1,0 +1,23 @@
+{
+  "BTC_USD": {
+    "buy_hold": 1.1433272998344965,
+    "buy_hold_max_dd": 0.34816163298925656,
+    "regime_sizing_return": 0.8203968007358275,
+    "regime_sizing_max_dd": 0.2928808090172598,
+    "regime_sizing_sharpe": 0.827726125279564
+  },
+  "ETH_USD": {
+    "buy_hold": 0.23391612911416648,
+    "buy_hold_max_dd": 0.6526691892810669,
+    "regime_sizing_return": 0.37264263198292685,
+    "regime_sizing_max_dd": 0.5934685251229288,
+    "regime_sizing_sharpe": 0.4749747103910415
+  },
+  "SPY": {
+    "buy_hold": 0.46066556045365203,
+    "buy_hold_max_dd": 0.1943384094053688,
+    "regime_sizing_return": 0.2659696656998309,
+    "regime_sizing_max_dd": 0.13742341939177186,
+    "regime_sizing_sharpe": 2.089512499241641
+  }
+}

@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Algo Trading Lab - Live Dashboard</title>
+  <style>
+    :root {
+      --bg-primary: #0a0f1a;
+      --bg-secondary: #111827;
+      --bg-card: #1a2332;
+      --bg-hover: #243044;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-blue: #3b82f6;
+      --accent-green: #10b981;
+      --accent-red: #ef4444;
+      --accent-yellow: #f59e0b;
+      --accent-purple: #8b5cf6;
+      --accent-cyan: #06b6d4;
+      --border-color: rgba(148, 163, 184, 0.15);
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 0 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .status-indicator.live {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-green);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .status-indicator.offline {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--accent-red);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .pulse {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.2); }
+    }
+
+    .header-info {
+      display: flex;
+      gap: 1.5rem;
+      align-items: center;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    /* Grid Layout */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 1.25rem;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      padding: 1.25rem;
+      box-shadow: var(--shadow);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .card-badge {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.625rem;
+      border-radius: 9999px;
+      font-weight: 500;
+    }
+
+    /* Portfolio Overview */
+    .portfolio-overview { grid-column: span 8; }
+    .trading-status { grid-column: span 4; }
+    .ml-insights { grid-column: span 6; }
+    .market-regimes { grid-column: span 6; }
+    .positions-table { grid-column: span 12; }
+    .equity-chart { grid-column: span 8; }
+    .correlations { grid-column: span 4; }
+    .signals-log { grid-column: span 12; }
+
+    @media (max-width: 1024px) {
+      .portfolio-overview, .trading-status, .ml-insights, .market-regimes,
+      .equity-chart, .correlations { grid-column: span 12; }
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1rem;
+    }
+
+    .stat-item {
+      text-align: center;
+      padding: 1rem;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .stat-value.positive { color: var(--accent-green); }
+    .stat-value.negative { color: var(--accent-red); }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 0.25rem;
+    }
+
+    /* Trading Status */
+    .status-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+    }
+
+    .status-label {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+
+    .status-value {
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+
+    /* Asset Cards */
+    .asset-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    .asset-card {
+      background: var(--bg-secondary);
+      border-radius: 10px;
+      padding: 1rem;
+      border: 1px solid var(--border-color);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .asset-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    }
+
+    .asset-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.75rem;
+    }
+
+    .asset-symbol {
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .asset-regime {
+      font-size: 0.7rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .regime-bull { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
+    .regime-strong_bull { background: rgba(16, 185, 129, 0.3); color: #34d399; }
+    .regime-bear { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+    .regime-strong_bear { background: rgba(239, 68, 68, 0.3); color: #f87171; }
+    .regime-sideways { background: rgba(245, 158, 11, 0.2); color: var(--accent-yellow); }
+    .regime-volatile { background: rgba(139, 92, 246, 0.2); color: var(--accent-purple); }
+    .regime-unknown { background: rgba(100, 116, 139, 0.2); color: var(--text-muted); }
+
+    .asset-price {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .asset-change {
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .asset-change.positive { color: var(--accent-green); }
+    .asset-change.negative { color: var(--accent-red); }
+
+    .asset-signal {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .signal-long { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); }
+    .signal-short { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
+    .signal-flat { background: rgba(100, 116, 139, 0.15); color: var(--text-secondary); }
+
+    .asset-meta {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border-color);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+
+    th, td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    th {
+      color: var(--text-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+
+    tr:hover td {
+      background: var(--bg-hover);
+    }
+
+    /* Chart Container */
+    .chart-container {
+      position: relative;
+      height: 250px;
+      margin-top: 1rem;
+    }
+
+    .chart-container canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    /* Correlation Matrix */
+    .correlation-grid {
+      display: grid;
+      gap: 2px;
+      font-size: 0.7rem;
+    }
+
+    .corr-cell {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    /* Log */
+    .log-container {
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+
+    .log-entry {
+      padding: 0.25rem 0;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      gap: 1rem;
+    }
+
+    .log-time {
+      color: var(--text-muted);
+      min-width: 80px;
+    }
+
+    .log-message { color: var(--text-secondary); }
+    .log-message.buy { color: var(--accent-green); }
+    .log-message.sell { color: var(--accent-red); }
+
+    /* Buttons */
+    .btn {
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--accent-blue);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--accent-red);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.25);
+    }
+
+    /* Footer */
+    footer {
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border-color);
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+    ::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+
+    /* Loading */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      color: var(--text-muted);
+    }
+
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--border-color);
+      border-top-color: var(--accent-blue);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 0.75rem;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">
+        <h1>Algo Trading Lab</h1>
+        <div class="status-indicator live" id="connection-status">
+          <span class="pulse"></span>
+          <span id="status-text">Live</span>
+        </div>
+      </div>
+      <div class="header-info">
+        <span>Last Update: <strong id="last-update">-</strong></span>
+        <span>Iteration: <strong id="iteration-count">0</strong></span>
+        <button class="btn btn-danger" id="stop-btn" onclick="stopTrading()">Stop Bot</button>
+      </div>
+    </header>
+
+    <div class="dashboard-grid">
+      <!-- Portfolio Overview -->
+      <div class="card portfolio-overview">
+        <div class="card-header">
+          <h2 class="card-title">Portfolio Overview</h2>
+          <span class="card-badge" style="background: rgba(59, 130, 246, 0.2); color: var(--accent-blue);">Paper Trading</span>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-value" id="total-value">$10,000.00</div>
+            <div class="stat-label">Total Value</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="total-pnl">$0.00</div>
+            <div class="stat-label">Total P&L</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="cash-balance">$10,000.00</div>
+            <div class="stat-label">Cash</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="positions-count">0</div>
+            <div class="stat-label">Positions</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="sharpe-ratio">-</div>
+            <div class="stat-label">Sharpe Ratio</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trading Status -->
+      <div class="card trading-status">
+        <div class="card-header">
+          <h2 class="card-title">Trading Status</h2>
+        </div>
+        <div class="status-list">
+          <div class="status-row">
+            <span class="status-label">Mode</span>
+            <span class="status-value" style="color: var(--accent-cyan);">Paper Trading</span>
+          </div>
+          <div class="status-row">
+            <span class="status-label">Strategy</span>
+            <span class="status-value" id="strategy-name">Risk Parity</span>
+          </div>
+          <div class="status-row">
+            <span class="status-label">Rebalance Threshold</span>
+            <span class="status-value" id="rebalance-threshold">5%</span>
+          </div>
+          <div class="status-row">
+            <span class="status-label">Loop Interval</span>
+            <span class="status-value" id="loop-interval">60s</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ML Insights -->
+      <div class="card ml-insights">
+        <div class="card-header">
+          <h2 class="card-title">ML Insights</h2>
+          <span class="card-badge" style="background: rgba(139, 92, 246, 0.2); color: var(--accent-purple);">AI Powered</span>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-value" id="ml-accuracy">-</div>
+            <div class="stat-label">Model Accuracy</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="active-signals">0</div>
+            <div class="stat-label">Active Signals</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="avg-confidence">-</div>
+            <div class="stat-label">Avg Confidence</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Market Regimes -->
+      <div class="card market-regimes">
+        <div class="card-header">
+          <h2 class="card-title">Market Regimes</h2>
+        </div>
+        <div class="asset-grid" id="regime-grid">
+          <div class="loading"><div class="spinner"></div>Loading...</div>
+        </div>
+      </div>
+
+      <!-- Positions Table -->
+      <div class="card positions-table">
+        <div class="card-header">
+          <h2 class="card-title">Live Positions</h2>
+        </div>
+        <div id="positions-container">
+          <div class="asset-grid" id="positions-grid">
+            <div class="loading"><div class="spinner"></div>Waiting for positions...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Equity Chart -->
+      <div class="card equity-chart">
+        <div class="card-header">
+          <h2 class="card-title">Equity Curve</h2>
+        </div>
+        <div class="chart-container">
+          <canvas id="equity-canvas"></canvas>
+        </div>
+      </div>
+
+      <!-- Enhanced Bot Equity Chart -->
+      <div class="card" style="grid-column: span 4;">
+        <div class="card-header">
+          <h2 class="card-title">Enhanced Bot Equity</h2>
+          <span class="card-badge" style="background: rgba(139, 92, 246, 0.2); color: var(--accent-purple);">AI Enhanced</span>
+        </div>
+        <div class="chart-container" style="height: 200px;">
+          <canvas id="enhanced-equity-canvas"></canvas>
+        </div>
+      </div>
+
+      <!-- Aggressive Bot Equity Chart -->
+      <div class="card" style="grid-column: span 4;">
+        <div class="card-header">
+          <h2 class="card-title">Aggressive Bot Equity</h2>
+          <span class="card-badge" style="background: rgba(239, 68, 68, 0.2); color: var(--accent-red);">Aggressive</span>
+        </div>
+        <div class="chart-container" style="height: 200px;">
+          <canvas id="aggressive-equity-canvas"></canvas>
+        </div>
+      </div>
+
+      <!-- Asset Allocation Pie Chart -->
+      <div class="card" style="grid-column: span 4;">
+        <div class="card-header">
+          <h2 class="card-title">Asset Allocation</h2>
+        </div>
+        <div class="chart-container" style="height: 200px;">
+          <canvas id="allocation-canvas"></canvas>
+        </div>
+        <div id="allocation-legend" style="padding: 0.5rem; font-size: 0.75rem;"></div>
+      </div>
+
+      <!-- Correlations -->
+      <div class="card correlations">
+        <div class="card-header">
+          <h2 class="card-title">Asset Correlations</h2>
+        </div>
+        <div id="correlation-matrix">
+          <div class="loading"><div class="spinner"></div>Loading...</div>
+        </div>
+      </div>
+
+      <!-- Signals Log -->
+      <div class="card signals-log">
+        <div class="card-header">
+          <h2 class="card-title">Trading Log</h2>
+          <button class="btn btn-primary" onclick="clearLog()">Clear</button>
+        </div>
+        <div class="log-container" id="log-container">
+          <div class="log-entry">
+            <span class="log-time">--:--:--</span>
+            <span class="log-message">Waiting for trading activity...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p>Algo Trading Lab v2.0 | Paper Trading Mode | Data refreshes every 5 seconds</p>
+    </footer>
+  </div>
+
+  <script>
+    // State
+    let equityData = [];
+    let enhancedEquityData = [];
+    let aggressiveEquityData = [];
+    let logEntries = [];
+    const maxLogEntries = 100;
+    const maxEquityPoints = 100;
+
+    // DOM Elements
+    const lastUpdate = document.getElementById('last-update');
+    const iterationCount = document.getElementById('iteration-count');
+    const totalValue = document.getElementById('total-value');
+    const totalPnl = document.getElementById('total-pnl');
+    const cashBalance = document.getElementById('cash-balance');
+    const positionsCount = document.getElementById('positions-count');
+    const sharpeRatio = document.getElementById('sharpe-ratio');
+    const regimeGrid = document.getElementById('regime-grid');
+    const positionsGrid = document.getElementById('positions-grid');
+    const logContainer = document.getElementById('log-container');
+    const correlationMatrix = document.getElementById('correlation-matrix');
+    const statusText = document.getElementById('status-text');
+    const connectionStatus = document.getElementById('connection-status');
+    const mlAccuracy = document.getElementById('ml-accuracy');
+    const activeSignals = document.getElementById('active-signals');
+    const avgConfidence = document.getElementById('avg-confidence');
+
+    // Utility Functions
+    function formatCurrency(value) {
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+    }
+
+    function formatPercent(value) {
+      return (value * 100).toFixed(2) + '%';
+    }
+
+    function formatTime(date) {
+      return date.toLocaleTimeString('en-US', { hour12: false });
+    }
+
+    function getRegimeClass(regime) {
+      const regimes = ['bull', 'strong_bull', 'bear', 'strong_bear', 'sideways', 'volatile'];
+      return regimes.includes(regime?.toLowerCase()) ? `regime-${regime.toLowerCase()}` : 'regime-unknown';
+    }
+
+    function getSignalClass(action) {
+      if (action === 'LONG') return 'signal-long';
+      if (action === 'SHORT') return 'signal-short';
+      return 'signal-flat';
+    }
+
+    // Add log entry
+    function addLog(message, type = 'info') {
+      const entry = {
+        time: formatTime(new Date()),
+        message,
+        type
+      };
+      logEntries.unshift(entry);
+      if (logEntries.length > maxLogEntries) logEntries.pop();
+      renderLog();
+    }
+
+    function renderLog() {
+      logContainer.innerHTML = logEntries.map(entry => `
+        <div class="log-entry">
+          <span class="log-time">${entry.time}</span>
+          <span class="log-message ${entry.type}">${entry.message}</span>
+        </div>
+      `).join('');
+    }
+
+    function clearLog() {
+      logEntries = [];
+      renderLog();
+      addLog('Log cleared');
+    }
+
+    // Render asset cards
+    function renderAssetCards(assets) {
+      if (!assets || assets.length === 0) {
+        positionsGrid.innerHTML = '<p style="color: var(--text-muted); padding: 1rem;">No positions yet</p>';
+        return;
+      }
+
+      positionsGrid.innerHTML = assets.map(asset => `
+        <div class="asset-card">
+          <div class="asset-header">
+            <span class="asset-symbol">${asset.symbol}</span>
+            <span class="asset-regime ${getRegimeClass(asset.regime)}">${asset.regime || 'Unknown'}</span>
+          </div>
+          <div class="asset-price">${formatCurrency(asset.price || 0)}</div>
+          <div class="asset-change ${asset.change >= 0 ? 'positive' : 'negative'}">
+            ${asset.change >= 0 ? '+' : ''}${(asset.change || 0).toFixed(2)}%
+          </div>
+          <div class="asset-signal ${getSignalClass(asset.action)}">
+            ${asset.action === 'LONG' ? '↑' : asset.action === 'SHORT' ? '↓' : '○'} ${asset.action || 'FLAT'}
+            <span style="margin-left: auto; opacity: 0.7;">${((asset.confidence || 0) * 100).toFixed(0)}%</span>
+          </div>
+          <div class="asset-meta">
+            <span>Qty: ${(asset.quantity || 0).toFixed(4)}</span>
+            <span>Value: ${formatCurrency(asset.value || 0)}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Render regime grid
+    function renderRegimes(regimes) {
+      if (!regimes || Object.keys(regimes).length === 0) {
+        regimeGrid.innerHTML = '<p style="color: var(--text-muted);">No regime data</p>';
+        return;
+      }
+
+      regimeGrid.innerHTML = Object.entries(regimes).map(([symbol, data]) => `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: var(--bg-secondary); border-radius: 6px;">
+          <span style="font-weight: 600;">${symbol}</span>
+          <span class="asset-regime ${getRegimeClass(data.regime)}">${data.regime}</span>
+        </div>
+      `).join('');
+    }
+
+    // Render correlation matrix
+    function renderCorrelation(correlations) {
+      if (!correlations || !correlations.pairs) {
+        correlationMatrix.innerHTML = '<p style="color: var(--text-muted);">No correlation data</p>';
+        return;
+      }
+
+      const symbols = [...new Set(correlations.pairs.flatMap(p => [p.asset1, p.asset2]))];
+      const n = symbols.length;
+
+      if (n === 0) {
+        correlationMatrix.innerHTML = '<p style="color: var(--text-muted);">No correlation data</p>';
+        return;
+      }
+
+      // Create correlation lookup
+      const corrLookup = {};
+      correlations.pairs.forEach(p => {
+        corrLookup[`${p.asset1}-${p.asset2}`] = p.correlation;
+        corrLookup[`${p.asset2}-${p.asset1}`] = p.correlation;
+      });
+
+      let html = '<div style="overflow-x: auto;"><table style="font-size: 0.75rem; text-align: center;">';
+      html += '<tr><th></th>' + symbols.map(s => `<th style="padding: 0.25rem; writing-mode: vertical-lr; transform: rotate(180deg);">${s.split('/')[0]}</th>`).join('') + '</tr>';
+
+      symbols.forEach(s1 => {
+        html += `<tr><td style="font-weight: 600; text-align: right; padding-right: 0.5rem;">${s1.split('/')[0]}</td>`;
+        symbols.forEach(s2 => {
+          const corr = s1 === s2 ? 1 : (corrLookup[`${s1}-${s2}`] || 0);
+          const intensity = Math.abs(corr);
+          const color = corr >= 0
+            ? `rgba(16, 185, 129, ${intensity})`
+            : `rgba(239, 68, 68, ${intensity})`;
+          html += `<td style="padding: 0.25rem;"><div style="background: ${color}; padding: 0.25rem; border-radius: 4px; min-width: 40px;">${corr.toFixed(2)}</div></td>`;
+        });
+        html += '</tr>';
+      });
+
+      html += '</table></div>';
+      html += `<p style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-muted);">Avg: ${correlations.average_correlation?.toFixed(2) || '-'}</p>`;
+      correlationMatrix.innerHTML = html;
+    }
+
+    // Draw equity curve
+    function drawEquityCurve() {
+      const canvas = document.getElementById('equity-canvas');
+      const ctx = canvas.getContext('2d');
+
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width * 2;
+      canvas.height = rect.height * 2;
+      ctx.scale(2, 2);
+
+      const width = rect.width;
+      const height = rect.height;
+      const padding = 40;
+
+      ctx.clearRect(0, 0, width, height);
+
+      if (equityData.length < 2) {
+        ctx.fillStyle = '#64748b';
+        ctx.font = '14px Inter';
+        ctx.textAlign = 'center';
+        ctx.fillText('Collecting data...', width / 2, height / 2);
+        return;
+      }
+
+      const values = equityData.map(d => d.value);
+      const minVal = Math.min(...values) * 0.99;
+      const maxVal = Math.max(...values) * 1.01;
+
+      const scaleX = (i) => padding + (i / (equityData.length - 1)) * (width - padding * 2);
+      const scaleY = (v) => height - padding - ((v - minVal) / (maxVal - minVal)) * (height - padding * 2);
+
+      // Grid lines
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.1)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) {
+        const y = padding + (i / 4) * (height - padding * 2);
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(width - padding, y);
+        ctx.stroke();
+      }
+
+      // Draw line
+      ctx.strokeStyle = '#3b82f6';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      equityData.forEach((d, i) => {
+        const x = scaleX(i);
+        const y = scaleY(d.value);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      // Fill gradient
+      ctx.lineTo(scaleX(equityData.length - 1), height - padding);
+      ctx.lineTo(scaleX(0), height - padding);
+      ctx.closePath();
+      const gradient = ctx.createLinearGradient(0, 0, 0, height);
+      gradient.addColorStop(0, 'rgba(59, 130, 246, 0.3)');
+      gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+      ctx.fillStyle = gradient;
+      ctx.fill();
+
+      // Labels
+      ctx.fillStyle = '#64748b';
+      ctx.font = '10px Inter';
+      ctx.textAlign = 'right';
+      ctx.fillText(formatCurrency(maxVal), padding - 5, padding + 5);
+      ctx.fillText(formatCurrency(minVal), padding - 5, height - padding + 5);
+    }
+
+    // Draw enhanced bot equity curve
+    function drawEnhancedEquityCurve() {
+      const canvas = document.getElementById('enhanced-equity-canvas');
+      if (!canvas) return;
+
+      const ctx = canvas.getContext('2d');
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width * 2;
+      canvas.height = rect.height * 2;
+      ctx.scale(2, 2);
+
+      const width = rect.width;
+      const height = rect.height;
+      const padding = 35;
+
+      ctx.clearRect(0, 0, width, height);
+
+      if (enhancedEquityData.length < 2) {
+        ctx.fillStyle = '#64748b';
+        ctx.font = '12px Inter';
+        ctx.textAlign = 'center';
+        ctx.fillText('Collecting data...', width / 2, height / 2);
+        return;
+      }
+
+      const values = enhancedEquityData.map(d => d.value);
+      const minVal = Math.min(...values) * 0.99;
+      const maxVal = Math.max(...values) * 1.01;
+
+      const scaleX = (i) => padding + (i / (enhancedEquityData.length - 1)) * (width - padding * 2);
+      const scaleY = (v) => height - padding - ((v - minVal) / (maxVal - minVal)) * (height - padding * 2);
+
+      // Grid lines
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.1)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 3; i++) {
+        const y = padding + (i / 3) * (height - padding * 2);
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(width - padding, y);
+        ctx.stroke();
+      }
+
+      // Draw line (purple for enhanced bot)
+      ctx.strokeStyle = '#8b5cf6';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      enhancedEquityData.forEach((d, i) => {
+        const x = scaleX(i);
+        const y = scaleY(d.value);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      // Fill gradient
+      ctx.lineTo(scaleX(enhancedEquityData.length - 1), height - padding);
+      ctx.lineTo(scaleX(0), height - padding);
+      ctx.closePath();
+      const gradient = ctx.createLinearGradient(0, 0, 0, height);
+      gradient.addColorStop(0, 'rgba(139, 92, 246, 0.3)');
+      gradient.addColorStop(1, 'rgba(139, 92, 246, 0)');
+      ctx.fillStyle = gradient;
+      ctx.fill();
+
+      // Labels
+      ctx.fillStyle = '#64748b';
+      ctx.font = '9px Inter';
+      ctx.textAlign = 'right';
+      ctx.fillText(formatCurrency(maxVal), padding - 3, padding + 4);
+      ctx.fillText(formatCurrency(minVal), padding - 3, height - padding + 4);
+    }
+
+    // Draw aggressive bot equity curve
+    function drawAggressiveEquityCurve() {
+      const canvas = document.getElementById('aggressive-equity-canvas');
+      if (!canvas) return;
+
+      const ctx = canvas.getContext('2d');
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width * 2;
+      canvas.height = rect.height * 2;
+      ctx.scale(2, 2);
+
+      const width = rect.width;
+      const height = rect.height;
+      const padding = 35;
+
+      ctx.clearRect(0, 0, width, height);
+
+      if (aggressiveEquityData.length < 2) {
+        ctx.fillStyle = '#64748b';
+        ctx.font = '12px Inter';
+        ctx.textAlign = 'center';
+        ctx.fillText('Collecting data...', width / 2, height / 2);
+        return;
+      }
+
+      const values = aggressiveEquityData.map(d => d.value);
+      const minVal = Math.min(...values) * 0.99;
+      const maxVal = Math.max(...values) * 1.01;
+
+      const scaleX = (i) => padding + (i / (aggressiveEquityData.length - 1)) * (width - padding * 2);
+      const scaleY = (v) => height - padding - ((v - minVal) / (maxVal - minVal)) * (height - padding * 2);
+
+      // Grid lines
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.1)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 3; i++) {
+        const y = padding + (i / 3) * (height - padding * 2);
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(width - padding, y);
+        ctx.stroke();
+      }
+
+      // Draw line (red for aggressive bot)
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      aggressiveEquityData.forEach((d, i) => {
+        const x = scaleX(i);
+        const y = scaleY(d.value);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      // Fill gradient
+      ctx.lineTo(scaleX(aggressiveEquityData.length - 1), height - padding);
+      ctx.lineTo(scaleX(0), height - padding);
+      ctx.closePath();
+      const gradient = ctx.createLinearGradient(0, 0, 0, height);
+      gradient.addColorStop(0, 'rgba(239, 68, 68, 0.3)');
+      gradient.addColorStop(1, 'rgba(239, 68, 68, 0)');
+      ctx.fillStyle = gradient;
+      ctx.fill();
+
+      // Labels
+      ctx.fillStyle = '#64748b';
+      ctx.font = '9px Inter';
+      ctx.textAlign = 'right';
+      ctx.fillText(formatCurrency(maxVal), padding - 3, padding + 4);
+      ctx.fillText(formatCurrency(minVal), padding - 3, height - padding + 4);
+    }
+
+    // Asset allocation data
+    let allocationData = {};
+
+    // Draw pie chart for asset allocation
+    function drawAllocationPieChart() {
+      const canvas = document.getElementById('allocation-canvas');
+      if (!canvas) return;
+
+      const ctx = canvas.getContext('2d');
+      const container = canvas.parentElement;
+      const rect = container.getBoundingClientRect();
+
+      canvas.width = rect.width * 2;
+      canvas.height = rect.height * 2;
+      ctx.scale(2, 2);
+
+      const width = rect.width;
+      const height = rect.height;
+      ctx.clearRect(0, 0, width, height);
+
+      // Get allocation data from signals
+      const entries = Object.entries(allocationData);
+      if (entries.length === 0) {
+        ctx.fillStyle = '#64748b';
+        ctx.font = '12px Inter';
+        ctx.textAlign = 'center';
+        ctx.fillText('No allocation data', width / 2, height / 2);
+        return;
+      }
+
+      // Colors for pie slices
+      const colors = [
+        '#3b82f6', // blue
+        '#10b981', // green
+        '#f59e0b', // amber
+        '#ef4444', // red
+        '#8b5cf6', // purple
+        '#06b6d4', // cyan
+        '#ec4899', // pink
+        '#f97316', // orange
+      ];
+
+      // Calculate total
+      const total = entries.reduce((sum, [_, val]) => sum + Math.abs(val), 0);
+      if (total === 0) {
+        ctx.fillStyle = '#64748b';
+        ctx.font = '12px Inter';
+        ctx.textAlign = 'center';
+        ctx.fillText('No positions', width / 2, height / 2);
+        return;
+      }
+
+      // Draw pie chart
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const radius = Math.min(width, height) / 2 - 20;
+
+      let startAngle = -Math.PI / 2;
+
+      entries.forEach(([symbol, value], index) => {
+        const sliceAngle = (Math.abs(value) / total) * 2 * Math.PI;
+        const endAngle = startAngle + sliceAngle;
+
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+        ctx.closePath();
+        ctx.fillStyle = colors[index % colors.length];
+        ctx.fill();
+
+        // Draw white border
+        ctx.strokeStyle = '#0a0f1a';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        startAngle = endAngle;
+      });
+
+      // Draw center hole (donut style)
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius * 0.5, 0, 2 * Math.PI);
+      ctx.fillStyle = '#1a2332';
+      ctx.fill();
+
+      // Draw total in center
+      ctx.fillStyle = '#f1f5f9';
+      ctx.font = 'bold 14px Inter';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(formatCurrency(total), centerX, centerY);
+
+      // Update legend
+      const legendEl = document.getElementById('allocation-legend');
+      if (legendEl) {
+        legendEl.innerHTML = entries.map(([symbol, value], index) => {
+          const pct = ((Math.abs(value) / total) * 100).toFixed(1);
+          const color = colors[index % colors.length];
+          const shortSymbol = symbol.replace('/USDT', '').replace('/USD', '');
+          return `<span style="display: inline-block; margin: 2px 6px;">
+            <span style="display: inline-block; width: 10px; height: 10px; background: ${color}; border-radius: 2px; margin-right: 4px;"></span>
+            ${shortSymbol}: ${pct}%
+          </span>`;
+        }).join('');
+      }
+    }
+
+    // Fetch data from API
+    async function fetchData() {
+      try {
+        // Fetch live trading status
+        const liveRes = await fetch('/api/live-status');
+        const liveData = await liveRes.json();
+
+        // Update connection status based on bot running state
+        if (liveData.running) {
+          connectionStatus.className = 'status-indicator live';
+          statusText.textContent = 'Live';
+        } else {
+          connectionStatus.className = 'status-indicator offline';
+          statusText.textContent = 'Bot Stopped';
+        }
+
+        // Update portfolio overview
+        totalValue.textContent = formatCurrency(liveData.portfolio_value || 10000);
+        cashBalance.textContent = formatCurrency(liveData.cash_balance || 10000);
+
+        // Calculate active positions count
+        const activePositions = Object.values(liveData.signals || {}).filter(s => s.action !== 'FLAT').length;
+        positionsCount.textContent = activePositions;
+
+        // Update P&L
+        const pnl = liveData.pnl || 0;
+        const pnlPct = liveData.pnl_pct || 0;
+        totalPnl.textContent = `${formatCurrency(pnl)} (${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%)`;
+        totalPnl.className = 'stat-value ' + (pnl >= 0 ? 'positive' : 'negative');
+
+        // Update iteration count and timestamp
+        iterationCount.textContent = liveData.iteration || 0;
+        if (liveData.timestamp) {
+          lastUpdate.textContent = liveData.timestamp.split(' ')[1] || liveData.timestamp;
+        }
+
+        // Update equity curve
+        if (liveData.portfolio_value > 0) {
+          equityData.push({ time: new Date(), value: liveData.portfolio_value });
+          if (equityData.length > maxEquityPoints) equityData.shift();
+          drawEquityCurve();
+        }
+
+        // Fetch enhanced bot equity data
+        try {
+          const enhancedRes = await fetch('/equity/enhanced');
+          const enhancedData = await enhancedRes.json();
+          if (enhancedData && enhancedData.length > 0) {
+            enhancedEquityData = enhancedData.map(d => ({ time: new Date(d.timestamp), value: d.value }));
+            drawEnhancedEquityCurve();
+          }
+        } catch (e) {
+          // Enhanced bot may not be running
+        }
+
+        // Fetch aggressive bot equity data
+        try {
+          const aggressiveRes = await fetch('/equity/aggressive');
+          const aggressiveData = await aggressiveRes.json();
+          if (aggressiveData && aggressiveData.length > 0) {
+            aggressiveEquityData = aggressiveData.map(d => ({ time: new Date(d.timestamp), value: d.value }));
+            drawAggressiveEquityCurve();
+          }
+        } catch (e) {
+          // Aggressive bot may not be running
+        }
+
+        // Render asset positions with signals
+        const assets = Object.entries(liveData.signals || {}).map(([symbol, signal]) => ({
+          symbol,
+          price: liveData.prices[symbol] || 0,
+          regime: signal.regime,
+          action: signal.action,
+          confidence: signal.confidence,
+          quantity: signal.action !== 'FLAT' ? (liveData.portfolio_value - liveData.cash_balance) / (Object.values(liveData.signals).filter(s => s.action !== 'FLAT').length || 1) / (liveData.prices[symbol] || 1) : 0,
+          value: signal.action !== 'FLAT' ? (liveData.portfolio_value - liveData.cash_balance) / (Object.values(liveData.signals).filter(s => s.action !== 'FLAT').length || 1) : 0,
+          change: 0
+        }));
+
+        if (assets.length > 0) {
+          renderAssetCards(assets);
+
+          // Update allocation data for pie chart
+          allocationData = {};
+          assets.forEach(asset => {
+            if (asset.value > 0) {
+              allocationData[asset.symbol] = asset.value;
+            }
+          });
+          // Add cash as a category if there's remaining cash
+          if (liveData.cash_balance > 0 && liveData.portfolio_value > 0) {
+            const investedValue = Object.values(allocationData).reduce((s, v) => s + v, 0);
+            if (liveData.cash_balance > investedValue * 0.05) { // Only show if > 5% of invested
+              allocationData['Cash'] = liveData.cash_balance;
+            }
+          }
+          drawAllocationPieChart();
+        }
+
+        // Render market regimes
+        renderRegimes(liveData.signals || {});
+
+        // Update ML insights
+        const signals = Object.values(liveData.signals || {});
+        activeSignals.textContent = signals.filter(s => s.action !== 'FLAT').length;
+        if (signals.length > 0) {
+          const avgConf = signals.reduce((sum, s) => sum + (s.confidence || 0), 0) / signals.length;
+          avgConfidence.textContent = (avgConf * 100).toFixed(0) + '%';
+        }
+
+        // Fetch correlations (still useful)
+        try {
+          const corrRes = await fetch('/portfolio/optimizer/correlations');
+          const corrData = await corrRes.json();
+          if (corrData.status === 'success') {
+            renderCorrelation(corrData.analysis);
+          }
+        } catch (e) {
+          // Ignore correlation errors
+        }
+
+        lastUpdate.textContent = formatTime(new Date());
+
+      } catch (error) {
+        console.error('Fetch error:', error);
+        connectionStatus.className = 'status-indicator offline';
+        statusText.textContent = 'Offline';
+      }
+    }
+
+    // Read log file
+    async function fetchLog() {
+      try {
+        const res = await fetch('/api/paper-trading-log');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.entries) {
+            data.entries.forEach(entry => {
+              if (!logEntries.find(e => e.time === entry.time && e.message === entry.message)) {
+                logEntries.unshift(entry);
+              }
+            });
+            if (logEntries.length > maxLogEntries) {
+              logEntries = logEntries.slice(0, maxLogEntries);
+            }
+            renderLog();
+          }
+        }
+      } catch (e) {
+        // Ignore log fetch errors
+      }
+    }
+
+    async function stopTrading() {
+      if (confirm('Are you sure you want to stop the paper trading bot?')) {
+        try {
+          const res = await fetch('/bot/stop', { method: 'POST' });
+          addLog('Stop signal sent to bot', 'sell');
+        } catch (e) {
+          addLog('Failed to stop bot: ' + e.message, 'sell');
+        }
+      }
+    }
+
+    // WebSocket connection management
+    let ws = null;
+    let wsReconnectAttempts = 0;
+    let wsReconnectTimeout = null;
+    let useWebSocket = true;
+    let pollingInterval = null;
+
+    function getWebSocketUrl() {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      return `${protocol}//${window.location.host}/ws/updates`;
+    }
+
+    function connectWebSocket() {
+      if (!useWebSocket) return;
+
+      try {
+        ws = new WebSocket(getWebSocketUrl());
+
+        ws.onopen = function() {
+          addLog('WebSocket connected - Real-time updates active', 'buy');
+          wsReconnectAttempts = 0;
+          connectionStatus.className = 'status-indicator live';
+          statusText.textContent = 'Live (WebSocket)';
+
+          // Stop polling if we have WebSocket
+          if (pollingInterval) {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
+          }
+        };
+
+        ws.onmessage = function(event) {
+          try {
+            // Handle ping/pong
+            if (event.data === 'ping') {
+              ws.send('pong');
+              return;
+            }
+            if (event.data === 'pong') return;
+
+            const data = JSON.parse(event.data);
+            handleWebSocketUpdate(data);
+          } catch (e) {
+            console.error('WebSocket message parse error:', e);
+          }
+        };
+
+        ws.onclose = function() {
+          addLog('WebSocket disconnected', 'neutral');
+          ws = null;
+          scheduleReconnect();
+        };
+
+        ws.onerror = function(error) {
+          console.error('WebSocket error:', error);
+          ws = null;
+        };
+
+      } catch (e) {
+        console.error('WebSocket connection failed:', e);
+        scheduleReconnect();
+      }
+    }
+
+    function scheduleReconnect() {
+      if (wsReconnectTimeout) return;
+
+      wsReconnectAttempts++;
+      const delay = Math.min(1000 * Math.pow(2, wsReconnectAttempts), 30000);
+
+      connectionStatus.className = 'status-indicator offline';
+      statusText.textContent = `Reconnecting in ${Math.round(delay/1000)}s...`;
+
+      // Start polling as fallback
+      if (!pollingInterval) {
+        pollingInterval = setInterval(fetchData, 5000);
+        addLog('Falling back to polling', 'neutral');
+      }
+
+      wsReconnectTimeout = setTimeout(() => {
+        wsReconnectTimeout = null;
+        connectWebSocket();
+      }, delay);
+    }
+
+    function handleWebSocketUpdate(data) {
+      try {
+        // Update timestamp
+        if (data.timestamp) {
+          lastUpdate.textContent = new Date(data.timestamp).toLocaleTimeString();
+        }
+
+        // Handle different update types
+        const portfolioData = data.portfolio || data;
+
+        // Update portfolio overview
+        if (portfolioData.total_value !== undefined) {
+          totalValue.textContent = formatCurrency(portfolioData.total_value);
+        }
+        if (portfolioData.cash_balance !== undefined) {
+          cashBalance.textContent = formatCurrency(portfolioData.cash_balance);
+        }
+
+        // Update P&L
+        const pnl = portfolioData.unrealized_pnl || portfolioData.pnl || 0;
+        const pnlPct = portfolioData.unrealized_pnl_pct || portfolioData.pnl_pct || 0;
+        totalPnl.textContent = `${formatCurrency(pnl)} (${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%)`;
+        totalPnl.className = 'stat-value ' + (pnl >= 0 ? 'positive' : 'negative');
+
+        // Update positions count
+        const positions = portfolioData.positions || {};
+        const activePos = Object.keys(positions).length;
+        positionsCount.textContent = activePos;
+
+        // Update equity curve
+        if (portfolioData.total_value > 0) {
+          equityData.push({ time: new Date(), value: portfolioData.total_value });
+          if (equityData.length > maxEquityPoints) equityData.shift();
+          drawEquityCurve();
+        }
+
+        // Update assets/signals if available
+        if (data.signals) {
+          const assets = Object.entries(data.signals).map(([symbol, signal]) => ({
+            symbol,
+            price: (data.prices || {})[symbol] || 0,
+            regime: signal.regime,
+            action: signal.action,
+            confidence: signal.confidence,
+            quantity: 0,
+            value: 0,
+            change: 0
+          }));
+
+          if (assets.length > 0) {
+            renderAssetCards(assets);
+            renderRegimes(data.signals);
+
+            // Update ML insights
+            const signals = Object.values(data.signals);
+            activeSignals.textContent = signals.filter(s => s.action !== 'FLAT').length;
+            if (signals.length > 0) {
+              const avgConf = signals.reduce((sum, s) => sum + (s.confidence || 0), 0) / signals.length;
+              avgConfidence.textContent = (avgConf * 100).toFixed(0) + '%';
+            }
+          }
+        }
+
+        // Update iteration count
+        if (data.iteration !== undefined) {
+          iterationCount.textContent = data.iteration;
+        }
+
+      } catch (e) {
+        console.error('Error handling WebSocket update:', e);
+      }
+    }
+
+    function sendWebSocketMessage(message) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(typeof message === 'string' ? message : JSON.stringify(message));
+      }
+    }
+
+    // Send periodic pings to keep connection alive
+    setInterval(() => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send('ping');
+      }
+    }, 30000);
+
+    // Initialize
+    async function init() {
+      addLog('Dashboard initialized');
+
+      // Try to connect via WebSocket first
+      connectWebSocket();
+
+      // Initial data fetch (fallback/initial load)
+      await fetchData();
+      drawEquityCurve();
+
+      // Start log polling (logs don't go through WebSocket)
+      setInterval(fetchLog, 10000);
+
+      // Handle window resize
+      window.addEventListener('resize', () => {
+        drawEquityCurve();
+        drawEnhancedEquityCurve();
+        drawAggressiveEquityCurve();
+        drawAllocationPieChart();
+      });
+
+      // Cleanup on page unload
+      window.addEventListener('beforeunload', () => {
+        if (ws) {
+          ws.close();
+        }
+      });
+    }
+
+    init();
+  </script>
+</body>
+</html>

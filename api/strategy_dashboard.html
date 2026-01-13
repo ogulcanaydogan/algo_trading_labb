@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strategy Performance Dashboard</title>
+    <style>
+        :root {
+            --bg-primary: #0a0f1a;
+            --bg-secondary: #111827;
+            --bg-card: #1a2332;
+            --bg-hover: #243044;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-yellow: #f59e0b;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+            --radius-sm: 6px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: var(--bg-secondary);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: var(--spacing-md);
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--radius-sm);
+            transition: all 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+            background: var(--bg-hover);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: var(--spacing-lg);
+        }
+
+        .page-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-lg);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .summary-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+            text-align: center;
+        }
+
+        .summary-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .summary-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .positive { color: var(--accent-green); }
+        .negative { color: var(--accent-red); }
+        .neutral { color: var(--text-secondary); }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: var(--spacing-md);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .strategy-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .strategy-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .strategy-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .strategy-card.profitable {
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .strategy-card.losing {
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .strategy-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .strategy-name {
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+
+        .strategy-type {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: var(--spacing-xs);
+        }
+
+        .status-badge {
+            font-size: 0.75rem;
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: 9999px;
+            font-weight: 500;
+        }
+
+        .status-active { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
+        .status-testing { background: rgba(139, 92, 246, 0.2); color: var(--accent-purple); }
+        .status-paused { background: rgba(245, 158, 11, 0.2); color: var(--accent-yellow); }
+        .status-disabled { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+
+        .strategy-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .stat-item {
+            padding: var(--spacing-sm);
+            background: var(--bg-secondary);
+            border-radius: var(--radius-sm);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 2px;
+        }
+
+        .stat-value {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .pnl-display {
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-align: center;
+            padding: var(--spacing-md);
+            background: var(--bg-secondary);
+            border-radius: var(--radius-sm);
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: var(--bg-secondary);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: var(--spacing-sm);
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+
+        .progress-fill.win { background: var(--accent-green); }
+        .progress-fill.loss { background: var(--accent-red); }
+
+        .type-breakdown {
+            background: var(--bg-card);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .type-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-md);
+        }
+
+        .type-item {
+            padding: var(--spacing-md);
+            background: var(--bg-secondary);
+            border-radius: var(--radius-sm);
+        }
+
+        .type-name {
+            font-weight: 600;
+            margin-bottom: var(--spacing-xs);
+            text-transform: capitalize;
+        }
+
+        .type-stats {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .recent-trades {
+            background: var(--bg-card);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+        }
+
+        .trade-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .trade-table th,
+        .trade-table td {
+            padding: var(--spacing-sm) var(--spacing-md);
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .trade-table th {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+        }
+
+        .trade-table td {
+            font-size: 0.875rem;
+        }
+
+        .trade-table tr:hover {
+            background: var(--bg-hover);
+        }
+
+        .side-long { color: var(--accent-green); }
+        .side-short { color: var(--accent-red); }
+
+        .refresh-btn {
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            transition: background 0.2s;
+        }
+
+        .refresh-btn:hover {
+            background: #2563eb;
+        }
+
+        .loading {
+            text-align: center;
+            padding: var(--spacing-xl);
+            color: var(--text-secondary);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: var(--spacing-xl);
+            color: var(--text-muted);
+        }
+
+        .empty-state h3 {
+            font-size: 1.25rem;
+            margin-bottom: var(--spacing-sm);
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            .summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .strategy-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <a href="/" style="color: inherit; text-decoration: none; display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 1.5rem;">←</span>
+                <span>Strategy Dashboard</span>
+            </a>
+        </div>
+        <nav class="nav-links">
+            <a href="/">Main Dashboard</a>
+            <a href="/dashboard/strategies" class="active" style="color: var(--accent-purple);">Strategies</a>
+            <a href="/docs">API Docs</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
+            <h1 class="page-title" style="margin-bottom: 0;">Strategy Performance</h1>
+            <button class="refresh-btn" onclick="loadDashboard()">
+                <span>Refresh</span>
+            </button>
+        </div>
+
+        <div id="dashboard-content">
+            <div class="loading">Loading strategy data...</div>
+        </div>
+    </div>
+
+    <script>
+        async function loadDashboard() {
+            const content = document.getElementById('dashboard-content');
+            content.innerHTML = '<div class="loading">Loading strategy data...</div>';
+
+            try {
+                const response = await fetch('/api/strategies/dashboard');
+                const data = await response.json();
+                renderDashboard(data);
+            } catch (error) {
+                content.innerHTML = `
+                    <div class="empty-state">
+                        <h3>Error Loading Data</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function formatNumber(num, decimals = 2) {
+            if (num === null || num === undefined) return '-';
+            return Number(num).toFixed(decimals);
+        }
+
+        function formatCurrency(num) {
+            if (num === null || num === undefined) return '-';
+            const prefix = num >= 0 ? '+$' : '-$';
+            return prefix + Math.abs(num).toFixed(2);
+        }
+
+        function formatPercent(num) {
+            if (num === null || num === undefined) return '-';
+            return (num * 100).toFixed(1) + '%';
+        }
+
+        function getStatusClass(status) {
+            const classes = {
+                'active': 'status-active',
+                'testing': 'status-testing',
+                'paused': 'status-paused',
+                'disabled': 'status-disabled'
+            };
+            return classes[status] || 'status-testing';
+        }
+
+        function getRegimeIcon(regime) {
+            const icons = {
+                'bull': '🐂',
+                'bear': '🐻',
+                'crash': '💥',
+                'sideways': '↔️',
+                'high_vol': '🌊',
+                'unknown': '❓'
+            };
+            return icons[regime?.toLowerCase()] || '❓';
+        }
+
+        function getRegimeBreakdown(strategies) {
+            const breakdown = {};
+            strategies.forEach(s => {
+                if (s.regime_performance) {
+                    Object.entries(s.regime_performance).forEach(([regime, data]) => {
+                        if (!breakdown[regime]) {
+                            breakdown[regime] = { trades: 0, wins: 0, pnl: 0 };
+                        }
+                        breakdown[regime].trades += data.trades || 0;
+                        breakdown[regime].wins += data.wins || 0;
+                        breakdown[regime].pnl += data.pnl || 0;
+                    });
+                }
+            });
+            return breakdown;
+        }
+
+        function renderDashboard(data) {
+            const content = document.getElementById('dashboard-content');
+            const summary = data.summary || {};
+            const allStrategies = data.all_strategies || [];
+            const byType = data.by_type || {};
+            const recentActivity = data.recent_activity || [];
+
+            if (allStrategies.length === 0) {
+                content.innerHTML = `
+                    <div class="empty-state">
+                        <h3>No Strategies Registered</h3>
+                        <p>Register strategies using the StrategyTracker to see them here.</p>
+                        <p style="margin-top: 1rem; font-size: 0.875rem;">
+                            Example usage:<br>
+                            <code>tracker.register_strategy("my_strategy", "My Strategy", "regime_sizing")</code>
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `
+                <!-- Summary Cards -->
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <div class="summary-value">${summary.total_strategies || 0}</div>
+                        <div class="summary-label">Total Strategies</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-value positive">${summary.profitable_strategies || 0}</div>
+                        <div class="summary-label">Profitable</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-value negative">${summary.unprofitable_strategies || 0}</div>
+                        <div class="summary-label">Unprofitable</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-value ${(summary.total_pnl || 0) >= 0 ? 'positive' : 'negative'}">
+                            ${formatCurrency(summary.total_pnl)}
+                        </div>
+                        <div class="summary-label">Total P&L</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-value">${summary.total_trades || 0}</div>
+                        <div class="summary-label">Total Trades</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-value">${formatPercent(summary.overall_win_rate)}</div>
+                        <div class="summary-label">Win Rate</div>
+                    </div>
+                </div>
+
+                <!-- Strategy Type Breakdown -->
+                <div class="type-breakdown">
+                    <h2 class="section-title">Performance by Type</h2>
+                    <div class="type-grid">
+                        ${Object.entries(byType).map(([type, stats]) => `
+                            <div class="type-item">
+                                <div class="type-name">${type.replace(/_/g, ' ')}</div>
+                                <div class="type-stats">
+                                    <div>${stats.count} strategies | ${stats.profitable_count} profitable</div>
+                                    <div class="${stats.total_pnl >= 0 ? 'positive' : 'negative'}">
+                                        P&L: ${formatCurrency(stats.total_pnl)}
+                                    </div>
+                                    <div>Trades: ${stats.total_trades}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <!-- All Strategies -->
+                <h2 class="section-title">All Strategies</h2>
+                <div class="strategy-grid">
+                    ${allStrategies.map(s => `
+                        <div class="strategy-card ${s.is_profitable ? 'profitable' : 'losing'}">
+                            <div class="strategy-header">
+                                <div>
+                                    <div class="strategy-name">${s.strategy_name}</div>
+                                    <div class="strategy-type">${s.strategy_type}</div>
+                                </div>
+                                <span class="status-badge ${getStatusClass(s.status)}">${s.status}</span>
+                            </div>
+
+                            <div class="pnl-display ${s.total_pnl >= 0 ? 'positive' : 'negative'}">
+                                ${formatCurrency(s.total_pnl)}
+                            </div>
+
+                            <div class="strategy-stats">
+                                <div class="stat-item">
+                                    <div class="stat-label">Total Trades</div>
+                                    <div class="stat-value">${s.total_trades}</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Win Rate</div>
+                                    <div class="stat-value">${formatPercent(s.win_rate)}</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Profit Factor</div>
+                                    <div class="stat-value">${s.profit_factor === Infinity ? 'Inf' : formatNumber(s.profit_factor)}</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Sharpe Ratio</div>
+                                    <div class="stat-value">${formatNumber(s.sharpe_ratio)}</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Best Trade</div>
+                                    <div class="stat-value positive">${formatCurrency(s.best_trade)}</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Worst Trade</div>
+                                    <div class="stat-value negative">${formatCurrency(s.worst_trade)}</div>
+                                </div>
+                            </div>
+
+                            <div class="progress-bar">
+                                <div class="progress-fill win" style="width: ${s.win_rate * 100}%"></div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">
+                                <span>${s.winning_trades} wins</span>
+                                <span>${s.losing_trades} losses</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <!-- Regime Performance Breakdown -->
+                ${Object.keys(getRegimeBreakdown(allStrategies)).length > 0 ? `
+                    <div class="type-breakdown" style="margin-bottom: var(--spacing-xl);">
+                        <h2 class="section-title">Performance by Market Regime</h2>
+                        <div class="type-grid">
+                            ${Object.entries(getRegimeBreakdown(allStrategies)).map(([regime, stats]) => `
+                                <div class="type-item">
+                                    <div class="type-name" style="display: flex; align-items: center; gap: 8px;">
+                                        <span style="font-size: 1.2rem;">${getRegimeIcon(regime)}</span>
+                                        ${regime.toUpperCase()}
+                                    </div>
+                                    <div class="type-stats">
+                                        <div>Trades: ${stats.trades} | Wins: ${stats.wins}</div>
+                                        <div class="${stats.pnl >= 0 ? 'positive' : 'negative'}">
+                                            P&L: ${formatCurrency(stats.pnl)}
+                                        </div>
+                                        <div>Win Rate: ${stats.trades > 0 ? ((stats.wins / stats.trades) * 100).toFixed(1) : 0}%</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- Recent Trades -->
+                ${recentActivity.length > 0 ? `
+                    <div class="recent-trades">
+                        <h2 class="section-title">Recent Trades (Last 7 Days)</h2>
+                        <table class="trade-table">
+                            <thead>
+                                <tr>
+                                    <th>Strategy</th>
+                                    <th>Symbol</th>
+                                    <th>Side</th>
+                                    <th>Entry Price</th>
+                                    <th>Exit Price</th>
+                                    <th>P&L</th>
+                                    <th>Regime</th>
+                                    <th>Exit Reason</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${recentActivity.slice(0, 10).map(t => `
+                                    <tr>
+                                        <td>${t.strategy_id.split('_').slice(-2).join(' ')}</td>
+                                        <td>${t.symbol}</td>
+                                        <td class="${t.side === 'long' ? 'side-long' : 'side-short'}">${t.side.toUpperCase()}</td>
+                                        <td>${formatNumber(t.entry_price)}</td>
+                                        <td>${t.exit_price ? formatNumber(t.exit_price) : '-'}</td>
+                                        <td class="${(t.pnl || 0) >= 0 ? 'positive' : 'negative'}">${formatCurrency(t.pnl)}</td>
+                                        <td>${t.regime ? getRegimeIcon(t.regime) + ' ' + t.regime : '-'}</td>
+                                        <td>${t.exit_reason || '-'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                ` : ''}
+
+                <!-- Quick Actions -->
+                <div style="margin-top: var(--spacing-xl); padding: var(--spacing-lg); background: var(--bg-card); border-radius: var(--radius-md);">
+                    <h2 class="section-title">Quick Actions</h2>
+                    <div style="display: flex; gap: var(--spacing-md); flex-wrap: wrap;">
+                        <a href="/" class="refresh-btn" style="text-decoration: none;">Back to Dashboard</a>
+                        <button class="refresh-btn" onclick="loadDashboard()" style="background: var(--accent-green);">Refresh Data</button>
+                        <a href="/api/strategies/dashboard" target="_blank" class="refresh-btn" style="text-decoration: none; background: var(--accent-purple);">View Raw JSON</a>
+                    </div>
+                </div>
+            `;
+
+            content.innerHTML = html;
+        }
+
+        // WebSocket connection for real-time updates
+        let ws = null;
+        let wsReconnectAttempts = 0;
+        const MAX_RECONNECT_ATTEMPTS = 5;
+
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws/updates`;
+
+            try {
+                ws = new WebSocket(wsUrl);
+
+                ws.onopen = () => {
+                    console.log('WebSocket connected');
+                    wsReconnectAttempts = 0;
+                    updateConnectionStatus(true);
+                };
+
+                ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.type === 'strategy_update') {
+                            renderDashboard(data.payload);
+                        }
+                    } catch (e) {
+                        console.error('WebSocket message error:', e);
+                    }
+                };
+
+                ws.onclose = () => {
+                    console.log('WebSocket disconnected');
+                    updateConnectionStatus(false);
+                    if (wsReconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                        setTimeout(() => {
+                            wsReconnectAttempts++;
+                            connectWebSocket();
+                        }, 3000 * wsReconnectAttempts);
+                    }
+                };
+
+                ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                };
+            } catch (e) {
+                console.error('WebSocket connection failed:', e);
+            }
+        }
+
+        function updateConnectionStatus(connected) {
+            // Could add a visual indicator here
+        }
+
+        // Load dashboard on page load
+        loadDashboard();
+
+        // Try WebSocket connection
+        connectWebSocket();
+
+        // Fallback: Auto-refresh every 30 seconds if WebSocket fails
+        setInterval(() => {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                loadDashboard();
+            }
+        }, 30000);
+
+        // Keyboard shortcut: Press 'r' to refresh
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'r' && !e.ctrlKey && !e.metaKey) {
+                loadDashboard();
+            }
+            // Press Escape or Backspace to go back to main dashboard
+            if (e.key === 'Escape' || (e.key === 'Backspace' && e.target.tagName !== 'INPUT')) {
+                window.location.href = '/';
+            }
+        });
+    </script>
+</body>
+</html>

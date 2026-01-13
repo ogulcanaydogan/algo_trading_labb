@@ -1,0 +1,44 @@
+[
+  {
+    "timestamp": "2026-01-13T00:51:16.491996",
+    "symbol": "BTC/USDT",
+    "action": "SHORT",
+    "price": 91221.4375,
+    "quantity": 0.0328870064122811,
+    "value": 3000.0,
+    "status": "executed",
+    "side": "SHORT"
+  },
+  {
+    "timestamp": "2026-01-13T00:51:16.584600",
+    "symbol": "ETH/USDT",
+    "action": "LONG",
+    "price": 3099.7822265625,
+    "quantity": 0.6774669465502396,
+    "value": 2100.0,
+    "status": "executed",
+    "side": "LONG"
+  },
+  {
+    "timestamp": "2026-01-13T01:06:16.452574",
+    "symbol": "BTC/USDT",
+    "action": "CLOSE_SHORT",
+    "price": 91363.9453125,
+    "quantity": 0.0328870064122811,
+    "value": 2995.313344656512,
+    "pnl": -4.686655343487653,
+    "pnl_pct": -0.0015622184478292177,
+    "hold_time_minutes": 14.999342933333333,
+    "status": "executed"
+  },
+  {
+    "timestamp": "2026-01-13T01:06:16.452527",
+    "symbol": "BTC/USDT",
+    "action": "LONG",
+    "price": 91363.9453125,
+    "quantity": 0.025924821824358027,
+    "value": 2368.594003396953,
+    "status": "executed",
+    "side": "LONG"
+  }
+]

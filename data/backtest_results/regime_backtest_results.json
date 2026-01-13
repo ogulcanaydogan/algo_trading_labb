@@ -1,0 +1,64 @@
+{
+  "performance": {
+    "initial_capital": 10000.0,
+    "final_equity": 224530453929.04,
+    "total_return": 224530443929.04,
+    "total_return_pct": 2245304439.29,
+    "cagr": 471011.29
+  },
+  "risk": {
+    "max_drawdown_pct": 0.73,
+    "max_drawdown_duration_days": 2,
+    "sharpe_ratio": 9.899,
+    "sortino_ratio": 368.528,
+    "calmar_ratio": 646965.42
+  },
+  "trades": {
+    "total": 322,
+    "winners": 130,
+    "losers": 192,
+    "win_rate": 40.4,
+    "profit_factor": 1.12,
+    "avg_win": 10454999.61,
+    "avg_loss": -6314818.52,
+    "avg_trade": 455604.95,
+    "largest_win": 142468199.61,
+    "largest_loss": -288919661.5
+  },
+  "exposure": {
+    "avg_exposure_pct": 0.0,
+    "max_leverage": 0.0,
+    "time_in_market_pct": 22.9
+  },
+  "costs": {
+    "total_fees": 449347074.23,
+    "total_slippage": 449347895.02,
+    "total_turnover": 449216694966.05,
+    "avg_holding_hours": 12.3
+  },
+  "regime_breakdown": {
+    "sideways": {
+      "trades": 308,
+      "win_rate": 0.40584415584415584,
+      "total_pnl": 325325682.5507439,
+      "avg_pnl": 1056252.2160738437
+    },
+    "bear": {
+      "trades": 10,
+      "win_rate": 0.3,
+      "total_pnl": -241545854.69757563,
+      "avg_pnl": -24154585.469757564
+    },
+    "bull": {
+      "trades": 4,
+      "win_rate": 0.5,
+      "total_pnl": 62924965.64051662,
+      "avg_pnl": 15731241.410129154
+    }
+  },
+  "period": {
+    "start": "2024-01-13T13:00:00+00:00",
+    "end": "2026-01-13T13:00:00+00:00",
+    "trading_days": 731
+  }
+}

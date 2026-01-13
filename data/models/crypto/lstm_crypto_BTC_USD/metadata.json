@@ -1,0 +1,40 @@
+{
+  "model_name": "lstm_crypto_BTC_USD",
+  "model_type": "lstm",
+  "config": {
+    "name": "lstm_crypto_BTC_USD",
+    "version": "1.0.0",
+    "sequence_length": 60,
+    "batch_size": 32,
+    "epochs": 50,
+    "learning_rate": 0.001,
+    "hidden_size": 128,
+    "num_layers": 2,
+    "dropout": 0.3,
+    "device": "mps",
+    "use_mixed_precision": false,
+    "early_stopping_patience": 15,
+    "validation_split": 0.2
+  },
+  "feature_names": [],
+  "is_trained": true,
+  "training_metrics": {
+    "train_loss": 0.523299,
+    "val_loss": 1.042383,
+    "train_accuracy": 0.817,
+    "val_accuracy": 0.5175,
+    "epochs_trained": 15,
+    "best_epoch": 0,
+    "training_time_seconds": 4.1,
+    "samples_trained": 399,
+    "feature_importance": {}
+  },
+  "saved_at": "2026-01-12T00:22:53.776140",
+  "input_size": 97,
+  "lstm_config": {
+    "hidden_size": 128,
+    "num_layers": 2,
+    "bidirectional": true,
+    "use_attention": true
+  }
+}

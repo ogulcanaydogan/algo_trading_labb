@@ -1,0 +1,246 @@
+# =============================================================================
+# Algo Trading Lab - Unified Configuration
+# =============================================================================
+# This file centralizes all configuration for the trading system.
+# Environment variables take precedence over values defined here.
+# =============================================================================
+
+general:
+  # Logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  log_level: INFO
+  # Directory for state files, logs, and data
+  data_dir: ./data
+
+trading:
+  # Initial capital in USD for paper trading
+  initial_capital: 10000
+  # Threshold for portfolio rebalancing (5% deviation triggers rebalance)
+  rebalance_threshold: 0.05
+  # Interval between trading loop iterations in seconds
+  # Increased to 180s to avoid rate limiting from exchange APIs
+  loop_interval: 180
+  # Delay between fetching each symbol (seconds) to avoid rate limits
+  symbol_fetch_delay: 5
+  # Risk per trade as percentage of balance
+  risk_per_trade_pct: 1.0
+  # Stop loss percentage (2% = 0.02)
+  stop_loss_pct: 0.02
+  # Take profit percentage (4% = 0.04)
+  take_profit_pct: 0.04
+
+crypto:
+  # Cryptocurrency trading symbols
+  symbols:
+    - BTC/USDT
+    - ETH/USDT
+    - SOL/USDT
+    - AVAX/USDT
+    - XRP/USDT
+    - ADA/USDT
+    - DOT/USDT
+    - MATIC/USDT
+    - LINK/USDT
+    - UNI/USDT
+  # Enable/disable crypto trading
+  enabled: true
+  # Maximum weight per asset in portfolio
+  max_weight: 0.40
+  # Minimum weight per asset in portfolio
+  min_weight: 0.05
+  # Trading hours: 24/7 for crypto
+  trading_hours: always
+
+forex:
+  # Forex trading symbols (major pairs)
+  symbols:
+    - EUR/USD
+    - GBP/USD
+    - USD/JPY
+    - AUD/USD
+    - USD/CAD
+    - NZD/USD
+    - EUR/GBP
+    - EUR/JPY
+  # Enable/disable forex trading
+  enabled: true
+  # Maximum weight per asset in portfolio
+  max_weight: 0.30
+  # Minimum weight per asset in portfolio
+  min_weight: 0.05
+  # Trading hours: 24/5 (Sunday 5pm - Friday 5pm EST)
+  trading_hours:
+    open: "17:00"
+    close: "17:00"
+    timezone: "America/New_York"
+    open_days: [0, 1, 2, 3, 4]  # Mon-Fri (Sunday evening start)
+
+commodities:
+  # Commodity trading symbols
+  symbols:
+    - XAU/USD
+    - XAG/USD
+    - USOIL/USD
+    - NATGAS/USD
+  # Enable/disable commodity trading
+  enabled: true
+  # Maximum weight per asset in portfolio
+  max_weight: 0.35
+  # Minimum weight per asset in portfolio
+  min_weight: 0.05
+
+stocks:
+  # Stock trading symbols
+  symbols:
+    - AAPL
+    - MSFT
+    - GOOGL
+    - NVDA
+    - AMZN
+    - TSLA
+    - META
+    - JPM
+    - V
+    - MA
+  # Enable/disable stock trading
+  enabled: true
+  # Maximum weight per asset in portfolio
+  max_weight: 0.30
+  # Minimum weight per asset in portfolio
+  min_weight: 0.05
+  # Trading hours: NYSE/NASDAQ hours
+  trading_hours:
+    open: "09:30"
+    close: "16:00"
+    timezone: "America/New_York"
+    open_days: [0, 1, 2, 3, 4]  # Mon-Fri
+
+deep_learning:
+  # Enable/disable deep learning models
+  enabled: true
+  # Model selection strategy: regime_based, ensemble, single_best
+  model_selection: regime_based
+  # Default model type: lstm, transformer, xgboost, random_forest
+  default_model: lstm
+  # Device for ML computation: auto, cpu, cuda, mps
+  device: auto
+
+notifications:
+  # Enable/disable Telegram notifications
+  telegram_enabled: true
+  # Enable AI-powered trade explanations (uses Claude API, costs money)
+  ai_explanations: false
+  # Send daily summary notifications
+  daily_summary: true
+  # Hour to send daily summary (24-hour format)
+  daily_summary_hour: 20
+
+api:
+  # API server host
+  host: 0.0.0.0
+  # API server port
+  port: 8000
+  # CORS allowed origins (comma-separated in env var)
+  cors_origins:
+    - "*"
+  # Bot stale threshold in seconds
+  stale_threshold: 300
+
+strategy:
+  # EMA crossover parameters
+  ema_fast: 12
+  ema_slow: 26
+  # RSI parameters
+  rsi_period: 14
+  rsi_overbought: 70
+  rsi_oversold: 30
+  # Default timeframe for analysis
+  timeframe: 1h
+
+portfolio:
+  # Portfolio optimization method: equal_weight, risk_parity, min_volatility, max_sharpe
+  optimization_method: risk_parity
+  # Rebalance frequency: daily, weekly, monthly
+  rebalance_frequency: daily
+  # Use correlation filter to avoid highly correlated assets
+  use_correlation_filter: true
+  # Maximum correlation threshold
+  max_correlation: 0.85
+
+orchestrator:
+  # Health check interval in seconds
+  health_check_interval: 60
+  # Maximum restart attempts for crashed bots
+  max_restart_attempts: 3
+  # Cooldown between restart attempts in seconds
+  restart_cooldown: 300
+  # Auto-restart crashed bots
+  auto_restart: true
+
+# =============================================================================
+# Unified Trading Mode Configuration
+# =============================================================================
+unified_trading:
+  # Default trading mode: backtest, paper_synthetic, paper_live_data, testnet, live_limited, live_full
+  default_mode: paper_live_data
+
+  # Mode-specific limits (can be overridden per mode)
+  live_limited:
+    # Maximum capital for live_limited mode
+    capital_limit: 100
+    # Maximum position size in USD
+    max_position_usd: 20
+    # Maximum daily loss in USD
+    max_daily_loss_usd: 2
+    # Maximum daily loss percentage
+    max_daily_loss_pct: 0.02
+    # Maximum trades per day
+    max_trades_per_day: 10
+    # Maximum open positions
+    max_open_positions: 3
+
+  live_full:
+    # Maximum position size percentage of capital
+    max_position_pct: 0.20
+    # Maximum daily loss percentage
+    max_daily_loss_pct: 0.05
+    # Maximum trades per day
+    max_trades_per_day: 50
+    # Maximum open positions
+    max_open_positions: 10
+
+  # Transition requirements (strict mode - user selected)
+  transitions:
+    # Paper to testnet requirements
+    paper_to_testnet:
+      min_days: 14
+      min_trades: 100
+      min_win_rate: 0.45
+      max_drawdown: 0.12
+      min_profit_factor: 1.0
+
+    # Testnet to live_limited requirements
+    testnet_to_live:
+      min_days: 14
+      min_trades: 100
+      min_win_rate: 0.45
+      max_drawdown: 0.10
+      min_profit_factor: 1.0
+
+    # Live_limited to live_full requirements
+    limited_to_full:
+      min_days: 30
+      min_trades: 200
+      min_win_rate: 0.50
+      max_drawdown: 0.08
+      min_profit_factor: 1.2
+
+  # Safety settings
+  safety:
+    # Emergency stop on this drawdown percentage
+    emergency_stop_drawdown: 0.15
+    # Maximum consecutive losses before pause
+    max_consecutive_losses: 5
+    # Maximum API errors before pause
+    max_api_errors: 3
+    # Minimum balance reserve percentage
+    min_balance_reserve: 0.20

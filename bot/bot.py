@@ -21,15 +21,18 @@ from .playbook import (
     build_portfolio_playbook,
     load_playbook_asset_file,
 )
-from .state import BotState, EquityPoint, SignalEvent, StateStore, create_state_store
+from .state import BotState, EquityPoint, PositionType, SignalEvent, StateStore, create_state_store
 from .config_loader import load_overrides, merge_config
 from .market_data import MarketDataError, YFinanceMarketDataClient
 from .strategy import (
     StrategyConfig,
     calculate_position_size,
+    calculate_kelly_position_size,
     compute_indicators,
     generate_signal,
 )
+from .position_sizer import PositionSizer, SizingMethod
+from .multi_timeframe import MultiTimeframeAnalyzer, get_recommended_htf, resample_to_htf
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("algo-trading-bot")
@@ -54,6 +57,13 @@ class BotConfig:
     macro_events_path: Optional[Path] = None
     macro_refresh_seconds: int = 300
     playbook_assets_path: Optional[Path] = None
+    # Advanced position sizing
+    use_kelly_sizing: bool = False
+    sizing_method: str = "volatility_adjusted"  # fixed_fraction, kelly, half_kelly, volatility_adjusted, atr_based
+    max_position_pct: float = 0.25  # Maximum 25% of portfolio per position
+    # Multi-timeframe filtering
+    use_htf_filter: bool = True
+    htf_strict_mode: bool = False  # If True, reject counter-trend signals entirely
 
     @classmethod
     def from_env(cls) -> "BotConfig":
@@ -85,6 +95,11 @@ class BotConfig:
                 if os.getenv("PLAYBOOK_ASSETS_PATH")
                 else None
             ),
+            use_kelly_sizing=os.getenv("USE_KELLY_SIZING", "false").lower() == "true",
+            sizing_method=os.getenv("SIZING_METHOD", "volatility_adjusted"),
+            max_position_pct=float(os.getenv("MAX_POSITION_PCT", "0.25")),
+            use_htf_filter=os.getenv("USE_HTF_FILTER", "true").lower() == "true",
+            htf_strict_mode=os.getenv("HTF_STRICT_MODE", "false").lower() == "true",
         )
 
 
@@ -209,6 +224,24 @@ def run_loop(config: BotConfig) -> None:
         refresh_interval=config.macro_refresh_seconds,
     )
 
+    # Initialize advanced position sizer
+    sizing_method_map = {
+        "fixed_fraction": SizingMethod.FIXED_FRACTION,
+        "kelly": SizingMethod.KELLY,
+        "half_kelly": SizingMethod.HALF_KELLY,
+        "volatility_adjusted": SizingMethod.VOLATILITY_ADJUSTED,
+        "atr_based": SizingMethod.ATR_BASED,
+        "confidence_scaled": SizingMethod.CONFIDENCE_SCALED,
+    }
+    position_sizer = PositionSizer(
+        portfolio_value=config.starting_balance,
+        max_position_size=config.max_position_pct,
+        max_portfolio_risk=config.risk_per_trade_pct / 100,
+    )
+
+    # Initialize multi-timeframe analyzer
+    mtf_analyzer = MultiTimeframeAnalyzer() if config.use_htf_filter else None
+
     playbook_assets: Sequence[PlaybookAssetDefinition] | None = None
     playbook_horizons: Sequence[HorizonConfig] | None = None
     if config.playbook_assets_path:
@@ -290,6 +323,68 @@ def run_loop(config: BotConfig) -> None:
             )
             enriched = compute_indicators(candles, strategy_config)
             signal = generate_signal(enriched, strategy_config)
+
+            # Apply multi-timeframe filter if enabled
+            htf_info = None
+            if mtf_analyzer and config.use_htf_filter and signal["decision"] != "FLAT":
+                try:
+                    # Load data into MTF analyzer
+                    mtf_analyzer.load_data(config.symbol, candles)
+
+                    # Get recommended HTF for this timeframe
+                    htf = get_recommended_htf(config.timeframe)
+
+                    # Apply HTF filter to signal
+                    signal = mtf_analyzer.filter_signal_with_htf(
+                        signal,
+                        htf_timeframe=htf,
+                        strict_mode=config.htf_strict_mode,
+                    )
+                    htf_info = signal.get("htf_filter", {})
+
+                    if htf_info and htf_info.get("rejected"):
+                        logger.info(
+                            "Signal filtered by HTF: %s -> FLAT | reason=%s",
+                            signal.get("decision"),
+                            htf_info.get("reason"),
+                        )
+                except Exception as htf_error:
+                    logger.debug("HTF filter skipped: %s", htf_error)
+
+            # Update position sizer with current portfolio value
+            position_sizer.update_portfolio_value(store.state.balance)
+
+            # Calculate advanced position size if signal is not FLAT
+            advanced_sizing = None
+            if signal["decision"] != "FLAT":
+                try:
+                    sizing_method = sizing_method_map.get(
+                        config.sizing_method,
+                        SizingMethod.VOLATILITY_ADJUSTED
+                    )
+                    # Get volatility and ATR from signal
+                    atr = signal.get("atr")
+                    price = float(signal["close"])
+
+                    # Estimate volatility from ATR
+                    volatility = (atr / price * 100 * 16) if atr else None  # Annualized approx
+
+                    advanced_sizing = position_sizer.calculate_size(
+                        symbol=config.symbol,
+                        method=sizing_method,
+                        price=price,
+                        confidence=float(signal.get("confidence", 0.5)),
+                        volatility=volatility,
+                        atr=atr,
+                    )
+                    logger.debug(
+                        "Advanced sizing: method=%s size=%.4f reason=%s",
+                        advanced_sizing.method.value,
+                        advanced_sizing.position_size,
+                        advanced_sizing.reasoning,
+                    )
+                except Exception as sizing_error:
+                    logger.debug("Advanced sizing skipped: %s", sizing_error)
             macro_insight: MacroInsight | None
             try:
                 target_macro_symbol = config.macro_symbol or config.symbol
@@ -323,6 +418,7 @@ def run_loop(config: BotConfig) -> None:
                 ai_snapshot,
                 macro_insight,
                 portfolio_playbook,
+                advanced_sizing,
             )
             record_metrics(store, signal, state, config, ai_snapshot)
             logger.info(
@@ -361,6 +457,7 @@ def update_state(
     ai_snapshot: PredictionSnapshot | None,
     macro_insight: MacroInsight | None,
     portfolio_playbook: PortfolioPlaybook | None,
+    advanced_sizing: Optional[object] = None,  # SizingResult from PositionSizer
 ) -> BotState:
     decision = cast(str, signal["decision"])
     price = float(signal["close"])  # ensure float
@@ -380,12 +477,19 @@ def update_state(
         elif entry_price is None:
             entry_price = price
 
-    position_size = calculate_position_size(
-        balance=state.balance,
-        risk_pct=config.risk_per_trade_pct,
-        price=price,
-        stop_loss_pct=config.stop_loss_pct,
-    )
+    # Use advanced sizing if available, otherwise fall back to basic calculation
+    if advanced_sizing and hasattr(advanced_sizing, 'shares_or_units'):
+        position_size = advanced_sizing.shares_or_units
+    else:
+        # Get ATR from signal for better position sizing
+        atr = signal.get("atr")
+        position_size = calculate_position_size(
+            balance=state.balance,
+            risk_pct=config.risk_per_trade_pct,
+            price=price,
+            stop_loss_pct=config.stop_loss_pct,
+            atr=atr,
+        )
 
     unrealized_pnl_pct = 0.0
     if entry_price and position != "FLAT":

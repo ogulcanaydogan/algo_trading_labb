@@ -1,0 +1,24 @@
+{
+  "BTC/USDT_1h": {
+    "symbol": "BTC/USDT",
+    "provider": "binance",
+    "timeframe": "1h",
+    "start_date": "2024-01-13T01:20:33.189770",
+    "end_date": "2026-01-12T01:20:33.189869",
+    "current_date": "2026-01-12T02:00:00",
+    "records_fetched": 17520,
+    "requests_made": 18,
+    "is_complete": true
+  },
+  "ETH/USDT_1h": {
+    "symbol": "ETH/USDT",
+    "provider": "binance",
+    "timeframe": "1h",
+    "start_date": "2024-01-13T01:20:33.189770",
+    "end_date": "2026-01-12T01:20:41.621908",
+    "current_date": "2026-01-12T02:00:00",
+    "records_fetched": 17520,
+    "requests_made": 18,
+    "is_complete": true
+  }
+}

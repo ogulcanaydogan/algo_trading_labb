@@ -1,90 +1,90 @@
-# 🤖 LLM Entegrasyonu Kılavuzu
+# LLM Integration Guide
 
-## 🎯 Genel Bakış
+## Overview
 
-Bu sistem, **yerel Mistral-7B LLM** kullanarak trading stratejisi geliştirme sürecini destekler.
+This system uses **local Mistral-7B LLM** to support the trading strategy development process.
 
 ---
 
-## 📦 Kurulum
+## Installation
 
-### 1. Ollama Kurulumu
+### 1. Ollama Installation
 
 ```bash
 # macOS
 brew install ollama
 
-# Servisi başlat
+# Start service
 brew services start ollama
 
-# Mistral modelini indir
+# Download Mistral model
 ollama pull mistral
 ```
 
-### 2. Python Bağımlılıkları
+### 2. Python Dependencies
 
 ```bash
 pip install requests pyyaml feedparser vaderSentiment
 ```
 
-### 3. Doğrulama
+### 3. Verification
 
 ```bash
-# LLM client'ı test et
-python tools/llm_client.py
+# Test LLM client
+python scripts/tools/llm_client.py
 
-# Çıktı:
-# ✅ LLM servisi çalışıyor!
-# Cevap: ...
+# Output:
+# LLM service is running!
+# Response: ...
 ```
 
 ---
 
-## 🚀 Kullanım
+## Usage
 
-### A) Jupyter Notebook'ta LLM
+### A) LLM in Jupyter Notebook
 
 ```python
-# LLM client'ı import et
-from tools.llm_client import LLMClient
+# Import LLM client
+from scripts.tools.llm_client import LLMClient
 
-# LLM'i başlat
+# Initialize LLM
 llm = LLMClient(model="mistral")
 
-# Soru sor
-answer = llm.ask("Bitcoin için EMA crossover stratejisi nasıl çalışır?")
+# Ask question
+answer = llm.ask("How does EMA crossover strategy work for Bitcoin?")
 print(answer)
 ```
 
-**Notebook:** `notebooks/strategy_research.ipynb` - Bölüm 15
+**Notebook:** `notebooks/strategy_research.ipynb` - Section 15
 
-### B) Haber Analizi (LLM ile)
+### B) News Analysis (with LLM)
 
 ```bash
-# LLM ile detaylı analiz
-python tools/ingest_news_llm.py \
+# Detailed analysis with LLM
+python scripts/tools/ingest_news_llm.py \
   --feeds data/feeds.news.yml \
   --out data/macro_events.llm.json \
   --symbols "BTC/USDT,NVDA,GC=F" \
   --use-llm
 
-# VADER ile basit analiz (LLM olmadan)
-python tools/ingest_news_llm.py \
+# Simple analysis with VADER (without LLM)
+python scripts/tools/ingest_news_llm.py \
   --feeds data/feeds.news.yml \
   --out data/macro_events.basic.json \
   --symbols "BTC/USDT,NVDA,GC=F"
 ```
 
-### C) Bot'a Entegrasyon
+### C) Bot Integration
 
 ```python
-# bot/macro.py içinde LLM kullan
-from tools.llm_client import get_llm_client
+# Use LLM in bot/macro.py
+from scripts.tools.llm_client import get_llm_client
 
 llm = get_llm_client()
 analysis = llm.analyze_news(news_items, symbol="BTC/USDT")
 
-# MacroEvent oluştur
+# Create MacroEvent
 event = MacroEvent(
     title=f"LLM Analysis for {symbol}",
     sentiment=analysis['sentiment'],
@@ -96,22 +96,22 @@ event = MacroEvent(
 
 ---
 
-## 🎯 LLM Fonksiyonları
+## LLM Functions
 
 ### 1. `ask(prompt, system_prompt, temperature)`
 
-Genel amaçlı soru-cevap.
+General purpose Q&A.
 
 ```python
 answer = llm.ask(
-    "Volatilite yüksekken stop-loss nasıl ayarlanır?",
+    "How should stop-loss be set when volatility is high?",
     temperature=0.7
 )
 ```
 
 ### 2. `analyze_news(news_items, symbol)`
 
-Haberleri analiz et, sentiment + impact döndür.
+Analyze news, return sentiment + impact.
 
 ```python
 analysis = llm.analyze_news(
@@ -131,7 +131,7 @@ analysis = llm.analyze_news(
 
 ### 3. `suggest_strategy(symbol, performance, market_conditions)`
 
-Backtest sonuçlarına göre strateji önerisi.
+Strategy suggestion based on backtest results.
 
 ```python
 suggestion = llm.suggest_strategy(
@@ -151,19 +151,19 @@ suggestion = llm.suggest_strategy(
 
 ### 4. `optimize_parameters(symbol, current_params, performance_history)`
 
-Grid search sonuçlarını yorumla, optimizasyon öner.
+Interpret grid search results, suggest optimization.
 
 ```python
 advice = llm.optimize_parameters(
     symbol="NVDA",
     current_params={"ema_fast": 12, "ema_slow": 26},
-    performance_history=[...]  # Top 10 kombinasyon
+    performance_history=[...]  # Top 10 combinations
 )
 ```
 
 ### 5. `explain_trade(trade_data, market_context)`
 
-Bir işlemi açıkla (neden açıldı, neden kapandı).
+Explain a trade (why opened, why closed).
 
 ```python
 explanation = llm.explain_trade(
@@ -184,120 +184,119 @@ explanation = llm.explain_trade(
 
 ---
 
-## 📊 Örnek Prompt'lar
+## Example Prompts
 
-### Strateji Geliştirme
-
-```
-"BTC/USDT için RSI 14 ve EMA 50 kullanan bir mean reversion
-stratejisi öner. Stop-loss %2, take-profit %4 olsun. 
-Python kodunu yaz."
-```
-
-### Parametre Optimizasyonu
+### Strategy Development
 
 ```
-"EMA fast'ı 10-30, EMA slow'u 30-100 arasında test eden
-bir grid search kodu yaz. En yüksek Sharpe ratio'yu bul."
+"Suggest a mean reversion strategy for BTC/USDT using RSI 14 and EMA 50.
+Stop-loss 2%, take-profit 4%. Write the Python code."
 ```
 
-### Risk Yönetimi
+### Parameter Optimization
 
 ```
-"Volatilite arttığında risk_per_trade'i otomatik azaltan,
-düştüğünde artıran dinamik bir risk yönetimi fonksiyonu yaz.
-ATR kullan."
+"Write grid search code testing EMA fast from 10-30, EMA slow from 30-100.
+Find the highest Sharpe ratio."
 ```
 
-### Haber Analizi
+### Risk Management
 
 ```
-"Şu haberler BTC/USDT'yi nasıl etkiler?
-- Fed faiz artırımına devam edecek
-- Bitcoin ETF onayları yaklaşıyor
-Bullish mi bearish mi? Neden?"
+"Write a dynamic risk management function that automatically reduces
+risk_per_trade when volatility increases and increases it when it decreases.
+Use ATR."
+```
+
+### News Analysis
+
+```
+"How do these news affect BTC/USDT?
+- Fed will continue raising rates
+- Bitcoin ETF approvals approaching
+Bullish or bearish? Why?"
 ```
 
 ---
 
-## 🔧 Konfigürasyon
+## Configuration
 
-### Model Seçimi
+### Model Selection
 
 ```python
 # Mistral (default)
 llm = LLMClient(model="mistral")
 
-# Alternatif modeller
+# Alternative models
 llm = LLMClient(model="phi4")
 llm = LLMClient(model="llama3.1")
 ```
 
-### Temperature Ayarı
+### Temperature Setting
 
-- **0.0-0.3**: Deterministik, tutarlı (metrik hesaplama, classification)
-- **0.4-0.7**: Dengeli (genel amaçlı, strateji önerileri)
-- **0.8-1.0**: Yaratıcı (brainstorming, yeni fikirler)
+- **0.0-0.3**: Deterministic, consistent (metric calculation, classification)
+- **0.4-0.7**: Balanced (general purpose, strategy suggestions)
+- **0.8-1.0**: Creative (brainstorming, new ideas)
 
 ```python
-# Tutarlı analiz için
+# For consistent analysis
 answer = llm.ask(prompt, temperature=0.3)
 
-# Yaratıcı öneriler için
+# For creative suggestions
 answer = llm.ask(prompt, temperature=0.9)
 ```
 
 ---
 
-## ⚠️ Önemli Notlar
+## Important Notes
 
-### LLM Ne YAPAR?
+### What LLM DOES?
 
-✅ **Fikir üretir** - Strateji önerileri, parametre aralıkları
-✅ **Kod yazar** - Prototip fonksiyonlar, algoritma skeleton'ları
-✅ **Analiz yapar** - Backtest sonuçları, haber sentiment'ı
-✅ **Açıklar** - İşlem mantığı, teknik gösterge yorumları
+- **Generates ideas** - Strategy suggestions, parameter ranges
+- **Writes code** - Prototype functions, algorithm skeletons
+- **Performs analysis** - Backtest results, news sentiment
+- **Explains** - Trade logic, technical indicator interpretations
 
-### LLM Ne YAPMAZ?
+### What LLM DOESN'T DO?
 
-❌ **Gerçek zamanlı alım-satım kararı** - Bu senin kodun yapar
-❌ **Gerçek piyasa verisi üretimi** - ccxt/yfinance kullan
-❌ **Garantili kazanç** - Sadece bir araç, nihai karar sendedir
+- **Real-time buy/sell decisions** - Your code does this
+- **Real market data generation** - Use ccxt/yfinance
+- **Guaranteed profits** - Just a tool, final decision is yours
 
-### Güvenlik
+### Safety
 
-- LLM çıktısını **her zaman doğrula**
-- Backtest/forward test **zorunlu**
-- Gerçek para ile denemeden önce **testnet/paper trading**
-- Risk limitleri (max drawdown, max exposure) **kod seviyesinde**
+- **Always validate** LLM output
+- Backtest/forward test is **mandatory**
+- **Testnet/paper trading** before real money
+- Risk limits (max drawdown, max exposure) at **code level**
 
 ---
 
-## 📈 Performans
+## Performance
 
 ### M2 Pro (16GB RAM)
 
-| Model | Parametre | Inference Hızı | RAM Kullanımı |
-|-------|-----------|----------------|---------------|
-| Mistral-7B | 7B | ~1-2 saniye | 8-10 GB |
-| Phi-4-mini | 3.8B | ~0.5-1 saniye | 4-6 GB |
-| Llama 3.1 | 8B | ~2-3 saniye | 10-12 GB |
+| Model | Parameters | Inference Speed | RAM Usage |
+|-------|------------|-----------------|-----------|
+| Mistral-7B | 7B | ~1-2 seconds | 8-10 GB |
+| Phi-4-mini | 3.8B | ~0.5-1 second | 4-6 GB |
+| Llama 3.1 | 8B | ~2-3 seconds | 10-12 GB |
 
-### Optimizasyon İpuçları
+### Optimization Tips
 
-1. **Batch işleme** - Birden fazla soruyu tek prompt'ta birleştir
-2. **Cache kullan** - Tekrar eden analizler için sonuçları kaydet
-3. **Timeout ayarla** - Uzun süren prompt'lar için 120s timeout
-4. **Temperature düşür** - Classification için 0.3, brainstorming için 0.8
+1. **Batch processing** - Combine multiple questions in single prompt
+2. **Use cache** - Save results for repeated analyses
+3. **Set timeout** - 120s timeout for long prompts
+4. **Lower temperature** - 0.3 for classification, 0.8 for brainstorming
 
 ---
 
-## 🔄 Fine-Tuning (Gelecek)
+## Fine-Tuning (Future)
 
-### Veri Toplama
+### Data Collection
 
 ```python
-# Trade log'larını kaydet
+# Save trade logs
 {
   "timestamp": "2025-11-01T12:00:00Z",
   "symbol": "BTC/USDT",
@@ -309,105 +308,105 @@ answer = llm.ask(prompt, temperature=0.9)
 }
 ```
 
-### Fine-Tuning Süreci (3-6 ay sonra)
+### Fine-Tuning Process (3-6 months later)
 
-1. **Veri biriktir** - En az 500-1000 işlem log'u
-2. **Format düzenle** - Instruction-tuning formatına çevir
-3. **LoRA ile fine-tune** - M2 Pro'da 2-4 saat
-4. **Değerlendirme** - Base model vs fine-tuned karşılaştır
-5. **Deploy** - Kişiselleştirilmiş modeli kullan
+1. **Collect data** - At least 500-1000 trade logs
+2. **Format data** - Convert to instruction-tuning format
+3. **Fine-tune with LoRA** - 2-4 hours on M2 Pro
+4. **Evaluate** - Compare base model vs fine-tuned
+5. **Deploy** - Use personalized model
 
-**Araçlar:**
+**Tools:**
 - `llama.cpp` - Inference + fine-tuning
 - `Axolotl` - Fine-tuning framework
-- `Unsloth` - macOS optimize edilmiş
+- `Unsloth` - macOS optimized
 
 ---
 
-## 🆘 Sorun Giderme
+## Troubleshooting
 
-### LLM yanıt vermiyor
+### LLM not responding
 
 ```bash
-# Ollama servisini kontrol et
+# Check Ollama service
 brew services list | grep ollama
 
-# Servisi başlat
+# Start service
 brew services start ollama
 
-# Manuel başlatma
+# Manual start
 ollama serve
 ```
 
-### JSON parse hatası
+### JSON parse error
 
-LLM bazen JSON dışında metin döndürür. `llm_client.py` otomatik temizler:
+LLM sometimes returns text outside JSON. `llm_client.py` auto-cleans:
 
 ```python
-# Markdown code block'tan çıkar
+# Extract from markdown code block
 if "```json" in response:
     response = response.split("```json")[1].split("```")[0]
 ```
 
-### Timeout hatası
+### Timeout error
 
 ```python
-# Timeout'u artır
+# Increase timeout
 llm = LLMClient()
-llm.timeout = 180  # 3 dakika
+llm.timeout = 180  # 3 minutes
 ```
 
-### Model bulunamadı
+### Model not found
 
 ```bash
-# Mevcut modelleri listele
+# List available models
 ollama list
 
-# Model indir
+# Download model
 ollama pull mistral
 ```
 
 ---
 
-## 📚 Kaynaklar
+## Resources
 
 - **Ollama Docs**: https://ollama.ai/docs
 - **Mistral AI**: https://mistral.ai/
 - **LoRA Paper**: https://arxiv.org/abs/2106.09685
 - **Notebook**: `notebooks/strategy_research.ipynb`
-- **LLM Client**: `tools/llm_client.py`
-- **Haber İngestor**: `tools/ingest_news_llm.py`
+- **LLM Client**: `scripts/tools/llm_client.py`
+- **News Ingestor**: `scripts/tools/ingest_news_llm.py`
 
 ---
 
-## 🎉 Başarı Hikayeleri
+## Success Stories
 
-### Örnek 1: Parametre Optimizasyonu
-
-```
-Kullanıcı: "EMA parametrelerini optimize etmek istiyorum"
-LLM: "EMA fast için 8-20, slow için 30-80 aralığında test et..."
-→ Grid search sonrası: Sharpe 0.5 → 1.2 (+140%)
-```
-
-### Örnek 2: Risk Yönetimi
+### Example 1: Parameter Optimization
 
 ```
-Kullanıcı: "Yüksek volatilitede kayıplarım artıyor"
-LLM: "ATR bazlı dinamik stop-loss kullan. ATR > ma(ATR) ise..."
+User: "I want to optimize EMA parameters"
+LLM: "Test EMA fast from 8-20, slow from 30-80..."
+→ After grid search: Sharpe 0.5 → 1.2 (+140%)
+```
+
+### Example 2: Risk Management
+
+```
+User: "My losses increase in high volatility"
+LLM: "Use ATR-based dynamic stop-loss. If ATR > ma(ATR)..."
 → Max drawdown: 18% → 9% (-50%)
 ```
 
-### Örnek 3: Haber Analizi
+### Example 3: News Analysis
 
 ```
-187 haber → LLM analizi → 3 macro event
+187 news → LLM analysis → 3 macro events
 Sentiment: Bearish bias -0.54
-→ Bot SHORT bias kullanarak 5 günde +8.2% kazanç
+→ Bot using SHORT bias gained +8.2% in 5 days
 ```
 
 ---
 
-**🚀 Mutlu Trading'ler!**
+**Happy Trading!**
 
 *Last Updated: 2025-11-01*

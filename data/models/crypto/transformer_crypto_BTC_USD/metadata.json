@@ -1,0 +1,39 @@
+{
+  "model_name": "transformer_crypto_BTC_USD",
+  "model_type": "transformer",
+  "config": {
+    "name": "transformer_crypto_BTC_USD",
+    "version": "1.0.0",
+    "sequence_length": 60,
+    "batch_size": 32,
+    "epochs": 50,
+    "learning_rate": 0.0001,
+    "hidden_size": 128,
+    "num_layers": 2,
+    "dropout": 0.1,
+    "device": "mps",
+    "use_mixed_precision": false,
+    "early_stopping_patience": 15,
+    "validation_split": 0.2
+  },
+  "feature_names": [],
+  "is_trained": true,
+  "training_metrics": {
+    "train_loss": 1.000046,
+    "val_loss": 1.032971,
+    "train_accuracy": 0.5088,
+    "val_accuracy": 0.5175,
+    "epochs_trained": 19,
+    "best_epoch": 4,
+    "training_time_seconds": 3.29,
+    "samples_trained": 399,
+    "feature_importance": {}
+  },
+  "saved_at": "2026-01-12T00:22:57.087717",
+  "input_size": 97,
+  "transformer_config": {
+    "model_dim": 64,
+    "num_heads": 4,
+    "num_encoder_layers": 3
+  }
+}

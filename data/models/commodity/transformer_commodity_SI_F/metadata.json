@@ -1,0 +1,39 @@
+{
+  "model_name": "transformer_commodity_SI_F",
+  "model_type": "transformer",
+  "config": {
+    "name": "transformer_commodity_SI_F",
+    "version": "1.0.0",
+    "sequence_length": 60,
+    "batch_size": 32,
+    "epochs": 50,
+    "learning_rate": 0.0001,
+    "hidden_size": 128,
+    "num_layers": 2,
+    "dropout": 0.1,
+    "device": "mps",
+    "use_mixed_precision": false,
+    "early_stopping_patience": 15,
+    "validation_split": 0.2
+  },
+  "feature_names": [],
+  "is_trained": true,
+  "training_metrics": {
+    "train_loss": 0.961061,
+    "val_loss": 1.040873,
+    "train_accuracy": 0.5616,
+    "val_accuracy": 0.4957,
+    "epochs_trained": 23,
+    "best_epoch": 8,
+    "training_time_seconds": 3.66,
+    "samples_trained": 406,
+    "feature_importance": {}
+  },
+  "saved_at": "2026-01-12T00:21:46.920435",
+  "input_size": 97,
+  "transformer_config": {
+    "model_dim": 64,
+    "num_heads": 4,
+    "num_encoder_layers": 3
+  }
+}

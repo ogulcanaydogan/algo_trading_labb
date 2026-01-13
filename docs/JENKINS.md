@@ -1,47 +1,43 @@
-# CI with Jenkins
+# CI / Jenkins
 
-This repository includes a `Jenkinsfile` at the project root that provides a declarative pipeline suitable for typical CI/CD flows.
+A `Jenkinsfile` is located in the repo root; this file contains basic CI/CD steps as a Jenkins declarative pipeline.
 
-What the pipeline does
+## What the Pipeline Does
 
-- Checkout the repository
-- Set up Python virtual environment and install dependencies
-- Run linting (flake8) and tests (pytest)
-- Build Docker images for `api`, `bot` and `optimizer` using the repository `Dockerfile`
-- Optionally push images to a registry and deploy via SSH (controlled by pipeline env vars)
+- Checks out the repository
+- Sets up Python virtual environment and installs dependencies
+- Runs lint (flake8) and tests (pytest)
+- Builds Docker images for `api`, `bot`, and `optimizer`
+- Optionally pushes images to registry and deploys via SSH
 
-Required Jenkins credentials (add these in Jenkins -> Credentials):
+## Required Jenkins Credentials
 
-- `docker-registry-creds` — Username & password for Docker registry
-- `deploy-ssh-key` — SSH private key used for deploying to remote host
+Add these in Jenkins -> Credentials:
 
-Important environment variables (set in the job or globally):
+- `docker-registry-creds` — Docker registry username/password
+- `deploy-ssh-key` — SSH private key for deployment
 
-- `REGISTRY` — optional registry prefix, e.g. `myregistry.example.com/algo_trading_lab/`
-- `PUSH_IMAGES=true` — push built images when set
-- `DEPLOY=true` — run the deploy stage when set
-- `DEPLOY_HOST` / `DEPLOY_DIR` — deployment host and directory for `docker compose up -d`
+## Important Environment Variables
 
-Quick tips
+Set these in job or global env:
 
-- If your Jenkins agents cannot run Docker builds, use Kaniko / BuildKit or a Docker-enabled agent.
-- Keep credentials in the Jenkins Credentials store. Do not hardcode secrets in the pipeline.
-- Adjust linting policy to fail or warn depending on your team's preference.
+- `REGISTRY` — Optional registry prefix, e.g., `myregistry.example.com/algo_trading_lab/`
+- `PUSH_IMAGES=true` — To push images
+- `DEPLOY=true` — To run the deploy step
+- `DEPLOY_HOST` and `DEPLOY_DIR` — Host and directory for deployment
 
-Example: run only tests locally
+## Quick Local Test
 
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
 pip install -r requirements.txt
-pip install pytest
+pip install pytest flake8
+flake8 . || true
 pytest -q
 ```
 
-For details, see the `Jenkinsfile` in the repository root.
+## Notes
 
-Troubleshooting common pipeline failures
-
-- Docker Desktop paused: Jenkins running on a macOS agent or a macOS-local runner may show failures like "Docker Desktop is manually paused". Unpause Docker Desktop from the Whale menu (or start the Docker daemon) and re-run the job.
-- Missing `REGISTRY` variable: If you see errors about `No such property: REGISTRY`, set the `REGISTRY` environment variable in the job (or leave it empty and set `PUSH_IMAGES=false` to skip the push stage). The pipeline also checks for `REGISTRY` before pushing images.
-
+- If your Jenkins agent can't do Docker builds, use Kaniko/BuildKit alternatives.
+- Store credentials in Jenkins Credentials; don't use plain text in pipeline.

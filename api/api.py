@@ -37,14 +37,13 @@ from .schemas import (
     StrategyOverviewResponse,
 )
 from .security import check_rate_limit, verify_api_key
+from .unified_trading_api import router as unified_trading_router
 
 STATE_DIR = Path(os.getenv("DATA_DIR", "./data"))
-DASHBOARD_TEMPLATE = Path(__file__).with_name("dashboard.html")
 
 # Simple response cache for market summaries (to avoid slow API calls)
 _market_summary_cache: Dict[str, tuple] = {}  # {market_type: (timestamp, data)}
 _CACHE_TTL = 10.0  # Cache for 10 seconds
-DASHBOARD_V2_TEMPLATE = Path(__file__).with_name("dashboard_v2.html")
 PAPER_TRADING_LOG = STATE_DIR / "logs" / "paper_trading.log"
 PORTFOLIO_CONFIG_PATH = Path(
     os.getenv("PORTFOLIO_CONFIG_PATH", str(STATE_DIR / "portfolio.json"))
@@ -145,6 +144,9 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
+
+# Include unified trading API router
+app.include_router(unified_trading_router)
 
 # Track application start time for health checks
 _app_start_time = time.time()
@@ -931,13 +933,6 @@ def read_portfolio_status(
     return statuses
 
 
-def load_dashboard_template() -> str:
-    try:
-        return DASHBOARD_TEMPLATE.read_text(encoding="utf-8")
-    except FileNotFoundError:
-        return """<!DOCTYPE html><html><body><h1>Dashboard template missing.</h1></body></html>"""
-
-
 @app.get(
     "/health",
     response_model=HealthCheckResponse,
@@ -1015,24 +1010,21 @@ def health_check() -> HealthCheckResponse:
 @app.get("/dashboard", response_class=HTMLResponse)
 @app.get("/dashboard/preview", response_class=HTMLResponse)
 async def dashboard() -> HTMLResponse:
-    """Serve a lightweight HTML dashboard for quick monitoring."""
-    return HTMLResponse(content=load_dashboard_template())
-
-
-def load_dashboard_v2_template() -> str:
-    """Load the v2 dashboard template."""
-    try:
-        return DASHBOARD_V2_TEMPLATE.read_text(encoding="utf-8")
-    except FileNotFoundError:
-        return """<!DOCTYPE html><html><body><h1>Dashboard v2 template missing.</h1></body></html>"""
+    """Serve the unified multi-market dashboard at root URL."""
+    if not DASHBOARD_UNIFIED_TEMPLATE.exists():
+        return HTMLResponse(
+            content="<html><body><h1>Dashboard template missing.</h1></body></html>",
+            status_code=200,
+        )
+    return HTMLResponse(content=DASHBOARD_UNIFIED_TEMPLATE.read_text())
 
 
 @app.get("/dashboard/v2")
 @app.get("/live")
 async def dashboard_v2():
-    """Redirect to unified dashboard (v2 features merged into unified)."""
+    """Redirect legacy dashboard URLs to root."""
     from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/dashboard/unified", status_code=302)
+    return RedirectResponse(url="/", status_code=302)
 
 
 @app.get("/api/paper-trading-log")
@@ -2307,16 +2299,11 @@ async def get_dashboard_aggregate(
     }
 
 
-@app.get("/dashboard/unified", response_class=HTMLResponse)
-async def dashboard_unified(request: Request) -> HTMLResponse:
-    """Serve the unified multi-market dashboard."""
-    if not DASHBOARD_UNIFIED_TEMPLATE.exists():
-        # Return a simple placeholder if template doesn't exist yet
-        return HTMLResponse(
-            content="<html><body><h1>Unified Dashboard Coming Soon</h1></body></html>",
-            status_code=200,
-        )
-    return HTMLResponse(content=DASHBOARD_UNIFIED_TEMPLATE.read_text())
+@app.get("/dashboard/unified")
+async def dashboard_unified(request: Request):
+    """Redirect /dashboard/unified to root for backwards compatibility."""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/", status_code=302)
 
 
 # =============================================================================
@@ -3340,6 +3327,527 @@ async def get_rate_limit_errors(
 
 
 # =============================================================================
+# Emergency Control Endpoints
+# =============================================================================
+
+# Global safety controller instance
+_safety_controller = None
+
+
+def _get_safety_controller():
+    """Get or create the safety controller instance."""
+    global _safety_controller
+    if _safety_controller is None:
+        from bot.safety_controller import SafetyController
+        _safety_controller = SafetyController()
+    return _safety_controller
+
+
+@app.get("/api/emergency/status", tags=["Status"])
+async def get_emergency_status() -> Dict[str, Any]:
+    """
+    Get current trading status and emergency stop state.
+
+    Returns:
+        Trading status, emergency stop state, daily stats, and system health.
+    """
+    controller = _get_safety_controller()
+    status = controller.get_status()
+    allowed, reason = controller.is_trading_allowed()
+
+    # Get orchestrator status if available
+    orchestrator_running = False
+    active_markets = []
+
+    try:
+        # Check for running markets by looking at state files
+        markets = ["crypto", "commodity", "stock"]
+        for market in markets:
+            state_paths = [
+                STATE_DIR / "live_paper_trading" / "state.json",
+                STATE_DIR / f"{market}_trading" / "state.json",
+            ]
+            for path in state_paths:
+                if path.exists():
+                    import time
+                    mtime = path.stat().st_mtime
+                    if time.time() - mtime < 120:  # Updated in last 2 minutes
+                        active_markets.append(market)
+                        orchestrator_running = True
+                        break
+    except Exception:
+        pass
+
+    return {
+        "trading_allowed": allowed,
+        "trading_status_reason": reason,
+        "emergency_stop_active": status["emergency_stop_active"],
+        "emergency_stop_reason": status["emergency_stop_reason"],
+        "safety_status": status["status"],
+        "orchestrator_running": orchestrator_running,
+        "active_markets": list(set(active_markets)),
+        "daily_stats": status["daily_stats"],
+        "limits": status["limits"],
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@app.post("/api/emergency/stop", tags=["Status"])
+async def trigger_emergency_stop(
+    reason: str = Query(default="Manual emergency stop via dashboard", description="Reason for emergency stop"),
+    _auth: Optional[str] = Depends(verify_api_key),
+) -> Dict[str, Any]:
+    """
+    Trigger emergency stop - immediately halts all trading.
+
+    This will:
+    - Stop all new trade entries
+    - Keep existing positions (does not auto-close)
+    - Require manual resume to continue trading
+
+    Args:
+        reason: Reason for triggering emergency stop
+
+    Returns:
+        Confirmation and updated status
+    """
+    controller = _get_safety_controller()
+    controller.emergency_stop(reason)
+
+    # Also pause all portfolio bots
+    try:
+        portfolio_path = STATE_DIR / "portfolio.json"
+        if portfolio_path.exists():
+            with open(portfolio_path, "r") as f:
+                portfolio = json.load(f)
+
+            symbols = portfolio.get("symbols", [])
+            for symbol in symbols:
+                from bot.market_data import sanitize_symbol_for_fs
+                symbol_dir = STATE_DIR / sanitize_symbol_for_fs(symbol)
+                update_bot_control(symbol_dir, paused=True, reason=f"Emergency stop: {reason}")
+    except Exception as e:
+        pass  # Continue even if portfolio pause fails
+
+    # Send Telegram notification
+    try:
+        from bot.trade_alerts import TelegramTradeAlerts
+        alerts = TelegramTradeAlerts()
+        alerts.send_risk_alert(
+            "EMERGENCY_STOP",
+            f"Trading has been halted.\n\nReason: {reason}",
+            severity="critical",
+        )
+    except Exception:
+        pass
+
+    return {
+        "success": True,
+        "message": "Emergency stop triggered",
+        "reason": reason,
+        "status": controller.get_status(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@app.post("/api/emergency/resume", tags=["Status"])
+async def resume_trading(
+    approver: str = Query(default="dashboard_user", description="Who approved the resume"),
+    _auth: Optional[str] = Depends(verify_api_key),
+) -> Dict[str, Any]:
+    """
+    Clear emergency stop and resume trading.
+
+    This will:
+    - Clear the emergency stop flag
+    - Allow new trades to be placed
+    - Resume all paused portfolio bots
+
+    Args:
+        approver: Who is approving the resume (for audit trail)
+
+    Returns:
+        Confirmation and updated status
+    """
+    controller = _get_safety_controller()
+
+    # Check if emergency stop is active
+    status = controller.get_status()
+    if not status["emergency_stop_active"]:
+        return {
+            "success": True,
+            "message": "No emergency stop was active",
+            "status": status,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+
+    # Clear emergency stop
+    controller.clear_emergency_stop(approver)
+
+    # Resume all portfolio bots
+    try:
+        portfolio_path = STATE_DIR / "portfolio.json"
+        if portfolio_path.exists():
+            with open(portfolio_path, "r") as f:
+                portfolio = json.load(f)
+
+            symbols = portfolio.get("symbols", [])
+            for symbol in symbols:
+                from bot.market_data import sanitize_symbol_for_fs
+                symbol_dir = STATE_DIR / sanitize_symbol_for_fs(symbol)
+                update_bot_control(symbol_dir, paused=False, reason=f"Resumed by {approver}")
+    except Exception:
+        pass
+
+    # Send Telegram notification
+    try:
+        from bot.trade_alerts import TelegramTradeAlerts
+        alerts = TelegramTradeAlerts()
+        alerts._send_html(
+            f"✅ <b>Trading Resumed</b>\n\n"
+            f"Emergency stop has been cleared.\n"
+            f"Approved by: {approver}\n\n"
+            f"<i>{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</i>"
+        )
+    except Exception:
+        pass
+
+    return {
+        "success": True,
+        "message": "Trading resumed",
+        "approved_by": approver,
+        "status": controller.get_status(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@app.get("/api/emergency/live-status", tags=["Status"])
+async def get_live_trading_status() -> Dict[str, Any]:
+    """
+    Get real-time trading activity status.
+
+    Returns:
+        Whether bots are actively trading, last signal time, open positions.
+    """
+    result = {
+        "is_trading": False,
+        "last_activity": None,
+        "active_bots": [],
+        "open_positions": 0,
+        "last_signal": None,
+        "health": "unknown",
+    }
+
+    try:
+        # Check main paper trading state
+        state_path = STATE_DIR / "live_paper_trading" / "state.json"
+        if state_path.exists():
+            mtime = state_path.stat().st_mtime
+            last_update = datetime.fromtimestamp(mtime)
+            result["last_activity"] = last_update.isoformat()
+
+            # If updated in last 5 minutes, bot is active
+            if (datetime.now() - last_update).total_seconds() < 300:
+                result["is_trading"] = True
+                result["active_bots"].append("crypto")
+                result["health"] = "healthy"
+            else:
+                result["health"] = "stale"
+
+            with open(state_path, "r") as f:
+                state = json.load(f)
+                result["open_positions"] = len(state.get("open_positions", []))
+
+        # Check signals
+        signals_path = STATE_DIR / "signals.json"
+        if signals_path.exists():
+            with open(signals_path, "r") as f:
+                signals = json.load(f)
+                if isinstance(signals, list) and signals:
+                    result["last_signal"] = signals[-1]
+
+        # Check other markets
+        for market in ["commodity", "stock"]:
+            market_state = STATE_DIR / f"{market}_trading" / "state.json"
+            if market_state.exists():
+                mtime = market_state.stat().st_mtime
+                if (datetime.now() - datetime.fromtimestamp(mtime)).total_seconds() < 300:
+                    result["active_bots"].append(market)
+                    result["is_trading"] = True
+
+    except Exception as e:
+        result["error"] = str(e)
+
+    result["timestamp"] = datetime.now(timezone.utc).isoformat()
+    return result
+
+
+@app.get("/api/trading/control-panel", tags=["Status"])
+async def get_trading_control_panel() -> Dict[str, Any]:
+    """
+    Get comprehensive trading control panel data.
+
+    Returns status for all markets with activity indicators.
+    """
+    markets = {
+        "crypto": {
+            "name": "Crypto",
+            "emoji": "🪙",
+            "state_path": STATE_DIR / "live_paper_trading" / "state.json",
+            "control_path": STATE_DIR / "live_paper_trading",
+        },
+        "commodity": {
+            "name": "Commodity",
+            "emoji": "🛢️",
+            "state_path": STATE_DIR / "commodity_trading" / "state.json",
+            "control_path": STATE_DIR / "commodity_trading",
+        },
+        "stock": {
+            "name": "Stock",
+            "emoji": "📈",
+            "state_path": STATE_DIR / "stock_trading" / "state.json",
+            "control_path": STATE_DIR / "stock_trading",
+        },
+    }
+
+    result = {
+        "master": {
+            "emergency_stop": False,
+            "all_paused": True,
+            "any_active": False,
+        },
+        "markets": {},
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+    # Check emergency stop status
+    controller = _get_safety_controller()
+    status = controller.get_status()
+    result["master"]["emergency_stop"] = status["emergency_stop_active"]
+
+    for market_id, config in markets.items():
+        market_status = {
+            "name": config["name"],
+            "emoji": config["emoji"],
+            "running": False,
+            "paused": False,
+            "actively_trading": False,
+            "last_update": None,
+            "last_trade": None,
+            "open_positions": 0,
+            "current_signal": "FLAT",
+            "balance": 0.0,
+            "pnl": 0.0,
+            "pnl_pct": 0.0,
+            "health": "offline",
+        }
+
+        try:
+            # Check if state file exists and is recent
+            state_path = config["state_path"]
+            if state_path.exists():
+                mtime = state_path.stat().st_mtime
+                last_update = datetime.fromtimestamp(mtime)
+                market_status["last_update"] = last_update.isoformat()
+
+                age_seconds = (datetime.now() - last_update).total_seconds()
+
+                with open(state_path, "r") as f:
+                    state = json.load(f)
+
+                # Extract state data
+                market_status["balance"] = state.get("balance", state.get("total_value", 0))
+                market_status["open_positions"] = len(state.get("open_positions", []))
+
+                # Calculate P&L
+                initial = state.get("initial_capital", state.get("initial_balance", 10000))
+                current = market_status["balance"]
+                market_status["pnl"] = current - initial
+                market_status["pnl_pct"] = ((current - initial) / initial * 100) if initial > 0 else 0
+
+                # Get current signal
+                if state.get("last_signal"):
+                    market_status["current_signal"] = state["last_signal"].get("decision", "FLAT")
+
+                # Get last trade time
+                trades = state.get("trades", state.get("trade_history", []))
+                if trades:
+                    last_trade = trades[-1]
+                    if isinstance(last_trade, dict):
+                        trade_time = last_trade.get("exit_time", last_trade.get("timestamp"))
+                        if trade_time:
+                            market_status["last_trade"] = trade_time
+
+                # Determine health status
+                if age_seconds < 120:  # Updated in last 2 minutes
+                    market_status["running"] = True
+                    market_status["health"] = "healthy"
+                    result["master"]["all_paused"] = False
+                    result["master"]["any_active"] = True
+
+                    # Check if actively trading (has recent trades or open positions)
+                    if market_status["open_positions"] > 0:
+                        market_status["actively_trading"] = True
+                    elif market_status["last_trade"]:
+                        # Check if last trade was within 1 hour
+                        try:
+                            if isinstance(market_status["last_trade"], str):
+                                last_trade_time = datetime.fromisoformat(market_status["last_trade"].replace("Z", "+00:00"))
+                                if (datetime.now(timezone.utc) - last_trade_time).total_seconds() < 3600:
+                                    market_status["actively_trading"] = True
+                        except:
+                            pass
+                elif age_seconds < 600:  # Updated in last 10 minutes
+                    market_status["running"] = True
+                    market_status["health"] = "stale"
+                else:
+                    market_status["health"] = "offline"
+
+            # Check control file for pause status
+            control_path = config["control_path"] / "control.json"
+            if control_path.exists():
+                with open(control_path, "r") as f:
+                    control = json.load(f)
+                    market_status["paused"] = control.get("paused", False)
+
+        except Exception as e:
+            market_status["error"] = str(e)
+
+        result["markets"][market_id] = market_status
+
+    return result
+
+
+@app.post("/api/trading/market/{market_id}/pause", tags=["Status"])
+async def pause_market(
+    market_id: str,
+    reason: str = Query(default="Manual pause via dashboard", description="Reason for pause"),
+    _auth: Optional[str] = Depends(verify_api_key),
+) -> Dict[str, Any]:
+    """Pause a specific market's trading."""
+    market_dirs = {
+        "crypto": STATE_DIR / "live_paper_trading",
+        "commodity": STATE_DIR / "commodity_trading",
+        "stock": STATE_DIR / "stock_trading",
+    }
+
+    if market_id not in market_dirs:
+        raise HTTPException(status_code=400, detail=f"Unknown market: {market_id}")
+
+    market_dir = market_dirs[market_id]
+    market_dir.mkdir(parents=True, exist_ok=True)
+
+    update_bot_control(market_dir, paused=True, reason=reason)
+
+    return {
+        "success": True,
+        "market": market_id,
+        "action": "paused",
+        "reason": reason,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@app.post("/api/trading/market/{market_id}/resume", tags=["Status"])
+async def resume_market(
+    market_id: str,
+    _auth: Optional[str] = Depends(verify_api_key),
+) -> Dict[str, Any]:
+    """Resume a specific market's trading."""
+    market_dirs = {
+        "crypto": STATE_DIR / "live_paper_trading",
+        "commodity": STATE_DIR / "commodity_trading",
+        "stock": STATE_DIR / "stock_trading",
+    }
+
+    if market_id not in market_dirs:
+        raise HTTPException(status_code=400, detail=f"Unknown market: {market_id}")
+
+    market_dir = market_dirs[market_id]
+
+    # Check if emergency stop is active
+    controller = _get_safety_controller()
+    if controller.get_status()["emergency_stop_active"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot resume: Emergency stop is active. Clear emergency stop first."
+        )
+
+    update_bot_control(market_dir, paused=False, reason="Resumed via dashboard")
+
+    return {
+        "success": True,
+        "market": market_id,
+        "action": "resumed",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@app.post("/api/trading/pause-all", tags=["Status"])
+async def pause_all_markets(
+    reason: str = Query(default="Manual pause all via dashboard", description="Reason for pause"),
+    _auth: Optional[str] = Depends(verify_api_key),
+) -> Dict[str, Any]:
+    """Pause all markets."""
+    market_dirs = {
+        "crypto": STATE_DIR / "live_paper_trading",
+        "commodity": STATE_DIR / "commodity_trading",
+        "stock": STATE_DIR / "stock_trading",
+    }
+
+    results = {}
+    for market_id, market_dir in market_dirs.items():
+        try:
+            market_dir.mkdir(parents=True, exist_ok=True)
+            update_bot_control(market_dir, paused=True, reason=reason)
+            results[market_id] = "paused"
+        except Exception as e:
+            results[market_id] = f"error: {e}"
+
+    return {
+        "success": True,
+        "action": "pause_all",
+        "results": results,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@app.post("/api/trading/resume-all", tags=["Status"])
+async def resume_all_markets(
+    _auth: Optional[str] = Depends(verify_api_key),
+) -> Dict[str, Any]:
+    """Resume all markets."""
+    # Check if emergency stop is active
+    controller = _get_safety_controller()
+    if controller.get_status()["emergency_stop_active"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot resume: Emergency stop is active. Clear emergency stop first."
+        )
+
+    market_dirs = {
+        "crypto": STATE_DIR / "live_paper_trading",
+        "commodity": STATE_DIR / "commodity_trading",
+        "stock": STATE_DIR / "stock_trading",
+    }
+
+    results = {}
+    for market_id, market_dir in market_dirs.items():
+        try:
+            update_bot_control(market_dir, paused=False, reason="Resumed via dashboard")
+            results[market_id] = "resumed"
+        except Exception as e:
+            results[market_id] = f"error: {e}"
+
+    return {
+        "success": True,
+        "action": "resume_all",
+        "results": results,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# =============================================================================
 # Monte Carlo Simulation Endpoints
 # =============================================================================
 
@@ -3858,3 +4366,78 @@ async def get_provider_rate_limits() -> Dict[str, Any]:
         }
         for provider, config in RATE_LIMITS.items()
     }
+
+
+# =============================================================================
+# Strategy Tracker API - Monitor Strategy Performance
+# =============================================================================
+
+STRATEGY_DASHBOARD_TEMPLATE = Path(__file__).parent / "strategy_dashboard.html"
+
+
+@app.get("/api/strategies/dashboard", tags=["ML/AI"])
+async def get_strategy_dashboard() -> Dict[str, Any]:
+    """
+    Get strategy performance dashboard data.
+
+    Returns a comprehensive view of all strategy performance metrics.
+    """
+    try:
+        from bot.regime import get_tracker
+        tracker = get_tracker()
+        return tracker.get_dashboard()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/strategies/list", tags=["ML/AI"])
+async def list_strategies() -> Dict[str, Any]:
+    """List all registered trading strategies with their performance."""
+    try:
+        from bot.regime import get_tracker
+        tracker = get_tracker()
+        strategies = tracker.get_all_strategies()
+        return {
+            "strategies": [s.to_dict() for s in strategies],
+            "count": len(strategies),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/strategies/{strategy_id}", tags=["ML/AI"])
+async def get_strategy_performance(strategy_id: str) -> Dict[str, Any]:
+    """Get performance metrics for a specific strategy."""
+    try:
+        from bot.regime import get_tracker
+        tracker = get_tracker()
+        perf = tracker.get_performance(strategy_id)
+        if perf is None:
+            raise HTTPException(status_code=404, detail=f"Strategy {strategy_id} not found")
+        return perf.to_dict()
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/strategies/comparison/text", tags=["ML/AI"])
+async def get_strategy_comparison_text() -> Dict[str, str]:
+    """Get a text-formatted comparison of all strategies."""
+    try:
+        from bot.regime import get_tracker
+        tracker = get_tracker()
+        return {"comparison": tracker.get_strategy_comparison()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/dashboard/strategies", response_class=HTMLResponse, tags=["Dashboard"])
+async def strategy_dashboard() -> HTMLResponse:
+    """Serve the strategy performance dashboard."""
+    if not STRATEGY_DASHBOARD_TEMPLATE.exists():
+        return HTMLResponse(
+            content="<html><body><h1>Strategy dashboard template missing.</h1></body></html>",
+            status_code=200,
+        )
+    return HTMLResponse(content=STRATEGY_DASHBOARD_TEMPLATE.read_text())

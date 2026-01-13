@@ -1,0 +1,50 @@
+{
+  "timestamp": "2026-01-13T01:16:16.489933",
+  "initial_capital": 10000.0,
+  "portfolio_value": 9999.717000246932,
+  "cash": 5526.719341259559,
+  "pnl": -0.2829997530679975,
+  "pnl_pct": -0.0028299975306799756,
+  "model_type": "gradient_boosting",
+  "mode": "enhanced_ai",
+  "positions": {
+    "ETH/USDT": {
+      "symbol": "ETH/USDT",
+      "quantity": 0.6774669465502396,
+      "entry_price": 3099.7822265625,
+      "side": "LONG",
+      "entry_time": "2026-01-13T00:51:16.584605"
+    },
+    "BTC/USDT": {
+      "symbol": "BTC/USDT",
+      "quantity": 0.025924821824358027,
+      "entry_price": 91363.9453125,
+      "side": "LONG",
+      "entry_time": "2026-01-13T01:06:16.452615"
+    }
+  },
+  "position_count": 2,
+  "trade_count": 4,
+  "signals": {
+    "BTC/USDT": {
+      "signal": "LONG",
+      "regime": "unknown",
+      "confidence": 0.6547980184752872,
+      "price": 91345.53125
+    },
+    "ETH/USDT": {
+      "signal": "LONG",
+      "regime": "unknown",
+      "confidence": 0.5773964734961092,
+      "price": 3106.987060546875
+    }
+  },
+  "ai_features": {
+    "auto_retraining_enabled": true,
+    "online_learning_enabled": true,
+    "llm_enabled": true,
+    "win_count": 0,
+    "loss_count": 1,
+    "win_rate": 0.0
+  }
+}

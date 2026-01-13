@@ -1,0 +1,39 @@
+{
+  "model_name": "transformer_stock_AMZN",
+  "model_type": "transformer",
+  "config": {
+    "name": "transformer_stock_AMZN",
+    "version": "1.0.0",
+    "sequence_length": 60,
+    "batch_size": 32,
+    "epochs": 50,
+    "learning_rate": 0.0001,
+    "hidden_size": 128,
+    "num_layers": 2,
+    "dropout": 0.1,
+    "device": "mps",
+    "use_mixed_precision": false,
+    "early_stopping_patience": 15,
+    "validation_split": 0.2
+  },
+  "feature_names": [],
+  "is_trained": true,
+  "training_metrics": {
+    "train_loss": 1.0223,
+    "val_loss": 1.054828,
+    "train_accuracy": 0.4843,
+    "val_accuracy": 0.4915,
+    "epochs_trained": 16,
+    "best_epoch": 1,
+    "training_time_seconds": 2.48,
+    "samples_trained": 413,
+    "feature_importance": {}
+  },
+  "saved_at": "2026-01-12T00:22:44.547517",
+  "input_size": 97,
+  "transformer_config": {
+    "model_dim": 64,
+    "num_heads": 4,
+    "num_encoder_layers": 3
+  }
+}

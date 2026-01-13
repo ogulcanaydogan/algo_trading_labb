@@ -1,0 +1,89 @@
+{
+  "timestamp": "2026-01-13T15:35:35.969949",
+  "market_type": "commodity",
+  "total_value": 10111.420128080714,
+  "cash_balance": 1.1514777725096792e-05,
+  "initial_capital": 10000.0,
+  "pnl": 111.42012808071377,
+  "pnl_pct": 1.1142012808071378,
+  "positions": {
+    "XAU/USD": {
+      "quantity": 0.544117,
+      "price": 4619.10009765625,
+      "value": 2513.3308878364255
+    },
+    "XAG/USD": {
+      "quantity": 19.851904,
+      "price": 87.99500274658203,
+      "value": 1746.868347004883
+    },
+    "USOIL/USD": {
+      "quantity": 27.903343,
+      "price": 61.220001220703125,
+      "value": 1708.242692521698
+    },
+    "NATGAS/USD": {
+      "quantity": 1246.758425,
+      "price": 3.322999954223633,
+      "value": 4142.978189202929
+    }
+  },
+  "positions_count": 4,
+  "current_weights": {
+    "XAU/USD": 0.24856359007935813,
+    "XAG/USD": 0.17276191918419104,
+    "USOIL/USD": 0.16894191625740962,
+    "NATGAS/USD": 0.40973257334025176
+  },
+  "optimization_method": "risk_parity",
+  "signals": {
+    "XAU/USD": {
+      "signal": "FLAT",
+      "regime": "sideways",
+      "confidence": 0.6129032258064515,
+      "price": 4619.10009765625
+    },
+    "XAG/USD": {
+      "signal": "FLAT",
+      "regime": "strong_bull",
+      "confidence": 0.5026835115355037,
+      "price": 87.99500274658203
+    },
+    "USOIL/USD": {
+      "signal": "FLAT",
+      "regime": "volatile",
+      "confidence": 0.6624472573839663,
+      "price": 61.220001220703125
+    },
+    "NATGAS/USD": {
+      "signal": "FLAT",
+      "regime": "volatile",
+      "confidence": 0.6954314720812182,
+      "price": 3.322999954223633
+    }
+  },
+  "commodities": {
+    "XAU/USD": {
+      "name": "Gold",
+      "yf_symbol": "GC=F",
+      "price": 4619.10009765625
+    },
+    "XAG/USD": {
+      "name": "Silver",
+      "yf_symbol": "SI=F",
+      "price": 87.99500274658203
+    },
+    "USOIL/USD": {
+      "name": "Crude Oil",
+      "yf_symbol": "CL=F",
+      "price": 61.220001220703125
+    },
+    "NATGAS/USD": {
+      "name": "Natural Gas",
+      "yf_symbol": "NG=F",
+      "price": 3.322999954223633
+    }
+  },
+  "deep_learning_enabled": false,
+  "ml_signals_enabled": true
+}

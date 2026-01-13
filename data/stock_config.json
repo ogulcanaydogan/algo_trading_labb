@@ -1,0 +1,113 @@
+{
+  "name": "Stock Portfolio",
+  "market_type": "stock",
+  "description": "Multi-market stock portfolio with US and UK equities",
+  "assets": [
+    {
+      "symbol": "AAPL",
+      "name": "Apple Inc.",
+      "asset_type": "stock",
+      "exchange": "nasdaq",
+      "max_weight": 0.20,
+      "min_weight": 0.05,
+      "enabled": true,
+      "metadata": {
+        "sector": "Technology",
+        "currency": "USD"
+      }
+    },
+    {
+      "symbol": "MSFT",
+      "name": "Microsoft Corporation",
+      "asset_type": "stock",
+      "exchange": "nasdaq",
+      "max_weight": 0.20,
+      "min_weight": 0.05,
+      "enabled": true,
+      "metadata": {
+        "sector": "Technology",
+        "currency": "USD"
+      }
+    },
+    {
+      "symbol": "GOOGL",
+      "name": "Alphabet Inc.",
+      "asset_type": "stock",
+      "exchange": "nasdaq",
+      "max_weight": 0.20,
+      "min_weight": 0.05,
+      "enabled": true,
+      "metadata": {
+        "sector": "Technology",
+        "currency": "USD"
+      }
+    },
+    {
+      "symbol": "NVDA",
+      "name": "NVIDIA Corporation",
+      "asset_type": "stock",
+      "exchange": "nasdaq",
+      "max_weight": 0.20,
+      "min_weight": 0.05,
+      "enabled": true,
+      "metadata": {
+        "sector": "Technology",
+        "currency": "USD"
+      }
+    },
+    {
+      "symbol": "JPM",
+      "name": "JPMorgan Chase & Co.",
+      "asset_type": "stock",
+      "exchange": "nyse",
+      "max_weight": 0.15,
+      "min_weight": 0.05,
+      "enabled": true,
+      "metadata": {
+        "sector": "Financial Services",
+        "currency": "USD"
+      }
+    },
+    {
+      "symbol": "VOD.L",
+      "name": "Vodafone Group Plc",
+      "asset_type": "stock",
+      "exchange": "lse",
+      "max_weight": 0.15,
+      "min_weight": 0.05,
+      "enabled": true,
+      "metadata": {
+        "sector": "Telecommunications",
+        "currency": "GBP"
+      }
+    }
+  ],
+  "optimization_method": "max_sharpe",
+  "rebalance_threshold": 0.05,
+  "rebalance_frequency": "weekly",
+  "total_capital": 10000,
+  "risk_parameters": {
+    "max_portfolio_volatility": 0.15,
+    "max_drawdown": 0.10,
+    "stop_loss_pct": 0.03,
+    "take_profit_pct": 0.08
+  },
+  "ml_config": {
+    "use_ml_signals": true,
+    "confidence_threshold": 0.55,
+    "retrain_interval_hours": 168
+  },
+  "trading_schedule": {
+    "us_market": {
+      "start": "09:30",
+      "end": "16:00",
+      "timezone": "US/Eastern"
+    },
+    "lse_market": {
+      "start": "08:00",
+      "end": "16:30",
+      "timezone": "Europe/London"
+    },
+    "notes": "Only trade during respective market hours"
+  }
+}

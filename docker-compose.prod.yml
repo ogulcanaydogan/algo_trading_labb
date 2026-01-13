@@ -1,0 +1,155 @@
+# =============================================================================
+# Algo Trading Lab - Production Docker Compose Configuration
+# =============================================================================
+# Extends base docker-compose.yml with:
+# - Nginx reverse proxy with SSL/TLS termination
+# - Log rotation and volume management
+# - Production-grade security settings
+#
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Nginx Reverse Proxy - SSL Termination and Load Balancing
+  # ---------------------------------------------------------------------------
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: algo-trading-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    networks:
+      - trading_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # ---------------------------------------------------------------------------
+  # API Service - Production Overrides
+  # ---------------------------------------------------------------------------
+  api:
+    # Remove direct port exposure in production (use nginx)
+    ports: []
+    environment:
+      - DATA_DIR=/app/data
+      - CORS_ORIGINS=${CORS_ORIGINS:-https://yourdomain.com}
+      - API_KEY=${API_KEY}
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "10"
+
+  # ---------------------------------------------------------------------------
+  # Crypto Trading Bot - Production Overrides
+  # ---------------------------------------------------------------------------
+  crypto-bot:
+    environment:
+      - DATA_DIR=/app/data
+      - LOOP_INTERVAL=${LOOP_INTERVAL:-60}
+      - INITIAL_CAPITAL=${INITIAL_CAPITAL:-10000}
+      - USE_DEEP_LEARNING=${USE_DEEP_LEARNING:-true}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+
+  # ---------------------------------------------------------------------------
+  # Commodity Trading Bot - Production Overrides
+  # ---------------------------------------------------------------------------
+  commodity-bot:
+    environment:
+      - DATA_DIR=/app/data
+      - LOOP_INTERVAL=${LOOP_INTERVAL:-60}
+      - INITIAL_CAPITAL=${COMMODITY_INITIAL_CAPITAL:-10000}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+
+  # ---------------------------------------------------------------------------
+  # Stock Trading Bot - Production Overrides
+  # ---------------------------------------------------------------------------
+  stock-bot:
+    environment:
+      - DATA_DIR=/app/data
+      - LOOP_INTERVAL=${LOOP_INTERVAL:-60}
+      - INITIAL_CAPITAL=${STOCK_INITIAL_CAPITAL:-10000}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+
+# =============================================================================
+# Additional Volumes for Production
+# =============================================================================
+volumes:
+  nginx_logs:
+    driver: local
+    name: algo_trading_nginx_logs

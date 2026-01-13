@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": "2026-01-12T11:24:58.863701",
+    "symbol": "BTC/USDT",
+    "action": "LONG",
+    "price": 90489.71875,
+    "quantity": 0.03315293760927951,
+    "value": 3000.0,
+    "status": "executed",
+    "side": "LONG"
+  },
+  {
+    "timestamp": "2026-01-12T11:24:59.008055",
+    "symbol": "ETH/USDT",
+    "action": "LONG",
+    "price": 3109.8896484375,
+    "quantity": 0.6752651178652277,
+    "value": 2100.0,
+    "status": "executed",
+    "side": "LONG"
+  }
+]

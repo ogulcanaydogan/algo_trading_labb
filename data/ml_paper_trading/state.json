@@ -1,0 +1,13 @@
+{
+  "timestamp": "2026-01-12T02:09:44.434553",
+  "initial_capital": 10000.0,
+  "portfolio_value": 10000.0,
+  "cash": 10000.0,
+  "pnl": 0.0,
+  "pnl_pct": 0.0,
+  "model_type": "random_forest",
+  "confidence_threshold": 0.4,
+  "positions": {},
+  "position_count": 0,
+  "trade_count": 0
+}

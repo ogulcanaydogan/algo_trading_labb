@@ -1,0 +1,395 @@
+{
+  "training_started": "2026-01-12T01:22:33.253639",
+  "datasets": [
+    "ETH/USDT_1h",
+    "BTC/USDT_1h"
+  ],
+  "model_types": [
+    "random_forest",
+    "xgboost",
+    "gradient_boosting"
+  ],
+  "models": [
+    {
+      "status": "success",
+      "model_type": "random_forest",
+      "model_name": "ETH_USDT_1h_random_forest",
+      "metrics": {
+        "accuracy": 0.5916,
+        "cross_val_mean": 0.5281,
+        "cross_val_std": 0.0277,
+        "train_samples": 13936,
+        "test_samples": 3484
+      },
+      "top_features": [
+        {
+          "feature": "intraday_range",
+          "importance": 0.0435
+        },
+        {
+          "feature": "volume_ma_5",
+          "importance": 0.0366
+        },
+        {
+          "feature": "atr_normalized",
+          "importance": 0.0298
+        },
+        {
+          "feature": "volume_ma_10",
+          "importance": 0.0239
+        },
+        {
+          "feature": "atr",
+          "importance": 0.0214
+        },
+        {
+          "feature": "volatility_10",
+          "importance": 0.0199
+        },
+        {
+          "feature": "volume_ma_20",
+          "importance": 0.0181
+        },
+        {
+          "feature": "std_20",
+          "importance": 0.0178
+        },
+        {
+          "feature": "volume_ratio_20",
+          "importance": 0.0161
+        },
+        {
+          "feature": "upper_shadow",
+          "importance": 0.0159
+        }
+      ]
+    },
+    {
+      "status": "success",
+      "model_type": "xgboost",
+      "model_name": "ETH_USDT_1h_xgboost",
+      "metrics": {
+        "accuracy": 0.5916,
+        "cross_val_mean": 0.5281,
+        "cross_val_std": 0.0277,
+        "train_samples": 13936,
+        "test_samples": 3484
+      },
+      "top_features": [
+        {
+          "feature": "intraday_range",
+          "importance": 0.0435
+        },
+        {
+          "feature": "volume_ma_5",
+          "importance": 0.0366
+        },
+        {
+          "feature": "atr_normalized",
+          "importance": 0.0298
+        },
+        {
+          "feature": "volume_ma_10",
+          "importance": 0.0239
+        },
+        {
+          "feature": "atr",
+          "importance": 0.0214
+        },
+        {
+          "feature": "volatility_10",
+          "importance": 0.0199
+        },
+        {
+          "feature": "volume_ma_20",
+          "importance": 0.0181
+        },
+        {
+          "feature": "std_20",
+          "importance": 0.0178
+        },
+        {
+          "feature": "volume_ratio_20",
+          "importance": 0.0161
+        },
+        {
+          "feature": "upper_shadow",
+          "importance": 0.0159
+        }
+      ]
+    },
+    {
+      "status": "success",
+      "model_type": "gradient_boosting",
+      "model_name": "ETH_USDT_1h_gradient_boosting",
+      "metrics": {
+        "accuracy": 0.5548,
+        "cross_val_mean": 0.4378,
+        "cross_val_std": 0.0875,
+        "train_samples": 13936,
+        "test_samples": 3484
+      },
+      "top_features": [
+        {
+          "feature": "volume_ma_5",
+          "importance": 0.0835
+        },
+        {
+          "feature": "intraday_range",
+          "importance": 0.0498
+        },
+        {
+          "feature": "atr_normalized",
+          "importance": 0.0482
+        },
+        {
+          "feature": "volume_ratio_20",
+          "importance": 0.0248
+        },
+        {
+          "feature": "obv_change",
+          "importance": 0.0202
+        },
+        {
+          "feature": "upper_shadow",
+          "importance": 0.0184
+        },
+        {
+          "feature": "lower_shadow",
+          "importance": 0.018
+        },
+        {
+          "feature": "volume_change_lag_3",
+          "importance": 0.0165
+        },
+        {
+          "feature": "volume_change_lag_5",
+          "importance": 0.0164
+        },
+        {
+          "feature": "skew_20",
+          "importance": 0.0162
+        }
+      ]
+    },
+    {
+      "status": "success",
+      "model_type": "random_forest",
+      "model_name": "BTC_USDT_1h_random_forest",
+      "metrics": {
+        "accuracy": 0.6317,
+        "cross_val_mean": 0.5339,
+        "cross_val_std": 0.0215,
+        "train_samples": 13936,
+        "test_samples": 3484
+      },
+      "top_features": [
+        {
+          "feature": "intraday_range",
+          "importance": 0.0481
+        },
+        {
+          "feature": "volume_ma_5",
+          "importance": 0.0423
+        },
+        {
+          "feature": "volume_ma_10",
+          "importance": 0.0287
+        },
+        {
+          "feature": "volatility_5",
+          "importance": 0.0267
+        },
+        {
+          "feature": "atr_normalized",
+          "importance": 0.0242
+        },
+        {
+          "feature": "volatility_10",
+          "importance": 0.0216
+        },
+        {
+          "feature": "std_20",
+          "importance": 0.0193
+        },
+        {
+          "feature": "bb_width",
+          "importance": 0.0174
+        },
+        {
+          "feature": "upper_shadow",
+          "importance": 0.0166
+        },
+        {
+          "feature": "volume_ratio_20",
+          "importance": 0.0166
+        }
+      ]
+    },
+    {
+      "status": "success",
+      "model_type": "xgboost",
+      "model_name": "BTC_USDT_1h_xgboost",
+      "metrics": {
+        "accuracy": 0.6317,
+        "cross_val_mean": 0.5339,
+        "cross_val_std": 0.0215,
+        "train_samples": 13936,
+        "test_samples": 3484
+      },
+      "top_features": [
+        {
+          "feature": "intraday_range",
+          "importance": 0.0481
+        },
+        {
+          "feature": "volume_ma_5",
+          "importance": 0.0423
+        },
+        {
+          "feature": "volume_ma_10",
+          "importance": 0.0287
+        },
+        {
+          "feature": "volatility_5",
+          "importance": 0.0267
+        },
+        {
+          "feature": "atr_normalized",
+          "importance": 0.0242
+        },
+        {
+          "feature": "volatility_10",
+          "importance": 0.0216
+        },
+        {
+          "feature": "std_20",
+          "importance": 0.0193
+        },
+        {
+          "feature": "bb_width",
+          "importance": 0.0174
+        },
+        {
+          "feature": "upper_shadow",
+          "importance": 0.0166
+        },
+        {
+          "feature": "volume_ratio_20",
+          "importance": 0.0166
+        }
+      ]
+    },
+    {
+      "status": "success",
+      "model_type": "gradient_boosting",
+      "model_name": "BTC_USDT_1h_gradient_boosting",
+      "metrics": {
+        "accuracy": 0.6102,
+        "cross_val_mean": 0.4215,
+        "cross_val_std": 0.0301,
+        "train_samples": 13936,
+        "test_samples": 3484
+      },
+      "top_features": [
+        {
+          "feature": "intraday_range",
+          "importance": 0.1178
+        },
+        {
+          "feature": "volume_ma_5",
+          "importance": 0.0838
+        },
+        {
+          "feature": "price_position",
+          "importance": 0.0233
+        },
+        {
+          "feature": "atr_normalized",
+          "importance": 0.0219
+        },
+        {
+          "feature": "volume_change_lag_3",
+          "importance": 0.0184
+        },
+        {
+          "feature": "volume_ratio_20",
+          "importance": 0.0182
+        },
+        {
+          "feature": "return_1_lag_5",
+          "importance": 0.0159
+        },
+        {
+          "feature": "return_1_lag_2",
+          "importance": 0.0156
+        },
+        {
+          "feature": "volume_change",
+          "importance": 0.0155
+        },
+        {
+          "feature": "std_50",
+          "importance": 0.0152
+        }
+      ]
+    }
+  ],
+  "backtests": [
+    {
+      "model_name": "ETH_USDT_1h_random_forest",
+      "status": "success",
+      "initial_balance": 10000.0,
+      "final_balance": 67489.64,
+      "total_return_pct": 574.9,
+      "total_trades": 2230,
+      "win_rate": 91.17
+    },
+    {
+      "model_name": "ETH_USDT_1h_xgboost",
+      "status": "success",
+      "initial_balance": 10000.0,
+      "final_balance": 67489.64,
+      "total_return_pct": 574.9,
+      "total_trades": 2230,
+      "win_rate": 91.17
+    },
+    {
+      "model_name": "ETH_USDT_1h_gradient_boosting",
+      "status": "success",
+      "initial_balance": 10000.0,
+      "final_balance": 89029.7,
+      "total_return_pct": 790.3,
+      "total_trades": 3323,
+      "win_rate": 83.54
+    },
+    {
+      "model_name": "BTC_USDT_1h_random_forest",
+      "status": "success",
+      "initial_balance": 10000.0,
+      "final_balance": 51093.6,
+      "total_return_pct": 410.94,
+      "total_trades": 2518,
+      "win_rate": 93.01
+    },
+    {
+      "model_name": "BTC_USDT_1h_xgboost",
+      "status": "success",
+      "initial_balance": 10000.0,
+      "final_balance": 51093.6,
+      "total_return_pct": 410.94,
+      "total_trades": 2518,
+      "win_rate": 93.01
+    },
+    {
+      "model_name": "BTC_USDT_1h_gradient_boosting",
+      "status": "success",
+      "initial_balance": 10000.0,
+      "final_balance": 53071.88,
+      "total_return_pct": 430.72,
+      "total_trades": 3401,
+      "win_rate": 85.06
+    }
+  ],
+  "training_completed": "2026-01-12T01:42:56.328912"
+}

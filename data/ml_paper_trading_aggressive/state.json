@@ -1,0 +1,42 @@
+{
+  "timestamp": "2026-01-12T12:04:58.752718",
+  "initial_capital": 10000.0,
+  "portfolio_value": 10002.337558569394,
+  "cash": 4900.0,
+  "pnl": 2.3375585693938774,
+  "pnl_pct": 0.023375585693938775,
+  "model_type": "gradient_boosting",
+  "mode": "aggressive",
+  "positions": {
+    "BTC/USDT": {
+      "symbol": "BTC/USDT",
+      "quantity": 0.03315293760927951,
+      "entry_price": 90489.71875,
+      "side": "LONG",
+      "entry_time": "2026-01-12T11:24:58.863706"
+    },
+    "ETH/USDT": {
+      "symbol": "ETH/USDT",
+      "quantity": 0.6752651178652277,
+      "entry_price": 3109.8896484375,
+      "side": "LONG",
+      "entry_time": "2026-01-12T11:24:59.008061"
+    }
+  },
+  "position_count": 2,
+  "trade_count": 2,
+  "signals": {
+    "BTC/USDT": {
+      "signal": "LONG",
+      "regime": "unknown",
+      "confidence": 0.6487443653358417,
+      "price": 90526.0546875
+    },
+    "ETH/USDT": {
+      "signal": "LONG",
+      "regime": "unknown",
+      "confidence": 0.6199439549573171,
+      "price": 3111.5673828125
+    }
+  }
+}

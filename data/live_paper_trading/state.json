@@ -1,0 +1,99 @@
+{
+  "timestamp": "2026-01-13T15:35:45.538672",
+  "market_type": "crypto",
+  "total_value": 10255.340426088893,
+  "cash_balance": 0.058397336438247294,
+  "initial_capital": 10000.0,
+  "pnl": 255.34042608889285,
+  "pnl_pct": 2.5534042608889287,
+  "positions": {
+    "BTC/USDT": {
+      "quantity": 0.024509,
+      "price": 92283.2578125,
+      "value": 2261.7703657265624
+    },
+    "SOL/USDT": {
+      "quantity": 15.206023000000004,
+      "price": 141.56935119628906,
+      "value": 2152.7068103858496
+    },
+    "ETH/USDT": {
+      "quantity": 0.723259,
+      "price": 3140.415283203125,
+      "value": 2271.333617314209
+    },
+    "AVAX/USDT": {
+      "quantity": 254.50454099999996,
+      "price": 14.025177001953125,
+      "value": 3569.4712353258356
+    }
+  },
+  "positions_count": 4,
+  "current_weights": {
+    "BTC/USDT": 0.22054561543103646,
+    "SOL/USDT": 0.20991080948512533,
+    "ETH/USDT": 0.221478129729959,
+    "AVAX/USDT": 0.34805975101960945
+  },
+  "optimization_method": "risk_parity",
+  "signals": {
+    "BTC/USDT": {
+      "signal": "FLAT",
+      "regime": "sideways",
+      "confidence": 0.6129032258064515,
+      "price": 92283.2578125,
+      "dl_prediction": {
+        "action": "FLAT",
+        "confidence": 0.33,
+        "model_type": "none",
+        "prob_long": 0.33,
+        "prob_short": 0.33,
+        "prob_flat": 0.34
+      }
+    },
+    "ETH/USDT": {
+      "signal": "FLAT",
+      "regime": "sideways",
+      "confidence": 0.6129032258064515,
+      "price": 3140.415283203125,
+      "dl_prediction": {
+        "action": "FLAT",
+        "confidence": 0.33,
+        "model_type": "none",
+        "prob_long": 0.33,
+        "prob_short": 0.33,
+        "prob_flat": 0.34
+      }
+    },
+    "SOL/USDT": {
+      "signal": "FLAT",
+      "regime": "sideways",
+      "confidence": 0.6129032258064515,
+      "price": 141.56935119628906,
+      "dl_prediction": {
+        "action": "FLAT",
+        "confidence": 0.33,
+        "model_type": "none",
+        "prob_long": 0.33,
+        "prob_short": 0.33,
+        "prob_flat": 0.34
+      }
+    },
+    "AVAX/USDT": {
+      "signal": "FLAT",
+      "regime": "bull",
+      "confidence": 0.5524862658388316,
+      "price": 14.025177001953125,
+      "dl_prediction": {
+        "action": "FLAT",
+        "confidence": 0.33,
+        "model_type": "none",
+        "prob_long": 0.33,
+        "prob_short": 0.33,
+        "prob_flat": 0.34
+      }
+    }
+  },
+  "deep_learning_enabled": true,
+  "dl_model_selection": "regime_based"
+}

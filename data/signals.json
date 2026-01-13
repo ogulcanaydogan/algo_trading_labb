@@ -141,5 +141,16 @@
     "ai_confidence": 0.5629,
     "ai_expected_move_pct": -0.2265,
     "execution_reason": "No clear signal."
+  },
+  {
+    "timestamp": "2026-01-13T00:18:55.769373+00:00",
+    "symbol": "BTC/USDT",
+    "decision": "LONG",
+    "confidence": 0.0,
+    "reason": "Simulated DRY RUN",
+    "ai_action": null,
+    "ai_confidence": null,
+    "ai_expected_move_pct": null,
+    "execution_reason": "Simulated DRY RUN"
   }
 ]

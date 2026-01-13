@@ -279,7 +279,7 @@ async def run_paper_trading(symbols: list = None):
     )
 
     # Create paper trading adapter with initial balance
-    initial_capital = 30000.0  # $30k for multi-asset trading
+    initial_capital = 50000.0  # $50k for multi-asset trading (5 assets)
     adapter = SimplePaperAdapter(initial_balance=initial_capital)
 
     # Create and start engine
@@ -372,8 +372,8 @@ Available modes:
     )
     parser.add_argument(
         "--symbols",
-        default="BTC/USDT",
-        help="Comma-separated list of symbols for paper trading (e.g., BTC/USDT,ETH/USDT,SPY)",
+        default="BTC/USDT,ETH/USDT,SOL/USDT,SPY,GLD",
+        help="Comma-separated list of symbols for paper trading (e.g., BTC/USDT,ETH/USDT,SOL/USDT,SPY,GLD)",
     )
     parser.add_argument(
         "--days",

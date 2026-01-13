@@ -1,0 +1,40 @@
+{
+  "model_name": "lstm_stock_AAPL",
+  "model_type": "lstm",
+  "config": {
+    "name": "lstm_stock_AAPL",
+    "version": "1.0.0",
+    "sequence_length": 60,
+    "batch_size": 32,
+    "epochs": 50,
+    "learning_rate": 0.001,
+    "hidden_size": 128,
+    "num_layers": 2,
+    "dropout": 0.3,
+    "device": "mps",
+    "use_mixed_precision": false,
+    "early_stopping_patience": 15,
+    "validation_split": 0.2
+  },
+  "feature_names": [],
+  "is_trained": true,
+  "training_metrics": {
+    "train_loss": 0.381169,
+    "val_loss": 1.023392,
+    "train_accuracy": 0.8378,
+    "val_accuracy": 0.5,
+    "epochs_trained": 18,
+    "best_epoch": 3,
+    "training_time_seconds": 4.3,
+    "samples_trained": 413,
+    "feature_importance": {}
+  },
+  "saved_at": "2026-01-12T00:22:07.313567",
+  "input_size": 97,
+  "lstm_config": {
+    "hidden_size": 128,
+    "num_layers": 2,
+    "bidirectional": true,
+    "use_attention": true
+  }
+}

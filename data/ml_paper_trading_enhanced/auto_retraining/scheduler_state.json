@@ -1,0 +1,11 @@
+{
+  "model_created": {
+    "BTC/USDT_gradient_boosting": "2026-01-12T12:00:14.711394",
+    "ETH/USDT_gradient_boosting": "2026-01-12T12:00:14.711531"
+  },
+  "last_check": "2026-01-13T00:51:16.198392",
+  "registered_models": [
+    "BTC/USDT",
+    "ETH/USDT"
+  ]
+}

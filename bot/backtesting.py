@@ -1,7 +1,7 @@
 """
 Backtesting and Strategy Testing Module
 
-Bu modül, stratejinizi geçmiş verilerde test etmenizi ve performansını analiz etmenizi sağlar.
+This module allows you to test your strategy on historical data and analyze its performance.
 """
 
 import json
@@ -17,10 +17,10 @@ from bot.strategy import compute_indicators, generate_signal, StrategyConfig, ca
 
 @dataclass
 class Trade:
-    """Tek bir trade kaydı"""
+    """Single trade record"""
     entry_time: datetime
     exit_time: Optional[datetime] = None
-    direction: str = "LONG"  # LONG veya SHORT
+    direction: str = "LONG"  # LONG or SHORT
     entry_price: float = 0.0
     exit_price: Optional[float] = None
     size: float = 0.0
@@ -48,7 +48,7 @@ class Trade:
 
 @dataclass
 class BacktestResult:
-    """Backtest sonuçları"""
+    """Backtest results"""
     initial_balance: float
     final_balance: float
     total_trades: int = 0
@@ -86,18 +86,18 @@ class BacktestResult:
         }
 
     def print_summary(self):
-        """Sonuçları yazdır"""
+        """Print results"""
         print("\n" + "="*60)
-        print("BACKTEST SONUÇLARI")
+        print("BACKTEST RESULTS")
         print("="*60)
-        print(f"Başlangıç Bakiyesi: ${self.initial_balance:,.2f}")
-        print(f"Bitiş Bakiyesi: ${self.final_balance:,.2f}")
-        print(f"Toplam P&L: ${self.total_pnl:,.2f} ({self.total_pnl_pct:.2f}%)")
-        print(f"\nToplam İşlem: {self.total_trades}")
-        print(f"Kazanan: {self.winning_trades} | Kaybeden: {self.losing_trades}")
+        print(f"Starting Balance: ${self.initial_balance:,.2f}")
+        print(f"Ending Balance: ${self.final_balance:,.2f}")
+        print(f"Total P&L: ${self.total_pnl:,.2f} ({self.total_pnl_pct:.2f}%)")
+        print(f"\nTotal Trades: {self.total_trades}")
+        print(f"Winners: {self.winning_trades} | Losers: {self.losing_trades}")
         print(f"Win Rate: {self.win_rate:.2%}")
-        print(f"Ortalama Kazanç: ${self.avg_win:.2f}")
-        print(f"Ortalama Kayıp: ${self.avg_loss:.2f}")
+        print(f"Average Win: ${self.avg_win:.2f}")
+        print(f"Average Loss: ${self.avg_loss:.2f}")
         print(f"Profit Factor: {self.profit_factor:.2f}")
         print(f"Max Drawdown: ${self.max_drawdown:.2f} ({self.max_drawdown_pct:.2f}%)")
         print(f"Sharpe Ratio: {self.sharpe_ratio:.2f}")
@@ -106,7 +106,7 @@ class BacktestResult:
 
 class Backtester:
     """
-    Backtest motoru - geçmiş verilerle stratejiyi test eder
+    Backtest engine - tests strategy with historical data
     """
 
     def __init__(
@@ -123,20 +123,20 @@ class Backtester:
 
     def run(self, ohlcv: pd.DataFrame) -> BacktestResult:
         """
-        Backtest'i çalıştır
+        Run backtest
 
         Args:
             ohlcv: OHLCV dataframe (columns: open, high, low, close, volume)
 
         Returns:
-            BacktestResult: Test sonuçları
+            BacktestResult: Test results
         """
-        print(f"\n🔄 Backtest başlatılıyor... ({len(ohlcv)} bar)")
+        print(f"\nStarting backtest... ({len(ohlcv)} bars)")
 
-        # İndikatörleri hesapla
+        # Calculate indicators
         enriched = compute_indicators(ohlcv, self.config)
 
-        # Her bar için stratejiyi test et
+        # Test strategy for each bar
         for i in range(len(enriched)):
             if i < self.config.ema_slow + 5:
                 continue
@@ -144,24 +144,24 @@ class Backtester:
             current_bar = enriched.iloc[:i+1]
             current = current_bar.iloc[-1]
 
-            # Mevcut pozisyon varsa kontrol et
+            # Check existing position
             if self.position:
                 self._check_exit(current)
 
-            # Yeni pozisyon kontrolü
+            # Check for new position
             if not self.position:
                 signal = generate_signal(current_bar, self.config)
                 if signal["decision"] != "FLAT":
                     self._open_position(current, signal)
 
-            # Equity curve'ü kaydet
+            # Save equity curve
             self.equity_curve.append({
                 "timestamp": current.name,
                 "balance": self.balance,
                 "price": float(current["close"]),
             })
 
-        # Açık pozisyon varsa kapat
+        # Close open position if exists
         if self.position:
             last = enriched.iloc[-1]
             self._close_position(last["close"], last.name, "End of backtest")
@@ -169,10 +169,10 @@ class Backtester:
         return self._calculate_results()
 
     def _open_position(self, bar: pd.Series, signal: Dict):
-        """Yeni pozisyon aç"""
+        """Open new position"""
         price = float(bar["close"])
 
-        # Pozisyon büyüklüğünü hesapla
+        # Calculate position size
         size = calculate_position_size(
             self.balance,
             self.config.risk_per_trade_pct,
@@ -180,7 +180,7 @@ class Backtester:
             self.config.stop_loss_pct,
         )
 
-        # Stop loss ve take profit seviyelerini belirle
+        # Set stop loss and take profit levels
         if signal["decision"] == "LONG":
             stop_loss = price * (1 - self.config.stop_loss_pct)
             take_profit = price * (1 + self.config.take_profit_pct)
@@ -198,10 +198,10 @@ class Backtester:
             confidence=signal["confidence"],
         )
 
-        print(f"📈 {signal['decision']} pozisyon açıldı: ${price:.2f} | Size: {size:.4f}")
+        print(f"{signal['decision']} position opened: ${price:.2f} | Size: {size:.4f}")
 
     def _check_exit(self, bar: pd.Series):
-        """Pozisyon çıkış kontrolü"""
+        """Check position exit"""
         if not self.position:
             return
 
@@ -212,20 +212,20 @@ class Backtester:
         exit_reason = ""
 
         if self.position.direction == "LONG":
-            # Stop loss kontrolü
+            # Stop loss check
             if low <= self.position.stop_loss:
                 exit_price = self.position.stop_loss
                 exit_reason = "Stop Loss"
-            # Take profit kontrolü
+            # Take profit check
             elif high >= self.position.take_profit:
                 exit_price = self.position.take_profit
                 exit_reason = "Take Profit"
         else:  # SHORT
-            # Stop loss kontrolü
+            # Stop loss check
             if high >= self.position.stop_loss:
                 exit_price = self.position.stop_loss
                 exit_reason = "Stop Loss"
-            # Take profit kontrolü
+            # Take profit check
             elif low <= self.position.take_profit:
                 exit_price = self.position.take_profit
                 exit_reason = "Take Profit"
@@ -234,7 +234,7 @@ class Backtester:
             self._close_position(exit_price, bar.name, exit_reason)
 
     def _close_position(self, exit_price: float, exit_time: datetime, reason: str):
-        """Pozisyonu kapat"""
+        """Close position"""
         if not self.position:
             return
 
@@ -242,22 +242,22 @@ class Backtester:
         self.position.exit_time = exit_time
         self.position.exit_reason = reason
 
-        # P&L hesapla
+        # Calculate P&L
         if self.position.direction == "LONG":
             self.position.pnl = (exit_price - self.position.entry_price) * self.position.size
             self.position.pnl_pct = (exit_price / self.position.entry_price - 1) * 100
         else:  # SHORT
             self.position.pnl = (self.position.entry_price - exit_price) * self.position.size
-            self.position.pnl_pct = (self.position.entry_price / exit_price - 1) * 100
+            self.position.pnl_pct = (1 - exit_price / self.position.entry_price) * 100
 
-        # Bakiyeyi güncelle
+        # Update balance
         self.balance += self.position.pnl
 
-        # Trade'i kaydet
+        # Save trade
         self.trades.append(self.position)
 
         print(
-            "📉 Pozisyon kapatıldı: "
+            "Position closed: "
             f"${exit_price:.2f} | P&L: ${self.position.pnl:.2f} "
             f"({self.position.pnl_pct:.2f}%) | {reason}"
         )
@@ -265,7 +265,7 @@ class Backtester:
         self.position = None
 
     def _calculate_results(self) -> BacktestResult:
-        """Sonuçları hesapla"""
+        """Calculate results"""
         result = BacktestResult(
             initial_balance=self.initial_balance,
             final_balance=self.balance,
@@ -276,7 +276,7 @@ class Backtester:
         if not self.trades:
             return result
 
-        # Temel metrikler
+        # Basic metrics
         result.total_trades = len(self.trades)
         result.winning_trades = len([t for t in self.trades if t.pnl > 0])
         result.losing_trades = len([t for t in self.trades if t.pnl <= 0])
@@ -287,7 +287,7 @@ class Backtester:
         if result.total_trades > 0:
             result.win_rate = result.winning_trades / result.total_trades
 
-        # Ortalama kazanç/kayıp
+        # Average win/loss
         wins = [t.pnl for t in self.trades if t.pnl > 0]
         losses = [abs(t.pnl) for t in self.trades if t.pnl <= 0]
 
@@ -314,16 +314,27 @@ class Backtester:
         result.max_drawdown = max_dd
         result.max_drawdown_pct = (max_dd / peak * 100) if peak > 0 else 0
 
-        # Sharpe ratio (basitleştirilmiş)
-        returns = [t.pnl_pct for t in self.trades]
-        if returns:
-            result.sharpe_ratio = (np.mean(returns) / np.std(returns)) if np.std(returns) > 0 else 0
+        # Sharpe ratio (annualized)
+        # Convert trade returns to approximate daily returns for proper annualization
+        returns = np.array([t.pnl_pct / 100 for t in self.trades])
+        if len(returns) > 1:
+            # Assume average of ~1 trade per day for annualization
+            # Risk-free rate assumption: 2% annual = 0.02/252 daily
+            risk_free_daily = 0.02 / 252
+            excess_returns = returns - risk_free_daily
+            if np.std(returns) > 0:
+                # Annualized Sharpe = mean * sqrt(252) / std
+                result.sharpe_ratio = (np.mean(excess_returns) / np.std(returns)) * np.sqrt(252)
+            else:
+                result.sharpe_ratio = 0
+        else:
+            result.sharpe_ratio = 0
 
         return result
 
 
 def save_backtest_results(result: BacktestResult, filename: str = "backtest_results.json"):
-    """Backtest sonuçlarını JSON dosyasına kaydet"""
+    """Save backtest results to JSON file"""
     with open(filename, "w") as f:
         json.dump(result.to_dict(), f, indent=2)
-    print(f"✅ Sonuçlar kaydedildi: {filename}")
+    print(f"Results saved: {filename}")

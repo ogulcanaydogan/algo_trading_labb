@@ -1,0 +1,82 @@
+{
+  "name": "Commodity Portfolio",
+  "market_type": "commodity",
+  "description": "Multi-asset commodity trading portfolio with precious metals and energy",
+  "assets": [
+    {
+      "symbol": "XAU/USD",
+      "name": "Gold",
+      "asset_type": "commodity",
+      "exchange": "cme",
+      "max_weight": 0.40,
+      "min_weight": 0.15,
+      "enabled": true,
+      "metadata": {
+        "unit": "oz",
+        "contract_size": 100
+      }
+    },
+    {
+      "symbol": "XAG/USD",
+      "name": "Silver",
+      "asset_type": "commodity",
+      "exchange": "cme",
+      "max_weight": 0.25,
+      "min_weight": 0.10,
+      "enabled": true,
+      "metadata": {
+        "unit": "oz",
+        "contract_size": 5000
+      }
+    },
+    {
+      "symbol": "USOIL/USD",
+      "name": "Crude Oil WTI",
+      "asset_type": "commodity",
+      "exchange": "cme",
+      "max_weight": 0.25,
+      "min_weight": 0.10,
+      "enabled": true,
+      "metadata": {
+        "unit": "barrel",
+        "contract_size": 1000
+      }
+    },
+    {
+      "symbol": "NATGAS/USD",
+      "name": "Natural Gas",
+      "asset_type": "commodity",
+      "exchange": "cme",
+      "max_weight": 0.20,
+      "min_weight": 0.05,
+      "enabled": true,
+      "metadata": {
+        "unit": "MMBtu",
+        "contract_size": 10000
+      }
+    }
+  ],
+  "optimization_method": "risk_parity",
+  "rebalance_threshold": 0.05,
+  "rebalance_frequency": "daily",
+  "total_capital": 10000,
+  "risk_parameters": {
+    "max_portfolio_volatility": 0.20,
+    "max_drawdown": 0.15,
+    "stop_loss_pct": 0.05,
+    "take_profit_pct": 0.10
+  },
+  "ml_config": {
+    "use_ml_signals": true,
+    "confidence_threshold": 0.55,
+    "retrain_interval_hours": 24
+  },
+  "trading_schedule": {
+    "active_hours": {
+      "start": "00:00",
+      "end": "23:59"
+    },
+    "timezone": "UTC",
+    "notes": "Commodities futures trade nearly 24 hours on weekdays"
+  }
+}

@@ -1,0 +1,135 @@
+{
+  "crypto_BTC_USDT_lstm_20260111_225521": {
+    "name": "btc_lstm",
+    "model_type": "lstm",
+    "version": "20260111_225521",
+    "market_type": "crypto",
+    "symbol": "BTC/USDT",
+    "created_at": "2026-01-11T22:55:21.756286",
+    "accuracy": 0.5588235294117647,
+    "val_accuracy": 0.5824561403508772,
+    "path": "data/model_registry/models/crypto_BTC_USDT_lstm_20260111_225521",
+    "is_active": true,
+    "metadata": {
+      "data_period": "2y",
+      "interval": "1h",
+      "samples": 5696,
+      "features": 97
+    }
+  },
+  "crypto_BTC_USDT_transformer_20260111_225748": {
+    "name": "btc_transformer",
+    "model_type": "transformer",
+    "version": "20260111_225748",
+    "market_type": "crypto",
+    "symbol": "BTC/USDT",
+    "created_at": "2026-01-11T22:57:48.033646",
+    "accuracy": 0.5184117125110914,
+    "val_accuracy": 0.5904255319148937,
+    "path": "data/model_registry/models/crypto_BTC_USDT_transformer_20260111_225748",
+    "is_active": true,
+    "metadata": {
+      "data_period": "2y",
+      "interval": "1h",
+      "samples": 5636,
+      "features": 97,
+      "sequence_length": 120
+    }
+  },
+  "crypto_ETH_USDT_lstm_20260111_225918": {
+    "name": "eth_usdt_lstm",
+    "model_type": "lstm",
+    "version": "20260111_225918",
+    "market_type": "crypto",
+    "symbol": "ETH/USDT",
+    "created_at": "2026-01-11T22:59:18.743498",
+    "accuracy": 0.5482832618025751,
+    "val_accuracy": 0.5668953687821612,
+    "path": "data/model_registry/models/crypto_ETH_USDT_lstm_20260111_225918",
+    "is_active": true,
+    "metadata": {
+      "data_period": "2y",
+      "interval": "1h"
+    }
+  },
+  "crypto_ETH_USDT_transformer_20260111_225953": {
+    "name": "eth_usdt_transformer",
+    "model_type": "transformer",
+    "version": "20260111_225953",
+    "market_type": "crypto",
+    "symbol": "ETH/USDT",
+    "created_at": "2026-01-11T22:59:53.105455",
+    "accuracy": 0.5112749349522984,
+    "val_accuracy": 0.561525129982669,
+    "path": "data/model_registry/models/crypto_ETH_USDT_transformer_20260111_225953",
+    "is_active": true,
+    "metadata": {
+      "data_period": "2y",
+      "interval": "1h"
+    }
+  },
+  "crypto_SOL_USDT_lstm_20260111_230013": {
+    "name": "sol_usdt_lstm",
+    "model_type": "lstm",
+    "version": "20260111_230013",
+    "market_type": "crypto",
+    "symbol": "SOL/USDT",
+    "created_at": "2026-01-11T23:00:13.841932",
+    "accuracy": 0.5369357045143639,
+    "val_accuracy": 0.544211485870556,
+    "path": "data/model_registry/models/crypto_SOL_USDT_lstm_20260111_230013",
+    "is_active": true,
+    "metadata": {
+      "data_period": "2y",
+      "interval": "1h"
+    }
+  },
+  "crypto_SOL_USDT_transformer_20260111_230044": {
+    "name": "sol_usdt_transformer",
+    "model_type": "transformer",
+    "version": "20260111_230044",
+    "market_type": "crypto",
+    "symbol": "SOL/USDT",
+    "created_at": "2026-01-11T23:00:44.379964",
+    "accuracy": 0.5034578146611342,
+    "val_accuracy": 0.5502304147465438,
+    "path": "data/model_registry/models/crypto_SOL_USDT_transformer_20260111_230044",
+    "is_active": true,
+    "metadata": {
+      "data_period": "2y",
+      "interval": "1h"
+    }
+  },
+  "crypto_AVAX_USDT_lstm_20260111_230101": {
+    "name": "avax_usdt_lstm",
+    "model_type": "lstm",
+    "version": "20260111_230101",
+    "market_type": "crypto",
+    "symbol": "AVAX/USDT",
+    "created_at": "2026-01-11T23:01:01.602157",
+    "accuracy": 0.5156898938624827,
+    "val_accuracy": 0.5249077490774908,
+    "path": "data/model_registry/models/crypto_AVAX_USDT_lstm_20260111_230101",
+    "is_active": true,
+    "metadata": {
+      "data_period": "2y",
+      "interval": "1h"
+    }
+  },
+  "crypto_AVAX_USDT_transformer_20260111_230128": {
+    "name": "avax_usdt_transformer",
+    "model_type": "transformer",
+    "version": "20260111_230128",
+    "market_type": "crypto",
+    "symbol": "AVAX/USDT",
+    "created_at": "2026-01-11T23:01:28.921777",
+    "accuracy": 0.4897340177321512,
+    "val_accuracy": 0.5205223880597015,
+    "path": "data/model_registry/models/crypto_AVAX_USDT_transformer_20260111_230128",
+    "is_active": true,
+    "metadata": {
+      "data_period": "2y",
+      "interval": "1h"
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "model_name": "lstm_crypto_ETH_USD",
+  "model_type": "lstm",
+  "config": {
+    "name": "lstm_crypto_ETH_USD",
+    "version": "1.0.0",
+    "sequence_length": 60,
+    "batch_size": 32,
+    "epochs": 50,
+    "learning_rate": 0.001,
+    "hidden_size": 128,
+    "num_layers": 2,
+    "dropout": 0.3,
+    "device": "mps",
+    "use_mixed_precision": false,
+    "early_stopping_patience": 15,
+    "validation_split": 0.2
+  },
+  "feature_names": [],
+  "is_trained": true,
+  "training_metrics": {
+    "train_loss": 0.402487,
+    "val_loss": 1.063491,
+    "train_accuracy": 0.8371,
+    "val_accuracy": 0.4561,
+    "epochs_trained": 19,
+    "best_epoch": 4,
+    "training_time_seconds": 4.01,
+    "samples_trained": 399,
+    "feature_importance": {}
+  },
+  "saved_at": "2026-01-12T00:23:06.232870",
+  "input_size": 97,
+  "lstm_config": {
+    "hidden_size": 128,
+    "num_layers": 2,
+    "bidirectional": true,
+    "use_attention": true
+  }
+}
