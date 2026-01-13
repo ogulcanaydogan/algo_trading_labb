@@ -170,6 +170,101 @@
             background: #f59e0b;
         }
 
+        /* Trading Mode Toggle */
+        .trading-mode-toggle {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--radius-md);
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(100, 116, 139, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .trading-mode-toggle:hover {
+            border-color: rgba(100, 116, 139, 0.5);
+            background: rgba(30, 41, 59, 0.9);
+        }
+
+        .mode-switch {
+            position: relative;
+            display: flex;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: var(--radius-sm);
+            padding: 2px;
+            width: 140px;
+            height: 28px;
+        }
+
+        .mode-label {
+            flex: 1;
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            z-index: 2;
+            transition: color 0.3s ease;
+            padding: 4px 8px;
+        }
+
+        .mode-label.paper {
+            color: #94a3b8;
+        }
+
+        .mode-label.live {
+            color: #64748b;
+        }
+
+        .trading-mode-toggle.live-mode .mode-label.paper {
+            color: #64748b;
+        }
+
+        .trading-mode-toggle.live-mode .mode-label.live {
+            color: #fbbf24;
+        }
+
+        .mode-slider {
+            position: absolute;
+            left: 2px;
+            top: 2px;
+            width: calc(50% - 2px);
+            height: calc(100% - 4px);
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-radius: calc(var(--radius-sm) - 2px);
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .trading-mode-toggle.live-mode .mode-slider {
+            left: calc(50%);
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .mode-balance {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #10b981;
+            min-width: 80px;
+            text-align: right;
+        }
+
+        .trading-mode-toggle.live-mode .mode-balance {
+            color: #fbbf24;
+        }
+
+        /* Live mode warning pulse */
+        .trading-mode-toggle.live-mode {
+            animation: live-pulse 2s infinite;
+            border-color: rgba(245, 158, 11, 0.5);
+        }
+
+        @keyframes live-pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+            50% { box-shadow: 0 0 8px 2px rgba(245, 158, 11, 0.2); }
+        }
+
         /* Emergency Button */
         .emergency-btn {
             display: flex;
@@ -2173,6 +2268,16 @@
             <div class="trading-status active" id="tradingStatus" title="Click for details">
                 <span class="trading-status-dot"></span>
                 <span id="tradingStatusText">Trading Active</span>
+            </div>
+
+            <!-- Trading Mode Toggle Button -->
+            <div class="trading-mode-toggle" id="tradingModeToggle" title="Click to switch trading mode">
+                <div class="mode-switch" id="modeSwitch">
+                    <span class="mode-label paper" id="paperLabel">📝 PAPER</span>
+                    <span class="mode-label live" id="liveLabel">💰 LIVE</span>
+                    <div class="mode-slider" id="modeSlider"></div>
+                </div>
+                <span class="mode-balance" id="modeBalance">$0.00</span>
             </div>
 
             <div class="header-controls">
@@ -6673,6 +6778,137 @@
         }
 
         // =========================================================================
+        // TRADING MODE TOGGLE
+        // =========================================================================
+
+        let currentTradingMode = 'paper';
+        let tradingModeConfig = null;
+
+        async function fetchTradingMode() {
+            try {
+                const response = await fetch('/api/trading/mode');
+                if (!response.ok) throw new Error('Failed to fetch trading mode');
+                tradingModeConfig = await response.json();
+                updateTradingModeUI(tradingModeConfig);
+            } catch (error) {
+                console.error('Error fetching trading mode:', error);
+                // Default to paper mode on error
+                updateTradingModeUI({ mode: 'paper', paper_capital: 0, live_capital: 0, api_keys_configured: false });
+            }
+        }
+
+        function updateTradingModeUI(config) {
+            currentTradingMode = config.mode || 'paper';
+            const toggleEl = document.getElementById('tradingModeToggle');
+            const balanceEl = document.getElementById('modeBalance');
+
+            if (!toggleEl) return;
+
+            if (currentTradingMode === 'live') {
+                toggleEl.classList.add('live-mode');
+                if (balanceEl) balanceEl.textContent = `$${(config.live_capital || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            } else {
+                toggleEl.classList.remove('live-mode');
+                if (balanceEl) balanceEl.textContent = `$${(config.paper_capital || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            }
+        }
+
+        async function toggleTradingMode() {
+            const newMode = currentTradingMode === 'paper' ? 'live' : 'paper';
+
+            if (newMode === 'live') {
+                // Check if API keys are configured
+                if (!tradingModeConfig?.api_keys_configured) {
+                    showNotification('⚠️ Binance API keys not configured. Add them to .env file first.', 'warning');
+                    return;
+                }
+
+                // Show confirmation dialog
+                const confirmed = await showLiveTradingConfirmation();
+                if (!confirmed) return;
+            }
+
+            try {
+                const response = await fetch(`/api/trading/mode?mode=${newMode}&confirm=${newMode === 'live'}`, {
+                    method: 'POST',
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to switch mode');
+                }
+
+                const result = await response.json();
+                showNotification(`✅ ${result.message}`, 'success');
+
+                // Refresh trading mode
+                await fetchTradingMode();
+
+                // Refresh all data to show new values
+                await fetchAllData();
+
+            } catch (error) {
+                console.error('Error switching trading mode:', error);
+                showNotification(`❌ ${error.message}`, 'error');
+            }
+        }
+
+        function showLiveTradingConfirmation() {
+            return new Promise((resolve) => {
+                // Create confirmation modal
+                const modal = document.createElement('div');
+                modal.className = 'emergency-modal';
+                modal.style.display = 'flex';
+                modal.innerHTML = `
+                    <div class="emergency-modal-content" style="max-width: 500px;">
+                        <div class="emergency-modal-icon">⚠️</div>
+                        <h2 class="emergency-modal-title" style="color: #f59e0b;">Switch to LIVE Trading?</h2>
+                        <p class="emergency-modal-message">
+                            <strong style="color: #ef4444;">WARNING: This will use REAL MONEY!</strong><br><br>
+                            You are about to switch to live trading mode connected to your Binance account.
+                            All trades will be executed with real funds.<br><br>
+                            <span style="color: #94a3b8;">Make sure you understand the risks before proceeding.</span>
+                        </p>
+                        <div class="emergency-modal-buttons">
+                            <button class="emergency-modal-btn cancel" id="cancelLiveSwitch">Cancel</button>
+                            <button class="emergency-modal-btn confirm" id="confirmLiveSwitch" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                                Yes, Switch to LIVE
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
+
+                document.getElementById('cancelLiveSwitch').onclick = () => {
+                    modal.remove();
+                    resolve(false);
+                };
+
+                document.getElementById('confirmLiveSwitch').onclick = () => {
+                    modal.remove();
+                    resolve(true);
+                };
+
+                modal.onclick = (e) => {
+                    if (e.target === modal) {
+                        modal.remove();
+                        resolve(false);
+                    }
+                };
+            });
+        }
+
+        function initTradingModeToggle() {
+            const toggleEl = document.getElementById('tradingModeToggle');
+            if (toggleEl) {
+                toggleEl.addEventListener('click', toggleTradingMode);
+            }
+            // Fetch initial mode
+            fetchTradingMode();
+        }
+
+        // =========================================================================
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -6680,6 +6916,9 @@
 
             // Initialize emergency control
             initEmergencyControl();
+
+            // Initialize trading mode toggle
+            initTradingModeToggle();
 
             // Initialize trading control panel
             initControlPanel();

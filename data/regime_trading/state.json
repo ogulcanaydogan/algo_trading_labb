@@ -3,19 +3,19 @@
     "is_running": true,
     "mode": "paper",
     "current_regime": "bull",
-    "regime_confidence": 0.9528031246599618,
+    "regime_confidence": 0.8099127542691216,
     "regime_duration_hours": 0.0,
     "current_allocation": 0.0,
-    "target_allocation": 1.7686305555555558e-05,
+    "target_allocation": 1.0,
     "position_value": 0,
     "equity": 50000.0,
     "daily_pnl": 0.0,
     "total_pnl": 0.0,
-    "trades_today": 11,
-    "last_update": "2026-01-13T15:37:20.777386",
-    "last_trade": "2026-01-13T15:37:20.140565"
+    "trades_today": 20,
+    "last_update": "2026-01-13T23:34:49.519377",
+    "last_trade": "2026-01-13T16:59:32.291106"
   },
   "total_pnl": 0.0,
   "peak_equity": 50000.0,
-  "saved_at": "2026-01-13T15:37:20.777543"
+  "saved_at": "2026-01-13T23:34:49.519769"
 }

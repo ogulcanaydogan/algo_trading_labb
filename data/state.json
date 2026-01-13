@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-01-13T00:18:55.769014+00:00",
+  "timestamp": "2026-01-13T16:44:01.643255+00:00",
   "symbol": "BTC/USDT",
   "position": "LONG",
   "entry_price": 50000,
@@ -14,7 +14,7 @@
   "technical_confidence": 0.0,
   "technical_reason": "No clear signal.",
   "ai_override_active": true,
-  "rsi": 49.68393443226068,
+  "rsi": 50.0,
   "ema_fast": 30748.42183802724,
   "ema_slow": 30764.34188189381,
   "risk_per_trade_pct": 0.5,

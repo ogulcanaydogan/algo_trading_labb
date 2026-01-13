@@ -632,9 +632,46 @@ def read_signals(
 
 @app.get("/equity", response_model=List[EquityPointResponse])
 def read_equity(store: StateStore = Depends(get_store)) -> List[EquityPointResponse]:
+    """Return equity curve with real-time portfolio value appended."""
     store.load()
     curve = store.get_equity_curve()
-    return [EquityPointResponse.model_validate(point) for point in curve]
+    result = [EquityPointResponse.model_validate(point) for point in curve]
+
+    # Add real-time portfolio value as the latest data point
+    try:
+        total_value = 0.0
+        market_dirs = [
+            STATE_DIR / "live_paper_trading" / "state.json",
+            STATE_DIR / "commodity_trading" / "state.json",
+            STATE_DIR / "stock_trading" / "state.json",
+        ]
+        for state_path in market_dirs:
+            if state_path.exists():
+                with open(state_path, "r") as f:
+                    state = json.load(f)
+                    total_value += state.get("total_value", state.get("balance", 0))
+
+        if total_value > 0:
+            now = datetime.now(timezone.utc)
+            # Only add if it's different from the last point or enough time has passed
+            should_add = True
+            if result:
+                last_point = result[-1]
+                last_time = datetime.fromisoformat(last_point.timestamp.replace('Z', '+00:00')) if isinstance(last_point.timestamp, str) else last_point.timestamp
+                time_diff = (now - last_time).total_seconds() if hasattr(last_time, 'total_seconds') or isinstance(last_time, datetime) else 60
+                if hasattr(time_diff, '__abs__'):
+                    time_diff = abs(time_diff)
+                should_add = time_diff >= 30 or abs(last_point.value - total_value) > 10
+
+            if should_add:
+                result.append(EquityPointResponse(
+                    timestamp=now.isoformat(),
+                    value=total_value
+                ))
+    except Exception:
+        pass  # If real-time data fails, just return the stored curve
+
+    return result
 
 
 @app.get("/equity/enhanced", response_model=List[EquityPointResponse])
@@ -4441,3 +4478,275 @@ async def strategy_dashboard() -> HTMLResponse:
             status_code=200,
         )
     return HTMLResponse(content=STRATEGY_DASHBOARD_TEMPLATE.read_text())
+
+
+# =============================================================================
+# Trading Mode Toggle (Paper <-> Live)
+# =============================================================================
+
+TRADING_MODE_FILE = STATE_DIR / "trading_mode.json"
+
+
+def _get_trading_mode() -> Dict[str, Any]:
+    """Get current trading mode configuration."""
+    default = {
+        "mode": "paper",
+        "live_enabled": False,
+        "exchange": "binance",
+        "last_switch": None,
+        "paper_capital": 30000.0,
+        "live_capital": 0.0,
+        "confirmation_required": True,
+    }
+    if TRADING_MODE_FILE.exists():
+        try:
+            with open(TRADING_MODE_FILE, "r") as f:
+                stored = json.load(f)
+                default.update(stored)
+        except (json.JSONDecodeError, OSError):
+            pass
+    return default
+
+
+def _save_trading_mode(config: Dict[str, Any]) -> None:
+    """Save trading mode configuration."""
+    TRADING_MODE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with open(TRADING_MODE_FILE, "w") as f:
+        json.dump(config, f, indent=2, default=str)
+
+
+@app.get("/api/trading/mode", tags=["Trading"])
+async def get_trading_mode() -> Dict[str, Any]:
+    """
+    Get the current trading mode (paper or live).
+
+    Returns:
+        mode: 'paper' or 'live'
+        live_enabled: Whether live trading is available
+        exchange: Connected exchange for live trading
+        paper_capital: Current paper trading capital
+        live_capital: Current live trading capital (if connected)
+    """
+    config = _get_trading_mode()
+
+    # Check if Binance API keys are configured
+    api_key = os.getenv("BINANCE_API_KEY", "")
+    api_secret = os.getenv("BINANCE_API_SECRET", "")
+    has_keys = bool(api_key and api_secret and len(api_key) > 10)
+
+    # Get current portfolio values
+    paper_value = 0.0
+    for market_dir in ["live_paper_trading", "commodity_trading", "stock_trading"]:
+        state_path = STATE_DIR / market_dir / "state.json"
+        if state_path.exists():
+            try:
+                with open(state_path, "r") as f:
+                    state = json.load(f)
+                    paper_value += state.get("total_value", state.get("balance", 0))
+            except (json.JSONDecodeError, OSError):
+                pass
+
+    # Get live balance if in live mode
+    live_value = 0.0
+    if config["mode"] == "live" and has_keys:
+        try:
+            import ccxt
+            exchange = ccxt.binance({
+                "apiKey": api_key,
+                "secret": api_secret,
+                "sandbox": False,
+            })
+            balance = exchange.fetch_balance()
+            live_value = float(balance.get("total", {}).get("USDT", 0))
+        except Exception:
+            pass
+
+    return {
+        "mode": config["mode"],
+        "live_enabled": has_keys,
+        "exchange": config.get("exchange", "binance"),
+        "paper_capital": paper_value,
+        "live_capital": live_value,
+        "last_switch": config.get("last_switch"),
+        "confirmation_required": config.get("confirmation_required", True),
+        "api_keys_configured": has_keys,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@app.post("/api/trading/mode", tags=["Trading"])
+async def set_trading_mode(
+    mode: str = Query(..., description="Trading mode: 'paper' or 'live'"),
+    confirm: bool = Query(False, description="Confirmation for switching to live"),
+) -> Dict[str, Any]:
+    """
+    Switch between paper and live trading modes.
+
+    IMPORTANT: Switching to live mode requires confirmation and valid API keys.
+
+    Args:
+        mode: 'paper' or 'live'
+        confirm: Must be True to switch to live trading
+
+    Returns:
+        Success message and updated configuration
+    """
+    if mode not in ["paper", "live"]:
+        raise HTTPException(status_code=400, detail="Mode must be 'paper' or 'live'")
+
+    config = _get_trading_mode()
+
+    # Switching to live requires confirmation and API keys
+    if mode == "live":
+        api_key = os.getenv("BINANCE_API_KEY", "")
+        api_secret = os.getenv("BINANCE_API_SECRET", "")
+
+        if not api_key or not api_secret or len(api_key) < 10:
+            raise HTTPException(
+                status_code=400,
+                detail="Binance API keys not configured. Add BINANCE_API_KEY and BINANCE_API_SECRET to .env file."
+            )
+
+        if not confirm:
+            raise HTTPException(
+                status_code=400,
+                detail="Switching to live trading requires confirmation. Set confirm=true to proceed."
+            )
+
+        # Verify API keys work
+        try:
+            import ccxt
+            exchange = ccxt.binance({
+                "apiKey": api_key,
+                "secret": api_secret,
+                "sandbox": False,
+            })
+            balance = exchange.fetch_balance()
+            live_balance = float(balance.get("total", {}).get("USDT", 0))
+        except Exception as e:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Failed to connect to Binance: {str(e)}"
+            )
+
+        config["live_capital"] = live_balance
+
+    config["mode"] = mode
+    config["last_switch"] = datetime.now(timezone.utc).isoformat()
+
+    _save_trading_mode(config)
+
+    return {
+        "success": True,
+        "message": f"Trading mode switched to {mode}",
+        "mode": mode,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@app.get("/api/ai/status", tags=["AI"])
+async def get_ai_status() -> Dict[str, Any]:
+    """
+    Get AI trading advisor status and availability.
+    """
+    try:
+        from bot.ai_trading_advisor import get_advisor
+        advisor = get_advisor()
+        available = await advisor.check_availability()
+
+        return {
+            "enabled": advisor.enabled,
+            "available": available,
+            "ollama_host": advisor.ollama_host,
+            "model": advisor.model,
+            "last_advice": advisor.get_all_advice(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+    except Exception as e:
+        return {
+            "enabled": False,
+            "available": False,
+            "error": str(e),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+
+
+@app.post("/api/ai/advice", tags=["AI"])
+async def get_ai_trading_advice(
+    symbol: str = Query(..., description="Trading symbol"),
+    current_price: float = Query(..., description="Current price"),
+    price_change_24h: float = Query(0.0, description="24h price change %"),
+    current_signal: str = Query("FLAT", description="Current strategy signal"),
+    regime: str = Query("unknown", description="Market regime"),
+    confidence: float = Query(0.5, description="Signal confidence 0-1"),
+    portfolio_value: float = Query(10000.0, description="Total portfolio value"),
+    position_value: float = Query(0.0, description="Current position value"),
+    pnl_pct: float = Query(0.0, description="Current P&L %"),
+    asset_type: str = Query("crypto", description="Asset type"),
+) -> Dict[str, Any]:
+    """
+    Get AI trading advice for a specific asset.
+
+    Returns AI-generated recommendation with confidence and reasoning.
+    """
+    try:
+        from bot.ai_trading_advisor import get_ai_advice
+        advice = await get_ai_advice(
+            symbol=symbol,
+            current_price=current_price,
+            price_change_24h=price_change_24h,
+            current_signal=current_signal,
+            regime=regime,
+            confidence=confidence,
+            portfolio_value=portfolio_value,
+            position_value=position_value,
+            pnl_pct=pnl_pct,
+            asset_type=asset_type,
+        )
+        return advice.to_dict()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI advice failed: {str(e)}")
+
+
+@app.get("/api/trading/live/balance", tags=["Trading"])
+async def get_live_balance() -> Dict[str, Any]:
+    """
+    Get live Binance account balance.
+
+    Returns USDT balance and positions from connected Binance account.
+    """
+    api_key = os.getenv("BINANCE_API_KEY", "")
+    api_secret = os.getenv("BINANCE_API_SECRET", "")
+
+    if not api_key or not api_secret:
+        raise HTTPException(status_code=400, detail="Binance API keys not configured")
+
+    try:
+        import ccxt
+        exchange = ccxt.binance({
+            "apiKey": api_key,
+            "secret": api_secret,
+            "sandbox": False,
+        })
+
+        balance = exchange.fetch_balance()
+
+        # Get non-zero balances
+        positions = {}
+        for asset, amount in balance.get("total", {}).items():
+            if float(amount) > 0:
+                positions[asset] = {
+                    "total": float(amount),
+                    "free": float(balance.get("free", {}).get(asset, 0)),
+                    "used": float(balance.get("used", {}).get(asset, 0)),
+                }
+
+        return {
+            "connected": True,
+            "exchange": "binance",
+            "usdt_balance": float(balance.get("total", {}).get("USDT", 0)),
+            "positions": positions,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch balance: {str(e)}")

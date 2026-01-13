@@ -23,6 +23,16 @@ rsync -avz --progress \
   --exclude='.env' \
   ./ ${REMOTE}:${REMOTE_PATH}/
 
+# Sync critical state files that should match between local and remote
+echo "Syncing state files..."
+rsync -avz --progress \
+  data/live_paper_trading/state.json \
+  data/commodity_trading/state.json \
+  data/stock_trading/state.json \
+  data/safety_state.json \
+  data/bot_state.json \
+  ${REMOTE}:${REMOTE_PATH}/data/
+
 echo ""
 echo "Files synced!"
 

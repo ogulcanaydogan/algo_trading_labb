@@ -24,6 +24,11 @@ services:
     environment:
       - PYTHONPATH=/app
       - DATA_DIR=/app/data
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - AI_TRADING_ENABLED=true
+      - AI_MODEL=qwen2.5:7b
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./:/app
       - trading_data:/app/data
@@ -55,6 +60,11 @@ services:
     environment:
       - PYTHONPATH=/app
       - DATA_DIR=/app/data
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - AI_TRADING_ENABLED=true
+      - AI_MODEL=qwen2.5:7b
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./:/app
       - trading_data:/app/data

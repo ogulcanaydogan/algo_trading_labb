@@ -1,47 +1,47 @@
 {
-  "timestamp": "2026-01-13T15:35:45.538672",
+  "timestamp": "2026-01-13T23:34:19.150477",
   "market_type": "crypto",
-  "total_value": 10255.340426088893,
-  "cash_balance": 0.058397336438247294,
+  "total_value": 10772.604746552313,
+  "cash_balance": 2023.8462440113838,
   "initial_capital": 10000.0,
-  "pnl": 255.34042608889285,
-  "pnl_pct": 2.5534042608889287,
+  "pnl": 772.6047465523134,
+  "pnl_pct": 7.726047465523134,
   "positions": {
     "BTC/USDT": {
-      "quantity": 0.024509,
-      "price": 92283.2578125,
-      "value": 2261.7703657265624
+      "quantity": 0.016693,
+      "price": 95354.4921875,
+      "value": 1591.7525380859374
     },
     "SOL/USDT": {
-      "quantity": 15.206023000000004,
-      "price": 141.56935119628906,
-      "value": 2152.7068103858496
+      "quantity": 5.624694000000003,
+      "price": 145.97500610351562,
+      "value": 821.0647409804083
     },
     "ETH/USDT": {
-      "quantity": 0.723259,
-      "price": 3140.415283203125,
-      "value": 2271.333617314209
+      "quantity": 1.143065,
+      "price": 3324.557373046875,
+      "value": 3800.1851736218264
     },
     "AVAX/USDT": {
-      "quantity": 254.50454099999996,
-      "price": 14.025177001953125,
-      "value": 3569.4712353258356
+      "quantity": 172.01212199999995,
+      "price": 14.741728782653809,
+      "value": 2535.7560498527578
     }
   },
   "positions_count": 4,
   "current_weights": {
-    "BTC/USDT": 0.22054561543103646,
-    "SOL/USDT": 0.20991080948512533,
-    "ETH/USDT": 0.221478129729959,
-    "AVAX/USDT": 0.34805975101960945
+    "BTC/USDT": 0.1477593001446902,
+    "SOL/USDT": 0.07621784705720161,
+    "ETH/USDT": 0.35276381738948004,
+    "AVAX/USDT": 0.23538931479541253
   },
   "optimization_method": "risk_parity",
   "signals": {
     "BTC/USDT": {
-      "signal": "FLAT",
-      "regime": "sideways",
-      "confidence": 0.6129032258064515,
-      "price": 92283.2578125,
+      "signal": "LONG",
+      "regime": "strong_bull",
+      "confidence": 0.490272373540856,
+      "price": 95354.4921875,
       "dl_prediction": {
         "action": "FLAT",
         "confidence": 0.33,
@@ -52,10 +52,10 @@
       }
     },
     "ETH/USDT": {
-      "signal": "FLAT",
-      "regime": "sideways",
-      "confidence": 0.6129032258064515,
-      "price": 3140.415283203125,
+      "signal": "LONG",
+      "regime": "strong_bull",
+      "confidence": 0.490272373540856,
+      "price": 3324.557373046875,
       "dl_prediction": {
         "action": "FLAT",
         "confidence": 0.33,
@@ -66,10 +66,10 @@
       }
     },
     "SOL/USDT": {
-      "signal": "FLAT",
-      "regime": "sideways",
-      "confidence": 0.6129032258064515,
-      "price": 141.56935119628906,
+      "signal": "LONG",
+      "regime": "strong_bull",
+      "confidence": 0.4755031475860655,
+      "price": 145.97500610351562,
       "dl_prediction": {
         "action": "FLAT",
         "confidence": 0.33,
@@ -80,10 +80,10 @@
       }
     },
     "AVAX/USDT": {
-      "signal": "FLAT",
-      "regime": "bull",
-      "confidence": 0.5524862658388316,
-      "price": 14.025177001953125,
+      "signal": "LONG",
+      "regime": "strong_bull",
+      "confidence": 0.490272373540856,
+      "price": 14.741728782653809,
       "dl_prediction": {
         "action": "FLAT",
         "confidence": 0.33,
