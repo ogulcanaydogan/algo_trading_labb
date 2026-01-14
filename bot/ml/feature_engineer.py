@@ -6,11 +6,16 @@ Extracts technical and statistical features from OHLCV data for ML models.
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 from typing import List, Optional
 
 import numpy as np
 import pandas as pd
+
+# Suppress PerformanceWarning for DataFrame fragmentation
+# The copy() at the end of extract_features handles defragmentation
+warnings.filterwarnings("ignore", category=pd.errors.PerformanceWarning)
 from ta.momentum import RSIIndicator, StochasticOscillator
 from ta.trend import EMAIndicator, MACD, ADXIndicator
 from ta.volatility import BollingerBands, AverageTrueRange
@@ -413,6 +418,9 @@ class FeatureEngineer:
         The multi-class target uses dynamic thresholds based on recent volatility
         to adapt to changing market conditions.
         """
+        # Defragment DataFrame to avoid PerformanceWarning
+        df = df.copy()
+
         # Single period return (original)
         df["target_return"] = df["close"].pct_change(forward_periods).shift(-forward_periods)
 
