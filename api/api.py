@@ -216,6 +216,7 @@ def _get_ws_update_payload() -> Dict[str, Any]:
     # For crypto, check multiple possible state files and use the newest one
     state_dirs = {
         "crypto": [
+            STATE_DIR / "production" / "state.json",  # Live/testnet trading
             STATE_DIR / "ml_paper_trading_enhanced" / "state.json",
             STATE_DIR / "ml_paper_trading_aggressive" / "state.json",
             STATE_DIR / "ml_paper_trading" / "state.json",
@@ -1990,9 +1991,10 @@ async def get_market_summary(
             symbols = list(symbols_dict.keys())
 
         # Try to load bot state for signals and portfolio data
-        # For crypto, check multiple possible state files (ML aggressive, ML normal, live paper)
+        # For crypto, check multiple possible state files (production, ML, paper)
         state_dirs = {
             "crypto": [
+                STATE_DIR / "production" / "state.json",  # Live/testnet trading
                 STATE_DIR / "ml_paper_trading_enhanced" / "state.json",
                 STATE_DIR / "ml_paper_trading_aggressive" / "state.json",
                 STATE_DIR / "ml_paper_trading" / "state.json",
@@ -2223,11 +2225,31 @@ async def get_bot_state(
 
     Returns the bot's current portfolio state including positions, signals, and P&L.
     """
+    # Use lists to check multiple possible state files (newest first)
     state_dirs = {
-        "crypto": STATE_DIR / "live_paper_trading" / "state.json",
-        "commodity": STATE_DIR / "commodity_trading" / "state.json",
-        "stock": STATE_DIR / "stock_trading" / "state.json",
+        "crypto": [
+            STATE_DIR / "production" / "state.json",  # Live/testnet trading
+            STATE_DIR / "live_paper_trading" / "state.json",
+        ],
+        "commodity": [STATE_DIR / "commodity_trading" / "state.json"],
+        "stock": [STATE_DIR / "stock_trading" / "state.json"],
     }
+
+    def find_best_state(paths):
+        """Find the newest state file from a list of paths."""
+        best_state = None
+        best_mtime = 0
+        for path in paths:
+            if path.exists():
+                try:
+                    mtime = path.stat().st_mtime
+                    if mtime > best_mtime:
+                        with open(path) as f:
+                            best_state = json.load(f)
+                            best_mtime = mtime
+                except Exception:
+                    pass
+        return best_state
 
     if market_type == "all":
         # Return all bot states
@@ -2235,16 +2257,12 @@ async def get_bot_state(
         total_value = 0
         total_pnl = 0
 
-        for mtype, state_file in state_dirs.items():
-            if state_file.exists():
-                try:
-                    with open(state_file) as f:
-                        state = json.load(f)
-                        all_states[mtype] = state
-                        total_value += state.get("total_value", 0)
-                        total_pnl += state.get("pnl", 0)
-                except Exception as e:
-                    all_states[mtype] = {"error": str(e)}
+        for mtype, state_paths in state_dirs.items():
+            state = find_best_state(state_paths)
+            if state:
+                all_states[mtype] = state
+                total_value += state.get("total_value", 0)
+                total_pnl += state.get("pnl", 0)
             else:
                 all_states[mtype] = {"status": "not_running"}
 
@@ -2262,27 +2280,19 @@ async def get_bot_state(
             detail=f"Invalid market_type. Must be one of: crypto, commodity, stock, all"
         )
 
-    state_file = state_dirs[market_type]
-    if not state_file.exists():
+    state = find_best_state(state_dirs[market_type])
+    if not state:
         return {
             "market_type": market_type,
             "status": "not_running",
             "message": f"No state file found. The {market_type} bot may not be running.",
         }
 
-    try:
-        with open(state_file) as f:
-            state = json.load(f)
-        return {
-            "market_type": market_type,
-            "status": "running",
-            **state,
-        }
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error reading state file: {e}"
-        )
+    return {
+        "market_type": market_type,
+        "status": "running",
+        **state,
+    }
 
 
 @app.get("/api/dashboard/aggregate")
@@ -2705,19 +2715,28 @@ async def prometheus_metrics() -> PlainTextResponse:
     lines.append("# TYPE trading_websocket_connections gauge")
     lines.append(f"trading_websocket_connections {ws_manager.get_connection_count()}")
 
-    # Load bot states for each market
+    # Load bot states for each market (check production first for crypto)
     state_dirs = {
-        "crypto": STATE_DIR / "live_paper_trading" / "state.json",
-        "commodity": STATE_DIR / "commodity_trading" / "state.json",
-        "stock": STATE_DIR / "stock_trading" / "state.json",
+        "crypto": [
+            STATE_DIR / "production" / "state.json",  # Live/testnet trading
+            STATE_DIR / "live_paper_trading" / "state.json",
+        ],
+        "commodity": [STATE_DIR / "commodity_trading" / "state.json"],
+        "stock": [STATE_DIR / "stock_trading" / "state.json"],
     }
 
     total_portfolio_value = 0.0
     total_pnl = 0.0
     total_positions = 0
 
-    for market_type, state_file in state_dirs.items():
-        if state_file.exists():
+    for market_type, state_files in state_dirs.items():
+        # Find the first existing state file
+        state_file = None
+        for sf in state_files:
+            if sf.exists():
+                state_file = sf
+                break
+        if state_file:
             try:
                 with open(state_file, "r") as f:
                     state_data = json.load(f)
@@ -2832,19 +2851,30 @@ async def get_portfolio_stats(
     }
 
     # Get equity data for performance calculation
+    # Check production state first for crypto
     state_dirs = {
-        "crypto": STATE_DIR / "live_paper_trading" / "state.json",
-        "commodity": STATE_DIR / "commodity_trading" / "state.json",
-        "stock": STATE_DIR / "stock_trading" / "state.json",
+        "crypto": [
+            STATE_DIR / "production" / "state.json",  # Live/testnet trading
+            STATE_DIR / "live_paper_trading" / "state.json",
+        ],
+        "commodity": [STATE_DIR / "commodity_trading" / "state.json"],
+        "stock": [STATE_DIR / "stock_trading" / "state.json"],
     }
 
     all_equity_values = []
 
-    for mtype, state_file in state_dirs.items():
+    for mtype, state_files in state_dirs.items():
         if market_type != "all" and mtype != market_type:
             continue
 
-        if state_file.exists():
+        # Find the newest state file for this market
+        state_file = None
+        for sf in state_files:
+            if sf.exists():
+                state_file = sf
+                break
+
+        if state_file and state_file.exists():
             try:
                 with open(state_file, "r") as f:
                     state_data = json.load(f)
@@ -3626,12 +3656,21 @@ async def get_trading_control_panel() -> Dict[str, Any]:
 
     Returns status for all markets with activity indicators.
     """
+    # Check production state first, then fall back to paper trading
+    def get_best_crypto_path():
+        prod_path = STATE_DIR / "production" / "state.json"
+        paper_path = STATE_DIR / "live_paper_trading" / "state.json"
+        if prod_path.exists():
+            return prod_path, STATE_DIR / "production"
+        return paper_path, STATE_DIR / "live_paper_trading"
+
+    crypto_state, crypto_control = get_best_crypto_path()
     markets = {
         "crypto": {
             "name": "Crypto",
             "emoji": "🪙",
-            "state_path": STATE_DIR / "live_paper_trading" / "state.json",
-            "control_path": STATE_DIR / "live_paper_trading",
+            "state_path": crypto_state,
+            "control_path": crypto_control,
         },
         "commodity": {
             "name": "Commodity",
@@ -3755,6 +3794,20 @@ async def get_trading_control_panel() -> Dict[str, Any]:
     return result
 
 
+def _get_market_dir(market_id: str) -> Path:
+    """Get the appropriate market directory, preferring production for crypto."""
+    if market_id == "crypto":
+        prod_dir = STATE_DIR / "production"
+        if prod_dir.exists() and (prod_dir / "state.json").exists():
+            return prod_dir
+        return STATE_DIR / "live_paper_trading"
+    elif market_id == "commodity":
+        return STATE_DIR / "commodity_trading"
+    elif market_id == "stock":
+        return STATE_DIR / "stock_trading"
+    raise ValueError(f"Unknown market: {market_id}")
+
+
 @app.post("/api/trading/market/{market_id}/pause", tags=["Status"])
 async def pause_market(
     market_id: str,
@@ -3762,16 +3815,11 @@ async def pause_market(
     _auth: Optional[str] = Depends(verify_api_key),
 ) -> Dict[str, Any]:
     """Pause a specific market's trading."""
-    market_dirs = {
-        "crypto": STATE_DIR / "live_paper_trading",
-        "commodity": STATE_DIR / "commodity_trading",
-        "stock": STATE_DIR / "stock_trading",
-    }
-
-    if market_id not in market_dirs:
+    valid_markets = ["crypto", "commodity", "stock"]
+    if market_id not in valid_markets:
         raise HTTPException(status_code=400, detail=f"Unknown market: {market_id}")
 
-    market_dir = market_dirs[market_id]
+    market_dir = _get_market_dir(market_id)
     market_dir.mkdir(parents=True, exist_ok=True)
 
     update_bot_control(market_dir, paused=True, reason=reason)
@@ -3791,16 +3839,11 @@ async def resume_market(
     _auth: Optional[str] = Depends(verify_api_key),
 ) -> Dict[str, Any]:
     """Resume a specific market's trading."""
-    market_dirs = {
-        "crypto": STATE_DIR / "live_paper_trading",
-        "commodity": STATE_DIR / "commodity_trading",
-        "stock": STATE_DIR / "stock_trading",
-    }
-
-    if market_id not in market_dirs:
+    valid_markets = ["crypto", "commodity", "stock"]
+    if market_id not in valid_markets:
         raise HTTPException(status_code=400, detail=f"Unknown market: {market_id}")
 
-    market_dir = market_dirs[market_id]
+    market_dir = _get_market_dir(market_id)
 
     # Check if emergency stop is active
     controller = _get_safety_controller()
@@ -3826,15 +3869,10 @@ async def pause_all_markets(
     _auth: Optional[str] = Depends(verify_api_key),
 ) -> Dict[str, Any]:
     """Pause all markets."""
-    market_dirs = {
-        "crypto": STATE_DIR / "live_paper_trading",
-        "commodity": STATE_DIR / "commodity_trading",
-        "stock": STATE_DIR / "stock_trading",
-    }
-
     results = {}
-    for market_id, market_dir in market_dirs.items():
+    for market_id in ["crypto", "commodity", "stock"]:
         try:
+            market_dir = _get_market_dir(market_id)
             market_dir.mkdir(parents=True, exist_ok=True)
             update_bot_control(market_dir, paused=True, reason=reason)
             results[market_id] = "paused"
@@ -3862,15 +3900,10 @@ async def resume_all_markets(
             detail="Cannot resume: Emergency stop is active. Clear emergency stop first."
         )
 
-    market_dirs = {
-        "crypto": STATE_DIR / "live_paper_trading",
-        "commodity": STATE_DIR / "commodity_trading",
-        "stock": STATE_DIR / "stock_trading",
-    }
-
     results = {}
-    for market_id, market_dir in market_dirs.items():
+    for market_id in ["crypto", "commodity", "stock"]:
         try:
+            market_dir = _get_market_dir(market_id)
             update_bot_control(market_dir, paused=False, reason="Resumed via dashboard")
             results[market_id] = "resumed"
         except Exception as e:
@@ -4108,20 +4141,30 @@ async def generate_report(
         equity = []
         risk_metrics = {}
 
-        # Load trades
-        state_path = STATE_DIR / "live_paper_trading" / "state.json"
-        if state_path.exists():
-            with open(state_path) as f:
-                data = json.load(f)
-            trades = data.get("trades", [])
+        # Load trades - check production first, then paper trading
+        state_paths = [
+            STATE_DIR / "production" / "state.json",
+            STATE_DIR / "live_paper_trading" / "state.json",
+        ]
+        for state_path in state_paths:
+            if state_path.exists():
+                with open(state_path) as f:
+                    data = json.load(f)
+                trades = data.get("trades", [])
+                break
 
-        # Load equity
-        equity_path = STATE_DIR / "live_paper_trading" / "equity.json"
-        if equity_path.exists():
-            with open(equity_path) as f:
-                equity_data = json.load(f)
-            equity = [e.get("value", e) if isinstance(e, dict) else e for e in equity_data]
-            equity = [e for e in equity if isinstance(e, (int, float))]
+        # Load equity - check production first, then paper trading
+        equity_paths = [
+            STATE_DIR / "production" / "equity.json",
+            STATE_DIR / "live_paper_trading" / "equity.json",
+        ]
+        for equity_path in equity_paths:
+            if equity_path.exists():
+                with open(equity_path) as f:
+                    equity_data = json.load(f)
+                equity = [e.get("value", e) if isinstance(e, dict) else e for e in equity_data]
+                equity = [e for e in equity if isinstance(e, (int, float))]
+                break
 
         # Calculate risk metrics
         if equity and len(equity) > 10:
@@ -4174,6 +4217,235 @@ async def list_reports() -> Dict[str, Any]:
         return {"reports": reports[:20]}  # Return last 20 reports
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# =============================================================================
+# Daily Reporter Endpoints
+# =============================================================================
+
+
+@app.get("/api/daily-reports/status", tags=["Reports"])
+async def get_daily_reporter_status() -> Dict[str, Any]:
+    """Get status of the daily reporter scheduler."""
+    try:
+        from bot.regime.daily_reporter import get_daily_reporter
+        reporter = get_daily_reporter()
+        return {
+            "status": "ok",
+            **reporter.get_status(),
+        }
+    except ImportError:
+        return {
+            "status": "not_configured",
+            "running": False,
+            "schedules": [],
+        }
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@app.post("/api/daily-reports/send", tags=["Reports"])
+async def send_daily_report(
+    report_type: str = Query(default="daily", description="Report type: daily, weekly, monthly"),
+) -> Dict[str, Any]:
+    """Send a performance report immediately via Telegram."""
+    try:
+        from bot.regime.performance_tracker import get_performance_tracker
+        tracker = get_performance_tracker()
+
+        # Generate the report message
+        message = tracker.generate_telegram_summary(report_type)
+
+        if not message:
+            return {
+                "success": False,
+                "error": "No data available for report",
+            }
+
+        # Try to send via Telegram
+        telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
+        telegram_chat_id = os.getenv("TELEGRAM_CHAT_ID")
+
+        if telegram_token and telegram_chat_id:
+            import httpx
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"https://api.telegram.org/bot{telegram_token}/sendMessage",
+                    json={
+                        "chat_id": telegram_chat_id,
+                        "text": message,
+                        "parse_mode": "Markdown",
+                    },
+                )
+                if response.status_code == 200:
+                    return {
+                        "success": True,
+                        "message": "Report sent to Telegram",
+                        "preview": message[:500] + "..." if len(message) > 500 else message,
+                    }
+                else:
+                    return {
+                        "success": False,
+                        "error": f"Telegram API error: {response.text}",
+                        "preview": message[:500] + "..." if len(message) > 500 else message,
+                    }
+        else:
+            return {
+                "success": False,
+                "error": "Telegram not configured (missing TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID)",
+                "preview": message[:500] + "..." if len(message) > 500 else message,
+            }
+
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/performance/summary", tags=["Reports"])
+async def get_performance_summary(
+    period: str = Query(default="daily", description="Period: daily, weekly, monthly, all"),
+) -> Dict[str, Any]:
+    """Get trading performance summary for the specified period."""
+    try:
+        from bot.regime.performance_tracker import get_performance_tracker
+        tracker = get_performance_tracker()
+
+        if period == "daily":
+            summary = tracker.get_daily_summary()
+        elif period == "all":
+            paper_metrics = tracker.get_paper_metrics()
+            summary = {
+                "period": "all",
+                **paper_metrics.to_dict(),
+                "comparison": tracker.compare_performance(),
+                "regime_performance": {
+                    k: v.to_dict()
+                    for k, v in tracker.get_regime_performance("paper").items()
+                },
+            }
+        else:
+            days = 7 if period == "weekly" else 30
+            paper_metrics = tracker.get_paper_metrics(days=days)
+            summary = {
+                "period": period,
+                "days": days,
+                **paper_metrics.to_dict(),
+            }
+
+        return {
+            "status": "ok",
+            "summary": summary,
+        }
+
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+# =============================================================================
+# Performance Attribution Endpoints
+# =============================================================================
+
+
+@app.get("/api/performance/attribution", tags=["Analytics"])
+async def get_performance_attribution(
+    days: int = Query(default=30, description="Number of days to analyze"),
+) -> Dict[str, Any]:
+    """Get performance attribution report with multi-factor analysis."""
+    try:
+        from bot.performance_attribution import PerformanceAttributor
+
+        attributor = PerformanceAttributor()
+
+        # Load trades from production/paper trading state
+        state_paths = [
+            STATE_DIR / "production" / "state.json",
+            STATE_DIR / "live_paper_trading" / "state.json",
+        ]
+
+        for state_path in state_paths:
+            if state_path.exists():
+                with open(state_path) as f:
+                    data = json.load(f)
+                    trades = data.get("trades", [])
+
+                    for trade in trades:
+                        if isinstance(trade, dict) and trade.get("entry_price"):
+                            attributor.log_trade(
+                                trade_id=trade.get("trade_id", f"T{len(attributor.trades)}"),
+                                symbol=trade.get("symbol", "unknown"),
+                                action=trade.get("side", "BUY").upper(),
+                                quantity=trade.get("quantity", 0),
+                                entry_price=trade.get("entry_price", 0),
+                                exit_price=trade.get("exit_price"),
+                                pnl=trade.get("pnl", 0),
+                                strategy=trade.get("strategy", "regime"),
+                                model=trade.get("model", "ml"),
+                                regime=trade.get("regime", "unknown"),
+                                confidence=trade.get("confidence", 0.5),
+                                entry_time=datetime.fromisoformat(trade["entry_time"]) if trade.get("entry_time") else datetime.now(),
+                                exit_time=datetime.fromisoformat(trade["exit_time"]) if trade.get("exit_time") else None,
+                            )
+                break
+
+        report = attributor.generate_report(days=days)
+        return {
+            "status": "ok",
+            "report": report.to_dict(),
+        }
+
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@app.get("/api/performance/daily", tags=["Analytics"])
+async def get_daily_performance(
+    date: Optional[str] = Query(default=None, description="Date in YYYY-MM-DD format"),
+) -> Dict[str, Any]:
+    """Get detailed daily performance breakdown."""
+    try:
+        from datetime import date as dateclass
+        from bot.performance_attribution import PerformanceAttributor
+
+        target_date = dateclass.fromisoformat(date) if date else dateclass.today()
+        attributor = PerformanceAttributor()
+
+        # Load trades from state
+        state_paths = [
+            STATE_DIR / "production" / "state.json",
+            STATE_DIR / "live_paper_trading" / "state.json",
+        ]
+
+        for state_path in state_paths:
+            if state_path.exists():
+                with open(state_path) as f:
+                    data = json.load(f)
+                    trades = data.get("trades", [])
+
+                    for trade in trades:
+                        if isinstance(trade, dict) and trade.get("entry_price"):
+                            entry_time = (datetime.fromisoformat(trade["entry_time"])
+                                         if trade.get("entry_time") else datetime.now())
+                            attributor.log_trade(
+                                trade_id=trade.get("trade_id", f"T{len(attributor.trades)}"),
+                                symbol=trade.get("symbol", "unknown"),
+                                action=trade.get("side", "BUY").upper(),
+                                quantity=trade.get("quantity", 0),
+                                entry_price=trade.get("entry_price", 0),
+                                exit_price=trade.get("exit_price"),
+                                pnl=trade.get("pnl", 0),
+                                strategy=trade.get("strategy", "regime"),
+                                regime=trade.get("regime", "unknown"),
+                                entry_time=entry_time,
+                            )
+                break
+
+        summary = attributor.get_daily_summary(target_date)
+        return {
+            "status": "ok",
+            "summary": summary,
+        }
+
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
 
 
 # =============================================================================
@@ -4518,13 +4790,14 @@ def _save_trading_mode(config: Dict[str, Any]) -> None:
 @app.get("/api/trading/mode", tags=["Trading"])
 async def get_trading_mode() -> Dict[str, Any]:
     """
-    Get the current trading mode (paper or live).
+    Get the current trading mode (paper, testnet, or live).
 
     Returns:
-        mode: 'paper' or 'live'
-        live_enabled: Whether live trading is available
-        exchange: Connected exchange for live trading
+        mode: 'paper', 'testnet', or 'live'
+        live_enabled: Whether live/testnet trading is available
+        exchange: Connected exchange for trading
         paper_capital: Current paper trading capital
+        testnet_capital: Current testnet capital (if connected)
         live_capital: Current live trading capital (if connected)
     """
     config = _get_trading_mode()
@@ -4534,8 +4807,21 @@ async def get_trading_mode() -> Dict[str, Any]:
     api_secret = os.getenv("BINANCE_API_SECRET", "")
     has_keys = bool(api_key and api_secret and len(api_key) > 10)
 
-    # Get current portfolio values
+    # Get current portfolio values - check production state first
     paper_value = 0.0
+    production_value = 0.0
+
+    # Check production state first
+    prod_state_path = STATE_DIR / "production" / "state.json"
+    if prod_state_path.exists():
+        try:
+            with open(prod_state_path, "r") as f:
+                state = json.load(f)
+                production_value = state.get("total_value", state.get("balance", 0))
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    # Check paper trading states
     for market_dir in ["live_paper_trading", "commodity_trading", "stock_trading"]:
         state_path = STATE_DIR / market_dir / "state.json"
         if state_path.exists():
@@ -4546,26 +4832,42 @@ async def get_trading_mode() -> Dict[str, Any]:
             except (json.JSONDecodeError, OSError):
                 pass
 
-    # Get live balance if in live mode
+    # Get testnet/live balance if keys are configured
+    testnet_value = 0.0
     live_value = 0.0
-    if config["mode"] == "live" and has_keys:
+    if has_keys:
         try:
             import ccxt
-            exchange = ccxt.binance({
-                "apiKey": api_key,
-                "secret": api_secret,
-                "sandbox": False,
-            })
-            balance = exchange.fetch_balance()
-            live_value = float(balance.get("total", {}).get("USDT", 0))
+            # Check testnet
+            if config["mode"] == "testnet":
+                exchange = ccxt.binance({
+                    "apiKey": api_key,
+                    "secret": api_secret,
+                    "sandbox": True,
+                    "options": {"defaultType": "spot"},
+                })
+                balance = exchange.fetch_balance()
+                testnet_value = float(balance.get("total", {}).get("USDT", 0))
+            elif config["mode"] == "live":
+                exchange = ccxt.binance({
+                    "apiKey": api_key,
+                    "secret": api_secret,
+                    "sandbox": False,
+                    "options": {"defaultType": "spot"},
+                })
+                balance = exchange.fetch_balance()
+                live_value = float(balance.get("total", {}).get("USDT", 0))
         except Exception:
             pass
 
     return {
         "mode": config["mode"],
         "live_enabled": has_keys,
+        "testnet_enabled": has_keys,
         "exchange": config.get("exchange", "binance"),
         "paper_capital": paper_value,
+        "production_capital": production_value,
+        "testnet_capital": testnet_value,
         "live_capital": live_value,
         "last_switch": config.get("last_switch"),
         "confirmation_required": config.get("confirmation_required", True),
@@ -4576,28 +4878,28 @@ async def get_trading_mode() -> Dict[str, Any]:
 
 @app.post("/api/trading/mode", tags=["Trading"])
 async def set_trading_mode(
-    mode: str = Query(..., description="Trading mode: 'paper' or 'live'"),
+    mode: str = Query(..., description="Trading mode: 'paper', 'testnet', or 'live'"),
     confirm: bool = Query(False, description="Confirmation for switching to live"),
 ) -> Dict[str, Any]:
     """
-    Switch between paper and live trading modes.
+    Switch between paper, testnet, and live trading modes.
 
     IMPORTANT: Switching to live mode requires confirmation and valid API keys.
 
     Args:
-        mode: 'paper' or 'live'
+        mode: 'paper', 'testnet', or 'live'
         confirm: Must be True to switch to live trading
 
     Returns:
         Success message and updated configuration
     """
-    if mode not in ["paper", "live"]:
-        raise HTTPException(status_code=400, detail="Mode must be 'paper' or 'live'")
+    if mode not in ["paper", "testnet", "live"]:
+        raise HTTPException(status_code=400, detail="Mode must be 'paper', 'testnet', or 'live'")
 
     config = _get_trading_mode()
 
-    # Switching to live requires confirmation and API keys
-    if mode == "live":
+    # Testnet and live require API keys
+    if mode in ["testnet", "live"]:
         api_key = os.getenv("BINANCE_API_KEY", "")
         api_secret = os.getenv("BINANCE_API_SECRET", "")
 
@@ -4607,7 +4909,8 @@ async def set_trading_mode(
                 detail="Binance API keys not configured. Add BINANCE_API_KEY and BINANCE_API_SECRET to .env file."
             )
 
-        if not confirm:
+        # Live mode requires additional confirmation
+        if mode == "live" and not confirm:
             raise HTTPException(
                 status_code=400,
                 detail="Switching to live trading requires confirmation. Set confirm=true to proceed."
@@ -4616,20 +4919,37 @@ async def set_trading_mode(
         # Verify API keys work
         try:
             import ccxt
+            sandbox = mode == "testnet"
             exchange = ccxt.binance({
                 "apiKey": api_key,
                 "secret": api_secret,
-                "sandbox": False,
+                "sandbox": sandbox,
+                "options": {"defaultType": "spot"},
             })
             balance = exchange.fetch_balance()
-            live_balance = float(balance.get("total", {}).get("USDT", 0))
+            capital = float(balance.get("total", {}).get("USDT", 0))
         except Exception as e:
             raise HTTPException(
                 status_code=400,
-                detail=f"Failed to connect to Binance: {str(e)}"
+                detail=f"Failed to connect to Binance {'testnet' if mode == 'testnet' else 'mainnet'}: {str(e)}"
             )
 
-        config["live_capital"] = live_balance
+        if mode == "live":
+            config["live_capital"] = capital
+        else:
+            config["testnet_capital"] = capital
+
+    # Update production config if it exists
+    prod_config_path = STATE_DIR / "production_config.json"
+    if prod_config_path.exists():
+        try:
+            with open(prod_config_path, "r") as f:
+                prod_config = json.load(f)
+            prod_config["mode"] = mode
+            with open(prod_config_path, "w") as f:
+                json.dump(prod_config, f, indent=2)
+        except Exception:
+            pass
 
     config["mode"] = mode
     config["last_switch"] = datetime.now(timezone.utc).isoformat()

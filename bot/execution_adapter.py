@@ -371,8 +371,8 @@ class TestnetExecutionAdapter(ExecutionAdapter):
                 {
                     "apiKey": self.api_key,
                     "secret": self.api_secret,
-                    "sandbox": True,  # Enable testnet
-                    "options": {"defaultType": "future"},
+                    "sandbox": True,  # Enable testnet (testnet.binance.vision)
+                    "options": {"defaultType": "spot"},  # Spot trading, not futures
                 }
             )
             # Test connection

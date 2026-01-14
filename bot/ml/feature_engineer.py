@@ -93,6 +93,9 @@ class FeatureEngineer:
         # Drop rows with NaN values
         df = df.dropna()
 
+        # Defragment DataFrame to fix PerformanceWarning
+        df = df.copy()
+
         return df
 
     def _sanitize_features(self, df: pd.DataFrame) -> pd.DataFrame:

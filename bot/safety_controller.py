@@ -230,12 +230,12 @@ class SafetyController:
                 )
 
             # Position size check (USER PRIORITY)
-            order_value = getattr(order, "quantity", 0) * getattr(
-                order, "price", 0
-            )
+            order_qty = getattr(order, "quantity", 0) or 0
+            order_price = getattr(order, "price", None)
+            order_value = order_qty * order_price if order_price else 0
             # Use current price estimate if not available
             if order_value == 0:
-                order_value = getattr(order, "quantity", 0) * 50000  # Estimate
+                order_value = order_qty * 50000  # Estimate for market orders
 
             if order_value > self.limits.max_position_size_usd:
                 return (

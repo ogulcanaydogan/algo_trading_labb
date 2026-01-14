@@ -349,7 +349,8 @@ class UnifiedTradingEngine:
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                logger.error(f"Error in trading loop: {e}")
+                import traceback
+                logger.error(f"Error in trading loop: {e}\n{traceback.format_exc()}")
                 if self.safety_controller:
                     self.safety_controller.record_api_error()
                 await asyncio.sleep(60)  # Wait before retry
@@ -401,6 +402,9 @@ class UnifiedTradingEngine:
         # Get current price
         try:
             current_price = await self.execution_adapter.get_current_price(symbol)
+            if current_price is None:
+                logger.warning(f"No price available for {symbol}")
+                return
         except Exception as e:
             logger.error(f"Failed to get price for {symbol}: {e}")
             return
@@ -458,6 +462,7 @@ class UnifiedTradingEngine:
             side=OrderSide.BUY if side == "long" else OrderSide.SELL,
             order_type=OrderType.MARKET,
             quantity=position_size,
+            price=price,  # For safety check calculations
             signal_confidence=signal.get("confidence"),
             signal_reason=signal.get("reason"),
         )
@@ -473,6 +478,10 @@ class UnifiedTradingEngine:
 
         if not result.success:
             logger.error(f"Order failed: {result.error_message}")
+            return
+
+        if result.average_price is None or result.filled_quantity is None:
+            logger.error(f"Order incomplete: price={result.average_price}, qty={result.filled_quantity}")
             return
 
         # Create position state
@@ -538,13 +547,17 @@ class UnifiedTradingEngine:
             logger.error(f"Close order failed: {result.error_message}")
             return
 
+        if result.average_price is None:
+            logger.error(f"Close order has no price for {symbol}")
+            return
+
         # Calculate P&L
         if position.side == "long":
             pnl = position.quantity * (result.average_price - position.entry_price)
         else:
             pnl = position.quantity * (position.entry_price - result.average_price)
 
-        pnl -= result.commission
+        pnl -= result.commission or 0
         pnl_pct = pnl / (position.quantity * position.entry_price) * 100
 
         # Record trade
@@ -602,6 +615,9 @@ class UnifiedTradingEngine:
         for symbol, position in list(self._state.positions.items()):
             try:
                 current_price = await self.execution_adapter.get_current_price(symbol)
+                if current_price is None:
+                    logger.warning(f"No price for {symbol}, skipping position check")
+                    continue
 
                 # Check stop loss
                 if position.stop_loss:
