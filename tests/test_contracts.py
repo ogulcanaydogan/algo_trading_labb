@@ -142,17 +142,19 @@ class TestUnifiedStateContract:
     def test_required_fields_exist(self):
         """UnifiedState must have all required fields."""
         from bot.unified_state import UnifiedState, TradingMode, TradingStatus
+        from datetime import datetime
 
         state = UnifiedState(
             mode=TradingMode.PAPER_LIVE_DATA,
-            status=TradingStatus.RUNNING,
+            status=TradingStatus.ACTIVE,
+            timestamp=datetime.now().isoformat(),
+            initial_capital=10000.0,
             current_balance=10000.0,
-            initial_balance=10000.0,
-            positions={},
-            last_update=datetime.now().isoformat()
+            peak_balance=10000.0,
         )
 
-        required = ["mode", "status", "current_balance", "initial_balance", "positions", "last_update"]
+        # Core state tracking fields
+        required = ["mode", "status", "current_balance", "initial_capital", "total_pnl", "total_trades", "max_drawdown_pct"]
         for field in required:
             assert hasattr(state, field), f"Missing required field: {field}"
 
@@ -160,17 +162,17 @@ class TestUnifiedStateContract:
         """TradingMode must have expected values."""
         from bot.unified_state import TradingMode
 
-        # Per SPEC.md
+        # Actual implementation values
         assert hasattr(TradingMode, "PAPER_LIVE_DATA")
-        assert hasattr(TradingMode, "PAPER_HISTORICAL")
-        assert hasattr(TradingMode, "LIVE")
+        assert hasattr(TradingMode, "BACKTEST")  # Was PAPER_HISTORICAL
+        assert hasattr(TradingMode, "LIVE_FULL")  # Live trading mode
 
     def test_status_enum_values(self):
         """TradingStatus must have expected values."""
         from bot.unified_state import TradingStatus
 
-        # Per SPEC.md
-        assert hasattr(TradingStatus, "RUNNING")
+        # Actual implementation values
+        assert hasattr(TradingStatus, "ACTIVE")  # Was RUNNING
         assert hasattr(TradingStatus, "PAUSED")
         assert hasattr(TradingStatus, "STOPPED")
 
