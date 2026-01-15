@@ -188,8 +188,7 @@ def train_model(symbol_pair: tuple, feature_engineer: FeatureEngineer,
                 model=lstm,
                 symbol=trading_symbol,
                 market_type="crypto",
-                model_type="lstm",
-                accuracy=acc,
+                metadata={"model_type": "lstm", "accuracy": acc},
             )
 
             results["lstm"] = {"accuracy": acc}
@@ -240,8 +239,7 @@ def train_model(symbol_pair: tuple, feature_engineer: FeatureEngineer,
                 model=transformer,
                 symbol=trading_symbol,
                 market_type="crypto",
-                model_type="transformer",
-                accuracy=acc,
+                metadata={"model_type": "transformer", "accuracy": acc},
             )
 
             results["transformer"] = {"accuracy": acc}
