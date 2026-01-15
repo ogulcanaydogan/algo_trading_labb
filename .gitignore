@@ -200,6 +200,8 @@ data/models/*.joblib
 data/models/*.h5
 data/models/*.pt
 data/models/*.pth
+data/models/*_meta.json
+data/models/*_scaler.pkl
 data/model_registry/models/
 
 # State files (may contain sensitive runtime data)
