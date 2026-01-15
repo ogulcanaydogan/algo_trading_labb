@@ -56,6 +56,12 @@ MARKET_CONFIGS = {
         "symbols": {
             "BTC-USD": "Bitcoin",
             "ETH-USD": "Ethereum",
+            "SOL-USD": "Solana",
+            "AVAX-USD": "Avalanche",
+            "XRP-USD": "Ripple",
+            "ADA-USD": "Cardano",
+            "DOT-USD": "Polkadot",
+            "LINK-USD": "Chainlink",
         },
         "lookback_days": 365 * 2,
         "model_dir": "data/models/crypto",

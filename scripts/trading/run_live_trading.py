@@ -86,10 +86,12 @@ def run_live_trading():
             testnet=True,
         )
     else:
-        api_key = os.getenv("EXCHANGE_API_KEY")
-        api_secret = os.getenv("EXCHANGE_API_SECRET")
+        api_key = os.getenv("BINANCE_API_KEY") or os.getenv("EXCHANGE_API_KEY")
+        api_secret = os.getenv("BINANCE_API_SECRET") or os.getenv("EXCHANGE_API_SECRET")
         if not api_key or not api_secret:
             print("API keys not found in .env file!")
+            print("Add BINANCE_API_KEY and BINANCE_API_SECRET to your .env file")
+            print("Get keys from: https://www.binance.com/en/my/settings/api-management")
             return
         print("\nConnecting to Binance...")
         exchange = ExchangeClient(

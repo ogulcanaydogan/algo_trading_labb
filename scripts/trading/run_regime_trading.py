@@ -51,6 +51,29 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Import data store for persistent recording
+try:
+    from bot.data_store import (
+        get_data_store,
+        record_trade as store_trade,
+        record_snapshot,
+        record_signal,
+    )
+    HAS_DATA_STORE = True
+    logger.info("Data Store available for persistent recording")
+except ImportError:
+    HAS_DATA_STORE = False
+
+# System Logger for centralized event tracking
+try:
+    from bot.system_logger import (
+        log_bot_start, log_bot_stop, heartbeat, EventType
+    )
+    HAS_SYSTEM_LOGGER = True
+    logger.info("System Logger available for event tracking")
+except ImportError:
+    HAS_SYSTEM_LOGGER = False
+
 
 def run_backtest(symbol: str = "BTC/USDT", days: int = 365):
     """
@@ -315,10 +338,45 @@ async def run_paper_trading(symbols: list = None):
     await engine.start()
     logger.info("Engine started. Press Ctrl+C to stop.")
 
+    # Register with system logger
+    if HAS_SYSTEM_LOGGER:
+        log_bot_start("regime_trading", "regime", {
+            "initial_capital": initial_capital,
+            "symbols": symbols,
+            "mode": "paper"
+        })
+
+    iteration = 0
     try:
         # Run the trading loop - either until shutdown signal or indefinitely
         while not shutdown_event.is_set():
             await asyncio.sleep(1)
+            iteration += 1
+
+            # Send heartbeat every 30 seconds
+            if HAS_SYSTEM_LOGGER and iteration % 30 == 0:
+                heartbeat("regime_trading")
+
+            # Record snapshot every 60 seconds
+            if HAS_DATA_STORE and iteration % 60 == 0:
+                try:
+                    status = engine.get_status()
+                    state = status.get('state', {})
+                    equity = state.get('equity', initial_capital)
+                    positions = state.get('positions', {})
+
+                    record_snapshot(
+                        total_value=equity,
+                        cash_balance=state.get('cash', equity),
+                        positions=positions,
+                        pnl=equity - initial_capital,
+                        pnl_pct=(equity - initial_capital) / initial_capital * 100,
+                        market_values={"regime": equity},
+                    )
+                    logger.debug(f"Recorded snapshot: ${equity:,.2f}")
+                except Exception as e:
+                    logger.warning(f"Failed to record snapshot: {e}")
+
             # Check if engine is still running
             if not engine.state.is_running:
                 logger.info("Engine stopped externally")
@@ -326,6 +384,10 @@ async def run_paper_trading(symbols: list = None):
     except asyncio.CancelledError:
         logger.info("Task cancelled")
     finally:
+        # Unregister from system logger
+        if HAS_SYSTEM_LOGGER:
+            log_bot_stop("regime_trading", "normal_shutdown")
+
         await engine.stop()
         logger.info("Engine stopped")
 
