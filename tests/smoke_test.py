@@ -100,6 +100,18 @@ class SmokeTestRunner:
 
 
 # =============================================================================
+# PYTEST FIXTURE
+# =============================================================================
+
+import pytest
+
+@pytest.fixture
+def runner():
+    """Provide a SmokeTestRunner instance for tests."""
+    return SmokeTestRunner(verbose=True)
+
+
+# =============================================================================
 # MODULE IMPORT TESTS
 # =============================================================================
 
@@ -309,6 +321,7 @@ def test_ml_tracker(runner: SmokeTestRunner):
 # API TESTS (requires running server)
 # =============================================================================
 
+@pytest.mark.asyncio
 async def test_api_endpoints(runner: SmokeTestRunner, base_url: str = "http://localhost:8000"):
     """Test API endpoints if server is running."""
     runner.log("\n[API] Testing API Endpoints...", Colors.BLUE)
