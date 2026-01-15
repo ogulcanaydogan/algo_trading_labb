@@ -8,6 +8,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
+# Load .env before any other imports that might need env vars
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
@@ -45,6 +49,13 @@ STATE_DIR = Path(os.getenv("DATA_DIR", "./data"))
 _market_summary_cache: Dict[str, tuple] = {}  # {market_type: (timestamp, data)}
 _CACHE_TTL = 10.0  # Cache for 10 seconds
 PAPER_TRADING_LOG = STATE_DIR / "logs" / "paper_trading.log"
+# All trading log sources for aggregated view
+TRADING_LOG_SOURCES = {
+    "crypto": STATE_DIR / "logs" / "paper_trading.log",
+    "commodity": STATE_DIR / "logs" / "commodity_trading.log",
+    "stock": STATE_DIR / "logs" / "stock_trading.log",
+    "regime": STATE_DIR / "logs" / "regime_paper_trading.log",
+}
 PORTFOLIO_CONFIG_PATH = Path(
     os.getenv("PORTFOLIO_CONFIG_PATH", str(STATE_DIR / "portfolio.json"))
 ).expanduser()
@@ -137,12 +148,16 @@ app = FastAPI(
 
 # CORS middleware configuration
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
+# Ensure wildcard works properly
+if "*" in CORS_ORIGINS:
+    CORS_ORIGINS = ["*"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_credentials=False,  # Must be False when using wildcard origins
+    allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Include unified trading API router
@@ -999,16 +1014,47 @@ def health_check() -> HealthCheckResponse:
     bot_last_update: Optional[datetime] = None
     bot_stale = False
 
-    # Check bot state
+    # Check bot state - check all active trading state files
+    active_state_files = [
+        STATE_DIR / "regime_trading" / "state.json",
+        STATE_DIR / "live_paper_trading" / "state.json",
+        STATE_DIR / "commodity_trading" / "state.json",
+        STATE_DIR / "stock_trading" / "state.json",
+        STATE_DIR / "production" / "state.json",
+        STATE_DIR / "state.json",  # Legacy fallback
+    ]
+
     try:
-        store = get_store()
-        store.load()
-        state = store.state
-        bot_last_update = state.timestamp
+        most_recent_update: Optional[datetime] = None
+        active_bots = 0
+
+        for state_path in active_state_files:
+            if state_path.exists():
+                try:
+                    import json
+                    with open(state_path) as f:
+                        data = json.load(f)
+                    ts_str = data.get("timestamp")
+                    if ts_str:
+                        from dateutil.parser import parse
+                        ts = parse(ts_str)
+                        if ts.tzinfo is None:
+                            ts = ts.replace(tzinfo=timezone.utc)
+                        if most_recent_update is None or ts > most_recent_update:
+                            most_recent_update = ts
+                        # Count as active if updated within threshold
+                        age = (now - ts).total_seconds()
+                        if age <= stale_threshold:
+                            active_bots += 1
+                except Exception:
+                    continue
+
+        bot_last_update = most_recent_update
         if bot_last_update:
             age_seconds = (now - bot_last_update).total_seconds()
             bot_stale = age_seconds > stale_threshold
             components["bot"] = "healthy" if not bot_stale else "stale"
+            components["active_bots"] = str(active_bots)
         else:
             components["bot"] = "no_data"
     except Exception:
@@ -1017,18 +1063,19 @@ def health_check() -> HealthCheckResponse:
 
     # Check state file accessibility
     try:
-        state_file = STATE_DIR / "state.json"
-        if state_file.exists():
+        state_files_exist = any(p.exists() for p in active_state_files)
+        if state_files_exist:
             components["state_store"] = "healthy"
         else:
             components["state_store"] = "no_file"
     except Exception:
         components["state_store"] = "error"
 
-    # Determine overall status
-    if all(v == "healthy" for v in components.values()):
+    # Determine overall status (exclude info-only components like active_bots count)
+    status_components = {k: v for k, v in components.items() if k != "active_bots"}
+    if all(v == "healthy" for v in status_components.values()):
         status = "healthy"
-    elif any(v == "error" for v in components.values()):
+    elif any(v == "error" for v in status_components.values()):
         status = "unhealthy"
     else:
         status = "degraded"
@@ -1068,46 +1115,134 @@ async def dashboard_v2():
 @app.get("/api/paper-trading-log")
 async def get_paper_trading_log(
     lines: int = Query(default=50, description="Number of lines to return"),
+    market: str = Query(default="all", description="Market filter: all, crypto, commodity, stock"),
 ) -> Dict[str, Any]:
-    """Get recent paper trading log entries."""
+    """Get recent paper trading log entries from all markets."""
+    import re
+    from datetime import datetime
+
+    def parse_log_entry(line: str, market_source: str) -> dict | None:
+        """Parse a single log line into structured entry."""
+        line = line.strip()
+        if not line:
+            return None
+
+        # Parse log format: "2026-01-11 18:20:29,022 | INFO | message"
+        parts = line.split(" | ", 2)
+        if len(parts) < 3:
+            return None
+
+        timestamp_str = parts[0].split(",")[0] if "," in parts[0] else parts[0]
+        time_only = timestamp_str.split(" ")[-1] if " " in timestamp_str else timestamp_str
+        level = parts[1].strip()
+        message = parts[2].strip()
+
+        # Parse full timestamp for sorting
+        try:
+            full_ts = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            full_ts = datetime.now()
+
+        # Determine log type with more categories
+        log_type = "info"
+        icon = "📋"
+
+        # Service interruptions and errors
+        if level == "ERROR":
+            log_type = "error"
+            icon = "🔴"
+        elif level == "WARNING":
+            log_type = "warning"
+            icon = "🟡"
+            if "Rate limit" in message or "Too Many Requests" in message:
+                log_type = "rate_limit"
+                icon = "⏱️"
+            elif "Failed" in message or "Error" in message:
+                log_type = "error"
+                icon = "⚠️"
+            elif "skipping" in message.lower():
+                log_type = "skip"
+                icon = "⏭️"
+        # Trading signals
+        elif "BUY" in message.upper() or "LONG" in message.upper():
+            log_type = "buy"
+            icon = "🟢"
+        elif "SELL" in message.upper() or "SHORT" in message.upper():
+            log_type = "sell"
+            icon = "🔴"
+        # Position changes
+        elif "position" in message.lower() or "rebalancing" in message.lower():
+            log_type = "position"
+            icon = "📊"
+        # Portfolio updates
+        elif "Portfolio:" in message or "Checkpoint" in message:
+            log_type = "portfolio"
+            icon = "💰"
+        # Iterations
+        elif "--- Iteration" in message:
+            log_type = "iteration"
+            icon = "🔄"
+        # Price updates
+        elif any(sym in message for sym in ["$", "BTC", "ETH", "Gold", "Silver", "AAPL", "MSFT"]):
+            log_type = "price"
+            icon = "📈"
+
+        return {
+            "time": time_only,
+            "timestamp": timestamp_str,
+            "full_ts": full_ts,
+            "level": level,
+            "message": message,
+            "type": log_type,
+            "icon": icon,
+            "market": market_source,
+        }
+
     try:
-        if not PAPER_TRADING_LOG.exists():
-            return {"entries": [], "error": "Log file not found"}
+        all_entries = []
+        sources_status = {}
 
-        with open(PAPER_TRADING_LOG, "r") as f:
-            all_lines = f.readlines()
+        # Determine which log sources to read
+        sources_to_read = TRADING_LOG_SOURCES if market == "all" else {
+            k: v for k, v in TRADING_LOG_SOURCES.items() if k == market
+        }
 
-        # Get last N lines
-        recent_lines = all_lines[-lines:] if len(all_lines) > lines else all_lines
+        for market_name, log_path in sources_to_read.items():
+            if log_path.exists():
+                sources_status[market_name] = "active"
+                try:
+                    with open(log_path, "r") as f:
+                        # Read last N*2 lines to have enough after filtering
+                        log_lines = f.readlines()[-(lines * 2):]
 
-        entries = []
-        for line in recent_lines:
-            line = line.strip()
-            if not line:
-                continue
-            # Parse log format: "2026-01-11 18:20:29,022 | INFO | message"
-            parts = line.split(" | ", 2)
-            if len(parts) >= 3:
-                timestamp = parts[0].split(",")[0] if "," in parts[0] else parts[0]
-                time_only = timestamp.split(" ")[-1] if " " in timestamp else timestamp
-                level = parts[1].strip()
-                message = parts[2].strip()
+                    for line in log_lines:
+                        entry = parse_log_entry(line, market_name)
+                        if entry:
+                            all_entries.append(entry)
+                except Exception as e:
+                    sources_status[market_name] = f"error: {str(e)}"
+            else:
+                sources_status[market_name] = "not_found"
 
-                # Determine log type
-                log_type = "info"
-                if "BUY" in message or "LONG" in message:
-                    log_type = "buy"
-                elif "SELL" in message or "SHORT" in message:
-                    log_type = "sell"
+        # Sort by timestamp (newest first)
+        all_entries.sort(key=lambda x: x["full_ts"], reverse=True)
 
-                entries.append({
-                    "time": time_only,
-                    "level": level,
-                    "message": message,
-                    "type": log_type,
-                })
+        # Remove internal timestamp field and limit results
+        for entry in all_entries:
+            del entry["full_ts"]
 
-        return {"entries": entries[-lines:]}
+        # Count by type for summary
+        type_counts = {}
+        for entry in all_entries[:lines]:
+            t = entry["type"]
+            type_counts[t] = type_counts.get(t, 0) + 1
+
+        return {
+            "entries": all_entries[:lines],
+            "sources": sources_status,
+            "summary": type_counts,
+            "total_entries": len(all_entries),
+        }
     except Exception as e:
         return {"entries": [], "error": str(e)}
 
@@ -2954,6 +3089,404 @@ async def get_walk_forward_history() -> Dict[str, Any]:
 # =============================================================================
 
 
+@app.get("/api/trade-history", tags=["Portfolio"])
+async def get_trade_history(
+    limit: int = Query(default=50, description="Number of trades to return"),
+    market: str = Query(default="all", description="Filter by market: all, crypto, commodity, stock"),
+) -> Dict[str, Any]:
+    """Get trade history from all sources."""
+    import json
+    from datetime import datetime
+
+    all_trades = []
+
+    # Trade history sources
+    trade_sources = [
+        STATE_DIR / "strategy_tracker" / "trade_history.json",
+        STATE_DIR / "live_paper_trading" / "state.json",
+        STATE_DIR / "regime_trading" / "state.json",
+        STATE_DIR / "commodity_trading" / "state.json",
+        STATE_DIR / "stock_trading" / "state.json",
+    ]
+
+    for source in trade_sources:
+        if source.exists():
+            try:
+                with open(source, "r") as f:
+                    data = json.load(f)
+
+                # Handle different formats
+                trades = []
+                if isinstance(data, list):
+                    trades = data
+                elif isinstance(data, dict):
+                    trades = data.get("trades", data.get("trade_history", []))
+
+                for trade in trades:
+                    if isinstance(trade, dict):
+                        # Normalize trade format
+                        normalized = {
+                            "date": trade.get("exit_time", trade.get("entry_time", trade.get("timestamp", ""))),
+                            "symbol": trade.get("symbol", ""),
+                            "side": trade.get("side", "long"),
+                            "entry": trade.get("entry_price", 0),
+                            "exit": trade.get("exit_price", trade.get("entry_price", 0)),
+                            "pnl": trade.get("pnl", 0),
+                            "pnl_pct": trade.get("pnl_pct", 0),
+                            "regime": trade.get("regime", ""),
+                            "exit_reason": trade.get("exit_reason", ""),
+                            "quantity": trade.get("quantity", 0),
+                        }
+
+                        # Determine market type from symbol
+                        symbol = normalized["symbol"].upper()
+                        if "USDT" in symbol or "BTC" in symbol or "ETH" in symbol:
+                            normalized["market"] = "crypto"
+                        elif any(c in symbol for c in ["XAU", "XAG", "OIL", "GAS", "GOLD", "SILVER"]):
+                            normalized["market"] = "commodity"
+                        else:
+                            normalized["market"] = "stock"
+
+                        all_trades.append(normalized)
+            except Exception as e:
+                continue
+
+    # Filter by market
+    if market != "all":
+        all_trades = [t for t in all_trades if t.get("market") == market]
+
+    # Sort by date (newest first)
+    all_trades.sort(key=lambda x: x.get("date", ""), reverse=True)
+
+    # Calculate summary stats
+    total_pnl = sum(t.get("pnl", 0) for t in all_trades)
+    wins = sum(1 for t in all_trades if t.get("pnl", 0) > 0)
+    losses = sum(1 for t in all_trades if t.get("pnl", 0) < 0)
+    win_rate = (wins / len(all_trades) * 100) if all_trades else 0
+
+    return {
+        "trades": all_trades[:limit],
+        "total_trades": len(all_trades),
+        "summary": {
+            "total_pnl": total_pnl,
+            "wins": wins,
+            "losses": losses,
+            "win_rate": round(win_rate, 1),
+        }
+    }
+
+
+# =============================================================================
+# Data Storage & Backup Endpoints
+# =============================================================================
+
+
+@app.get("/api/storage/stats", tags=["Storage"])
+async def get_storage_stats() -> Dict[str, Any]:
+    """Get storage statistics and metadata."""
+    try:
+        from bot.data_store import get_data_store
+        store = get_data_store()
+        return store.get_storage_stats()
+    except ImportError:
+        return {"error": "Data store module not available"}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/storage/trades", tags=["Storage"])
+async def get_stored_trades(
+    market: str = Query(default=None, description="Filter by market"),
+    symbol: str = Query(default=None, description="Filter by symbol"),
+    limit: int = Query(default=100, description="Number of trades to return"),
+) -> Dict[str, Any]:
+    """Get trades from persistent data store."""
+    try:
+        from bot.data_store import get_data_store
+        store = get_data_store()
+        trades = store.get_trades(market=market, symbol=symbol, limit=limit)
+        summary = store.get_trade_summary()
+        return {"trades": trades, "summary": summary}
+    except ImportError:
+        return {"trades": [], "error": "Data store module not available"}
+    except Exception as e:
+        return {"trades": [], "error": str(e)}
+
+
+@app.get("/api/storage/snapshots", tags=["Storage"])
+async def get_portfolio_snapshots(
+    days: int = Query(default=30, description="Number of days of history"),
+) -> Dict[str, Any]:
+    """Get portfolio snapshots (equity curve data)."""
+    try:
+        from bot.data_store import get_data_store
+        store = get_data_store()
+        snapshots = store.get_equity_curve(days=days)
+        return {"snapshots": snapshots, "count": len(snapshots)}
+    except ImportError:
+        return {"snapshots": [], "error": "Data store module not available"}
+    except Exception as e:
+        return {"snapshots": [], "error": str(e)}
+
+
+@app.get("/api/storage/signals", tags=["Storage"])
+async def get_signal_history(
+    symbol: str = Query(default=None, description="Filter by symbol"),
+    market: str = Query(default=None, description="Filter by market"),
+    limit: int = Query(default=100, description="Number of signals to return"),
+) -> Dict[str, Any]:
+    """Get historical trading signals."""
+    try:
+        from bot.data_store import get_data_store
+        store = get_data_store()
+        signals = store.get_signals(symbol=symbol, market=market, limit=limit)
+        return {"signals": signals, "count": len(signals)}
+    except ImportError:
+        return {"signals": [], "error": "Data store module not available"}
+    except Exception as e:
+        return {"signals": [], "error": str(e)}
+
+
+@app.post("/api/storage/backup", tags=["Storage"])
+async def create_backup() -> Dict[str, Any]:
+    """Create a full backup of all trading data."""
+    try:
+        from bot.data_store import get_data_store
+        store = get_data_store()
+        backup_path = store.create_backup()
+        return {
+            "status": "success",
+            "message": "Backup created successfully",
+            "backup_path": backup_path,
+            "timestamp": datetime.now().isoformat(),
+        }
+    except ImportError:
+        return {"status": "error", "message": "Data store module not available"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+@app.get("/api/storage/export", tags=["Storage"])
+async def export_all_data() -> Dict[str, Any]:
+    """Export all data to a single JSON file for server migration."""
+    try:
+        from bot.data_store import get_data_store
+        store = get_data_store()
+        export_path = store.export_all()
+        return {
+            "status": "success",
+            "message": "Data exported successfully",
+            "export_path": export_path,
+            "timestamp": datetime.now().isoformat(),
+        }
+    except ImportError:
+        return {"status": "error", "message": "Data store module not available"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+@app.get("/api/storage/strategies", tags=["Storage"])
+async def get_strategy_performance(
+    strategy_id: str = Query(default=None, description="Strategy ID"),
+) -> Dict[str, Any]:
+    """Get strategy performance metrics."""
+    try:
+        from bot.data_store import get_data_store
+        store = get_data_store()
+        performance = store.get_strategy_performance(strategy_id=strategy_id)
+        return {"strategies": performance}
+    except ImportError:
+        return {"strategies": {}, "error": "Data store module not available"}
+    except Exception as e:
+        return {"strategies": {}, "error": str(e)}
+
+
+@app.get("/api/storage/models", tags=["Storage"])
+async def get_registered_models(
+    model_type: str = Query(default=None, description="Filter by model type"),
+    symbol: str = Query(default=None, description="Filter by symbol"),
+) -> Dict[str, Any]:
+    """Get registered ML models."""
+    try:
+        from bot.data_store import get_data_store
+        store = get_data_store()
+        models = store.get_models(model_type=model_type, symbol=symbol)
+        return {"models": models, "count": len(models)}
+    except ImportError:
+        return {"models": {}, "error": "Data store module not available"}
+    except Exception as e:
+        return {"models": {}, "error": str(e)}
+
+
+@app.get("/api/ml/model-status", tags=["ML/AI"])
+async def get_ml_model_status(
+    market_type: str = Query(default="crypto", description="Market type: crypto, stock, commodity"),
+) -> Dict[str, Any]:
+    """
+    Get comprehensive ML model status for all symbols.
+
+    Shows:
+    - Which symbols have trained models
+    - Model types available (LSTM, Transformer, RandomForest, etc.)
+    - Model accuracy/performance
+    - Training date
+    - Symbols without models
+    """
+    symbols_with_models: Dict[str, List[Dict]] = {}
+    model_types_found = set()
+
+    # Try registry first
+    try:
+        from bot.ml.registry.model_registry import ModelRegistry
+
+        registry = ModelRegistry()
+        all_models = registry.list_models(market_type=market_type, active_only=True)
+
+        for model in all_models:
+            symbol = model.symbol
+            if symbol not in symbols_with_models:
+                symbols_with_models[symbol] = []
+            symbols_with_models[symbol].append({
+                "model_type": model.model_type,
+                "accuracy": round(model.accuracy * 100, 1),
+                "val_accuracy": round(model.val_accuracy * 100, 1),
+                "created_at": model.created_at.isoformat(),
+                "is_active": model.is_active,
+                "source": "registry",
+            })
+            model_types_found.add(model.model_type)
+    except Exception as e:
+        print(f"Registry not available: {e}")
+
+    # Fallback: scan data/models directory directly
+    models_dir = STATE_DIR / "models"
+    if models_dir.exists():
+        try:
+            # Define which symbols belong to which market
+            market_symbols = {
+                "crypto": ["BTC", "ETH", "SOL", "AVAX", "XRP", "ADA", "DOT", "LINK"],
+                "stock": ["AAPL", "MSFT", "GOOGL", "NVDA", "AMZN"],
+                "commodity": ["XAU", "XAG", "USOIL", "NATGAS"],
+            }
+            target_symbols = market_symbols.get(market_type, [])
+
+            for model_file in models_dir.glob("*_model.pkl"):
+                model_name = model_file.stem.replace("_model", "")
+                parts = model_name.split("_")
+
+                if len(parts) >= 3:
+                    base_symbol = parts[0]
+
+                    # Check if this symbol belongs to requested market
+                    if base_symbol not in target_symbols:
+                        continue
+
+                    # Reconstruct symbol
+                    if parts[1] == "USDT":
+                        symbol = f"{parts[0]}/USDT"
+                    elif parts[1] == "USD":
+                        symbol = f"{parts[0]}/USD"
+                    else:
+                        symbol = parts[0]
+
+                    # Skip if already in registry results
+                    if symbol in symbols_with_models:
+                        # Check if this model type already exists
+                        existing_types = [m["model_type"] for m in symbols_with_models[symbol]]
+                        model_type = "_".join(parts[2:]) if len(parts) > 2 else "unknown"
+                        if model_type in existing_types:
+                            continue
+
+                    # Get model type from filename
+                    model_type = "_".join(parts[2:]) if len(parts) > 2 else "unknown"
+
+                    # Try to load metadata
+                    meta_file = models_dir / f"{model_name}_meta.json"
+                    accuracy = 55.0
+                    created_at = datetime.now(timezone.utc)
+
+                    if meta_file.exists():
+                        try:
+                            with open(meta_file) as f:
+                                meta = json.load(f)
+                                raw_accuracy = meta.get("metrics", {}).get("accuracy", 0.55)
+                                # Handle both decimal (0.93) and percentage (93.1) formats
+                                if raw_accuracy <= 1.0:
+                                    accuracy = raw_accuracy * 100
+                                else:
+                                    accuracy = raw_accuracy
+                                if "saved_at" in meta:
+                                    created_at = datetime.fromisoformat(meta["saved_at"].replace("Z", "+00:00"))
+                        except Exception as parse_err:
+                            print(f"Error parsing meta file {meta_file}: {parse_err}")
+                            pass
+
+                    if symbol not in symbols_with_models:
+                        symbols_with_models[symbol] = []
+
+                    symbols_with_models[symbol].append({
+                        "model_type": model_type,
+                        "accuracy": round(accuracy, 1),
+                        "val_accuracy": round(accuracy, 1),
+                        "created_at": created_at.isoformat(),
+                        "is_active": True,
+                        "source": "data/models",
+                    })
+                    model_types_found.add(model_type)
+
+        except Exception as e:
+            print(f"Error scanning models directory: {e}")
+
+    # Define expected symbols per market
+    expected_symbols = {
+        "crypto": ["BTC/USDT", "ETH/USDT", "SOL/USDT", "AVAX/USDT", "XRP/USDT", "ADA/USDT", "DOT/USDT", "LINK/USDT"],
+        "stock": ["AAPL", "MSFT", "GOOGL", "NVDA", "AMZN"],
+        "commodity": ["XAU/USD", "XAG/USD", "USOIL/USD", "NATGAS/USD"],
+    }
+
+    expected = expected_symbols.get(market_type, [])
+    symbols_without_models = [s for s in expected if s not in symbols_with_models]
+
+    # Calculate summary stats
+    total_models = sum(len(models) for models in symbols_with_models.values())
+    avg_accuracy = 0
+    if total_models > 0:
+        all_accuracies = [m["val_accuracy"] for models in symbols_with_models.values() for m in models]
+        avg_accuracy = sum(all_accuracies) / len(all_accuracies)
+
+    return {
+        "market_type": market_type,
+        "summary": {
+            "total_models": total_models,
+            "symbols_with_models": len(symbols_with_models),
+            "symbols_without_models": len(symbols_without_models),
+            "average_accuracy": round(avg_accuracy, 1),
+            "coverage_pct": round(len(symbols_with_models) / max(len(expected), 1) * 100, 1),
+        },
+        "symbols": symbols_with_models,
+        "missing_symbols": symbols_without_models,
+        "model_types_available": list(model_types_found),
+    }
+
+
+@app.get("/api/ml/data-freshness", tags=["ML/AI"])
+async def get_data_freshness_status() -> Dict[str, Any]:
+    """
+    Get data freshness status for all tracked symbols.
+
+    Shows data age and whether each symbol is tradeable.
+    """
+    try:
+        from bot.data_freshness import get_monitor
+
+        monitor = get_monitor()
+        return monitor.get_summary()
+    except ImportError:
+        return {"error": "Data freshness module not available", "symbols": {}}
+    except Exception as e:
+        return {"error": str(e), "symbols": {}}
+
+
 @app.get("/api/trade-journal/export", tags=["Portfolio"])
 async def export_trade_journal(
     format: str = Query(default="csv", description="Export format: csv, excel, json"),
@@ -3915,6 +4448,129 @@ async def resume_all_markets(
         "results": results,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
+
+
+# =============================================================================
+# Risk Settings Endpoints
+# =============================================================================
+
+RISK_SETTINGS_FILE = STATE_DIR / "risk_settings.json"
+
+def _load_risk_settings() -> Dict[str, bool]:
+    """Load risk settings from file."""
+    defaults = {
+        "shorting": False,
+        "leverage": False,
+        "aggressive": False,
+    }
+    try:
+        if RISK_SETTINGS_FILE.exists():
+            with open(RISK_SETTINGS_FILE) as f:
+                data = json.load(f)
+                return {**defaults, **data}
+    except Exception:
+        pass
+    return defaults
+
+
+def _save_risk_settings(settings: Dict[str, bool]) -> None:
+    """Save risk settings to file."""
+    RISK_SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with open(RISK_SETTINGS_FILE, "w") as f:
+        json.dump(settings, f, indent=2)
+
+
+@app.get("/api/trading/risk-settings", tags=["Risk"])
+async def get_risk_settings(
+    _auth: Optional[str] = Depends(verify_api_key),
+) -> Dict[str, Any]:
+    """Get current risk settings."""
+    settings = _load_risk_settings()
+
+    # Calculate risk level
+    risk_count = sum(1 for v in settings.values() if v)
+    if risk_count == 0:
+        risk_level = "low"
+    elif risk_count == 1:
+        risk_level = "medium"
+    elif risk_count == 2:
+        risk_level = "high"
+    else:
+        risk_level = "extreme"
+
+    return {
+        **settings,
+        "risk_level": risk_level,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@app.post("/api/trading/risk-settings", tags=["Risk"])
+async def update_risk_settings(
+    request: Request,
+    _auth: Optional[str] = Depends(verify_api_key),
+) -> Dict[str, Any]:
+    """Update risk settings. Accepts partial updates."""
+    body = await request.json()
+
+    # Load current settings
+    settings = _load_risk_settings()
+
+    # Update only provided fields
+    allowed_keys = {"shorting", "leverage", "aggressive"}
+    for key in allowed_keys:
+        if key in body:
+            settings[key] = bool(body[key])
+
+    # Save settings
+    _save_risk_settings(settings)
+
+    # Apply settings to running systems
+    await _apply_risk_settings(settings)
+
+    # Calculate risk level
+    risk_count = sum(1 for v in settings.values() if v)
+    if risk_count == 0:
+        risk_level = "low"
+    elif risk_count == 1:
+        risk_level = "medium"
+    elif risk_count == 2:
+        risk_level = "high"
+    else:
+        risk_level = "extreme"
+
+    return {
+        **settings,
+        "risk_level": risk_level,
+        "updated": True,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+async def _apply_risk_settings(settings: Dict[str, bool]) -> None:
+    """Apply risk settings to running trading systems."""
+    # Update control files for each market
+    for market_id in ["crypto", "commodity", "stock"]:
+        try:
+            market_dir = _get_market_dir(market_id)
+            control_file = market_dir / "control.json"
+
+            control = {}
+            if control_file.exists():
+                with open(control_file) as f:
+                    control = json.load(f)
+
+            # Update risk settings in control
+            control["allow_shorting"] = settings.get("shorting", False)
+            control["allow_leverage"] = settings.get("leverage", False)
+            control["aggressive_mode"] = settings.get("aggressive", False)
+            control["risk_settings_updated"] = datetime.now(timezone.utc).isoformat()
+
+            with open(control_file, "w") as f:
+                json.dump(control, f, indent=2)
+
+        except Exception as e:
+            print(f"Warning: Could not apply risk settings to {market_id}: {e}")
 
 
 # =============================================================================
@@ -5028,6 +5684,216 @@ async def get_ai_trading_advice(
         raise HTTPException(status_code=500, detail=f"AI advice failed: {str(e)}")
 
 
+# =============================================================================
+# Adaptive Risk Controller Endpoints
+# =============================================================================
+
+
+@app.get("/api/trading/current-strategy", tags=["Risk"])
+async def get_current_strategy(
+    _auth: Optional[str] = Depends(verify_api_key),
+) -> Dict[str, Any]:
+    """
+    Get the current adaptive trading strategy.
+
+    Returns:
+    - Current strategy name and description
+    - Risk settings (shorting, leverage, aggressive)
+    - Market regime and expected direction
+    - Reasoning for current settings
+    - Recent risk decisions
+    """
+    try:
+        from bot.adaptive_risk_controller import get_adaptive_risk_controller
+
+        controller = get_adaptive_risk_controller()
+        return controller.get_current_strategy()
+    except Exception as e:
+        # Return default strategy if controller not available
+        return {
+            "strategy": {
+                "name": "Initializing...",
+                "description": "Adaptive risk controller is starting up",
+                "shorting_enabled": False,
+                "leverage_enabled": False,
+                "aggressive_enabled": False,
+                "market_regime": "unknown",
+                "expected_direction": "neutral",
+                "confidence": 0.0,
+                "suggested_action": "hold",
+                "position_size_multiplier": 1.0,
+                "stop_loss_multiplier": 1.0,
+                "reasoning": ["System initializing..."],
+            },
+            "risk_profile": "conservative",
+            "settings": {"shorting": False, "leverage": False, "aggressive": False},
+            "recent_decisions": [],
+        }
+
+
+@app.post("/api/trading/evaluate-risk", tags=["Risk"])
+async def evaluate_risk_settings(
+    request: Request,
+    _auth: Optional[str] = Depends(verify_api_key),
+) -> Dict[str, Any]:
+    """
+    Trigger a risk evaluation with current market conditions.
+
+    Body should contain:
+    - market_regime: str (bull, bear, sideways, crash, etc.)
+    - regime_confidence: float (0-1)
+    - rsi: float (0-100)
+    - volatility: str (low, normal, high, extreme)
+    - trend: str (up, down, neutral)
+    - recent_performance: Optional[Dict] with win_rate, total_pnl, drawdown
+    """
+    try:
+        from bot.adaptive_risk_controller import get_adaptive_risk_controller
+
+        body = await request.json()
+
+        controller = get_adaptive_risk_controller()
+        strategy = await controller.evaluate_and_adjust(
+            market_regime=body.get("market_regime", "unknown"),
+            regime_confidence=body.get("regime_confidence", 0.5),
+            rsi=body.get("rsi", 50.0),
+            volatility=body.get("volatility", "normal"),
+            trend=body.get("trend", "neutral"),
+            recent_performance=body.get("recent_performance"),
+        )
+
+        return {
+            "evaluated": True,
+            "strategy": strategy.to_dict(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Risk evaluation failed: {str(e)}")
+
+
+@app.get("/api/trading/risk-decisions", tags=["Risk"])
+async def get_risk_decisions(
+    limit: int = Query(default=20, description="Number of decisions to return"),
+    _auth: Optional[str] = Depends(verify_api_key),
+) -> Dict[str, Any]:
+    """
+    Get recent risk adjustment decisions.
+
+    Returns history of when and why risk settings were changed.
+    """
+    try:
+        from bot.adaptive_risk_controller import get_adaptive_risk_controller
+
+        controller = get_adaptive_risk_controller()
+        decisions = controller.get_decision_history(limit=limit)
+
+        return {
+            "decisions": decisions,
+            "count": len(decisions),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+    except Exception as e:
+        return {"decisions": [], "count": 0, "error": str(e)}
+
+
+# =============================================================================
+# Optimal Action Tracker Endpoints
+# =============================================================================
+
+
+@app.get("/api/trading/optimal-action", tags=["ML/AI"])
+async def get_optimal_action(
+    regime: str = Query(default="unknown", description="Market regime"),
+    rsi: float = Query(default=50.0, description="RSI value"),
+    trend: str = Query(default="neutral", description="Trend direction"),
+    volatility: str = Query(default="normal", description="Volatility regime"),
+    _auth: Optional[str] = Depends(verify_api_key),
+) -> Dict[str, Any]:
+    """
+    Get optimal action for given market state based on historical learning.
+
+    Returns recommended action (buy, sell, hold) with expected value.
+    """
+    try:
+        from bot.optimal_action_tracker import get_tracker, MarketState
+
+        tracker = get_tracker()
+        state = MarketState(
+            regime=regime,
+            rsi=rsi,
+            trend_direction=trend,
+            volatility_regime=volatility,
+        )
+
+        action, expected_value = tracker.get_optimal_action(state)
+
+        return {
+            "state_key": state.to_state_key(),
+            "optimal_action": action.value,
+            "expected_value": round(expected_value, 4),
+            "based_on": "historical_data" if state.to_state_key() in tracker._q_table else "heuristic",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+    except Exception as e:
+        return {
+            "optimal_action": "hold",
+            "expected_value": 0.0,
+            "based_on": "error_fallback",
+            "error": str(e),
+        }
+
+
+@app.get("/api/trading/action-stats", tags=["ML/AI"])
+async def get_action_stats(
+    state_key: Optional[str] = Query(default=None, description="Filter by state key"),
+    _auth: Optional[str] = Depends(verify_api_key),
+) -> Dict[str, Any]:
+    """
+    Get statistics for all actions or filtered by state.
+
+    Returns win rate, average return, and count for each action type.
+    """
+    try:
+        from bot.optimal_action_tracker import get_tracker
+
+        tracker = get_tracker()
+        stats = tracker.get_action_stats(state_key=state_key)
+
+        return {
+            "stats": stats,
+            "state_key_filter": state_key,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+    except Exception as e:
+        return {"stats": {}, "error": str(e)}
+
+
+@app.get("/api/trading/best-states", tags=["ML/AI"])
+async def get_best_states(
+    action: str = Query(default="buy", description="Action to analyze"),
+    min_count: int = Query(default=5, description="Minimum sample count"),
+    _auth: Optional[str] = Depends(verify_api_key),
+) -> Dict[str, Any]:
+    """
+    Get market states where a specific action performs best.
+
+    Useful for understanding when to buy/sell based on historical data.
+    """
+    try:
+        from bot.optimal_action_tracker import get_tracker
+
+        tracker = get_tracker()
+        best_states = tracker.get_best_states(action=action, min_count=min_count)
+
+        return {
+            "action": action,
+            "best_states": best_states,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+    except Exception as e:
+        return {"action": action, "best_states": [], "error": str(e)}
+
+
 @app.get("/api/trading/live/balance", tags=["Trading"])
 async def get_live_balance() -> Dict[str, Any]:
     """
@@ -5070,3 +5936,629 @@ async def get_live_balance() -> Dict[str, Any]:
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch balance: {str(e)}")
+
+
+# =============================================================================
+# AI TRADING BRAIN ENDPOINTS
+# =============================================================================
+
+@app.get("/api/ai-brain/status", tags=["AI Brain"])
+async def get_ai_brain_status() -> Dict[str, Any]:
+    """
+    Get AI Trading Brain status including daily target progress and learning stats.
+
+    Returns comprehensive status of the AI brain including:
+    - Daily progress toward 1% goal
+    - Learning statistics
+    - Active strategies
+    - Best conditions for trading
+    """
+    try:
+        from bot.ai_trading_brain import get_ai_brain
+        brain = get_ai_brain()
+        return brain.get_brain_status()
+    except Exception as e:
+        return {
+            "status": "ERROR",
+            "error": str(e),
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+
+
+@app.get("/api/ai-brain/daily-target", tags=["AI Brain"])
+async def get_daily_target_status() -> Dict[str, Any]:
+    """
+    Get daily target tracking status.
+
+    Returns progress toward the 1% daily goal including:
+    - Current progress
+    - Trades taken today
+    - Risk budget used
+    - Recommendation for next action
+    """
+    try:
+        from bot.ai_trading_brain import get_ai_brain
+        brain = get_ai_brain()
+        return brain.daily_tracker.get_status()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/ai-brain/strategies", tags=["AI Brain"])
+async def get_ai_strategies() -> Dict[str, Any]:
+    """
+    Get all AI-generated trading strategies.
+
+    Returns list of strategies with their entry/exit conditions and performance.
+    """
+    try:
+        from bot.ai_trading_brain import get_ai_brain
+        brain = get_ai_brain()
+        return {
+            "strategies": brain.get_all_strategies(),
+            "active_count": len([s for s in brain.strategy_generator.strategies if s.is_active]),
+            "total_count": len(brain.strategy_generator.strategies),
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+    except Exception as e:
+        return {"strategies": [], "error": str(e)}
+
+
+@app.post("/api/ai-brain/strategies/generate", tags=["AI Brain"])
+async def generate_new_strategy() -> Dict[str, Any]:
+    """
+    Generate a new trading strategy based on learned patterns.
+
+    The AI will analyze the best performing patterns and create
+    a new strategy with entry/exit conditions.
+    """
+    try:
+        from bot.ai_trading_brain import get_ai_brain
+        brain = get_ai_brain()
+        strategy = brain.generate_new_strategy()
+
+        if strategy:
+            return {
+                "success": True,
+                "strategy": strategy,
+                "message": f"Created strategy: {strategy['name']}"
+            }
+        return {
+            "success": False,
+            "message": "Not enough pattern data to generate strategy"
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/ai-brain/strategies/{name}/activate", tags=["AI Brain"])
+async def activate_strategy(name: str) -> Dict[str, Any]:
+    """Activate a strategy for live trading."""
+    try:
+        from bot.ai_trading_brain import get_ai_brain
+        brain = get_ai_brain()
+        success = brain.activate_strategy(name)
+
+        return {
+            "success": success,
+            "strategy": name,
+            "action": "activated" if success else "not found"
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/ai-brain/strategies/{name}/deactivate", tags=["AI Brain"])
+async def deactivate_strategy(name: str) -> Dict[str, Any]:
+    """Deactivate a strategy."""
+    try:
+        from bot.ai_trading_brain import get_ai_brain
+        brain = get_ai_brain()
+        success = brain.deactivate_strategy(name)
+
+        return {
+            "success": success,
+            "strategy": name,
+            "action": "deactivated" if success else "not found"
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/ai-brain/patterns/best", tags=["AI Brain"])
+async def get_best_patterns(
+    action: str = Query("buy", description="Action type: buy, sell, or hold")
+) -> Dict[str, Any]:
+    """
+    Get best performing patterns for a specific action.
+
+    Shows which market conditions historically lead to the best outcomes
+    for the specified action.
+    """
+    try:
+        from bot.ai_trading_brain import get_ai_brain
+        brain = get_ai_brain()
+        patterns = brain.pattern_learner.get_best_conditions_for_action(action, min_samples=5)
+
+        return {
+            "action": action,
+            "best_patterns": patterns,
+            "total_patterns": len(brain.pattern_learner.profitable_patterns) + len(brain.pattern_learner.losing_patterns),
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+    except Exception as e:
+        return {"action": action, "best_patterns": [], "error": str(e)}
+
+
+@app.get("/api/ai-brain/insights", tags=["AI Brain"])
+async def get_trade_insights() -> Dict[str, Any]:
+    """
+    Get aggregated insights from trade analysis.
+
+    Returns learned lessons including:
+    - Best conditions to trade
+    - Conditions to avoid
+    - Optimal holding time
+    - Entry/exit timing recommendations
+    """
+    try:
+        from bot.ai_trading_brain import get_ai_brain
+        brain = get_ai_brain()
+        return brain.trade_analyzer.get_insights()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.post("/api/ai-brain/record-trade", tags=["AI Brain"])
+async def record_trade_for_learning(request: Request) -> Dict[str, Any]:
+    """
+    Record a completed trade for AI learning.
+
+    The AI will analyze the trade and extract lessons for future improvement.
+    """
+    try:
+        from bot.ai_trading_brain import get_ai_brain, MarketSnapshot, MarketCondition
+        brain = get_ai_brain()
+
+        data = await request.json()
+
+        # Create a market snapshot from the data
+        snapshot = MarketSnapshot(
+            timestamp=datetime.fromisoformat(data.get("timestamp", datetime.now(timezone.utc).isoformat())),
+            symbol=data.get("symbol", ""),
+            price=data.get("entry_price", 0),
+            trend_1h=data.get("trend", "neutral"),
+            rsi=data.get("rsi", 50),
+            volatility_percentile=data.get("volatility", 50),
+            condition=MarketCondition(data.get("market_condition", "sideways"))
+        )
+
+        result = brain.record_trade_result(
+            trade_id=data.get("trade_id", f"trade_{int(time.time())}"),
+            symbol=data.get("symbol", ""),
+            entry_snapshot=snapshot,
+            action=data.get("action", "buy"),
+            entry_price=data.get("entry_price", 0),
+            exit_price=data.get("exit_price", 0),
+            position_size=data.get("position_size", 1.0),
+            price_history=data.get("price_history", []),
+            holding_hours=data.get("holding_hours", 0)
+        )
+
+        return result
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+# =============================================================================
+# ML MODEL PERFORMANCE TRACKING ENDPOINTS
+# =============================================================================
+
+@app.get("/api/ml/model-performance", tags=["ML/AI"])
+async def get_ml_model_performance(
+    model_type: Optional[str] = Query(default=None, description="Filter by model type"),
+    market_condition: Optional[str] = Query(default=None, description="Filter by market condition"),
+    days: int = Query(default=30, description="Number of days to analyze"),
+) -> Dict[str, Any]:
+    """
+    Get ML model performance metrics.
+
+    Shows accuracy, profit factor, and other metrics for ML models.
+    """
+    try:
+        from bot.ml_performance_tracker import get_ml_tracker
+
+        tracker = get_ml_tracker()
+
+        if model_type:
+            return tracker.get_model_performance(
+                model_type=model_type,
+                market_condition=market_condition,
+                days=days
+            )
+        else:
+            return tracker.get_summary(days=days)
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/ml/model-ranking", tags=["ML/AI"])
+async def get_ml_model_ranking(
+    days: int = Query(default=30, description="Number of days to analyze"),
+) -> Dict[str, Any]:
+    """
+    Get ranking of ML models by performance.
+
+    Returns models sorted by average return.
+    """
+    try:
+        from bot.ml_performance_tracker import get_ml_tracker
+
+        tracker = get_ml_tracker()
+        ranking = tracker.get_model_ranking(days=days)
+
+        return {
+            "period_days": days,
+            "ranking": ranking,
+            "total_models": len(ranking)
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/ml/best-model", tags=["ML/AI"])
+async def get_best_model_for_condition(
+    market_condition: str = Query(..., description="Market condition (bull, bear, sideways, volatile)"),
+    min_predictions: int = Query(default=10, description="Minimum predictions required"),
+) -> Dict[str, Any]:
+    """
+    Get the best performing model for a specific market condition.
+
+    Helps with dynamic model selection based on current market.
+    """
+    try:
+        from bot.ml_performance_tracker import get_ml_tracker
+
+        tracker = get_ml_tracker()
+        best = tracker.get_best_model_for_condition(
+            market_condition=market_condition,
+            min_predictions=min_predictions
+        )
+
+        if best:
+            return {
+                "market_condition": market_condition,
+                "recommended_model": best["model_type"],
+                "accuracy": best["accuracy"],
+                "total_predictions": best["total_predictions"],
+                "avg_return": best.get("avg_return", 0)
+            }
+        else:
+            return {
+                "market_condition": market_condition,
+                "recommended_model": None,
+                "message": f"No models with at least {min_predictions} predictions for this condition"
+            }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/ml/recommendation", tags=["ML/AI"])
+async def get_model_recommendation(
+    market_condition: str = Query(..., description="Current market condition"),
+) -> Dict[str, Any]:
+    """
+    Get model recommendation for current market conditions.
+
+    Returns the recommended model with confidence score.
+    """
+    try:
+        from bot.ml_performance_tracker import get_ml_tracker
+
+        tracker = get_ml_tracker()
+        return tracker.get_recommendation(market_condition)
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/ml/performance-matrix", tags=["ML/AI"])
+async def get_performance_matrix(
+    days: int = Query(default=30, description="Number of days to analyze"),
+) -> Dict[str, Any]:
+    """
+    Get performance matrix of models by market condition.
+
+    Shows how each model performs across different conditions.
+    """
+    try:
+        from bot.ml_performance_tracker import get_ml_tracker
+
+        tracker = get_ml_tracker()
+        matrix = tracker.get_condition_performance_matrix(days=days)
+
+        return {
+            "period_days": days,
+            "matrix": matrix
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.post("/api/ml/record-outcome", tags=["ML/AI"])
+async def record_prediction_outcome(request: Request) -> Dict[str, Any]:
+    """
+    Record the actual outcome of a prediction.
+
+    Called after a trade closes to track model accuracy.
+    """
+    try:
+        from bot.ml_performance_tracker import get_ml_tracker
+
+        tracker = get_ml_tracker()
+        data = await request.json()
+
+        prediction_id = data.get("prediction_id")
+        actual_return = data.get("actual_return", 0)
+
+        if not prediction_id:
+            return {"error": "prediction_id is required"}
+
+        tracker.record_outcome(prediction_id, actual_return)
+
+        return {
+            "success": True,
+            "prediction_id": prediction_id,
+            "actual_return": actual_return
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+# =============================================================================
+# SYSTEM LOG ENDPOINTS
+# =============================================================================
+
+@app.get("/api/system/status", tags=["System"])
+async def get_system_status() -> Dict[str, Any]:
+    """
+    Get comprehensive system status.
+
+    Shows active bots, AI components, recent errors, and health status.
+    """
+    try:
+        from bot.system_logger import get_system_logger
+
+        syslog = get_system_logger()
+        return syslog.get_system_status()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/system/events", tags=["System"])
+async def get_system_events(
+    limit: int = Query(default=100, description="Number of events to return"),
+    event_type: Optional[str] = Query(default=None, description="Filter by event type"),
+    component: Optional[str] = Query(default=None, description="Filter by component"),
+    severity: Optional[str] = Query(default=None, description="Filter by severity"),
+    since: Optional[str] = Query(default=None, description="Events since timestamp"),
+) -> Dict[str, Any]:
+    """
+    Get system events log.
+
+    Returns recent events with optional filtering.
+    """
+    try:
+        from bot.system_logger import get_system_logger
+
+        syslog = get_system_logger()
+        events = syslog.get_recent_events(
+            limit=limit,
+            event_type=event_type,
+            component=component,
+            severity=severity,
+            since=since
+        )
+
+        return {
+            "total": len(events),
+            "events": events
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/system/summary", tags=["System"])
+async def get_system_summary(
+    hours: int = Query(default=24, description="Hours to summarize"),
+) -> Dict[str, Any]:
+    """
+    Get system activity summary.
+
+    Shows event counts by type, severity, and component.
+    """
+    try:
+        from bot.system_logger import get_system_logger
+
+        syslog = get_system_logger()
+        return syslog.get_summary(hours=hours)
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/system/active", tags=["System"])
+async def get_active_components() -> Dict[str, Any]:
+    """
+    Get all active components (bots, AI, etc.).
+
+    Shows what's currently running.
+    """
+    try:
+        from bot.system_logger import get_system_logger
+
+        syslog = get_system_logger()
+        return syslog.get_active_components()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/system/errors", tags=["System"])
+async def get_recent_errors(
+    limit: int = Query(default=20, description="Number of errors to return"),
+    hours: int = Query(default=24, description="Look back hours"),
+) -> Dict[str, Any]:
+    """
+    Get recent system errors.
+
+    Quick way to check for problems.
+    """
+    try:
+        from bot.system_logger import get_system_logger
+
+        syslog = get_system_logger()
+        since = (datetime.now() - timedelta(hours=hours)).isoformat()
+        errors = syslog.get_recent_events(
+            limit=limit,
+            severity="error",
+            since=since
+        )
+
+        return {
+            "period_hours": hours,
+            "total_errors": len(errors),
+            "errors": errors
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/system/last-entry", tags=["System"])
+async def get_last_entry() -> Dict[str, Any]:
+    """
+    Get the last log entry - quick health check.
+
+    Use this to see if the system is alive and what happened last.
+    """
+    try:
+        from bot.system_logger import get_system_logger
+
+        syslog = get_system_logger()
+        status = syslog.get_system_status()
+        events = syslog.get_recent_events(limit=1)
+
+        return {
+            "timestamp": datetime.now().isoformat(),
+            "active_bots": status["active_bots"],
+            "active_ai": status["active_ai"],
+            "system_status": status["status"],
+            "last_event": events[0] if events else None,
+            "bots": [b["id"] for b in status["bots"]],
+            "ai_components": [a["id"] for a in status["ai_components"]]
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ============================================================================
+# AI INTELLIGENCE ENDPOINTS
+# ============================================================================
+
+@app.get("/api/ai/brain/status", tags=["AI"])
+async def get_brain_status() -> Dict[str, Any]:
+    """
+    Get the Intelligent Trading Brain status.
+
+    Shows AI components health, pattern memory stats, and learning status.
+    """
+    try:
+        from bot.intelligence import get_intelligent_brain
+
+        brain = get_intelligent_brain()
+        return brain.health_check()
+    except ImportError:
+        return {"error": "Intelligent Brain not available", "status": "not_installed"}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/ai/brain/summary", tags=["AI"])
+async def get_brain_summary() -> Dict[str, Any]:
+    """
+    Get comprehensive brain summary including learning stats.
+    """
+    try:
+        from bot.intelligence import get_intelligent_brain
+
+        brain = get_intelligent_brain()
+        return brain.get_summary()
+    except ImportError:
+        return {"error": "Intelligent Brain not available"}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/ai/patterns", tags=["AI"])
+async def get_patterns(
+    symbol: Optional[str] = None,
+    regime: Optional[str] = None,
+    limit: int = 50,
+) -> Dict[str, Any]:
+    """
+    Get learned trading patterns from memory.
+    """
+    try:
+        from bot.intelligence import PatternMemory
+
+        memory = PatternMemory()
+        patterns = memory.get_similar_patterns(
+            symbol=symbol,
+            regime=regime,
+            limit=limit,
+        )
+
+        return {
+            "total": len(patterns),
+            "patterns": [p.to_dict() for p in patterns[:limit]],
+            "summary": memory.get_summary(),
+        }
+    except ImportError:
+        return {"error": "Pattern Memory not available"}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/ai/news", tags=["AI"])
+async def get_news_context(
+    symbols: str = "BTC,ETH",
+    hours: int = 24,
+) -> Dict[str, Any]:
+    """
+    Get news context and sentiment for symbols.
+    """
+    try:
+        from bot.intelligence import NewsReasoner
+
+        symbol_list = [s.strip() for s in symbols.split(",")]
+        reasoner = NewsReasoner()
+        context = reasoner.get_news_context(symbol_list, hours_lookback=hours)
+
+        return context.to_dict()
+    except ImportError:
+        return {"error": "News Reasoner not available"}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/ai/regime", tags=["AI"])
+async def get_regime_status() -> Dict[str, Any]:
+    """
+    Get current market regime detection status.
+    """
+    try:
+        from bot.intelligence import get_intelligent_brain
+
+        brain = get_intelligent_brain()
+        return brain.regime_adapter.get_summary()
+    except ImportError:
+        return {"error": "Regime Adapter not available"}
+    except Exception as e:
+        return {"error": str(e)}

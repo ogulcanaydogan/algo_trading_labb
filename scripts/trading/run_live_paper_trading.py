@@ -69,6 +69,39 @@ from bot.notifications import (
     AlertLevel,
 )
 
+# Data Store for persistent trade/snapshot recording
+try:
+    from bot.data_store import get_data_store, record_trade, record_snapshot, record_signal
+    HAS_DATA_STORE = True
+    logger.info("Data Store initialized for persistent recording")
+except ImportError:
+    HAS_DATA_STORE = False
+    logger.warning("Data Store not available - trades won't be persisted")
+
+# System Logger for centralized event tracking
+try:
+    from bot.system_logger import (
+        get_system_logger, log_bot_start, log_bot_stop, log_trade,
+        log_event, log_error, heartbeat, EventType, Severity
+    )
+    HAS_SYSTEM_LOGGER = True
+except ImportError:
+    HAS_SYSTEM_LOGGER = False
+    logger.warning("System Logger not available")
+
+# Intelligent Trading Brain for AI-driven decisions
+try:
+    from bot.intelligence import (
+        IntelligentTradingBrain,
+        BrainConfig,
+        TradeOutcome,
+    )
+    HAS_INTELLIGENT_BRAIN = True
+    logger.info("Intelligent Trading Brain available")
+except ImportError as e:
+    HAS_INTELLIGENT_BRAIN = False
+    logger.warning(f"Intelligent Trading Brain not available: {e}")
+
 # Deep Learning models
 try:
     from bot.ml.feature_engineer import FeatureEngineer
@@ -535,6 +568,15 @@ def run_trading_loop():
     logger.info(f"AI Explanations: {'Enabled' if ENABLE_AI_EXPLANATIONS and HAS_AI_ANALYST else 'Disabled'}")
     logger.info("=" * 60)
 
+    # Log bot start to system logger
+    if HAS_SYSTEM_LOGGER:
+        log_bot_start("crypto_paper_trading", "crypto", {
+            "initial_capital": INITIAL_CAPITAL,
+            "loop_interval": LOOP_INTERVAL,
+            "deep_learning": HAS_DL_MODELS and USE_DEEP_LEARNING,
+            "telegram_enabled": TELEGRAM_ENABLED
+        })
+
     # Setup notifications
     notifier = setup_notifications()
 
@@ -586,6 +628,24 @@ def run_trading_loop():
             logger.error(f"Failed to initialize AI analyst: {e}")
             ai_analyst = None
 
+    # Initialize Intelligent Trading Brain
+    intelligent_brain = None
+    if HAS_INTELLIGENT_BRAIN:
+        try:
+            brain_config = BrainConfig(
+                daily_budget=5.0,
+                enable_claude=True,
+                enable_ollama=True,
+                telegram_enabled=TELEGRAM_ENABLED,
+                learning_rate=0.1,
+            )
+            intelligent_brain = IntelligentTradingBrain(config=brain_config)
+            logger.info("Intelligent Trading Brain initialized")
+            intelligent_brain.log_status()
+        except Exception as e:
+            logger.error(f"Failed to initialize Intelligent Brain: {e}")
+            intelligent_brain = None
+
     # Send startup alert
     send_startup_alert(notifier, INITIAL_CAPITAL)
 
@@ -597,6 +657,10 @@ def run_trading_loop():
     while True:
         iteration += 1
         loop_start = time.time()
+
+        # Send heartbeat to system logger
+        if HAS_SYSTEM_LOGGER:
+            heartbeat("crypto_paper_trading")
 
         try:
             logger.info(f"--- Iteration {iteration} | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---")
@@ -707,6 +771,24 @@ def run_trading_loop():
                             except Exception as e:
                                 logger.warning(f"    AI explanation error (non-fatal): {e}")
 
+                        # Intelligent Brain explanation (enhanced with learning)
+                        if intelligent_brain:
+                            try:
+                                brain_explanation = intelligent_brain.explain_entry(
+                                    symbol=trade["symbol"],
+                                    action=trade["action"],
+                                    price=trade["price"],
+                                    quantity=trade["quantity"],
+                                    signal={"confidence": confidence, "reason": "ML signal"},
+                                    portfolio_context={
+                                        "total_value": result.get("portfolio_value", INITIAL_CAPITAL),
+                                        "daily_pnl_pct": (result.get("portfolio_value", INITIAL_CAPITAL) - INITIAL_CAPITAL) / INITIAL_CAPITAL * 100,
+                                    },
+                                )
+                                logger.info(f"    Brain: {brain_explanation.short_explanation[:60]}...")
+                            except Exception as e:
+                                logger.debug(f"    Brain explanation error: {e}")
+
                         # Send trade alert via Telegram with AI enhancements
                         send_trade_alert(
                             notifier,
@@ -756,6 +838,36 @@ def run_trading_loop():
             }
             with open(state_file, "w") as f:
                 json.dump(state_data, f, indent=2)
+
+            # Record portfolio snapshot to persistent data store (every 10 iterations ~ every 30 min)
+            if HAS_DATA_STORE and iteration % 10 == 0:
+                try:
+                    record_snapshot(
+                        total_value=status["total_value"],
+                        cash_balance=status["cash_balance"],
+                        positions=status["positions"],
+                        pnl=status["total_value"] - INITIAL_CAPITAL,
+                        pnl_pct=(status["total_value"] - INITIAL_CAPITAL) / INITIAL_CAPITAL * 100,
+                        market_values={"crypto": status["total_value"]},
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to record snapshot: {e}")
+
+            # Record signals to persistent store (every iteration)
+            if HAS_DATA_STORE:
+                try:
+                    for ad in decision.asset_decisions:
+                        record_signal(
+                            symbol=ad.symbol,
+                            market="crypto",
+                            signal=ad.action,
+                            regime=ad.regime,
+                            confidence=ad.confidence,
+                            price=last_prices.get(ad.symbol, 0),
+                            dl_prediction=dl_predictions.get(ad.symbol),
+                        )
+                except Exception as e:
+                    logger.debug(f"Failed to record signals: {e}")
 
             # Log checkpoint every 10 iterations
             if iteration % 10 == 0:

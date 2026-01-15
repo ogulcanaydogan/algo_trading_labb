@@ -71,6 +71,39 @@ from bot.notifications import (
     AlertLevel,
 )
 
+# Import data store for persistent recording
+try:
+    from bot.data_store import (
+        record_snapshot,
+        record_signal,
+    )
+    HAS_DATA_STORE = True
+    logger.info("Data Store initialized for persistent recording")
+except ImportError:
+    HAS_DATA_STORE = False
+
+# System Logger for centralized event tracking
+try:
+    from bot.system_logger import (
+        log_bot_start, log_bot_stop, heartbeat, EventType
+    )
+    HAS_SYSTEM_LOGGER = True
+except ImportError:
+    HAS_SYSTEM_LOGGER = False
+
+# Intelligent Trading Brain for AI-driven decisions
+try:
+    from bot.intelligence import (
+        IntelligentTradingBrain,
+        BrainConfig,
+        TradeOutcome,
+        get_intelligent_brain,
+    )
+    HAS_INTELLIGENT_BRAIN = True
+except ImportError as e:
+    HAS_INTELLIGENT_BRAIN = False
+    logging.debug(f"Intelligent Brain not available: {e}")
+
 
 # Stock Symbol Configuration
 # Maps internal symbol names to Yahoo Finance tickers
@@ -333,6 +366,13 @@ def run_trading_loop():
     logger.info(f"Stocks: {', '.join(SYMBOL_MAP.keys())}")
     logger.info("=" * 60)
 
+    # Log bot start to system logger
+    if HAS_SYSTEM_LOGGER:
+        log_bot_start("stock_trading", "stock", {
+            "initial_capital": INITIAL_CAPITAL,
+            "stocks": list(SYMBOL_MAP.keys())
+        })
+
     # Setup notifications
     notifier = setup_notifications()
 
@@ -360,6 +400,15 @@ def run_trading_loop():
         data_dir=str(DATA_DIR),
     )
 
+    # Initialize Intelligent Trading Brain
+    intelligent_brain = None
+    if HAS_INTELLIGENT_BRAIN:
+        try:
+            intelligent_brain = get_intelligent_brain()
+            logger.info("Intelligent Trading Brain initialized - AI explanations enabled")
+        except Exception as e:
+            logger.warning(f"Could not initialize intelligent brain: {e}")
+
     # Send startup alert
     send_startup_alert(notifier, INITIAL_CAPITAL)
 
@@ -370,6 +419,10 @@ def run_trading_loop():
     while True:
         iteration += 1
         loop_start = time.time()
+
+        # Send heartbeat to system logger
+        if HAS_SYSTEM_LOGGER:
+            heartbeat("stock_trading")
 
         try:
             logger.info(f"--- Iteration {iteration} | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---")
@@ -417,6 +470,23 @@ def run_trading_loop():
                         confidence=ad.confidence,
                         price=last_prices.get(ad.symbol, 0),
                     )
+
+                    # Use Intelligent Brain to explain the signal
+                    if intelligent_brain and HAS_INTELLIGENT_BRAIN:
+                        try:
+                            intelligent_brain.explain_entry(
+                                symbol=ad.symbol,
+                                action="BUY" if ad.action == "LONG" else "SELL",
+                                price=last_prices.get(ad.symbol, 0),
+                                confidence=ad.confidence,
+                                regime=ad.regime,
+                                signal_reason=f"ML signal with {ad.confidence:.0%} confidence",
+                                position_size=decision.total_value * 0.2,  # Approximate
+                                portfolio_value=decision.total_value,
+                            )
+                        except Exception as e:
+                            logger.debug(f"Brain explain error: {e}")
+
                 last_signals[ad.symbol] = ad.action
 
             # Log portfolio status
@@ -490,6 +560,30 @@ def run_trading_loop():
             # Log checkpoint every 10 iterations
             if iteration % 10 == 0:
                 logger.info(f"  [Checkpoint] Total: ${status['total_value']:,.2f}, Positions: {len(status['positions'])}")
+
+            # Record snapshot and signals to data store
+            if HAS_DATA_STORE and iteration % 10 == 0:
+                try:
+                    record_snapshot(
+                        total_value=status["total_value"],
+                        cash_balance=status["cash_balance"],
+                        positions=status["positions"],
+                        pnl=status["total_value"] - INITIAL_CAPITAL,
+                        pnl_pct=(status["total_value"] - INITIAL_CAPITAL) / INITIAL_CAPITAL * 100,
+                        market_values={"stock": status["total_value"]},
+                    )
+                    # Record signals
+                    for ad in decision.asset_decisions:
+                        record_signal(
+                            symbol=ad.symbol,
+                            market="stock",
+                            signal=ad.action,
+                            regime=ad.regime,
+                            confidence=ad.confidence,
+                            price=last_prices.get(ad.symbol, 0),
+                        )
+                except Exception as e:
+                    logger.warning(f"Failed to record to data store: {e}")
 
         except KeyboardInterrupt:
             logger.info("Received shutdown signal")

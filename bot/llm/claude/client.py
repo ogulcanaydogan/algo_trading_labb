@@ -50,7 +50,7 @@ class ClaudeClient:
 
     # Model options
     MODELS = {
-        "haiku": "claude-3-5-haiku-20241022",
+        "haiku": "claude-3-haiku-20240307",
         "sonnet": "claude-3-5-sonnet-20241022",
         "opus": "claude-3-opus-20240229",
     }
@@ -278,7 +278,7 @@ class ClaudeClient:
         api_healthy = False
         try:
             response = self.client.messages.create(
-                model="claude-3-5-haiku-20241022",
+                model="claude-3-haiku-20240307",
                 messages=[{"role": "user", "content": "ping"}],
                 max_tokens=5,
             )
@@ -286,7 +286,7 @@ class ClaudeClient:
 
             # Record this minimal usage
             self.cost_manager.record_usage(
-                model="claude-3-5-haiku-20241022",
+                model="claude-3-haiku-20240307",
                 input_tokens=response.usage.input_tokens,
                 output_tokens=response.usage.output_tokens,
                 purpose="health_check",

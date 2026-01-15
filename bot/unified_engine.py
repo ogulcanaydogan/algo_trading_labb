@@ -41,6 +41,50 @@ from bot.unified_state import (
     UnifiedStateStore,
 )
 from bot.ml_signal_generator import MLSignalGenerator, create_signal_generator
+from bot.trailing_stop import TrailingStopManager, create_trailing_stop_manager
+from bot.dca_manager import DCAManager, create_dca_manager
+
+# Self-learning imports
+try:
+    from bot.optimal_action_tracker import (
+        OptimalActionTracker,
+        MarketState,
+        ActionOutcome,
+        StateActionRecord,
+        ActionType,
+        get_tracker as get_action_tracker,
+    )
+    from bot.adaptive_risk_controller import (
+        AdaptiveRiskController,
+        get_adaptive_risk_controller,
+    )
+    SELF_LEARNING_AVAILABLE = True
+except ImportError:
+    SELF_LEARNING_AVAILABLE = False
+
+# AI Trading Brain imports
+try:
+    from bot.ai_trading_brain import (
+        AITradingBrain,
+        MarketSnapshot,
+        MarketCondition,
+        get_ai_brain,
+    )
+    AI_BRAIN_AVAILABLE = True
+except ImportError:
+    AI_BRAIN_AVAILABLE = False
+
+# Intelligent Trading Brain imports (new AI system)
+try:
+    from bot.intelligence import (
+        IntelligentTradingBrain,
+        BrainConfig,
+        TradeOutcome,
+        get_intelligent_brain,
+    )
+    INTELLIGENT_BRAIN_AVAILABLE = True
+except ImportError:
+    INTELLIGENT_BRAIN_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -75,10 +119,32 @@ class EngineConfig:
     # ML settings
     use_ml_signals: bool = True
     ml_model_type: str = "gradient_boosting"
-    ml_confidence_threshold: float = 0.55
+    ml_confidence_threshold: float = 0.45  # Lowered from 0.55 for more signals
 
     # Signal generator (injected or auto-created)
     signal_generator: Optional[Callable] = None
+
+    # Trailing stop settings
+    use_trailing_stop: bool = True
+    trailing_stop_pct: float = 0.015  # 1.5% trailing distance
+    trailing_activation_pct: float = 0.01  # Activate after 1% profit
+
+    # DCA settings
+    use_dca: bool = True
+    max_dca_orders: int = 4
+    max_position_multiplier: float = 3.0
+
+    # Self-learning settings
+    use_action_tracker: bool = True  # Track optimal actions per market state
+    use_adaptive_risk: bool = True   # Auto-adjust risk settings
+
+    # AI Trading Brain settings
+    use_ai_brain: bool = True        # Use AI brain for learning and strategy generation
+    daily_target_pct: float = 1.0    # Daily target gain (%)
+    max_daily_loss_pct: float = 2.0  # Max daily loss before stopping (%)
+
+    # Intelligent Trading Brain settings (new AI system)
+    use_intelligent_brain: bool = True  # Use intelligent brain for explanations and learning
 
     def __post_init__(self):
         """Load API keys from environment if not provided."""
@@ -116,6 +182,67 @@ class UnifiedTradingEngine:
 
         # Signal handler
         self._signal_generator = config.signal_generator
+
+        # Trailing stop manager
+        self.trailing_stop_manager: Optional[TrailingStopManager] = None
+        if config.use_trailing_stop:
+            self.trailing_stop_manager = create_trailing_stop_manager(
+                enabled=True,
+                initial_stop_pct=config.stop_loss_pct,
+                trailing_pct=config.trailing_stop_pct,
+                activation_profit_pct=config.trailing_activation_pct,
+            )
+
+        # DCA manager
+        self.dca_manager: Optional[DCAManager] = None
+        if config.use_dca:
+            self.dca_manager = create_dca_manager(
+                enabled=True,
+                max_dca_orders=config.max_dca_orders,
+                max_position_multiplier=config.max_position_multiplier,
+            )
+
+        # Self-learning components
+        self.action_tracker: Optional[OptimalActionTracker] = None
+        self.adaptive_risk_controller: Optional[AdaptiveRiskController] = None
+        self._action_record_ids: Dict[str, int] = {}  # Track open positions for outcome recording
+        self._prediction_ids: Dict[str, str] = {}  # Track ML prediction IDs for performance tracking
+
+        if SELF_LEARNING_AVAILABLE:
+            if config.use_action_tracker:
+                try:
+                    self.action_tracker = get_action_tracker()
+                    logger.info("Optimal action tracker initialized")
+                except Exception as e:
+                    logger.warning(f"Could not initialize action tracker: {e}")
+
+            if config.use_adaptive_risk:
+                try:
+                    self.adaptive_risk_controller = get_adaptive_risk_controller()
+                    logger.info("Adaptive risk controller initialized")
+                except Exception as e:
+                    logger.warning(f"Could not initialize adaptive risk controller: {e}")
+
+        # AI Trading Brain
+        self.ai_brain: Optional[AITradingBrain] = None
+        self._trade_snapshots: Dict[str, MarketSnapshot] = {}  # Store entry snapshots for learning
+
+        if AI_BRAIN_AVAILABLE and config.use_ai_brain:
+            try:
+                self.ai_brain = get_ai_brain()
+                logger.info("AI Trading Brain initialized - Target: 1% daily gain")
+            except Exception as e:
+                logger.warning(f"Could not initialize AI brain: {e}")
+
+        # Intelligent Trading Brain (new AI system with explanations and learning)
+        self.intelligent_brain: Optional[IntelligentTradingBrain] = None
+
+        if INTELLIGENT_BRAIN_AVAILABLE and config.use_intelligent_brain:
+            try:
+                self.intelligent_brain = get_intelligent_brain()
+                logger.info("Intelligent Trading Brain initialized - Explanations and learning enabled")
+            except Exception as e:
+                logger.warning(f"Could not initialize intelligent brain: {e}")
 
         # Callbacks
         self._on_trade_callbacks: List[Callable] = []
@@ -377,6 +504,9 @@ class UnifiedTradingEngine:
         if self.safety_controller:
             self.safety_controller.update_balance(self._state.current_balance)
 
+        # Evaluate and adjust risk settings based on market conditions
+        await self._evaluate_adaptive_risk()
+
         # Check existing positions
         await self._check_positions()
 
@@ -520,6 +650,64 @@ class UnifiedTradingEngine:
             except Exception as e:
                 logger.error(f"Trade callback error: {e}")
 
+        # Register with trailing stop manager
+        if self.trailing_stop_manager:
+            self.trailing_stop_manager.add_position(
+                symbol=symbol,
+                entry_price=result.average_price,
+                side=side,
+            )
+            logger.info(f"Trailing stop registered for {symbol}")
+
+        # Register with DCA manager
+        if self.dca_manager:
+            self.dca_manager.add_position(
+                symbol=symbol,
+                entry_price=result.average_price,
+                quantity=result.filled_quantity,
+            )
+            logger.info(f"DCA tracking registered for {symbol}")
+
+        # Record action for learning
+        self._record_action_entry(symbol, side, result.average_price, signal)
+
+        # Store prediction ID for ML performance tracking
+        prediction_id = signal.get("prediction_id")
+        if prediction_id:
+            self._prediction_ids[symbol] = prediction_id
+
+        # Intelligent Brain: Explain entry and send via Telegram
+        if self.intelligent_brain and INTELLIGENT_BRAIN_AVAILABLE:
+            try:
+                # Calculate position value
+                position_value = result.filled_quantity * result.average_price
+                portfolio_value = self._state.current_balance if self._state else 10000
+
+                # Build portfolio context
+                portfolio_context = {
+                    "position_value": position_value,
+                    "portfolio_value": portfolio_value,
+                    "position_pct": (position_value / portfolio_value * 100) if portfolio_value > 0 else 0,
+                }
+
+                # Store regime for learning later
+                self._last_regime = signal.get("regime", "unknown")
+
+                explanation = await asyncio.get_event_loop().run_in_executor(
+                    None,
+                    lambda: self.intelligent_brain.explain_entry(
+                        symbol=symbol,
+                        action="BUY" if side == "long" else "SELL",
+                        price=result.average_price,
+                        quantity=result.filled_quantity,
+                        signal=signal,
+                        portfolio_context=portfolio_context,
+                    )
+                )
+                logger.info(f"Intelligent Brain: Entry explained for {symbol}")
+            except Exception as e:
+                logger.warning(f"Failed to explain entry with intelligent brain: {e}")
+
     async def _close_position(
         self, symbol: str, reason: str, current_price: Optional[float] = None
     ) -> None:
@@ -607,8 +795,89 @@ class UnifiedTradingEngine:
             except Exception as e:
                 logger.error(f"Trade callback error: {e}")
 
+        # Remove from trailing stop manager
+        if self.trailing_stop_manager:
+            self.trailing_stop_manager.remove_position(symbol)
+
+        # Remove from DCA manager
+        if self.dca_manager:
+            self.dca_manager.remove_position(symbol)
+
+        # Record action outcome for learning
+        try:
+            entry_time = datetime.fromisoformat(position.entry_time)
+            holding_hours = (datetime.now() - entry_time).total_seconds() / 3600
+        except Exception:
+            holding_hours = 0.0
+
+        await self._record_action_outcome(
+            symbol=symbol,
+            entry_price=position.entry_price,
+            exit_price=result.average_price,
+            pnl=pnl,
+            pnl_pct=pnl_pct,
+            holding_hours=holding_hours,
+        )
+
+        # Record ML prediction outcome for performance tracking
+        if symbol in self._prediction_ids:
+            try:
+                from bot.ml_performance_tracker import track_outcome
+                track_outcome(self._prediction_ids[symbol], pnl_pct)
+                del self._prediction_ids[symbol]
+            except Exception as e:
+                logger.debug(f"Failed to record prediction outcome: {e}")
+
+        # Intelligent Brain: Explain exit and learn from trade
+        if self.intelligent_brain and INTELLIGENT_BRAIN_AVAILABLE:
+            try:
+                # Convert holding hours to minutes for the API
+                hold_duration_minutes = int(holding_hours * 60)
+
+                # Explain the exit
+                explanation = await asyncio.get_event_loop().run_in_executor(
+                    None,
+                    lambda: self.intelligent_brain.explain_exit(
+                        symbol=symbol,
+                        action="SELL" if position.side == "long" else "BUY",
+                        entry_price=position.entry_price,
+                        exit_price=result.average_price,
+                        quantity=position.quantity,
+                        pnl=pnl,
+                        pnl_pct=pnl_pct,
+                        exit_reason=reason,
+                        hold_duration_minutes=hold_duration_minutes,
+                    )
+                )
+
+                # Learn from the trade outcome
+                trade_outcome = TradeOutcome(
+                    symbol=symbol,
+                    action="BUY" if position.side == "long" else "SELL",
+                    entry_price=position.entry_price,
+                    exit_price=result.average_price,
+                    quantity=position.quantity,
+                    pnl=pnl,
+                    pnl_pct=pnl_pct,
+                    hold_duration_minutes=hold_duration_minutes,
+                    regime=getattr(self, '_last_regime', 'unknown'),
+                    confidence_at_entry=getattr(position, 'signal_confidence', 0.5),
+                )
+
+                learning_result = await asyncio.get_event_loop().run_in_executor(
+                    None,
+                    lambda: self.intelligent_brain.learn_from_trade(trade_outcome)
+                )
+
+                logger.info(
+                    f"Intelligent Brain: Trade learned - {symbol} "
+                    f"PnL: {pnl_pct:+.2f}%, Confidence adjustment: {learning_result.confidence_adjustment:+.2f}"
+                )
+            except Exception as e:
+                logger.warning(f"Failed to process trade with intelligent brain: {e}")
+
     async def _check_positions(self) -> None:
-        """Check all positions for stop loss / take profit."""
+        """Check all positions for stop loss / take profit / trailing stop / DCA."""
         if not self._state or not self.execution_adapter:
             return
 
@@ -619,7 +888,26 @@ class UnifiedTradingEngine:
                     logger.warning(f"No price for {symbol}, skipping position check")
                     continue
 
-                # Check stop loss
+                # Update position current price
+                position.current_price = current_price
+
+                # Check trailing stop first (dynamic stop)
+                if self.trailing_stop_manager:
+                    trail_result = self.trailing_stop_manager.update(
+                        symbol, current_price, position.side
+                    )
+                    if trail_result.get("action") == "stop_triggered":
+                        await self._close_position(symbol, "Trailing stop", current_price)
+                        continue
+                    elif trail_result.get("action") in ("stop_raised", "moved_to_breakeven"):
+                        # Update position stop loss to trailing stop level
+                        new_stop = trail_result.get("new_stop")
+                        if new_stop:
+                            position.stop_loss = new_stop
+                            self.state_store.update_position(symbol, position)
+                            logger.info(f"Updated {symbol} stop to ${new_stop:.2f}")
+
+                # Check fixed stop loss (fallback if trailing not active)
                 if position.stop_loss:
                     if position.side == "long" and current_price <= position.stop_loss:
                         await self._close_position(symbol, "Stop loss", current_price)
@@ -637,8 +925,88 @@ class UnifiedTradingEngine:
                         await self._close_position(symbol, "Take profit", current_price)
                         continue
 
+                # Check DCA opportunity (only for long positions in drawdown)
+                if self.dca_manager and position.side == "long":
+                    available_capital = self._state.current_balance * 0.1  # Max 10% per DCA
+                    dca_opportunity = self.dca_manager.check_dca_opportunity(
+                        symbol, current_price, available_capital
+                    )
+                    if dca_opportunity:
+                        await self._execute_dca(symbol, dca_opportunity, current_price)
+
             except Exception as e:
                 logger.error(f"Error checking position {symbol}: {e}")
+
+    async def _execute_dca(
+        self, symbol: str, dca_info: Dict[str, Any], current_price: float
+    ) -> None:
+        """Execute a DCA order."""
+        if not self._state or not self.execution_adapter or not self.dca_manager:
+            return
+
+        dca_quantity = dca_info["dca_quantity"]
+        level_drawdown = dca_info["level_drawdown"]
+
+        logger.info(
+            f"DCA opportunity: {symbol} at {dca_info['drawdown_pct']*100:.1f}% drawdown, "
+            f"adding {dca_quantity:.6f} @ ${current_price:.2f}"
+        )
+
+        # Create DCA order
+        order = Order(
+            symbol=symbol,
+            side=OrderSide.BUY,
+            order_type=OrderType.MARKET,
+            quantity=dca_quantity,
+            price=current_price,
+            signal_reason=f"DCA at {level_drawdown*100:.0f}% drawdown",
+        )
+
+        # Execute order
+        result = await self.execution_adapter.place_order(order)
+
+        if not result.success:
+            logger.error(f"DCA order failed: {result.error_message}")
+            return
+
+        if result.average_price is None or result.filled_quantity is None:
+            return
+
+        # Update DCA manager
+        self.dca_manager.execute_dca(
+            symbol=symbol,
+            quantity=result.filled_quantity,
+            price=result.average_price,
+            level_drawdown=level_drawdown,
+        )
+
+        # Update position with new average
+        position = self._state.positions.get(symbol)
+        if position:
+            # Calculate new average entry
+            old_cost = position.quantity * position.entry_price
+            new_cost = result.filled_quantity * result.average_price
+            total_quantity = position.quantity + result.filled_quantity
+            new_avg_price = (old_cost + new_cost) / total_quantity
+
+            position.quantity = total_quantity
+            position.entry_price = new_avg_price
+
+            # Update stop loss and take profit based on new average
+            position.stop_loss = new_avg_price * (1 - self.config.stop_loss_pct)
+            position.take_profit = new_avg_price * (1 + self.config.take_profit_pct)
+
+            self.state_store.update_position(symbol, position)
+
+            # Update trailing stop with new entry
+            if self.trailing_stop_manager:
+                self.trailing_stop_manager.remove_position(symbol)
+                self.trailing_stop_manager.add_position(symbol, new_avg_price, position.side)
+
+            logger.info(
+                f"DCA executed: {symbol} new avg=${new_avg_price:.2f}, "
+                f"total qty={total_quantity:.6f}"
+            )
 
     async def _close_all_positions(self, reason: str) -> None:
         """Close all open positions."""
@@ -671,6 +1039,233 @@ class UnifiedTradingEngine:
         quantity = max_position_value / price
         return quantity
 
+    async def _evaluate_adaptive_risk(self) -> None:
+        """Evaluate market conditions and adjust risk settings adaptively."""
+        if not self.adaptive_risk_controller or not self._state:
+            return
+
+        try:
+            # Gather market condition data
+            market_regime = "unknown"
+            regime_confidence = 0.5
+            rsi = 50.0
+            volatility = "normal"
+            trend = "neutral"
+
+            # Try to get market data from signal generator if available
+            if hasattr(self, '_signal_generator') and self._signal_generator:
+                # Use first symbol as market indicator
+                symbol = self.config.symbols[0] if self.config.symbols else "BTC/USDT"
+                try:
+                    signal = await self._signal_generator(symbol, 0)
+                    if signal:
+                        market_regime = signal.get("regime", "unknown")
+                        regime_confidence = signal.get("confidence", 0.5)
+                        rsi = signal.get("rsi", 50.0)
+                        volatility = signal.get("volatility", "normal")
+                        trend = signal.get("trend", "neutral")
+                except Exception:
+                    pass
+
+            # Calculate recent performance
+            recent_performance = {
+                "win_rate": self._state.win_rate,
+                "total_pnl": (
+                    self._state.total_pnl / self._state.initial_capital * 100
+                    if self._state.initial_capital > 0
+                    else 0
+                ),
+                "drawdown": self._state.max_drawdown_pct * 100,
+            }
+
+            # Evaluate and adjust risk settings
+            current_strategy = await self.adaptive_risk_controller.evaluate_and_adjust(
+                market_regime=market_regime,
+                regime_confidence=regime_confidence,
+                rsi=rsi,
+                volatility=volatility,
+                trend=trend,
+                recent_performance=recent_performance,
+            )
+
+            logger.debug(
+                f"Adaptive risk strategy: {current_strategy.name}, "
+                f"direction: {current_strategy.expected_direction}"
+            )
+
+        except Exception as e:
+            logger.warning(f"Adaptive risk evaluation failed: {e}")
+
+    def _record_action_entry(
+        self, symbol: str, side: str, price: float, signal: Dict[str, Any]
+    ) -> None:
+        """Record action entry for learning."""
+        # Record to optimal action tracker
+        if self.action_tracker and SELF_LEARNING_AVAILABLE:
+            try:
+                # Build market state from signal data
+                state = MarketState(
+                    regime=signal.get("regime", "unknown"),
+                    regime_confidence=signal.get("confidence", 0.5),
+                    trend_direction=signal.get("trend", "neutral"),
+                    rsi=signal.get("rsi", 50.0),
+                    volatility_regime=signal.get("volatility", "normal"),
+                )
+
+                # Build action outcome (entry only)
+                action_type = ActionType.BUY if side == "long" else ActionType.SELL
+                outcome = ActionOutcome(
+                    action=action_type,
+                    entry_price=price,
+                )
+
+                # Create record
+                record = StateActionRecord(
+                    symbol=symbol,
+                    state=state,
+                    outcome=outcome,
+                    model_prediction=signal.get("action", ""),
+                    model_confidence=signal.get("confidence", 0.0),
+                    strategy_used=signal.get("strategy", ""),
+                    signal_reason=signal.get("reason", ""),
+                )
+
+                # Record and save ID for later outcome update
+                record_id = self.action_tracker.record_action(record)
+                self._action_record_ids[symbol] = record_id
+
+                logger.debug(f"Recorded action entry for {symbol}: {action_type.value}")
+
+            except Exception as e:
+                logger.warning(f"Failed to record action entry: {e}")
+
+        # Create AI Brain snapshot for learning
+        if self.ai_brain and AI_BRAIN_AVAILABLE:
+            try:
+                # Map regime to MarketCondition
+                regime_map = {
+                    "strong_bull": MarketCondition.STRONG_BULL,
+                    "bull": MarketCondition.BULL,
+                    "weak_bull": MarketCondition.WEAK_BULL,
+                    "sideways": MarketCondition.SIDEWAYS,
+                    "weak_bear": MarketCondition.WEAK_BEAR,
+                    "bear": MarketCondition.BEAR,
+                    "strong_bear": MarketCondition.STRONG_BEAR,
+                    "crash": MarketCondition.CRASH,
+                    "volatile": MarketCondition.VOLATILE,
+                }
+                regime = signal.get("regime", "sideways")
+                condition = regime_map.get(regime, MarketCondition.SIDEWAYS)
+
+                # Map volatility
+                vol_str = signal.get("volatility", "normal")
+                vol_percentile = {"low": 25, "normal": 50, "high": 75, "extreme": 95}.get(vol_str, 50)
+
+                # Create snapshot for later outcome recording
+                snapshot = MarketSnapshot(
+                    timestamp=datetime.now(),
+                    symbol=symbol,
+                    price=price,
+                    trend_1h=signal.get("trend", "neutral"),
+                    rsi=signal.get("rsi", 50.0),
+                    volatility_percentile=vol_percentile,
+                    condition=condition,
+                    confidence=signal.get("confidence", 0.5)
+                )
+
+                self._trade_snapshots[symbol] = snapshot
+                logger.debug(f"AI Brain: Snapshot created for {symbol} entry")
+
+            except Exception as e:
+                logger.warning(f"Failed to create AI brain snapshot: {e}")
+
+    async def _record_action_outcome(
+        self, symbol: str, entry_price: float, exit_price: float,
+        pnl: float, pnl_pct: float, holding_hours: float
+    ) -> None:
+        """Record action outcome for learning."""
+        # Record to optimal action tracker
+        if self.action_tracker and SELF_LEARNING_AVAILABLE:
+            try:
+                record_id = self._action_record_ids.pop(symbol, None)
+                if record_id:
+                    outcome = ActionOutcome(
+                        action=ActionType.CLOSE,
+                        entry_price=entry_price,
+                        exit_price=exit_price,
+                        pnl=pnl,
+                        pnl_percent=pnl_pct,
+                        holding_time_hours=holding_hours,
+                    )
+
+                    self.action_tracker.record_outcome(record_id, outcome)
+                    logger.debug(f"Recorded action outcome for {symbol}: PnL={pnl_pct:.2f}%")
+            except Exception as e:
+                logger.warning(f"Failed to record action outcome: {e}")
+
+        # Record to AI Trading Brain for learning
+        if self.ai_brain and AI_BRAIN_AVAILABLE:
+            try:
+                entry_snapshot = self._trade_snapshots.pop(symbol, None)
+                if entry_snapshot:
+                    # Determine action from position side
+                    position = self._state.positions.get(symbol) if self._state else None
+                    action = "buy" if position and position.side == "long" else "sell"
+
+                    result = self.ai_brain.record_trade_result(
+                        trade_id=f"{symbol}_{int(datetime.now().timestamp())}",
+                        symbol=symbol,
+                        entry_snapshot=entry_snapshot,
+                        action=action,
+                        entry_price=entry_price,
+                        exit_price=exit_price,
+                        position_size=position.quantity if position else 1.0,
+                        price_history=[],  # We don't track price history currently
+                        holding_hours=holding_hours
+                    )
+
+                    # Update daily tracker
+                    daily_status = self.ai_brain.daily_tracker.get_status()
+                    logger.info(
+                        f"AI Brain: Trade recorded - PnL {pnl_pct:.2f}%, "
+                        f"Daily progress: {daily_status.get('current', '0%')}/{daily_status.get('target', '1%')}"
+                    )
+
+                    # Check for auto-pause conditions
+                    should_pause, pause_reason = self.ai_brain.daily_tracker.should_auto_pause()
+                    if should_pause:
+                        logger.warning(f"AUTO-PAUSE TRIGGERED: {pause_reason}")
+                        await self._trigger_auto_pause(pause_reason)
+            except Exception as e:
+                logger.warning(f"Failed to record to AI brain: {e}")
+
+    async def _trigger_auto_pause(self, reason: str):
+        """Trigger auto-pause when loss limit or target conditions met."""
+        if self._state:
+            self._state.status = TradingStatus.PAUSED
+            logger.warning(f"Trading auto-paused: {reason}")
+
+            # Send Telegram alert
+            try:
+                from bot.trade_alerts import create_trade_alert_manager
+                alerts = create_trade_alert_manager()
+                if alerts.is_configured():
+                    daily_pnl = self._state.daily_pnl / self._state.initial_capital * 100 if self._state.initial_capital > 0 else 0
+                    alerts.send_auto_pause_alert(
+                        reason=reason,
+                        current_pnl=daily_pnl,
+                        recommendation="Review your trades and wait for next trading day."
+                    )
+            except Exception as e:
+                logger.warning(f"Could not send auto-pause alert: {e}")
+
+            # Notify callbacks
+            for callback in self._on_trade_callbacks:
+                try:
+                    callback("auto_pause", "all", reason, None)
+                except Exception as e:
+                    logger.error(f"Auto-pause callback error: {e}")
+
     def get_status(self) -> Dict[str, Any]:
         """Get current engine status for dashboard."""
         if not self._state:
@@ -679,6 +1274,22 @@ class UnifiedTradingEngine:
         safety_status = (
             self.safety_controller.get_status() if self.safety_controller else {}
         )
+
+        # AI Brain status
+        ai_brain_status = None
+        if self.ai_brain and AI_BRAIN_AVAILABLE:
+            try:
+                daily_target = self.ai_brain.daily_tracker.get_status()
+                ai_brain_status = {
+                    "daily_target": daily_target.get("target", "1%"),
+                    "daily_progress": daily_target.get("current", "0%"),
+                    "target_achieved": daily_target.get("target_achieved", False),
+                    "can_trade": daily_target.get("can_still_trade", True),
+                    "recommendation": daily_target.get("recommendation", ""),
+                    "patterns_learned": len(self.ai_brain.pattern_learner.profitable_patterns) + len(self.ai_brain.pattern_learner.losing_patterns),
+                }
+            except Exception:
+                ai_brain_status = {"error": "Could not get AI Brain status"}
 
         return {
             "mode": self._state.mode.value,
@@ -708,6 +1319,7 @@ class UnifiedTradingEngine:
             "safety": safety_status,
             "daily_trades": self._state.daily_trades,
             "daily_pnl": self._state.daily_pnl,
+            "ai_brain": ai_brain_status,
         }
 
     def get_transition_status(self, target_mode: TradingMode) -> Dict[str, Any]:
