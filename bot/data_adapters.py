@@ -496,6 +496,176 @@ class YahooFinanceAdapter(DataAdapter):
         ]
 
 
+class PolygonAdapter(DataAdapter):
+    """
+    Polygon.io data adapter.
+
+    Professional-grade market data for stocks, forex, and crypto.
+
+    Pricing tiers:
+    - Free: 5 req/min, delayed data
+    - Starter ($29/mo): 100 req/min
+    - Developer ($79/mo): 1000 req/min
+    - Advanced ($199/mo): 10000 req/min, real-time
+
+    Latency:
+    - Stocks: 5-9ms
+    - Crypto: ~50ms
+    """
+
+    BASE_URL = "https://api.polygon.io"
+
+    def __init__(self, config: Optional[AdapterConfig] = None):
+        super().__init__(config)
+        self.api_key = config.api_key if config else os.getenv("POLYGON_API_KEY")
+        if not self.api_key:
+            logger.warning("Polygon API key not set. Set POLYGON_API_KEY env var.")
+
+    @property
+    def name(self) -> str:
+        return "polygon"
+
+    def fetch_ohlcv(
+        self,
+        symbol: str,
+        timeframe: str = "1h",
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+    ) -> pd.DataFrame:
+        """Fetch OHLCV data from Polygon.io."""
+        if not self.api_key:
+            raise ValueError("Polygon API key required")
+
+        self._rate_limit()
+
+        # Map timeframe
+        timeframe_map = {
+            "1m": ("minute", 1),
+            "5m": ("minute", 5),
+            "15m": ("minute", 15),
+            "30m": ("minute", 30),
+            "1h": ("hour", 1),
+            "4h": ("hour", 4),
+            "1d": ("day", 1),
+            "daily": ("day", 1),
+        }
+
+        if timeframe not in timeframe_map:
+            logger.warning(f"Unsupported timeframe {timeframe}, using 1h")
+            timeframe = "1h"
+
+        multiplier_type, multiplier = timeframe_map[timeframe]
+
+        # Date range
+        if end_date is None:
+            end_date = datetime.now()
+        if start_date is None:
+            start_date = end_date - timedelta(days=30)
+
+        # Format symbol
+        polygon_symbol = self._format_symbol(symbol)
+
+        url = (
+            f"{self.BASE_URL}/v2/aggs/ticker/{polygon_symbol}/range/"
+            f"{multiplier}/{multiplier_type}/"
+            f"{start_date.strftime('%Y-%m-%d')}/{end_date.strftime('%Y-%m-%d')}"
+        )
+
+        params = {
+            "apiKey": self.api_key,
+            "adjusted": "true",
+            "sort": "asc",
+            "limit": 50000,
+        }
+
+        try:
+            response = requests.get(url, params=params, timeout=self.config.timeout)
+            response.raise_for_status()
+            data = response.json()
+
+            if data.get("resultsCount", 0) == 0:
+                logger.warning(f"Polygon: No data for {symbol}")
+                return pd.DataFrame()
+
+            results = data.get("results", [])
+            df = pd.DataFrame(results)
+
+            df["timestamp"] = pd.to_datetime(df["t"], unit="ms")
+            df = df.rename(columns={
+                "o": "open",
+                "h": "high",
+                "l": "low",
+                "c": "close",
+                "v": "volume",
+            })
+            df = df[["timestamp", "open", "high", "low", "close", "volume"]]
+            df = df.set_index("timestamp")
+
+            logger.info(f"Polygon: Got {len(df)} bars for {symbol}")
+            return df
+
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 429:
+                logger.warning("Polygon rate limit exceeded")
+            else:
+                logger.error(f"Polygon HTTP error: {e}")
+            return pd.DataFrame()
+        except Exception as e:
+            logger.error(f"Polygon request failed: {e}")
+            return pd.DataFrame()
+
+    def get_current_price(self, symbol: str) -> Optional[float]:
+        """Get current price from Polygon."""
+        if not self.api_key:
+            return None
+
+        self._rate_limit()
+
+        polygon_symbol = self._format_symbol(symbol)
+
+        # Determine endpoint based on asset type
+        if polygon_symbol.startswith("X:"):
+            # Crypto
+            url = f"{self.BASE_URL}/v1/last/crypto/{polygon_symbol}"
+        else:
+            # Stock
+            url = f"{self.BASE_URL}/v2/last/trade/{polygon_symbol}"
+
+        params = {"apiKey": self.api_key}
+
+        try:
+            response = requests.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+
+            if polygon_symbol.startswith("X:"):
+                return data.get("last", {}).get("price")
+            else:
+                return data.get("results", {}).get("p")
+
+        except Exception as e:
+            logger.error(f"Polygon price failed: {e}")
+            return None
+
+    def _format_symbol(self, symbol: str) -> str:
+        """Format symbol for Polygon API."""
+        # Crypto: BTC/USDT -> X:BTCUSD
+        if "/" in symbol and ("USDT" in symbol or "USD" in symbol):
+            base, quote = symbol.split("/")
+            return f"X:{base}{quote.replace('USDT', 'USD')}"
+
+        # Forex: EUR/USD -> C:EURUSD
+        if "/" in symbol and len(symbol) == 7:
+            return f"C:{symbol.replace('/', '')}"
+
+        # Stock: return as-is
+        return symbol.upper()
+
+    def get_supported_symbols(self) -> List[str]:
+        """Polygon supports all US stocks, forex, and major crypto."""
+        return ["AAPL", "GOOGL", "MSFT", "BTC/USD", "ETH/USD", "EUR/USD"]
+
+
 class DataAdapterFactory:
     """Factory for creating data adapters."""
 
@@ -503,6 +673,7 @@ class DataAdapterFactory:
         "alpha_vantage": AlphaVantageAdapter,
         "binance": BinanceAdapter,
         "yahoo": YahooFinanceAdapter,
+        "polygon": PolygonAdapter,
     }
 
     @classmethod

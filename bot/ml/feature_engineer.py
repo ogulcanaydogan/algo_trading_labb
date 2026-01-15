@@ -120,14 +120,21 @@ class FeatureEngineer:
         # Use 99th percentile as clip threshold for each column
         for col in numeric_cols:
             if col not in ['open', 'high', 'low', 'close', 'volume']:
-                col_data = df[col].dropna()
-                if len(col_data) > 0:
-                    # Clip to reasonable range based on data distribution
-                    lower = col_data.quantile(0.001)
-                    upper = col_data.quantile(0.999)
-                    # Ensure we have a valid range
-                    if pd.notna(lower) and pd.notna(upper) and lower < upper:
-                        df[col] = df[col].clip(lower=lower, upper=upper)
+                try:
+                    col_data = df[col].dropna()
+                    if len(col_data) > 0:
+                        # Clip to reasonable range based on data distribution
+                        lower = col_data.quantile(0.001)
+                        upper = col_data.quantile(0.999)
+                        # Ensure we have valid numeric values for comparison
+                        if (pd.notna(lower) and pd.notna(upper) and
+                            isinstance(lower, (int, float)) and
+                            isinstance(upper, (int, float)) and
+                            float(lower) < float(upper)):
+                            df[col] = df[col].clip(lower=float(lower), upper=float(upper))
+                except (TypeError, ValueError):
+                    # Skip columns that can't be processed
+                    continue
 
         return df
 

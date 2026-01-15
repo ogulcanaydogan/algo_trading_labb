@@ -425,26 +425,34 @@ class DefensiveStrategy(RegimeStrategy):
         current_price = close[-1]
         current_atr = atr[-1]
 
-        # Only short if extreme overbought in a crash/high vol
-        if (
-            regime_state
-            and regime_state.regime in (MarketRegime.CRASH, MarketRegime.HIGH_VOL)
-            and rsi[-1] > 80
-        ):
-            # Very tight stop and small target
-            stop_loss = current_price + current_atr  # Tighter than normal
-            take_profit = current_price - 1.5 * current_atr  # Smaller target
+        # Short conditions for different regimes
+        regime_name = regime_state.regime.value if regime_state and regime_state.regime else "unknown"
+
+        # Strong bear / crash: short on overbought bounces (RSI > 60)
+        # High vol: short only on extreme overbought (RSI > 75)
+        rsi_threshold = 60 if regime_name in ("crash", "strong_bear", "bear") else 75
+
+        if regime_state and rsi[-1] > rsi_threshold:
+            # Calculate confidence based on RSI extremity
+            confidence = min(0.75, 0.4 + (rsi[-1] - rsi_threshold) / 100)
+
+            # Tighter stops in high volatility
+            stop_multiplier = 1.0 if regime_name == "high_vol" else 1.5
+            target_multiplier = 1.5 if regime_name == "high_vol" else 2.0
+
+            stop_loss = current_price + current_atr * stop_multiplier
+            take_profit = current_price - current_atr * target_multiplier
 
             return StrategySignal(
                 direction=SignalDirection.SHORT,
-                confidence=0.5,  # Low confidence in volatile conditions
+                confidence=confidence,
                 entry_price=current_price,
                 stop_loss=stop_loss,
                 take_profit=take_profit,
-                reason=f"Defensive short, RSI={rsi[-1]:.0f} (extreme overbought in {regime_state.regime.value})",
+                reason=f"Defensive short, RSI={rsi[-1]:.0f} > {rsi_threshold} in {regime_name}",
                 strategy_name=self.name,
                 regime=regime_state.regime,
-                indicators={"rsi": rsi[-1], "atr": current_atr},
+                indicators={"rsi": rsi[-1], "atr": current_atr, "rsi_threshold": rsi_threshold},
             )
 
         # Default flat
@@ -464,32 +472,102 @@ class RegimeStrategySelector:
     Selects appropriate strategy based on current regime.
 
     Maps regimes to strategies and manages strategy lifecycle.
+    Respects user risk settings from control file.
     """
 
-    def __init__(self, config: Optional[StrategyConfig] = None):
+    def __init__(
+        self,
+        config: Optional[StrategyConfig] = None,
+        data_dir: Optional[str] = None,
+    ):
         self.config = config or StrategyConfig()
+        self.data_dir = data_dir
 
-        # Initialize strategies for each regime
-        self.strategies: Dict[MarketRegime, RegimeStrategy] = {
-            MarketRegime.BULL: TrendFollowingStrategy("long", self.config),
-            MarketRegime.BEAR: TrendFollowingStrategy("short", self.config),
-            MarketRegime.CRASH: DefensiveStrategy(allow_short=False, config=self.config),
-            MarketRegime.SIDEWAYS: MeanReversionStrategy(self.config),
-            MarketRegime.HIGH_VOL: DefensiveStrategy(allow_short=False, config=self.config),
-            MarketRegime.UNKNOWN: DefensiveStrategy(allow_short=False, config=self.config),
-        }
+        # Risk settings from control file
+        self._allow_shorting = False
+        self._allow_leverage = False
+        self._aggressive_mode = False
+
+        # Load risk settings if data_dir is provided
+        if self.data_dir:
+            self._load_risk_settings()
+
+        # Initialize strategies based on current risk settings
+        self._init_strategies()
 
         self._current_strategy: Optional[RegimeStrategy] = None
         self._signal_history: List[StrategySignal] = []
+
+    def _load_risk_settings(self) -> None:
+        """Load risk settings from control file."""
+        import json
+        from pathlib import Path
+
+        try:
+            control_file = Path(self.data_dir) / "control.json"
+            if control_file.exists():
+                with open(control_file) as f:
+                    control = json.load(f)
+                    self._allow_shorting = control.get("allow_shorting", False)
+                    self._allow_leverage = control.get("allow_leverage", False)
+                    self._aggressive_mode = control.get("aggressive_mode", False)
+                    logger.debug(
+                        f"Loaded risk settings: shorting={self._allow_shorting}, "
+                        f"leverage={self._allow_leverage}, aggressive={self._aggressive_mode}"
+                    )
+        except Exception as e:
+            logger.warning(f"Could not load risk settings: {e}")
+
+    def _init_strategies(self) -> None:
+        """Initialize strategies based on current risk settings."""
+        # Determine if shorting is allowed based on user settings
+        allow_short = self._allow_shorting
+
+        # Initialize strategies for each regime
+        self.strategies: Dict[MarketRegime, RegimeStrategy] = {
+            # Bullish regimes - go long
+            MarketRegime.STRONG_BULL: TrendFollowingStrategy("long", self.config),
+            MarketRegime.BULL: TrendFollowingStrategy("long", self.config),
+            # Bearish regimes - short ONLY if user enabled shorting
+            MarketRegime.BEAR: TrendFollowingStrategy("short" if allow_short else "flat", self.config),
+            MarketRegime.STRONG_BEAR: TrendFollowingStrategy("short" if allow_short else "flat", self.config),
+            # Crisis regimes - defensive with shorting based on user setting
+            MarketRegime.CRASH: DefensiveStrategy(allow_short=allow_short, config=self.config),
+            MarketRegime.HIGH_VOL: DefensiveStrategy(allow_short=allow_short, config=self.config),
+            MarketRegime.VOLATILE: DefensiveStrategy(allow_short=allow_short, config=self.config),
+            # Range-bound - mean reversion (no shorting)
+            MarketRegime.SIDEWAYS: MeanReversionStrategy(self.config),
+            # Unknown - stay safe (no shorting)
+            MarketRegime.UNKNOWN: DefensiveStrategy(allow_short=False, config=self.config),
+        }
+
+        logger.info(f"Strategies initialized: shorting={'enabled' if allow_short else 'disabled'}")
+
+    def reload_risk_settings(self) -> None:
+        """Reload risk settings from control file and re-initialize strategies."""
+        if self.data_dir:
+            self._load_risk_settings()
+            self._init_strategies()
+            logger.info("Risk settings reloaded")
 
     def get_strategy(self, regime: MarketRegime) -> RegimeStrategy:
         """Get strategy for a specific regime."""
         return self.strategies.get(regime, self.strategies[MarketRegime.UNKNOWN])
 
+    @property
+    def risk_settings(self) -> Dict[str, bool]:
+        """Get current risk settings."""
+        return {
+            "shorting": self._allow_shorting,
+            "leverage": self._allow_leverage,
+            "aggressive": self._aggressive_mode,
+        }
+
     def generate_signal(
         self,
         df: pd.DataFrame,
         regime_state: RegimeState,
+        reload_settings: bool = False,
     ) -> Optional[StrategySignal]:
         """
         Generate signal using regime-appropriate strategy.
@@ -497,10 +575,15 @@ class RegimeStrategySelector:
         Args:
             df: OHLCV DataFrame
             regime_state: Current regime state
+            reload_settings: If True, reload risk settings before generating signal
 
         Returns:
             StrategySignal or None if no signal
         """
+        # Optionally reload risk settings (e.g., every few minutes)
+        if reload_settings:
+            self.reload_risk_settings()
+
         regime = regime_state.regime if regime_state else MarketRegime.UNKNOWN
         strategy = self.get_strategy(regime)
         self._current_strategy = strategy

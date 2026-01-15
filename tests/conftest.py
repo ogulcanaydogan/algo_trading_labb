@@ -163,3 +163,103 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "slow: marks tests as slow")
     config.addinivalue_line("markers", "integration: marks tests as integration tests")
     config.addinivalue_line("markers", "unit: marks tests as unit tests")
+    config.addinivalue_line("markers", "rl: marks tests requiring RL module")
+    config.addinivalue_line("markers", "ml: marks tests requiring ML module")
+
+
+@pytest.fixture
+def sample_risk_limits() -> Dict[str, float]:
+    """Create sample risk limits for testing."""
+    return {
+        "max_position_pct": 0.10,
+        "max_daily_loss_pct": 0.03,
+        "max_drawdown_pct": 0.10,
+        "max_trades_per_day": 100,
+        "max_correlation": 0.7,
+    }
+
+
+@pytest.fixture
+def sample_execution_config() -> Dict[str, Any]:
+    """Create sample execution config for testing."""
+    return {
+        "max_retries": 3,
+        "retry_delay": 1.0,
+        "timeout": 30.0,
+        "max_slippage": 0.005,
+        "paper_mode": True,
+    }
+
+
+@pytest.fixture
+def sample_rl_config() -> Dict[str, Any]:
+    """Create sample RL config for testing."""
+    return {
+        "state_dim": 100,
+        "action_dim": 3,
+        "hidden_dim": 64,
+        "learning_rate": 3e-4,
+        "gamma": 0.99,
+        "n_steps": 128,
+    }
+
+
+@pytest.fixture
+def mock_exchange():
+    """Create a mock exchange client."""
+    from unittest.mock import MagicMock, AsyncMock
+
+    exchange = MagicMock()
+    exchange.create_order = AsyncMock(return_value={
+        "id": "mock_order_123",
+        "status": "filled",
+        "filled": 0.1,
+        "average": 50000.0,
+    })
+    exchange.cancel_order = AsyncMock(return_value={"status": "cancelled"})
+    exchange.fetch_balance = AsyncMock(return_value={
+        "USDT": {"free": 10000.0, "used": 0.0, "total": 10000.0},
+    })
+    exchange.fetch_ticker = AsyncMock(return_value={
+        "symbol": "BTC/USDT",
+        "last": 50000.0,
+        "bid": 49990.0,
+        "ask": 50010.0,
+    })
+
+    return exchange
+
+
+@pytest.fixture
+def mock_risk_guardian():
+    """Create a mock risk guardian."""
+    from unittest.mock import MagicMock
+
+    guardian = MagicMock()
+    guardian.check_trade.return_value = MagicMock(
+        approved=True,
+        adjusted_size=0.05,
+        violations=[],
+    )
+    guardian.is_killed = False
+    guardian.get_metrics.return_value = MagicMock(
+        current_drawdown=0.03,
+        daily_pnl=500.0,
+        open_positions=2,
+    )
+
+    return guardian
+
+
+@pytest.fixture
+def mock_notification_manager():
+    """Create a mock notification manager."""
+    from unittest.mock import MagicMock, AsyncMock
+
+    manager = MagicMock()
+    manager.notify = AsyncMock()
+    manager.notify_trade = AsyncMock()
+    manager.notify_risk_alert = AsyncMock()
+    manager.notify_daily_report = AsyncMock()
+
+    return manager

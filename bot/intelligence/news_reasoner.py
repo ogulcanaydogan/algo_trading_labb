@@ -79,16 +79,43 @@ class NewsReasoner:
     """
     Analyzes news for trading decisions.
 
-    Uses free sources:
+    Free sources:
     1. CryptoPanic API (crypto news)
     2. Yahoo Finance news
     3. RSS feeds
+
+    Premium sources (optional - set API keys in .env):
+    4. NewsAPI (newsapi.org) - 100 free requests/day
+    5. Alpha Vantage News - 5 free requests/min
+    6. Finnhub (finnhub.io) - 60 free requests/min
 
     Tiered analysis:
     - Routine: Rule-based sentiment (free, instant)
     - Important: Ollama analysis (free, local)
     - Critical: Claude analysis (paid, high quality)
     """
+
+    # Premium news source configurations
+    PREMIUM_SOURCES = {
+        "newsapi": {
+            "base_url": "https://newsapi.org/v2/everything",
+            "env_key": "NEWSAPI_API_KEY",
+            "rate_limit": 100,  # per day for free tier
+            "categories": ["business", "technology"],
+        },
+        "alphavantage": {
+            "base_url": "https://www.alphavantage.co/query",
+            "env_key": "ALPHAVANTAGE_API_KEY",
+            "rate_limit": 5,  # per minute
+            "function": "NEWS_SENTIMENT",
+        },
+        "finnhub": {
+            "base_url": "https://finnhub.io/api/v1/news",
+            "env_key": "FINNHUB_API_KEY",
+            "rate_limit": 60,  # per minute
+            "categories": ["general", "forex", "crypto"],
+        },
+    }
 
     # Keywords for rule-based sentiment
     POSITIVE_KEYWORDS = [
@@ -129,6 +156,7 @@ class NewsReasoner:
         llm_router=None,
         cryptopanic_token: Optional[str] = None,
         cache_duration_minutes: int = 5,
+        enable_premium: bool = True,
     ):
         """
         Initialize the News Reasoner.
@@ -137,16 +165,176 @@ class NewsReasoner:
             llm_router: LLM router for advanced analysis
             cryptopanic_token: CryptoPanic API token (optional)
             cache_duration_minutes: How long to cache news
+            enable_premium: Whether to use premium sources if API keys are available
         """
         self.llm_router = llm_router
         self.cryptopanic_token = cryptopanic_token or os.getenv("CRYPTOPANIC_API_KEY")
         self.cache_duration = cache_duration_minutes
+        self.enable_premium = enable_premium
 
         # News cache
         self._news_cache: Dict[str, Tuple[List[NewsItem], datetime]] = {}
         self._sentiment_history: List[float] = []
 
-        logger.info("News Reasoner initialized")
+        # Premium API keys (loaded from environment)
+        self._premium_keys = {}
+        if enable_premium:
+            for source, config in self.PREMIUM_SOURCES.items():
+                key = os.getenv(config["env_key"])
+                if key:
+                    self._premium_keys[source] = key
+                    logger.info(f"Premium news source enabled: {source}")
+
+        logger.info(f"News Reasoner initialized (premium sources: {len(self._premium_keys)})")
+
+    def get_available_sources(self) -> Dict[str, bool]:
+        """Get availability status of all news sources."""
+        return {
+            "cryptopanic": bool(self.cryptopanic_token),
+            "yahoo_finance": True,  # Always available
+            "newsapi": "newsapi" in self._premium_keys,
+            "alphavantage": "alphavantage" in self._premium_keys,
+            "finnhub": "finnhub" in self._premium_keys,
+        }
+
+    def _fetch_newsapi(self, query: str, hours_back: int = 24) -> List[NewsItem]:
+        """Fetch news from NewsAPI (premium)."""
+        if "newsapi" not in self._premium_keys:
+            return []
+
+        try:
+            import requests
+            from_date = (datetime.now() - timedelta(hours=hours_back)).strftime("%Y-%m-%d")
+
+            response = requests.get(
+                self.PREMIUM_SOURCES["newsapi"]["base_url"],
+                params={
+                    "q": query,
+                    "from": from_date,
+                    "sortBy": "relevancy",
+                    "language": "en",
+                    "apiKey": self._premium_keys["newsapi"],
+                },
+                timeout=10,
+            )
+
+            if response.status_code != 200:
+                logger.warning(f"NewsAPI error: {response.status_code}")
+                return []
+
+            data = response.json()
+            articles = data.get("articles", [])
+
+            items = []
+            for article in articles[:10]:  # Limit to 10
+                item = NewsItem(
+                    title=article.get("title", ""),
+                    source="newsapi:" + article.get("source", {}).get("name", "unknown"),
+                    url=article.get("url", ""),
+                    published_at=datetime.fromisoformat(article["publishedAt"].replace("Z", "+00:00")) if article.get("publishedAt") else None,
+                    summary=article.get("description", ""),
+                )
+                self._analyze_sentiment(item)
+                items.append(item)
+
+            return items
+
+        except Exception as e:
+            logger.warning(f"NewsAPI fetch failed: {e}")
+            return []
+
+    def _fetch_finnhub(self, category: str = "general") -> List[NewsItem]:
+        """Fetch news from Finnhub (premium)."""
+        if "finnhub" not in self._premium_keys:
+            return []
+
+        try:
+            import requests
+
+            response = requests.get(
+                self.PREMIUM_SOURCES["finnhub"]["base_url"],
+                params={
+                    "category": category,
+                    "token": self._premium_keys["finnhub"],
+                },
+                timeout=10,
+            )
+
+            if response.status_code != 200:
+                logger.warning(f"Finnhub error: {response.status_code}")
+                return []
+
+            articles = response.json()
+
+            items = []
+            for article in articles[:10]:
+                item = NewsItem(
+                    title=article.get("headline", ""),
+                    source="finnhub:" + article.get("source", "unknown"),
+                    url=article.get("url", ""),
+                    published_at=datetime.fromtimestamp(article["datetime"]) if article.get("datetime") else None,
+                    summary=article.get("summary", ""),
+                )
+                self._analyze_sentiment(item)
+                items.append(item)
+
+            return items
+
+        except Exception as e:
+            logger.warning(f"Finnhub fetch failed: {e}")
+            return []
+
+    def _fetch_alphavantage_sentiment(self, tickers: str) -> List[NewsItem]:
+        """Fetch news sentiment from Alpha Vantage (premium)."""
+        if "alphavantage" not in self._premium_keys:
+            return []
+
+        try:
+            import requests
+
+            response = requests.get(
+                self.PREMIUM_SOURCES["alphavantage"]["base_url"],
+                params={
+                    "function": "NEWS_SENTIMENT",
+                    "tickers": tickers,
+                    "apikey": self._premium_keys["alphavantage"],
+                },
+                timeout=15,
+            )
+
+            if response.status_code != 200:
+                logger.warning(f"Alpha Vantage error: {response.status_code}")
+                return []
+
+            data = response.json()
+            feed = data.get("feed", [])
+
+            items = []
+            for article in feed[:10]:
+                # Alpha Vantage provides sentiment scores directly
+                sentiment_score = float(article.get("overall_sentiment_score", 0))
+
+                item = NewsItem(
+                    title=article.get("title", ""),
+                    source="alphavantage:" + ", ".join(article.get("authors", ["unknown"])),
+                    url=article.get("url", ""),
+                    published_at=datetime.strptime(article["time_published"], "%Y%m%dT%H%M%S") if article.get("time_published") else None,
+                    sentiment=sentiment_score,
+                    summary=article.get("summary", ""),
+                )
+
+                # Get relevance from ticker sentiment
+                ticker_sentiments = article.get("ticker_sentiment", [])
+                if ticker_sentiments:
+                    item.relevance = float(ticker_sentiments[0].get("relevance_score", 0))
+
+                items.append(item)
+
+            return items
+
+        except Exception as e:
+            logger.warning(f"Alpha Vantage fetch failed: {e}")
+            return []
 
     def get_news_context(
         self,

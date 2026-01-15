@@ -1,0 +1,49 @@
+[Unit]
+Description=Algo Trading Bot - Production
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=weezboo
+Group=weezboo
+WorkingDirectory=/home/weezboo/Ogulcan/algo_trading_lab
+
+# Environment file for secrets
+EnvironmentFile=-/home/weezboo/Ogulcan/algo_trading_lab/.env
+
+# Python virtual environment
+Environment="PATH=/home/weezboo/Ogulcan/algo_trading_lab/venv/bin:/usr/bin"
+Environment="PYTHONUNBUFFERED=1"
+
+# Trading configuration
+Environment="TRADING_MODE=paper_live_data"
+Environment="INITIAL_CAPITAL=10000"
+Environment="TRADING_SYMBOLS=BTC/USDT,ETH/USDT"
+Environment="LOOP_INTERVAL=300"
+
+# Start command
+ExecStart=/home/weezboo/Ogulcan/algo_trading_lab/venv/bin/python scripts/trading/run_production.py
+
+# Restart policy
+Restart=always
+RestartSec=30
+StartLimitInterval=600
+StartLimitBurst=5
+
+# Stop gracefully
+TimeoutStopSec=30
+KillMode=mixed
+KillSignal=SIGTERM
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=trading-bot
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

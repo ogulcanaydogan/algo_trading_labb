@@ -6465,15 +6465,34 @@ async def get_last_entry() -> Dict[str, Any]:
 @app.get("/api/ai/brain/status", tags=["AI"])
 async def get_brain_status() -> Dict[str, Any]:
     """
-    Get the Intelligent Trading Brain status.
+    Get the Intelligent Trading Brain status with live regime detection.
 
     Shows AI components health, pattern memory stats, and learning status.
+    Also fetches current price data to detect live market regime.
     """
     try:
         from bot.intelligence import get_intelligent_brain
+        import numpy as np
 
         brain = get_intelligent_brain()
-        return brain.health_check()
+        health = brain.health_check()
+
+        # Try to get live price data and detect regime
+        try:
+            import yfinance as yf
+            btc = yf.Ticker("BTC-USD")
+            hist = btc.history(period="5d", interval="1h")
+            if len(hist) >= 50:
+                prices = hist["Close"].values
+                regime_state = brain.regime_adapter.detect_regime(prices)
+                health["regime_adapter"]["current_regime"] = regime_state.regime.value
+                health["regime_adapter"]["confidence"] = round(regime_state.confidence * 100, 1)
+                health["regime_adapter"]["volatility"] = round(regime_state.volatility * 100, 2)
+                health["regime_adapter"]["trend_strength"] = round(regime_state.trend_strength * 100, 2)
+        except Exception as e:
+            pass  # Keep default values if price fetch fails
+
+        return health
     except ImportError:
         return {"error": "Intelligent Brain not available", "status": "not_installed"}
     except Exception as e:
@@ -6562,3 +6581,112 @@ async def get_regime_status() -> Dict[str, Any]:
         return {"error": "Regime Adapter not available"}
     except Exception as e:
         return {"error": str(e)}
+
+
+@app.get("/api/pnl/calendar", tags=["Performance"])
+async def get_pnl_calendar(days: int = 30) -> Dict[str, Any]:
+    """
+    Get P&L calendar with daily 1% target tracking.
+
+    Returns daily performance for the last N days with indicators
+    for whether the 1% daily target was reached.
+    """
+    from datetime import timedelta
+    import sqlite3
+
+    calendar = []
+    daily_target_pct = 1.0  # 1% daily target
+
+    # Collect data from all portfolio databases
+    db_paths = [
+        STATE_DIR / "live_paper_trading" / "portfolio.db",
+        STATE_DIR / "stock_trading" / "portfolio.db",
+        STATE_DIR / "commodity_trading" / "portfolio.db",
+        STATE_DIR / "regime_trading" / "portfolio.db",
+    ]
+
+    # Get trades from all sources
+    all_trades = []
+    for db_path in db_paths:
+        if db_path.exists():
+            try:
+                conn = sqlite3.connect(str(db_path))
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT date(timestamp) as day, SUM(pnl), COUNT(*)
+                    FROM trades
+                    WHERE timestamp >= date('now', ?)
+                    GROUP BY date(timestamp)
+                    ORDER BY day DESC
+                """, (f'-{days} days',))
+                rows = cursor.fetchall()
+                conn.close()
+                for row in rows:
+                    all_trades.append({
+                        "date": row[0],
+                        "pnl": row[1] or 0,
+                        "trades": row[2] or 0,
+                    })
+            except:
+                pass
+
+    # Aggregate by date
+    daily_data = {}
+    for trade in all_trades:
+        date = trade["date"]
+        if date not in daily_data:
+            daily_data[date] = {"pnl": 0, "trades": 0}
+        daily_data[date]["pnl"] += trade["pnl"]
+        daily_data[date]["trades"] += trade["trades"]
+
+    # Build calendar with target indicators
+    # Assume starting capital of 10000 for percentage calculation
+    starting_capital = 10000.0
+
+    today = datetime.now().date()
+    stats = {"target_hit_days": 0, "total_days": 0, "total_pnl": 0, "best_day": 0, "worst_day": 0}
+
+    for i in range(days):
+        date = (today - timedelta(days=i)).isoformat()
+        data = daily_data.get(date, {"pnl": 0, "trades": 0})
+        pnl = data["pnl"]
+        pnl_pct = (pnl / starting_capital) * 100 if starting_capital > 0 else 0
+        target_hit = pnl_pct >= daily_target_pct
+
+        if data["trades"] > 0:
+            stats["total_days"] += 1
+            stats["total_pnl"] += pnl
+            if target_hit:
+                stats["target_hit_days"] += 1
+            if pnl > stats["best_day"]:
+                stats["best_day"] = pnl
+            if pnl < stats["worst_day"]:
+                stats["worst_day"] = pnl
+
+        calendar.append({
+            "date": date,
+            "pnl": round(pnl, 2),
+            "pnl_pct": round(pnl_pct, 2),
+            "trades": data["trades"],
+            "target_hit": target_hit,
+            "status": "hit" if target_hit else ("loss" if pnl < 0 else ("profit" if pnl > 0 else "neutral")),
+        })
+
+    return {
+        "calendar": calendar,
+        "daily_target_pct": daily_target_pct,
+        "stats": {
+            "target_hit_days": stats["target_hit_days"],
+            "trading_days": stats["total_days"],
+            "hit_rate": round(stats["target_hit_days"] / max(1, stats["total_days"]) * 100, 1),
+            "total_pnl": round(stats["total_pnl"], 2),
+            "best_day": round(stats["best_day"], 2),
+            "worst_day": round(stats["worst_day"], 2),
+        },
+        "today": {
+            "date": today.isoformat(),
+            "pnl": calendar[0]["pnl"] if calendar else 0,
+            "pnl_pct": calendar[0]["pnl_pct"] if calendar else 0,
+            "target_hit": calendar[0]["target_hit"] if calendar else False,
+        }
+    }

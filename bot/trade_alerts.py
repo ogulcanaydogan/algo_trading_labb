@@ -623,6 +623,113 @@ class TelegramTradeAlerts:
 
         return self._send_html(html)
 
+    def send_daily_target_achieved(
+        self,
+        current_pnl: float,
+        target_pnl: float,
+        trades: int,
+        wins: int,
+    ) -> bool:
+        """
+        Send daily target achieved alert.
+
+        Args:
+            current_pnl: Current daily P&L percentage
+            target_pnl: Target P&L percentage
+            trades: Number of trades today
+            wins: Number of winning trades
+        """
+        win_rate = (wins / trades * 100) if trades > 0 else 0
+
+        html = f"""
+🎯 <b>DAILY TARGET ACHIEVED!</b> 🎉
+
+<b>Current P&L:</b> +{current_pnl:.2f}%
+<b>Target:</b> {target_pnl}%
+<b>Exceeded by:</b> +{current_pnl - target_pnl:.2f}%
+
+<b>Trades:</b> {trades}
+<b>Win Rate:</b> {win_rate:.0f}%
+
+🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢
+
+<i>Consider reducing position sizes to protect gains.</i>
+
+<i>{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</i>
+"""
+
+        return self._send_html(html)
+
+    def send_loss_limit_alert(
+        self,
+        current_loss: float,
+        max_loss: float,
+        trades: int,
+        paused: bool = True,
+    ) -> bool:
+        """
+        Send daily loss limit hit alert.
+
+        Args:
+            current_loss: Current daily loss percentage (positive number)
+            max_loss: Maximum allowed loss percentage
+            trades: Number of trades today
+            paused: Whether trading was auto-paused
+        """
+        html = f"""
+🚨 <b>DAILY LOSS LIMIT HIT</b> 🚨
+
+<b>Current Loss:</b> -{current_loss:.2f}%
+<b>Max Allowed:</b> -{max_loss}%
+
+<b>Trades Today:</b> {trades}
+<b>Status:</b> {'⏸️ TRADING PAUSED' if paused else '⚠️ AT RISK'}
+
+🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴
+
+<b>Action Required:</b>
+• Review losing trades
+• Identify what went wrong
+• Wait until tomorrow to resume
+
+<i>{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</i>
+"""
+
+        return self._send_html(html)
+
+    def send_auto_pause_alert(
+        self,
+        reason: str,
+        current_pnl: float,
+        recommendation: str = "",
+    ) -> bool:
+        """
+        Send auto-pause triggered alert.
+
+        Args:
+            reason: Reason for auto-pause
+            current_pnl: Current P&L percentage
+            recommendation: What to do next
+        """
+        pnl_emoji = "📈" if current_pnl >= 0 else "📉"
+
+        html = f"""
+⏸️ <b>TRADING AUTO-PAUSED</b>
+
+<b>Reason:</b> {reason}
+{pnl_emoji} <b>Current P&L:</b> {current_pnl:+.2f}%
+
+"""
+        if recommendation:
+            html += f"<b>Recommendation:</b> {recommendation}\n\n"
+
+        html += f"""<i>Trading will remain paused until manually resumed or next trading day.</i>
+
+<i>{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</i>
+"""
+
+        return self._send_html(html)
+
     def send_message(self, message: str) -> bool:
         """Send a plain text message."""
         if not self.is_configured():

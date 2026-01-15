@@ -27,6 +27,27 @@ from .risk_manager import RiskManager, RiskConfig, RiskAssessment
 from .position_manager import PositionManager, Position, PositionConfig
 from .database import TradingDatabase, Trade
 
+# Import data store for persistent trade recording
+try:
+    from .data_store import get_data_store, record_trade as store_trade
+    HAS_DATA_STORE = True
+except ImportError:
+    HAS_DATA_STORE = False
+
+# Import order validation
+try:
+    from .order_validator import validate_order, OrderValidation
+    HAS_ORDER_VALIDATOR = True
+except ImportError:
+    HAS_ORDER_VALIDATOR = False
+
+# Import data freshness monitor
+try:
+    from .data_freshness import get_monitor as get_freshness_monitor, update_data
+    HAS_DATA_FRESHNESS = True
+except ImportError:
+    HAS_DATA_FRESHNESS = False
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("multi-asset-engine")
 
@@ -407,11 +428,44 @@ class MultiAssetTradingEngine:
             return {"status": "no_rebalance_needed"}
 
         executed_trades = []
+        portfolio_value = self._calculate_portfolio_value()
+
         for trade in decision.trades_to_execute:
             symbol = trade["symbol"]
             action = trade["action"]
             quantity = trade["quantity"]
             price = trade["price"]
+
+            # Validate order before execution
+            if HAS_ORDER_VALIDATOR:
+                validation = validate_order(
+                    symbol=symbol,
+                    action=action,
+                    quantity=quantity,
+                    price=price,
+                    portfolio_value=portfolio_value,
+                    cash_balance=self._cash_balance,
+                    current_position=self._current_positions.get(symbol, 0),
+                )
+                if not validation.is_valid:
+                    logger.warning(f"Order rejected for {symbol}: {validation.message}")
+                    executed_trades.append({
+                        "symbol": symbol,
+                        "action": action,
+                        "status": "rejected",
+                        "reason": validation.message,
+                    })
+                    continue
+                # Use adjusted quantity if provided
+                if validation.adjusted_quantity is not None:
+                    quantity = validation.adjusted_quantity
+                    logger.info(f"Order quantity adjusted for {symbol}: {quantity}")
+
+            # Update data freshness
+            if HAS_DATA_FRESHNESS:
+                asset_cfg = next((a for a in self.config.assets if a.symbol == symbol), None)
+                market_type = asset_cfg.asset_type if asset_cfg else "crypto"
+                update_data(symbol, price, market_type)
 
             if action == "BUY":
                 # Deduct cash, add position
@@ -452,9 +506,19 @@ class MultiAssetTradingEngine:
                     })
                     logger.info(f"Executed SELL {sell_qty:.6f} {symbol} @ ${price:,.2f}")
 
-        # Record to database
+        # Record to database and persistent data store
         for trade_info in executed_trades:
             if trade_info.get("status") == "executed":
+                # Find the asset decision for this trade
+                asset_decision = next(
+                    (ad for ad in decision.asset_decisions if ad.symbol == trade_info["symbol"]),
+                    None
+                )
+                regime = asset_decision.regime if asset_decision else "unknown"
+                confidence = asset_decision.confidence if asset_decision else 0
+                signal = asset_decision.action if asset_decision else "FLAT"
+
+                # Record to database
                 try:
                     trade_record = Trade(
                         symbol=trade_info["symbol"],
@@ -465,11 +529,34 @@ class MultiAssetTradingEngine:
                         pnl=0,  # Will be calculated on exit
                         pnl_pct=0,
                         strategy="portfolio_rebalance",
-                        regime=decision.asset_decisions[0].regime if decision.asset_decisions else "unknown",
+                        regime=regime,
                     )
                     self.database.insert_trade(trade_record)
                 except Exception as e:
                     logger.warning(f"Failed to record trade to database: {e}")
+
+                # Record to persistent data store (for Trade History UI)
+                if HAS_DATA_STORE:
+                    try:
+                        # Derive market type from asset config
+                        asset_cfg = next(
+                            (a for a in self.config.assets if a.symbol == trade_info["symbol"]),
+                            None
+                        )
+                        market_type = asset_cfg.asset_type if asset_cfg else "unknown"
+                        store_trade(
+                            symbol=trade_info["symbol"],
+                            action=trade_info["action"],
+                            quantity=trade_info["quantity"],
+                            price=trade_info["price"],
+                            market=market_type,
+                            regime=regime,
+                            confidence=confidence,
+                            signal=signal,
+                            strategy="portfolio_rebalance",
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to record trade to data store: {e}")
 
         return {
             "status": "executed",

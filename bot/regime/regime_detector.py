@@ -28,20 +28,38 @@ logger = logging.getLogger(__name__)
 class MarketRegime(Enum):
     """Market regime classifications."""
 
-    BULL = "bull"
-    BEAR = "bear"
-    CRASH = "crash"
-    SIDEWAYS = "sideways"
-    HIGH_VOL = "high_vol"
-    UNKNOWN = "unknown"
+    # Bullish regimes
+    STRONG_BULL = "strong_bull"  # Strong uptrend, aggressive long
+    BULL = "bull"                 # Moderate uptrend, trend following
+    # Bearish regimes
+    BEAR = "bear"                 # Moderate downtrend, reduce exposure or short
+    STRONG_BEAR = "strong_bear"   # Strong downtrend, short or stay flat
+    # Crisis regimes
+    CRASH = "crash"               # Rapid decline, defensive mode
+    VOLATILE = "volatile"         # High volatility, reduce size
+    HIGH_VOL = "high_vol"         # Elevated volatility (alias for volatile)
+    # Neutral
+    SIDEWAYS = "sideways"         # Range-bound, mean reversion
+    UNKNOWN = "unknown"           # Insufficient data
 
     @property
     def is_trending(self) -> bool:
-        return self in (MarketRegime.BULL, MarketRegime.BEAR)
+        return self in (
+            MarketRegime.BULL, MarketRegime.STRONG_BULL,
+            MarketRegime.BEAR, MarketRegime.STRONG_BEAR
+        )
+
+    @property
+    def is_bullish(self) -> bool:
+        return self in (MarketRegime.BULL, MarketRegime.STRONG_BULL)
+
+    @property
+    def is_bearish(self) -> bool:
+        return self in (MarketRegime.BEAR, MarketRegime.STRONG_BEAR, MarketRegime.CRASH)
 
     @property
     def is_risk_off(self) -> bool:
-        return self in (MarketRegime.CRASH, MarketRegime.HIGH_VOL)
+        return self in (MarketRegime.CRASH, MarketRegime.HIGH_VOL, MarketRegime.VOLATILE)
 
 
 @dataclass

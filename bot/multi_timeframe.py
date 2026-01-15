@@ -119,7 +119,7 @@ class MultiTimeframeAnalyzer:
 
     def _resample(self, data: pd.DataFrame, timeframe: str) -> pd.DataFrame:
         """Resample data to higher timeframe."""
-        tf_map = {"4h": "4H", "1d": "1D", "1w": "1W"}
+        tf_map = {"4h": "4h", "1d": "1D", "1w": "1W"}
 
         if timeframe not in tf_map:
             return data
@@ -707,12 +707,12 @@ class MultiTimeframeAnalyzer:
 
 # Timeframe conversion utilities
 TIMEFRAME_RESAMPLE_MAP = {
-    "1m": "1T",
-    "5m": "5T",
-    "15m": "15T",
-    "30m": "30T",
-    "1h": "1H",
-    "4h": "4H",
+    "1m": "1min",
+    "5m": "5min",
+    "15m": "15min",
+    "30m": "30min",
+    "1h": "1h",
+    "4h": "4h",
     "1d": "1D",
     "1w": "1W",
 }
