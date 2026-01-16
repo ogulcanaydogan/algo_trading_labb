@@ -1,81 +1,81 @@
 {
-  "timestamp": "2026-01-13T23:33:06.066550",
+  "timestamp": "2026-01-16T14:55:08.161475",
   "market_type": "stock",
-  "total_value": 10041.023890511064,
-  "cash_balance": 1369.7144376802066,
+  "total_value": 9989.673638591072,
+  "cash_balance": 0.014949769787214295,
   "initial_capital": 10000.0,
-  "pnl": 41.023890511063655,
-  "pnl_pct": 0.41023890511063654,
+  "pnl": -10.326361408928278,
+  "pnl_pct": -0.10326361408928278,
   "positions": {
     "MSFT": {
-      "quantity": 3.914131,
-      "price": 470.7200012207031,
-      "value": 1842.4597490979918
+      "quantity": 3.734983,
+      "price": 458.3399963378906,
+      "value": 1711.892094542084
     },
     "AAPL": {
-      "quantity": 5.204712,
-      "price": 261.04998779296875,
-      "value": 1358.690004065918
-    },
-    "NVDA": {
-      "quantity": 13.798007,
-      "price": 185.82000732421875,
-      "value": 2563.945761799622
-    },
-    "GOOGL": {
-      "quantity": 4.606708,
-      "price": 336.0,
-      "value": 1547.853888
+      "quantity": 6.069201,
+      "price": 257.2049865722656,
+      "value": 1561.0287617093811
     },
     "AMZN": {
-      "quantity": 5.5989450000000005,
-      "price": 242.61000061035156,
-      "value": 1358.360049867325
+      "quantity": 10.169161,
+      "price": 237.64999389648438,
+      "value": 2416.701049582367
+    },
+    "GOOGL": {
+      "quantity": 5.154739,
+      "price": 331.5199890136719,
+      "value": 1708.899016648346
+    },
+    "NVDA": {
+      "quantity": 13.631712442230109,
+      "price": 190.08160400390625,
+      "value": 2591.1377663391054
     }
   },
   "positions_count": 5,
   "current_weights": {
-    "MSFT": 0.1834932143562717,
-    "AAPL": 0.1353138901850341,
-    "NVDA": 0.25534704326543767,
-    "GOOGL": 0.1541529932483029,
-    "AMZN": 0.13528102957219312
+    "MSFT": 0.171366168352976,
+    "AAPL": 0.15626424027297314,
+    "AMZN": 0.24191992021104852,
+    "GOOGL": 0.17106655116806865,
+    "NVDA": 0.2593816234725918
   },
   "optimization_method": "risk_parity",
   "signals": {
     "AAPL": {
-      "signal": "FLAT",
-      "regime": "strong_bear",
-      "confidence": 0.5411463110544664,
-      "price": 261.04998779296875,
+      "signal": "SHORT",
+      "regime": "volatile",
+      "confidence": 0.5775716694772344,
+      "price": 257.2049865722656,
       "dl_prediction": null
     },
     "MSFT": {
       "signal": "FLAT",
       "regime": "strong_bear",
-      "confidence": 0.5143673340163674,
-      "price": 470.7200012207031,
+      "confidence": 0.5145518672315453,
+      "price": 458.3399963378906,
       "dl_prediction": null
     },
     "GOOGL": {
-      "signal": "LONG",
+      "signal": "FLAT",
       "regime": "strong_bull",
-      "confidence": 0.490272373540856,
-      "price": 336.0,
+      "confidence": 0.4738129040684465,
+      "price": 331.5199890136719,
       "dl_prediction": null
     },
     "NVDA": {
       "signal": "FLAT",
       "regime": "sideways",
       "confidence": 0.6129032258064515,
-      "price": 185.82000732421875,
+      "price": 190.08160400390625,
       "dl_prediction": null
     },
     "AMZN": {
       "signal": "FLAT",
-      "regime": "sideways",
-      "confidence": 0.6129032258064515,
-      "price": 242.61000061035156,
+      "regime": "volatile",
+      "confidence": 0.6954314720812182,
+      "price": 237.64999389648438,
       "dl_prediction": null
     }
   },

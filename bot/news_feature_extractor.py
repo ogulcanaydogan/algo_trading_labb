@@ -13,6 +13,7 @@ This module:
 """
 
 import logging
+import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -23,6 +24,50 @@ import re
 import math
 
 logger = logging.getLogger(__name__)
+
+
+class NewsFetchThrottler:
+    """Prevents excessive API calls by enforcing minimum intervals."""
+    
+    def __init__(self, min_interval_seconds: int = 300):
+        """Initialize throttler.
+        
+        Args:
+            min_interval_seconds: Minimum seconds between fetches for same symbol (default 5 min)
+        """
+        self.min_interval = min_interval_seconds
+        self.last_fetch_time: Dict[str, float] = {}  # Symbol -> timestamp
+    
+    def should_fetch(self, symbol: str) -> bool:
+        """Check if enough time has passed since last fetch.
+        
+        Args:
+            symbol: Symbol to check
+            
+        Returns:
+            True if fetch is allowed, False if still throttled
+        """
+        now = time.time()
+        last = self.last_fetch_time.get(symbol, 0)
+        
+        if (now - last) >= self.min_interval:
+            self.last_fetch_time[symbol] = now
+            return True
+        
+        return False
+    
+    def get_next_fetch_time(self, symbol: str) -> float:
+        """Get seconds until next fetch allowed.
+        
+        Args:
+            symbol: Symbol to check
+            
+        Returns:
+            Seconds until next fetch allowed (0 if immediate)
+        """
+        last = self.last_fetch_time.get(symbol, 0)
+        next_allowed = last + self.min_interval
+        return max(0, next_allowed - time.time())
 
 
 class EventType(Enum):
@@ -453,7 +498,8 @@ class NewsFeatureExtractor:
         self,
         sentiment_analyzer: Optional[SentimentAnalyzer] = None,
         lookback_hours: int = 24,
-        decay_half_life_hours: float = 6.0
+        decay_half_life_hours: float = 6.0,
+        fetch_throttle_minutes: int = 5
     ):
         """
         Initialize the feature extractor.
@@ -462,6 +508,7 @@ class NewsFeatureExtractor:
             sentiment_analyzer: Sentiment analyzer to use
             lookback_hours: Hours to look back for news aggregation
             decay_half_life_hours: Half-life for time decay weighting
+            fetch_throttle_minutes: Minimum minutes between API fetches per symbol (default 5)
         """
         self.sentiment_analyzer = sentiment_analyzer or RuleBasedSentimentAnalyzer()
         self.lookback_hours = lookback_hours
@@ -475,8 +522,12 @@ class NewsFeatureExtractor:
         # Cache for computed features
         self._feature_cache: Dict[str, NewsFeatures] = {}
         self._cache_ttl_minutes = 5
+        
+        # Fetch throttler to reduce API calls
+        self.fetch_throttler = NewsFetchThrottler(min_interval_seconds=fetch_throttle_minutes * 60)
 
         logger.info(f"NewsFeatureExtractor initialized with {self.sentiment_analyzer.name} analyzer")
+        logger.info(f"News fetch throttled to 1 request per {fetch_throttle_minutes} minutes per symbol")
 
     def add_economic_event(self, event: EconomicEvent):
         """Add an economic event to the tracker."""

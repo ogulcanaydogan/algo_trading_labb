@@ -143,10 +143,10 @@ class NewsFetcher:
         finnhub_key: Optional[str] = None,
         polygon_key: Optional[str] = None,
     ):
-        self.newsapi_key = newsapi_key or os.getenv("NEWSAPI_KEY")
-        self.alpha_vantage_key = alpha_vantage_key or os.getenv("ALPHA_VANTAGE_KEY")
-        self.crypto_panic_key = crypto_panic_key or os.getenv("CRYPTO_PANIC_KEY")
-        self.finnhub_key = finnhub_key or os.getenv("FINNHUB_KEY")
+        self.newsapi_key = newsapi_key or os.getenv("NEWSAPI_API_KEY")
+        self.alpha_vantage_key = alpha_vantage_key or os.getenv("ALPHAVANTAGE_API_KEY")
+        self.crypto_panic_key = crypto_panic_key or os.getenv("CRYPTOPANIC_API_KEY")
+        self.finnhub_key = finnhub_key or os.getenv("FINNHUB_API_KEY")
         self.polygon_key = polygon_key or os.getenv("POLYGON_API_KEY")
 
         self._cache: Dict[str, Tuple[List[NewsArticle], datetime]] = {}

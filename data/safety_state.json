@@ -1,7 +1,7 @@
 {
-  "date": "2026-01-13",
+  "date": "2026-01-16",
   "daily_stats": {
-    "date": "2026-01-13",
+    "date": "2026-01-16",
     "trades": 0,
     "wins": 0,
     "losses": 0,
@@ -11,6 +11,6 @@
     "api_errors": 0
   },
   "peak_balance": 10000.0,
-  "emergency_stop_active": false,
-  "emergency_stop_reason": null
+  "emergency_stop_active": true,
+  "emergency_stop_reason": "Manual"
 }

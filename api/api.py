@@ -4,6 +4,7 @@ import asyncio
 import json
 import os
 import time
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
@@ -129,6 +130,33 @@ API_TAGS_METADATA = [
     },
 ]
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan context manager for startup and shutdown events."""
+    # Startup: Start the WebSocket broadcast loop
+    ws_manager._running = True
+    ws_manager._broadcast_task = asyncio.create_task(_ws_broadcast_loop())
+    
+    yield
+    
+    # Shutdown: Stop the WebSocket broadcast loop
+    ws_manager._running = False
+    if ws_manager._broadcast_task:
+        ws_manager._broadcast_task.cancel()
+        try:
+            await ws_manager._broadcast_task
+        except asyncio.CancelledError:
+            pass
+    
+    # Close all active connections
+    for connection in list(ws_manager.active_connections):
+        try:
+            await connection.close()
+        except Exception:
+            pass
+
+
 app = FastAPI(
     title="Algo Trading Lab API",
     version="0.3.0",
@@ -144,6 +172,7 @@ app = FastAPI(
     license_info={
         "name": "MIT",
     },
+    lifespan=lifespan,
 )
 
 # CORS middleware configuration
@@ -2713,33 +2742,6 @@ async def websocket_status() -> Dict[str, Any]:
         "broadcast_running": ws_manager._running,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
-
-
-@app.on_event("startup")
-async def startup_event() -> None:
-    """Start the WebSocket broadcast loop on application startup."""
-    ws_manager._running = True
-    ws_manager._broadcast_task = asyncio.create_task(_ws_broadcast_loop())
-
-
-@app.on_event("shutdown")
-async def shutdown_event() -> None:
-    """Stop the WebSocket broadcast loop on application shutdown."""
-    ws_manager._running = False
-    if ws_manager._broadcast_task:
-        ws_manager._broadcast_task.cancel()
-        try:
-            await ws_manager._broadcast_task
-        except asyncio.CancelledError:
-            pass
-
-    # Close all active connections
-    for connection in list(ws_manager.active_connections):
-        try:
-            await connection.close()
-        except Exception:
-            pass
-    ws_manager.active_connections.clear()
 
 
 # =============================================================================

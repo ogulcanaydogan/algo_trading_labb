@@ -87,6 +87,12 @@ commodities:
   max_weight: 0.35
   # Minimum weight per asset in portfolio
   min_weight: 0.05
+  # Trading hours: 23/5 (Sunday 6pm - Friday 5pm EST)
+  trading_hours:
+    open: "18:00"
+    close: "17:00"
+    timezone: "America/New_York"
+    open_days: [0, 1, 2, 3, 4]  # Mon-Fri (Sunday evening start)
 
 stocks:
   # Stock trading symbols

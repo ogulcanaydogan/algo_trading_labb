@@ -131,5 +131,197 @@
       "data_period": "2y",
       "interval": "1h"
     }
+  },
+  "crypto_XRP_USDT_lstm_20260115_203103": {
+    "name": "crypto_XRP_USDT_lstm",
+    "model_type": "lstm",
+    "version": "20260115_203103",
+    "market_type": "crypto",
+    "symbol": "XRP/USDT",
+    "created_at": "2026-01-15T20:31:03.781354",
+    "accuracy": 0.9037785588752196,
+    "val_accuracy": 0.7385496183206107,
+    "path": "data/model_registry/models/crypto_XRP_USDT_lstm_20260115_203103",
+    "is_active": true,
+    "metadata": {
+      "model_type": "lstm",
+      "accuracy": 0.7404580152671756
+    }
+  },
+  "crypto_XRP_USDT_transformer_20260115_203123": {
+    "name": "crypto_XRP_USDT_transformer",
+    "model_type": "transformer",
+    "version": "20260115_203123",
+    "market_type": "crypto",
+    "symbol": "XRP/USDT",
+    "created_at": "2026-01-15T20:31:23.889640",
+    "accuracy": 0.7527075812274369,
+    "val_accuracy": 0.7262931034482759,
+    "path": "data/model_registry/models/crypto_XRP_USDT_transformer_20260115_203123",
+    "is_active": true,
+    "metadata": {
+      "model_type": "transformer",
+      "accuracy": 0.7262931034482759
+    }
+  },
+  "crypto_ADA_USDT_lstm_20260115_203138": {
+    "name": "crypto_ADA_USDT_lstm",
+    "model_type": "lstm",
+    "version": "20260115_203138",
+    "market_type": "crypto",
+    "symbol": "ADA/USDT",
+    "created_at": "2026-01-15T20:31:38.097514",
+    "accuracy": 0.8789719626168224,
+    "val_accuracy": 0.753061224489796,
+    "path": "data/model_registry/models/crypto_ADA_USDT_lstm_20260115_203138",
+    "is_active": true,
+    "metadata": {
+      "model_type": "lstm",
+      "accuracy": 0.753061224489796
+    }
+  },
+  "crypto_ADA_USDT_transformer_20260115_203146": {
+    "name": "crypto_ADA_USDT_transformer",
+    "model_type": "transformer",
+    "version": "20260115_203146",
+    "market_type": "crypto",
+    "symbol": "ADA/USDT",
+    "created_at": "2026-01-15T20:31:46.527964",
+    "accuracy": 0.7182692307692308,
+    "val_accuracy": 0.7441860465116279,
+    "path": "data/model_registry/models/crypto_ADA_USDT_transformer_20260115_203146",
+    "is_active": true,
+    "metadata": {
+      "model_type": "transformer",
+      "accuracy": 0.7441860465116279
+    }
+  },
+  "crypto_DOT_USDT_lstm_20260115_203157": {
+    "name": "crypto_DOT_USDT_lstm",
+    "model_type": "lstm",
+    "version": "20260115_203157",
+    "market_type": "crypto",
+    "symbol": "DOT/USDT",
+    "created_at": "2026-01-15T20:31:57.798960",
+    "accuracy": 0.8317948717948718,
+    "val_accuracy": 0.7223476297968398,
+    "path": "data/model_registry/models/crypto_DOT_USDT_lstm_20260115_203157",
+    "is_active": true,
+    "metadata": {
+      "model_type": "lstm",
+      "accuracy": 0.7223476297968398
+    }
+  },
+  "crypto_DOT_USDT_transformer_20260115_203211": {
+    "name": "crypto_DOT_USDT_transformer",
+    "model_type": "transformer",
+    "version": "20260115_203211",
+    "market_type": "crypto",
+    "symbol": "DOT/USDT",
+    "created_at": "2026-01-15T20:32:11.044198",
+    "accuracy": 0.7015873015873015,
+    "val_accuracy": 0.7127937336814621,
+    "path": "data/model_registry/models/crypto_DOT_USDT_transformer_20260115_203211",
+    "is_active": true,
+    "metadata": {
+      "model_type": "transformer",
+      "accuracy": 0.7127937336814621
+    }
+  },
+  "crypto_LINK_USDT_lstm_20260115_203225": {
+    "name": "crypto_LINK_USDT_lstm",
+    "model_type": "lstm",
+    "version": "20260115_203225",
+    "market_type": "crypto",
+    "symbol": "LINK/USDT",
+    "created_at": "2026-01-15T20:32:25.093932",
+    "accuracy": 0.8810990052108005,
+    "val_accuracy": 0.7619047619047619,
+    "path": "data/model_registry/models/crypto_LINK_USDT_lstm_20260115_203225",
+    "is_active": true,
+    "metadata": {
+      "model_type": "lstm",
+      "accuracy": 0.7577639751552795
+    }
+  },
+  "crypto_LINK_USDT_transformer_20260115_203242": {
+    "name": "crypto_LINK_USDT_transformer",
+    "model_type": "transformer",
+    "version": "20260115_203242",
+    "market_type": "crypto",
+    "symbol": "LINK/USDT",
+    "created_at": "2026-01-15T20:32:42.117757",
+    "accuracy": 0.7025841053144808,
+    "val_accuracy": 0.75177304964539,
+    "path": "data/model_registry/models/crypto_LINK_USDT_transformer_20260115_203242",
+    "is_active": true,
+    "metadata": {
+      "model_type": "transformer",
+      "accuracy": 0.75177304964539
+    }
+  },
+  "crypto_MATIC_USDT_lstm_20260115_211645": {
+    "name": "crypto_MATIC_USDT_lstm",
+    "model_type": "lstm",
+    "version": "20260115_211645",
+    "market_type": "crypto",
+    "symbol": "MATIC/USDT",
+    "created_at": "2026-01-15T21:16:45.664353",
+    "accuracy": 0.5168711656441718,
+    "val_accuracy": 0.5546218487394958,
+    "path": "data/model_registry/models/crypto_MATIC_USDT_lstm_20260115_211645",
+    "is_active": true,
+    "metadata": {
+      "model_type": "lstm",
+      "accuracy": 0.5
+    }
+  },
+  "crypto_MATIC_USDT_transformer_20260115_211649": {
+    "name": "crypto_MATIC_USDT_transformer",
+    "model_type": "transformer",
+    "version": "20260115_211649",
+    "market_type": "crypto",
+    "symbol": "MATIC/USDT",
+    "created_at": "2026-01-15T21:16:49.222991",
+    "accuracy": 0.5084459459459459,
+    "val_accuracy": 0.5932203389830508,
+    "path": "data/model_registry/models/crypto_MATIC_USDT_transformer_20260115_211649",
+    "is_active": true,
+    "metadata": {
+      "model_type": "transformer",
+      "accuracy": 0.5
+    }
+  },
+  "crypto_UNI_USDT_lstm_20260115_211655": {
+    "name": "crypto_UNI_USDT_lstm",
+    "model_type": "lstm",
+    "version": "20260115_211655",
+    "market_type": "crypto",
+    "symbol": "UNI/USDT",
+    "created_at": "2026-01-15T21:16:55.341615",
+    "accuracy": 0.5245398773006135,
+    "val_accuracy": 0.5210084033613446,
+    "path": "data/model_registry/models/crypto_UNI_USDT_lstm_20260115_211655",
+    "is_active": true,
+    "metadata": {
+      "model_type": "lstm",
+      "accuracy": 0.5
+    }
+  },
+  "crypto_UNI_USDT_transformer_20260115_211701": {
+    "name": "crypto_UNI_USDT_transformer",
+    "model_type": "transformer",
+    "version": "20260115_211701",
+    "market_type": "crypto",
+    "symbol": "UNI/USDT",
+    "created_at": "2026-01-15T21:17:01.972569",
+    "accuracy": 0.47466216216216217,
+    "val_accuracy": 0.5254237288135594,
+    "path": "data/model_registry/models/crypto_UNI_USDT_transformer_20260115_211701",
+    "is_active": true,
+    "metadata": {
+      "model_type": "transformer",
+      "accuracy": 0.5
+    }
   }
 }
