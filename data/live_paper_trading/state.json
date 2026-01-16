@@ -1,27 +1,27 @@
 {
-  "timestamp": "2026-01-16T14:49:19.212292",
+  "timestamp": "2026-01-16T14:56:28.391522",
   "market_type": "crypto",
-  "total_value": 10019.087650692605,
+  "total_value": 10017.765735824283,
   "cash_balance": 6676.401032941567,
   "initial_capital": 10000.0,
-  "pnl": 19.087650692605166,
-  "pnl_pct": 0.19087650692605165,
+  "pnl": 17.765735824283183,
+  "pnl_pct": 0.17765735824283183,
   "positions": {
     "SOL/USDT": {
       "quantity": 11.674694000000002,
-      "price": 143.28758239746094,
-      "value": 1672.8386784901431
+      "price": 143.19723510742188,
+      "value": 1671.783901525208
     },
     "AVAX/USDT": {
       "quantity": 121.209171,
-      "price": 13.776580810546875,
-      "value": 1669.8479392608947
+      "price": 13.77437686920166,
+      "value": 1669.5808013575086
     }
   },
   "positions_count": 2,
   "current_weights": {
-    "SOL/USDT": 0.16696517056365928,
-    "AVAX/USDT": 0.16666666641502637
+    "SOL/USDT": 0.16688191215599932,
+    "AVAX/USDT": 0.16666199284207278
   },
   "optimization_method": "risk_parity",
   "signals": {
@@ -29,7 +29,7 @@
       "signal": "FLAT",
       "regime": "sideways",
       "confidence": 0.6129032258064515,
-      "price": 95294.8828125,
+      "price": 95349.9296875,
       "dl_prediction": {
         "action": "FLAT",
         "confidence": 0.33,
@@ -43,7 +43,7 @@
       "signal": "FLAT",
       "regime": "sideways",
       "confidence": 0.6129032258064515,
-      "price": 3295.634765625,
+      "price": 3299.165771484375,
       "dl_prediction": {
         "action": "FLAT",
         "confidence": 0.33,
@@ -57,7 +57,7 @@
       "signal": "FLAT",
       "regime": "sideways",
       "confidence": 0.6129032258064515,
-      "price": 143.28758239746094,
+      "price": 143.19723510742188,
       "dl_prediction": {
         "action": "FLAT",
         "confidence": 0.33,
@@ -71,7 +71,7 @@
       "signal": "FLAT",
       "regime": "sideways",
       "confidence": 0.6129032258064515,
-      "price": 13.776580810546875,
+      "price": 13.77437686920166,
       "dl_prediction": {
         "action": "FLAT",
         "confidence": 0.33,
