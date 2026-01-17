@@ -535,6 +535,27 @@ class PendingOrderConfirmation(BaseModel):
     expires_at: str
 
 
+class PositionDetail(BaseModel):
+    symbol: str
+    side: str
+    quantity: float
+    entry_price: float
+    current_price: float
+    market_value: float
+    unrealized_pnl: float
+    unrealized_pnl_pct: float
+    pct_of_portfolio: float
+    entry_time: str
+    stop_loss: Optional[float]
+    take_profit: Optional[float]
+
+
+class DetailedPositionsResponse(BaseModel):
+    positions: List[PositionDetail]
+    total_market_value: float
+    total_unrealized_pnl: float
+
+
 class ReadinessCheckResponse(BaseModel):
     """Real trading readiness check response."""
     ready: bool
@@ -989,6 +1010,85 @@ async def get_positions():
     
     except (OSError, json.JSONDecodeError):
         return {"positions": [], "total_open": 0}
+
+
+@router.get("/positions/detailed", response_model=DetailedPositionsResponse)
+async def get_detailed_positions():
+    """Return enriched position data for every open position."""
+    state = _load_state()
+    if not state:
+        return DetailedPositionsResponse(
+            positions=[], total_market_value=0, total_unrealized_pnl=0
+        )
+
+    current_balance = state.get("current_balance", 0) or 0
+    raw_positions = state.get("positions", {}) or {}
+
+    total_market_value = 0.0
+    total_unrealized_pnl = 0.0
+    entries = []
+
+    for symbol, pos_data in raw_positions.items():
+        if not isinstance(pos_data, dict):
+            continue
+
+        quantity = pos_data.get("quantity", 0) or 0
+        entry_price = pos_data.get("entry_price") or 0
+        current_price = pos_data.get("current_price") or entry_price or 0
+        market_value = quantity * current_price
+        unrealized_pnl = pos_data.get("unrealized_pnl")
+        if unrealized_pnl is None:
+            unrealized_pnl = (current_price - entry_price) * quantity
+
+        unrealized_pct = 0.0
+        if entry_price:
+            unrealized_pct = ((current_price - entry_price) / entry_price) * 100
+
+        total_market_value += market_value
+        total_unrealized_pnl += unrealized_pnl
+
+        entries.append({
+            "symbol": symbol,
+            "side": pos_data.get("side", "LONG"),
+            "quantity": quantity,
+            "entry_price": entry_price,
+            "current_price": current_price,
+            "market_value": market_value,
+            "unrealized_pnl": unrealized_pnl,
+            "unrealized_pnl_pct": unrealized_pct,
+            "entry_time": pos_data.get("entry_time", ""),
+            "stop_loss": pos_data.get("stop_loss"),
+            "take_profit": pos_data.get("take_profit"),
+        })
+
+    portfolio_value = current_balance + total_market_value if current_balance + total_market_value else 0
+    detailed_positions = []
+    for entry in entries:
+        pct_of_portfolio = (
+            entry["market_value"] / portfolio_value if portfolio_value else 0
+        )
+        detailed_positions.append(
+            PositionDetail(
+                symbol=entry["symbol"],
+                side=entry["side"],
+                quantity=entry["quantity"],
+                entry_price=entry["entry_price"],
+                current_price=entry["current_price"],
+                market_value=entry["market_value"],
+                unrealized_pnl=entry["unrealized_pnl"],
+                unrealized_pnl_pct=entry["unrealized_pnl_pct"],
+                pct_of_portfolio=pct_of_portfolio,
+                entry_time=entry["entry_time"],
+                stop_loss=entry["stop_loss"],
+                take_profit=entry["take_profit"],
+            )
+        )
+
+    return DetailedPositionsResponse(
+        positions=detailed_positions,
+        total_market_value=total_market_value,
+        total_unrealized_pnl=total_unrealized_pnl,
+    )
 
 
 @router.get("/performance")
