@@ -54,5 +54,2518 @@
     "positions_value": 0,
     "total_equity": 10000.0,
     "unrealized_pnl": 0
+  },
+  {
+    "timestamp": "2026-01-17T11:09:39.491101",
+    "balance": 10000.0,
+    "positions_value": 5002.5,
+    "total_equity": 15002.5,
+    "unrealized_pnl": 0.0
+  },
+  {
+    "timestamp": "2026-01-17T11:10:40.069121",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:11:40.593798",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:12:41.175833",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:13:41.694516",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:14:42.280509",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:15:42.774757",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:16:43.259539",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:17:43.829848",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:18:44.390349",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:19:44.895841",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:20:45.509964",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:21:46.021690",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:22:46.615403",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:23:47.109088",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:24:47.641098",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:25:48.135185",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:26:48.626883",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:27:49.130088",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:32:45.594567",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:33:46.135812",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:34:46.685425",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:35:47.255561",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:36:47.785980",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:37:48.375369",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:38:48.911890",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:39:12.063343",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:40:12.564562",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:41:13.095995",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:41:48.824811",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:42:49.314558",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:43:49.871652",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:44:50.426239",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:45:40.220514",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:46:40.768821",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:47:41.326431",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:48:41.890621",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:49:42.450206",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:50:42.988097",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:52:43.599513",
+    "balance": 9994.997500000001,
+    "positions_value": 5000.0,
+    "total_equity": 14994.997500000001,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:53:24.754320",
+    "balance": 9997.5,
+    "positions_value": 5000.0,
+    "total_equity": 14997.5,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:54:25.308520",
+    "balance": 9997.5,
+    "positions_value": 5000.0,
+    "total_equity": 14997.5,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:55:25.851207",
+    "balance": 9997.5,
+    "positions_value": 5000.0,
+    "total_equity": 14997.5,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:56:26.409234",
+    "balance": 9997.5,
+    "positions_value": 5000.0,
+    "total_equity": 14997.5,
+    "unrealized_pnl": -2.5
+  },
+  {
+    "timestamp": "2026-01-17T11:57:27.097914",
+    "balance": 10010.137511440458,
+    "positions_value": 5012.637511440458,
+    "total_equity": 15022.775022880916,
+    "unrealized_pnl": 10.137511440457457
+  },
+  {
+    "timestamp": "2026-01-17T11:58:27.580955",
+    "balance": 10007.743852875243,
+    "positions_value": 5010.243852875243,
+    "total_equity": 15017.987705750485,
+    "unrealized_pnl": 7.743852875242737
+  },
+  {
+    "timestamp": "2026-01-17T11:59:28.069637",
+    "balance": 9995.286023712642,
+    "positions_value": 4997.786023712642,
+    "total_equity": 14993.072047425285,
+    "unrealized_pnl": -4.713976287357946
+  },
+  {
+    "timestamp": "2026-01-17T12:00:28.634485",
+    "balance": 9973.15454410777,
+    "positions_value": 4975.654544107771,
+    "total_equity": 14948.809088215541,
+    "unrealized_pnl": -26.845455892229804
+  },
+  {
+    "timestamp": "2026-01-17T12:01:29.181176",
+    "balance": 9978.40297003447,
+    "positions_value": 4980.902970034472,
+    "total_equity": 14959.305940068942,
+    "unrealized_pnl": -21.597029965528783
+  },
+  {
+    "timestamp": "2026-01-17T12:02:29.751642",
+    "balance": 10004.427941716769,
+    "positions_value": 5006.927941716769,
+    "total_equity": 15011.355883433538,
+    "unrealized_pnl": 4.427941716768692
+  },
+  {
+    "timestamp": "2026-01-17T12:03:30.334960",
+    "balance": 10009.177356774519,
+    "positions_value": 5011.677356774519,
+    "total_equity": 15020.854713549037,
+    "unrealized_pnl": 9.17735677451783
+  },
+  {
+    "timestamp": "2026-01-17T12:04:30.933541",
+    "balance": 10020.459163706773,
+    "positions_value": 5022.959163706773,
+    "total_equity": 15043.418327413547,
+    "unrealized_pnl": 20.459163706772962
+  },
+  {
+    "timestamp": "2026-01-17T12:05:31.489760",
+    "balance": 9978.905224538827,
+    "positions_value": 4981.4052245388275,
+    "total_equity": 14960.310449077653,
+    "unrealized_pnl": -21.094775461172688
+  },
+  {
+    "timestamp": "2026-01-17T12:06:32.083803",
+    "balance": 9975.510206151368,
+    "positions_value": 4978.010206151368,
+    "total_equity": 14953.520412302736,
+    "unrealized_pnl": -24.48979384863269
+  },
+  {
+    "timestamp": "2026-01-17T12:07:32.627982",
+    "balance": 9980.930324922248,
+    "positions_value": 4983.4303249222485,
+    "total_equity": 14964.360649844497,
+    "unrealized_pnl": -19.069675077751892
+  },
+  {
+    "timestamp": "2026-01-17T12:08:33.213152",
+    "balance": 9979.451897711579,
+    "positions_value": 4981.951897711579,
+    "total_equity": 14961.403795423157,
+    "unrealized_pnl": -20.5481022884218
+  },
+  {
+    "timestamp": "2026-01-17T12:09:33.822072",
+    "balance": 9974.551558652933,
+    "positions_value": 4977.051558652933,
+    "total_equity": 14951.603117305865,
+    "unrealized_pnl": -25.448441347068
+  },
+  {
+    "timestamp": "2026-01-17T12:10:34.319670",
+    "balance": 10012.611132689663,
+    "positions_value": 5015.111132689663,
+    "total_equity": 15027.722265379325,
+    "unrealized_pnl": 12.611132689662192
+  },
+  {
+    "timestamp": "2026-01-17T12:11:34.957466",
+    "balance": 10003.817965406519,
+    "positions_value": 5006.317965406519,
+    "total_equity": 15010.135930813038,
+    "unrealized_pnl": 3.817965406518488
+  },
+  {
+    "timestamp": "2026-01-17T12:12:35.553435",
+    "balance": 9977.20292785916,
+    "positions_value": 4979.702927859161,
+    "total_equity": 14956.90585571832,
+    "unrealized_pnl": -22.797072140839738
+  },
+  {
+    "timestamp": "2026-01-17T12:13:36.045869",
+    "balance": 10006.146724803213,
+    "positions_value": 5008.646724803214,
+    "total_equity": 15014.793449606426,
+    "unrealized_pnl": 6.146724803213875
+  },
+  {
+    "timestamp": "2026-01-17T12:14:36.549639",
+    "balance": 9989.464461790865,
+    "positions_value": 4991.964461790866,
+    "total_equity": 14981.42892358173,
+    "unrealized_pnl": -10.535538209134394
+  },
+  {
+    "timestamp": "2026-01-17T12:15:37.148452",
+    "balance": 9990.003418135651,
+    "positions_value": 4992.503418135652,
+    "total_equity": 14982.506836271303,
+    "unrealized_pnl": -9.996581864348265
+  },
+  {
+    "timestamp": "2026-01-17T12:16:37.676686",
+    "balance": 10006.22829568308,
+    "positions_value": 5008.72829568308,
+    "total_equity": 15014.95659136616,
+    "unrealized_pnl": 6.228295683080069
+  },
+  {
+    "timestamp": "2026-01-17T12:17:38.300231",
+    "balance": 9993.645800366052,
+    "positions_value": 4996.145800366052,
+    "total_equity": 14989.791600732104,
+    "unrealized_pnl": -6.354199633948156
+  },
+  {
+    "timestamp": "2026-01-17T12:18:38.872262",
+    "balance": 9984.629780278477,
+    "positions_value": 4987.129780278478,
+    "total_equity": 14971.759560556955,
+    "unrealized_pnl": -15.370219721522155
+  },
+  {
+    "timestamp": "2026-01-17T12:19:39.383745",
+    "balance": 10014.967579714434,
+    "positions_value": 5017.467579714435,
+    "total_equity": 15032.435159428867,
+    "unrealized_pnl": 14.967579714434397
+  },
+  {
+    "timestamp": "2026-01-17T12:20:40.002129",
+    "balance": 10000.719323121342,
+    "positions_value": 5003.219323121342,
+    "total_equity": 15003.938646242685,
+    "unrealized_pnl": 0.7193231213415857
+  },
+  {
+    "timestamp": "2026-01-17T12:21:40.698071",
+    "balance": 9987.065467553366,
+    "positions_value": 4989.565467553367,
+    "total_equity": 14976.630935106732,
+    "unrealized_pnl": -12.93453244663324
+  },
+  {
+    "timestamp": "2026-01-17T12:22:41.242368",
+    "balance": 10008.655223704662,
+    "positions_value": 5011.155223704663,
+    "total_equity": 15019.810447409323,
+    "unrealized_pnl": 8.655223704662058
+  },
+  {
+    "timestamp": "2026-01-17T12:23:41.805114",
+    "balance": 10008.699144879258,
+    "positions_value": 5011.199144879258,
+    "total_equity": 15019.898289758516,
+    "unrealized_pnl": 8.699144879257075
+  },
+  {
+    "timestamp": "2026-01-17T12:24:42.448860",
+    "balance": 10017.041004092325,
+    "positions_value": 5019.541004092325,
+    "total_equity": 15036.58200818465,
+    "unrealized_pnl": 17.041004092324876
+  },
+  {
+    "timestamp": "2026-01-17T12:25:42.933635",
+    "balance": 9973.52896537108,
+    "positions_value": 4976.0289653710815,
+    "total_equity": 14949.557930742161,
+    "unrealized_pnl": -26.471034628919007
+  },
+  {
+    "timestamp": "2026-01-17T12:26:43.532531",
+    "balance": 9980.122249365222,
+    "positions_value": 4982.622249365223,
+    "total_equity": 14962.744498730444,
+    "unrealized_pnl": -19.877750634777478
+  },
+  {
+    "timestamp": "2026-01-17T12:27:44.055342",
+    "balance": 9975.251040729268,
+    "positions_value": 4977.751040729268,
+    "total_equity": 14953.002081458537,
+    "unrealized_pnl": -24.748959270732303
+  },
+  {
+    "timestamp": "2026-01-17T12:28:44.647986",
+    "balance": 10009.046545267991,
+    "positions_value": 5011.546545267991,
+    "total_equity": 15020.593090535982,
+    "unrealized_pnl": 9.046545267990586
+  },
+  {
+    "timestamp": "2026-01-17T12:29:45.275411",
+    "balance": 10015.450626427257,
+    "positions_value": 5017.950626427258,
+    "total_equity": 15033.401252854514,
+    "unrealized_pnl": 15.450626427257522
+  },
+  {
+    "timestamp": "2026-01-17T12:30:45.765328",
+    "balance": 9974.026427846411,
+    "positions_value": 4976.526427846412,
+    "total_equity": 14950.552855692822,
+    "unrealized_pnl": -25.973572153588613
+  },
+  {
+    "timestamp": "2026-01-17T12:31:46.263474",
+    "balance": 10010.57105608442,
+    "positions_value": 5013.071056084421,
+    "total_equity": 15023.64211216884,
+    "unrealized_pnl": 10.571056084420707
+  },
+  {
+    "timestamp": "2026-01-17T12:32:46.872698",
+    "balance": 9986.276890410309,
+    "positions_value": 4988.7768904103095,
+    "total_equity": 14975.053780820617,
+    "unrealized_pnl": -13.723109589691013
+  },
+  {
+    "timestamp": "2026-01-17T12:33:47.372085",
+    "balance": 10016.665618848961,
+    "positions_value": 5019.1656188489615,
+    "total_equity": 15035.831237697923,
+    "unrealized_pnl": 16.66561884896073
+  },
+  {
+    "timestamp": "2026-01-17T12:34:47.871835",
+    "balance": 10016.879745088383,
+    "positions_value": 5019.379745088383,
+    "total_equity": 15036.259490176766,
+    "unrealized_pnl": 16.879745088382332
+  },
+  {
+    "timestamp": "2026-01-17T12:35:48.368809",
+    "balance": 9994.57160909924,
+    "positions_value": 4997.07160909924,
+    "total_equity": 14991.643218198478,
+    "unrealized_pnl": -5.4283909007601325
+  },
+  {
+    "timestamp": "2026-01-17T12:36:48.883495",
+    "balance": 9979.966535584295,
+    "positions_value": 4982.466535584295,
+    "total_equity": 14962.43307116859,
+    "unrealized_pnl": -20.033464415704657
+  },
+  {
+    "timestamp": "2026-01-17T12:37:49.480855",
+    "balance": 9979.428637778463,
+    "positions_value": 4981.928637778464,
+    "total_equity": 14961.357275556926,
+    "unrealized_pnl": -20.571362221536404
+  },
+  {
+    "timestamp": "2026-01-17T12:38:50.095869",
+    "balance": 10004.943619555572,
+    "positions_value": 5007.443619555572,
+    "total_equity": 15012.387239111144,
+    "unrealized_pnl": 4.943619555571786
+  },
+  {
+    "timestamp": "2026-01-17T12:39:50.638466",
+    "balance": 10020.127947205618,
+    "positions_value": 5022.6279472056185,
+    "total_equity": 15042.755894411235,
+    "unrealized_pnl": 20.127947205617968
+  },
+  {
+    "timestamp": "2026-01-17T12:40:51.153765",
+    "balance": 9980.508544778837,
+    "positions_value": 4983.008544778838,
+    "total_equity": 14963.517089557674,
+    "unrealized_pnl": -19.491455221162326
+  },
+  {
+    "timestamp": "2026-01-17T12:41:51.698923",
+    "balance": 9978.952910325917,
+    "positions_value": 4981.452910325918,
+    "total_equity": 14960.405820651835,
+    "unrealized_pnl": -21.047089674082237
+  },
+  {
+    "timestamp": "2026-01-17T12:42:52.186351",
+    "balance": 9991.72032553117,
+    "positions_value": 4994.2203255311715,
+    "total_equity": 14985.940651062341,
+    "unrealized_pnl": -8.279674468829034
+  },
+  {
+    "timestamp": "2026-01-17T12:43:52.693415",
+    "balance": 9983.706901300186,
+    "positions_value": 4986.2069013001865,
+    "total_equity": 14969.913802600371,
+    "unrealized_pnl": -16.293098699813708
+  },
+  {
+    "timestamp": "2026-01-17T12:44:53.282203",
+    "balance": 10009.472009776619,
+    "positions_value": 5011.9720097766185,
+    "total_equity": 15021.444019553237,
+    "unrealized_pnl": 9.472009776618506
+  },
+  {
+    "timestamp": "2026-01-17T12:45:53.804405",
+    "balance": 9988.395715912224,
+    "positions_value": 4990.895715912225,
+    "total_equity": 14979.291431824447,
+    "unrealized_pnl": -11.604284087775888
+  },
+  {
+    "timestamp": "2026-01-17T12:46:54.397908",
+    "balance": 10019.5917337533,
+    "positions_value": 5022.0917337533,
+    "total_equity": 15041.683467506598,
+    "unrealized_pnl": 19.591733753299923
+  },
+  {
+    "timestamp": "2026-01-17T12:47:54.904823",
+    "balance": 9980.605603836386,
+    "positions_value": 4983.105603836386,
+    "total_equity": 14963.711207672772,
+    "unrealized_pnl": -19.394396163614147
+  },
+  {
+    "timestamp": "2026-01-17T12:48:55.526788",
+    "balance": 9980.689962166984,
+    "positions_value": 4983.189962166984,
+    "total_equity": 14963.879924333967,
+    "unrealized_pnl": -19.310037833016395
+  },
+  {
+    "timestamp": "2026-01-17T12:49:56.001106",
+    "balance": 10018.692450931905,
+    "positions_value": 5021.192450931905,
+    "total_equity": 15039.88490186381,
+    "unrealized_pnl": 18.69245093190475
+  },
+  {
+    "timestamp": "2026-01-17T12:50:56.477985",
+    "balance": 9979.473489911285,
+    "positions_value": 4981.973489911285,
+    "total_equity": 14961.44697982257,
+    "unrealized_pnl": -20.52651008871617
+  },
+  {
+    "timestamp": "2026-01-17T12:51:57.015505",
+    "balance": 10013.97309761675,
+    "positions_value": 5016.473097616751,
+    "total_equity": 15030.4461952335,
+    "unrealized_pnl": 13.973097616750602
+  },
+  {
+    "timestamp": "2026-01-17T12:52:57.535223",
+    "balance": 10003.228006171612,
+    "positions_value": 5005.728006171613,
+    "total_equity": 15008.956012343224,
+    "unrealized_pnl": 3.2280061716126514
+  },
+  {
+    "timestamp": "2026-01-17T12:53:58.023010",
+    "balance": 10016.449319085323,
+    "positions_value": 5018.949319085324,
+    "total_equity": 15035.398638170645,
+    "unrealized_pnl": 16.44931908532308
+  },
+  {
+    "timestamp": "2026-01-17T12:54:58.509415",
+    "balance": 10015.601178615103,
+    "positions_value": 5018.101178615103,
+    "total_equity": 15033.702357230206,
+    "unrealized_pnl": 15.601178615102254
+  },
+  {
+    "timestamp": "2026-01-17T12:55:59.012794",
+    "balance": 10017.901087158394,
+    "positions_value": 5020.401087158394,
+    "total_equity": 15038.302174316788,
+    "unrealized_pnl": 17.901087158393786
+  },
+  {
+    "timestamp": "2026-01-17T12:56:59.562927",
+    "balance": 9974.335790541307,
+    "positions_value": 4976.835790541307,
+    "total_equity": 14951.171581082614,
+    "unrealized_pnl": -25.66420945869322
+  },
+  {
+    "timestamp": "2026-01-17T12:58:00.154052",
+    "balance": 10005.160729412037,
+    "positions_value": 5007.660729412037,
+    "total_equity": 15012.821458824073,
+    "unrealized_pnl": 5.160729412036744
+  },
+  {
+    "timestamp": "2026-01-17T12:59:00.728673",
+    "balance": 10002.441773953644,
+    "positions_value": 5004.941773953644,
+    "total_equity": 15007.383547907288,
+    "unrealized_pnl": 2.441773953643133
+  },
+  {
+    "timestamp": "2026-01-17T13:00:01.276647",
+    "balance": 10007.881504223407,
+    "positions_value": 5010.381504223408,
+    "total_equity": 15018.263008446815,
+    "unrealized_pnl": 7.881504223407683
+  },
+  {
+    "timestamp": "2026-01-17T13:01:01.833400",
+    "balance": 10010.102964388592,
+    "positions_value": 5012.602964388592,
+    "total_equity": 15022.705928777184,
+    "unrealized_pnl": 10.1029643885915
+  },
+  {
+    "timestamp": "2026-01-17T13:02:02.331262",
+    "balance": 9988.331566095849,
+    "positions_value": 4990.831566095849,
+    "total_equity": 14979.163132191698,
+    "unrealized_pnl": -11.668433904151607
+  },
+  {
+    "timestamp": "2026-01-17T13:03:02.874246",
+    "balance": 9988.293541843657,
+    "positions_value": 4990.793541843658,
+    "total_equity": 14979.087083687315,
+    "unrealized_pnl": -11.706458156341979
+  },
+  {
+    "timestamp": "2026-01-17T13:04:03.453540",
+    "balance": 9989.811803667943,
+    "positions_value": 4992.3118036679425,
+    "total_equity": 14982.123607335885,
+    "unrealized_pnl": -10.188196332057851
+  },
+  {
+    "timestamp": "2026-01-17T13:05:04.045104",
+    "balance": 9985.611250538155,
+    "positions_value": 4988.111250538156,
+    "total_equity": 14973.72250107631,
+    "unrealized_pnl": -14.38874946184442
+  },
+  {
+    "timestamp": "2026-01-17T13:06:04.537273",
+    "balance": 9991.595542216355,
+    "positions_value": 4994.095542216356,
+    "total_equity": 14985.69108443271,
+    "unrealized_pnl": -8.404457783644466
+  },
+  {
+    "timestamp": "2026-01-17T13:07:05.055623",
+    "balance": 9979.133260587761,
+    "positions_value": 4981.633260587762,
+    "total_equity": 14960.766521175523,
+    "unrealized_pnl": -20.866739412237806
+  },
+  {
+    "timestamp": "2026-01-17T13:08:05.620622",
+    "balance": 10020.14189617481,
+    "positions_value": 5022.6418961748095,
+    "total_equity": 15042.783792349619,
+    "unrealized_pnl": 20.141896174808792
+  },
+  {
+    "timestamp": "2026-01-17T13:09:06.116930",
+    "balance": 10009.757460475039,
+    "positions_value": 5012.25746047504,
+    "total_equity": 15022.014920950078,
+    "unrealized_pnl": 9.757460475039261
+  },
+  {
+    "timestamp": "2026-01-17T13:10:06.626266",
+    "balance": 9972.673708835093,
+    "positions_value": 4975.173708835094,
+    "total_equity": 14947.847417670186,
+    "unrealized_pnl": -27.326291164906436
+  },
+  {
+    "timestamp": "2026-01-17T13:11:07.153065",
+    "balance": 10006.441700789903,
+    "positions_value": 5008.941700789903,
+    "total_equity": 15015.383401579806,
+    "unrealized_pnl": 6.441700789902825
+  },
+  {
+    "timestamp": "2026-01-17T13:12:07.739504",
+    "balance": 9992.703354581203,
+    "positions_value": 4995.203354581204,
+    "total_equity": 14987.906709162406,
+    "unrealized_pnl": -7.296645418796834
+  },
+  {
+    "timestamp": "2026-01-17T13:13:08.348811",
+    "balance": 9978.110482423275,
+    "positions_value": 4980.610482423275,
+    "total_equity": 14958.72096484655,
+    "unrealized_pnl": -21.889517576724757
+  },
+  {
+    "timestamp": "2026-01-17T13:14:08.829416",
+    "balance": 10001.530833391209,
+    "positions_value": 5004.030833391209,
+    "total_equity": 15005.561666782418,
+    "unrealized_pnl": 1.53083339120858
+  },
+  {
+    "timestamp": "2026-01-17T13:15:09.411482",
+    "balance": 10009.765550220993,
+    "positions_value": 5012.265550220993,
+    "total_equity": 15022.031100441985,
+    "unrealized_pnl": 9.76555022099201
+  },
+  {
+    "timestamp": "2026-01-17T13:16:09.956258",
+    "balance": 10011.747070912417,
+    "positions_value": 5014.247070912417,
+    "total_equity": 15025.994141824835,
+    "unrealized_pnl": 11.747070912417257
+  },
+  {
+    "timestamp": "2026-01-17T13:17:10.448626",
+    "balance": 10003.388039880021,
+    "positions_value": 5005.888039880022,
+    "total_equity": 15009.276079760042,
+    "unrealized_pnl": 3.3880398800218248
+  },
+  {
+    "timestamp": "2026-01-17T13:18:11.070069",
+    "balance": 10007.460525912582,
+    "positions_value": 5009.960525912583,
+    "total_equity": 15017.421051825164,
+    "unrealized_pnl": 7.460525912582671
+  },
+  {
+    "timestamp": "2026-01-17T13:19:11.687142",
+    "balance": 10017.562902374266,
+    "positions_value": 5020.062902374266,
+    "total_equity": 15037.625804748532,
+    "unrealized_pnl": 17.562902374265832
+  },
+  {
+    "timestamp": "2026-01-17T13:20:12.187405",
+    "balance": 10012.011120279623,
+    "positions_value": 5014.511120279623,
+    "total_equity": 15026.522240559247,
+    "unrealized_pnl": 12.011120279622993
+  },
+  {
+    "timestamp": "2026-01-17T13:21:12.683675",
+    "balance": 9975.722294035624,
+    "positions_value": 4978.222294035625,
+    "total_equity": 14953.944588071248,
+    "unrealized_pnl": -24.277705964375492
+  },
+  {
+    "timestamp": "2026-01-17T13:22:13.298926",
+    "balance": 9991.205481250528,
+    "positions_value": 4993.7054812505285,
+    "total_equity": 14984.910962501057,
+    "unrealized_pnl": -8.7945187494719
+  },
+  {
+    "timestamp": "2026-01-17T13:23:13.759568",
+    "balance": 10011.287119968112,
+    "positions_value": 5013.787119968112,
+    "total_equity": 15025.074239936224,
+    "unrealized_pnl": 11.287119968111803
+  },
+  {
+    "timestamp": "2026-01-17T13:24:14.291191",
+    "balance": 9980.096204029958,
+    "positions_value": 4982.596204029959,
+    "total_equity": 14962.692408059916,
+    "unrealized_pnl": -19.903795970041394
+  },
+  {
+    "timestamp": "2026-01-17T13:25:14.871902",
+    "balance": 10008.513358087592,
+    "positions_value": 5011.013358087592,
+    "total_equity": 15019.526716175184,
+    "unrealized_pnl": 8.513358087591769
+  },
+  {
+    "timestamp": "2026-01-17T13:26:15.508250",
+    "balance": 10021.62719733488,
+    "positions_value": 5024.127197334879,
+    "total_equity": 15045.754394669759,
+    "unrealized_pnl": 21.62719733487902
+  },
+  {
+    "timestamp": "2026-01-17T13:27:16.031091",
+    "balance": 10020.56164067053,
+    "positions_value": 5023.06164067053,
+    "total_equity": 15043.62328134106,
+    "unrealized_pnl": 20.5616406705296
+  },
+  {
+    "timestamp": "2026-01-17T13:28:16.590661",
+    "balance": 9983.357210457263,
+    "positions_value": 4985.857210457263,
+    "total_equity": 14969.214420914526,
+    "unrealized_pnl": -16.642789542736864
+  },
+  {
+    "timestamp": "2026-01-17T13:29:17.170636",
+    "balance": 10012.241401205798,
+    "positions_value": 5014.741401205798,
+    "total_equity": 15026.982802411596,
+    "unrealized_pnl": 12.241401205797594
+  },
+  {
+    "timestamp": "2026-01-17T13:30:17.691301",
+    "balance": 9975.999007670236,
+    "positions_value": 4978.499007670237,
+    "total_equity": 14954.498015340472,
+    "unrealized_pnl": -24.00099232976354
+  },
+  {
+    "timestamp": "2026-01-17T13:31:18.303063",
+    "balance": 10005.203724911136,
+    "positions_value": 5007.703724911136,
+    "total_equity": 15012.907449822273,
+    "unrealized_pnl": 5.203724911135942
+  },
+  {
+    "timestamp": "2026-01-17T13:32:18.881055",
+    "balance": 10002.355111957564,
+    "positions_value": 5004.855111957565,
+    "total_equity": 15007.210223915128,
+    "unrealized_pnl": 2.3551119575648047
+  },
+  {
+    "timestamp": "2026-01-17T13:33:19.383987",
+    "balance": 10002.300026532594,
+    "positions_value": 5004.800026532594,
+    "total_equity": 15007.100053065187,
+    "unrealized_pnl": 2.3000265325928924
+  },
+  {
+    "timestamp": "2026-01-17T13:34:19.858715",
+    "balance": 9981.64542426904,
+    "positions_value": 4984.145424269041,
+    "total_equity": 14965.79084853808,
+    "unrealized_pnl": -18.354575730959915
+  },
+  {
+    "timestamp": "2026-01-17T13:35:20.352827",
+    "balance": 9982.170913420294,
+    "positions_value": 4984.670913420295,
+    "total_equity": 14966.841826840588,
+    "unrealized_pnl": -17.82908657970547
+  },
+  {
+    "timestamp": "2026-01-17T13:36:20.868024",
+    "balance": 10001.938746988915,
+    "positions_value": 5004.438746988915,
+    "total_equity": 15006.37749397783,
+    "unrealized_pnl": 1.9387469889152271
+  },
+  {
+    "timestamp": "2026-01-17T13:37:21.441835",
+    "balance": 9990.408822603125,
+    "positions_value": 4992.908822603125,
+    "total_equity": 14983.31764520625,
+    "unrealized_pnl": -9.591177396874992
+  },
+  {
+    "timestamp": "2026-01-17T13:38:21.982381",
+    "balance": 9999.433819442233,
+    "positions_value": 5001.933819442233,
+    "total_equity": 15001.367638884465,
+    "unrealized_pnl": -0.5661805577678024
+  },
+  {
+    "timestamp": "2026-01-17T13:39:22.547207",
+    "balance": 10002.903007048899,
+    "positions_value": 5005.403007048899,
+    "total_equity": 15008.306014097798,
+    "unrealized_pnl": 2.9030070488988713
+  },
+  {
+    "timestamp": "2026-01-17T13:40:23.091628",
+    "balance": 9993.778660643897,
+    "positions_value": 4996.278660643897,
+    "total_equity": 14990.057321287793,
+    "unrealized_pnl": -6.221339356103272
+  },
+  {
+    "timestamp": "2026-01-17T13:41:24.544617",
+    "balance": 9997.40476835222,
+    "positions_value": 4999.904768352221,
+    "total_equity": 14997.30953670444,
+    "unrealized_pnl": -2.595231647779292
+  },
+  {
+    "timestamp": "2026-01-17T13:42:25.094020",
+    "balance": 9998.015300272154,
+    "positions_value": 5000.515300272155,
+    "total_equity": 14998.530600544309,
+    "unrealized_pnl": -1.9846997278451455
+  },
+  {
+    "timestamp": "2026-01-17T13:43:25.691657",
+    "balance": 9991.658966637287,
+    "positions_value": 4994.158966637287,
+    "total_equity": 14985.817933274575,
+    "unrealized_pnl": -8.341033362712915
+  },
+  {
+    "timestamp": "2026-01-17T13:44:26.208193",
+    "balance": 10004.64970064038,
+    "positions_value": 5007.149700640381,
+    "total_equity": 15011.799401280761,
+    "unrealized_pnl": 4.649700640380615
+  },
+  {
+    "timestamp": "2026-01-17T13:44:57.470998",
+    "balance": 9985.214924428643,
+    "positions_value": 4987.714924428643,
+    "total_equity": 14972.929848857286,
+    "unrealized_pnl": -14.785075571357448
+  },
+  {
+    "timestamp": "2026-01-17T13:45:58.014768",
+    "balance": 10013.397987298997,
+    "positions_value": 5015.897987298997,
+    "total_equity": 15029.295974597993,
+    "unrealized_pnl": 13.397987298996306
+  },
+  {
+    "timestamp": "2026-01-17T13:46:16.064588",
+    "balance": 10006.36847458415,
+    "positions_value": 5008.868474584149,
+    "total_equity": 15015.236949168298,
+    "unrealized_pnl": 6.368474584148498
+  },
+  {
+    "timestamp": "2026-01-17T13:47:16.565810",
+    "balance": 10018.57752782556,
+    "positions_value": 5021.0775278255605,
+    "total_equity": 15039.655055651121,
+    "unrealized_pnl": 18.577527825560537
+  },
+  {
+    "timestamp": "2026-01-17T13:48:08.788716",
+    "balance": 10012.93490287373,
+    "positions_value": 5015.434902873731,
+    "total_equity": 15028.369805747461,
+    "unrealized_pnl": 12.93490287372988
+  },
+  {
+    "timestamp": "2026-01-17T13:48:46.855833",
+    "balance": 10000.0,
+    "positions_value": 4992.7941546189895,
+    "total_equity": 14992.79415461899,
+    "unrealized_pnl": 0.0
+  },
+  {
+    "timestamp": "2026-01-17T13:49:47.409767",
+    "balance": 10012.190692812397,
+    "positions_value": 5004.984847431387,
+    "total_equity": 15017.175540243785,
+    "unrealized_pnl": 12.190692812397582
+  },
+  {
+    "timestamp": "2026-01-17T13:50:47.981286",
+    "balance": 10017.394829301193,
+    "positions_value": 5010.188983920181,
+    "total_equity": 15027.583813221374,
+    "unrealized_pnl": 17.394829301192516
+  },
+  {
+    "timestamp": "2026-01-17T13:51:48.518325",
+    "balance": 10027.52458017981,
+    "positions_value": 5020.318734798799,
+    "total_equity": 15047.843314978609,
+    "unrealized_pnl": 27.524580179809742
+  },
+  {
+    "timestamp": "2026-01-17T13:52:49.087242",
+    "balance": 10029.109476723277,
+    "positions_value": 5021.903631342266,
+    "total_equity": 15051.013108065543,
+    "unrealized_pnl": 29.10947672327622
+  },
+  {
+    "timestamp": "2026-01-17T13:53:49.665050",
+    "balance": 10038.55778990364,
+    "positions_value": 5031.351944522628,
+    "total_equity": 15069.909734426268,
+    "unrealized_pnl": 38.55778990363929
+  },
+  {
+    "timestamp": "2026-01-17T13:54:50.236362",
+    "balance": 10010.175675167471,
+    "positions_value": 5002.969829786461,
+    "total_equity": 15013.145504953933,
+    "unrealized_pnl": 10.175675167471152
+  },
+  {
+    "timestamp": "2026-01-17T13:55:50.738638",
+    "balance": 9996.321681817853,
+    "positions_value": 4989.115836436842,
+    "total_equity": 14985.437518254696,
+    "unrealized_pnl": -3.678318182147394
+  },
+  {
+    "timestamp": "2026-01-17T13:56:51.318899",
+    "balance": 10037.375468170902,
+    "positions_value": 5030.16962278989,
+    "total_equity": 15067.545090960792,
+    "unrealized_pnl": 37.37546817090117
+  },
+  {
+    "timestamp": "2026-01-17T13:57:51.845012",
+    "balance": 10025.869973245684,
+    "positions_value": 5018.664127864674,
+    "total_equity": 15044.53410111036,
+    "unrealized_pnl": 25.869973245685063
+  },
+  {
+    "timestamp": "2026-01-17T13:58:52.410058",
+    "balance": 10028.23051861881,
+    "positions_value": 5021.024673237799,
+    "total_equity": 15049.25519185661,
+    "unrealized_pnl": 28.230518618810354
+  },
+  {
+    "timestamp": "2026-01-17T13:59:52.954233",
+    "balance": 10011.429477273232,
+    "positions_value": 5004.2236318922205,
+    "total_equity": 15015.653109165452,
+    "unrealized_pnl": 11.429477273231742
+  },
+  {
+    "timestamp": "2026-01-17T14:00:53.515086",
+    "balance": 10015.760086876495,
+    "positions_value": 5008.554241495484,
+    "total_equity": 15024.31432837198,
+    "unrealized_pnl": 15.760086876495198
+  },
+  {
+    "timestamp": "2026-01-17T14:01:54.069795",
+    "balance": 10039.257480034066,
+    "positions_value": 5032.051634653056,
+    "total_equity": 15071.309114687123,
+    "unrealized_pnl": 39.25748003406662
+  },
+  {
+    "timestamp": "2026-01-17T14:02:54.618664",
+    "balance": 10032.156210715713,
+    "positions_value": 5024.950365334703,
+    "total_equity": 15057.106576050417,
+    "unrealized_pnl": 32.15621071571366
+  },
+  {
+    "timestamp": "2026-01-17T14:03:55.207307",
+    "balance": 10017.30181680022,
+    "positions_value": 5010.0959714192095,
+    "total_equity": 15027.39778821943,
+    "unrealized_pnl": 17.301816800220376
+  },
+  {
+    "timestamp": "2026-01-17T14:04:55.782696",
+    "balance": 10032.377382302775,
+    "positions_value": 5025.1715369217645,
+    "total_equity": 15057.54891922454,
+    "unrealized_pnl": 32.377382302775786
+  },
+  {
+    "timestamp": "2026-01-17T14:05:56.285454",
+    "balance": 10038.524617684168,
+    "positions_value": 5031.318772303159,
+    "total_equity": 15069.843389987327,
+    "unrealized_pnl": 38.524617684169215
+  },
+  {
+    "timestamp": "2026-01-17T14:06:56.879612",
+    "balance": 10024.918893443575,
+    "positions_value": 5017.713048062564,
+    "total_equity": 15042.631941506139,
+    "unrealized_pnl": 24.918893443574657
+  },
+  {
+    "timestamp": "2026-01-17T14:07:57.394056",
+    "balance": 10007.660314159724,
+    "positions_value": 5000.454468778713,
+    "total_equity": 15008.114782938437,
+    "unrealized_pnl": 7.660314159723526
+  },
+  {
+    "timestamp": "2026-01-17T14:08:57.981201",
+    "balance": 10031.529159135454,
+    "positions_value": 5024.323313754443,
+    "total_equity": 15055.852472889897,
+    "unrealized_pnl": 31.529159135453977
+  },
+  {
+    "timestamp": "2026-01-17T14:09:58.513841",
+    "balance": 10038.345183116187,
+    "positions_value": 5031.139337735177,
+    "total_equity": 15069.484520851365,
+    "unrealized_pnl": 38.34518311618756
+  },
+  {
+    "timestamp": "2026-01-17T14:10:59.079781",
+    "balance": 10024.41045469266,
+    "positions_value": 5017.204609311649,
+    "total_equity": 15041.615064004309,
+    "unrealized_pnl": 24.410454692659982
+  },
+  {
+    "timestamp": "2026-01-17T14:11:59.615415",
+    "balance": 10036.671580313903,
+    "positions_value": 5029.465734932892,
+    "total_equity": 15066.137315246795,
+    "unrealized_pnl": 36.67158031390293
+  },
+  {
+    "timestamp": "2026-01-17T14:13:00.162395",
+    "balance": 10000.240651343425,
+    "positions_value": 4993.034805962415,
+    "total_equity": 14993.275457305841,
+    "unrealized_pnl": 0.2406513434254046
+  },
+  {
+    "timestamp": "2026-01-17T14:14:00.683727",
+    "balance": 10023.394032976263,
+    "positions_value": 5016.188187595252,
+    "total_equity": 15039.582220571516,
+    "unrealized_pnl": 23.394032976262757
+  },
+  {
+    "timestamp": "2026-01-17T14:15:01.159668",
+    "balance": 10036.081962202554,
+    "positions_value": 5028.876116821543,
+    "total_equity": 15064.958079024098,
+    "unrealized_pnl": 36.08196220255424
+  },
+  {
+    "timestamp": "2026-01-17T14:16:01.667616",
+    "balance": 10009.654767884434,
+    "positions_value": 5002.448922503424,
+    "total_equity": 15012.10369038786,
+    "unrealized_pnl": 9.65476788443506
+  },
+  {
+    "timestamp": "2026-01-17T14:17:02.147725",
+    "balance": 10037.80886754842,
+    "positions_value": 5030.603022167408,
+    "total_equity": 15068.411889715828,
+    "unrealized_pnl": 37.8088675484187
+  },
+  {
+    "timestamp": "2026-01-17T14:18:02.698307",
+    "balance": 10005.250153412162,
+    "positions_value": 4998.044308031152,
+    "total_equity": 15003.294461443315,
+    "unrealized_pnl": 5.250153412162459
+  },
+  {
+    "timestamp": "2026-01-17T14:19:03.275268",
+    "balance": 10024.032241638231,
+    "positions_value": 5016.826396257221,
+    "total_equity": 15040.858637895453,
+    "unrealized_pnl": 24.0322416382321
+  },
+  {
+    "timestamp": "2026-01-17T14:20:03.813481",
+    "balance": 10033.05270521045,
+    "positions_value": 5025.846859829439,
+    "total_equity": 15058.89956503989,
+    "unrealized_pnl": 33.05270521044993
+  },
+  {
+    "timestamp": "2026-01-17T14:21:04.377477",
+    "balance": 10033.069968438902,
+    "positions_value": 5025.864123057891,
+    "total_equity": 15058.934091496794,
+    "unrealized_pnl": 33.069968438902336
+  },
+  {
+    "timestamp": "2026-01-17T14:22:04.958586",
+    "balance": 10040.836310821564,
+    "positions_value": 5033.630465440552,
+    "total_equity": 15074.466776262116,
+    "unrealized_pnl": 40.836310821562755
+  },
+  {
+    "timestamp": "2026-01-17T14:23:05.481452",
+    "balance": 10001.645481161953,
+    "positions_value": 4994.439635780943,
+    "total_equity": 14996.085116942897,
+    "unrealized_pnl": 1.6454811619537513
+  },
+  {
+    "timestamp": "2026-01-17T14:24:06.028154",
+    "balance": 10007.119803452255,
+    "positions_value": 4999.9139580712435,
+    "total_equity": 15007.033761523498,
+    "unrealized_pnl": 7.119803452254621
+  },
+  {
+    "timestamp": "2026-01-17T14:25:06.633057",
+    "balance": 10027.722793894593,
+    "positions_value": 5020.516948513581,
+    "total_equity": 15048.239742408174,
+    "unrealized_pnl": 27.722793894592247
+  },
+  {
+    "timestamp": "2026-01-17T14:26:07.251186",
+    "balance": 10042.74000663766,
+    "positions_value": 5035.534161256648,
+    "total_equity": 15078.274167894308,
+    "unrealized_pnl": 42.740006637659114
+  },
+  {
+    "timestamp": "2026-01-17T14:27:07.836271",
+    "balance": 10004.562818289867,
+    "positions_value": 4997.356972908857,
+    "total_equity": 15001.919791198725,
+    "unrealized_pnl": 4.562818289867543
+  },
+  {
+    "timestamp": "2026-01-17T14:28:09.414845",
+    "balance": 10028.811685291177,
+    "positions_value": 5021.605839910168,
+    "total_equity": 15050.417525201345,
+    "unrealized_pnl": 28.81168529117801
+  },
+  {
+    "timestamp": "2026-01-17T14:29:09.981638",
+    "balance": 10029.595443515072,
+    "positions_value": 5022.389598134061,
+    "total_equity": 15051.985041649134,
+    "unrealized_pnl": 29.595443515071754
+  },
+  {
+    "timestamp": "2026-01-17T14:30:10.471963",
+    "balance": 10027.71363875078,
+    "positions_value": 5020.507793369769,
+    "total_equity": 15048.22143212055,
+    "unrealized_pnl": 27.71363875078027
+  },
+  {
+    "timestamp": "2026-01-17T14:31:10.969658",
+    "balance": 10031.695899535522,
+    "positions_value": 5024.49005415451,
+    "total_equity": 15056.185953690032,
+    "unrealized_pnl": 31.695899535521047
+  },
+  {
+    "timestamp": "2026-01-17T14:32:11.482672",
+    "balance": 10001.808691174527,
+    "positions_value": 4994.602845793515,
+    "total_equity": 14996.411536968042,
+    "unrealized_pnl": 1.8086911745263452
+  },
+  {
+    "timestamp": "2026-01-17T14:32:52.905035",
+    "balance": 10004.225814256975,
+    "positions_value": 4997.019968875964,
+    "total_equity": 15001.24578313294,
+    "unrealized_pnl": 4.225814256975018
+  },
+  {
+    "timestamp": "2026-01-17T14:33:23.425370",
+    "balance": 10020.539067079671,
+    "positions_value": 5013.333221698662,
+    "total_equity": 15033.872288778333,
+    "unrealized_pnl": 20.539067079672343
+  },
+  {
+    "timestamp": "2026-01-17T14:33:53.961507",
+    "balance": 10019.635971002199,
+    "positions_value": 5012.430125621188,
+    "total_equity": 15032.066096623388,
+    "unrealized_pnl": 19.63597100219899
+  },
+  {
+    "timestamp": "2026-01-17T14:34:24.449908",
+    "balance": 10042.88729946175,
+    "positions_value": 5035.68145408074,
+    "total_equity": 15078.568753542491,
+    "unrealized_pnl": 42.88729946175041
+  },
+  {
+    "timestamp": "2026-01-17T14:34:55.009902",
+    "balance": 10035.726829898542,
+    "positions_value": 5028.520984517531,
+    "total_equity": 15064.247814416074,
+    "unrealized_pnl": 35.72682989854254
+  },
+  {
+    "timestamp": "2026-01-17T14:35:25.611900",
+    "balance": 10008.98396201194,
+    "positions_value": 5001.778116630929,
+    "total_equity": 15010.762078642869,
+    "unrealized_pnl": 8.983962011939656
+  },
+  {
+    "timestamp": "2026-01-17T14:35:56.182712",
+    "balance": 10023.839269051714,
+    "positions_value": 5016.633423670703,
+    "total_equity": 15040.472692722418,
+    "unrealized_pnl": 23.839269051714393
+  },
+  {
+    "timestamp": "2026-01-17T14:36:26.756226",
+    "balance": 10033.629626305421,
+    "positions_value": 5026.4237809244105,
+    "total_equity": 15060.053407229832,
+    "unrealized_pnl": 33.6296263054218
+  },
+  {
+    "timestamp": "2026-01-17T14:36:57.340325",
+    "balance": 10016.23652002615,
+    "positions_value": 5009.030674645139,
+    "total_equity": 15025.267194671289,
+    "unrealized_pnl": 16.23652002614954
+  },
+  {
+    "timestamp": "2026-01-17T14:37:27.886400",
+    "balance": 10016.297582151665,
+    "positions_value": 5009.091736770653,
+    "total_equity": 15025.389318922318,
+    "unrealized_pnl": 16.29758215166385
+  },
+  {
+    "timestamp": "2026-01-17T15:07:07.064632",
+    "balance": 19395.911375739583,
+    "positions_value": 9588.70553035857,
+    "total_equity": 28984.616906098152,
+    "unrealized_pnl": 4595.911375739581
+  },
+  {
+    "timestamp": "2026-01-17T15:08:09.109251",
+    "balance": 19392.857489492915,
+    "positions_value": 9585.651644111904,
+    "total_equity": 28978.50913360482,
+    "unrealized_pnl": 4592.857489492915
+  },
+  {
+    "timestamp": "2026-01-17T15:09:11.244920",
+    "balance": 19388.81304526473,
+    "positions_value": 9581.607199883721,
+    "total_equity": 28970.420245148453,
+    "unrealized_pnl": 4588.813045264733
+  },
+  {
+    "timestamp": "2026-01-17T15:10:13.275087",
+    "balance": 19388.11925364205,
+    "positions_value": 9580.91340826104,
+    "total_equity": 28969.03266190309,
+    "unrealized_pnl": 4588.11925364205
+  },
+  {
+    "timestamp": "2026-01-17T15:11:15.229735",
+    "balance": 19384.646285172435,
+    "positions_value": 9577.440439791424,
+    "total_equity": 28962.08672496386,
+    "unrealized_pnl": 4584.6462851724355
+  },
+  {
+    "timestamp": "2026-01-17T15:12:17.356598",
+    "balance": 19382.482698002277,
+    "positions_value": 9575.276852621266,
+    "total_equity": 28957.759550623545,
+    "unrealized_pnl": 4582.482698002276
+  },
+  {
+    "timestamp": "2026-01-17T15:13:19.373047",
+    "balance": 19382.301229384204,
+    "positions_value": 9575.095384003194,
+    "total_equity": 28957.3966133874,
+    "unrealized_pnl": 4582.301229384205
+  },
+  {
+    "timestamp": "2026-01-17T15:14:21.946792",
+    "balance": 19382.301229384204,
+    "positions_value": 9575.095384003194,
+    "total_equity": 28957.3966133874,
+    "unrealized_pnl": 4582.301229384205
+  },
+  {
+    "timestamp": "2026-01-17T15:15:24.285971",
+    "balance": 19382.889749156624,
+    "positions_value": 9575.683903775614,
+    "total_equity": 28958.57365293224,
+    "unrealized_pnl": 4582.889749156625
+  },
+  {
+    "timestamp": "2026-01-17T17:23:06.033456",
+    "balance": 10000.0,
+    "positions_value": 0,
+    "total_equity": 10000.0,
+    "unrealized_pnl": 0
+  },
+  {
+    "timestamp": "2026-01-17T17:24:22.991255",
+    "balance": 10000.0,
+    "positions_value": 999.4405008,
+    "total_equity": 10999.4405008,
+    "unrealized_pnl": 0.0
+  },
+  {
+    "timestamp": "2026-01-17T17:25:24.748036",
+    "balance": 10000.1997488,
+    "positions_value": 999.6402496000001,
+    "total_equity": 10999.839998399999,
+    "unrealized_pnl": 0.1997487999999756
+  },
+  {
+    "timestamp": "2026-01-17T17:26:26.600549",
+    "balance": 10000.5157208,
+    "positions_value": 999.9562215999999,
+    "total_equity": 11000.4719424,
+    "unrealized_pnl": 0.5157207999999146
+  },
+  {
+    "timestamp": "2026-01-17T17:27:28.470680",
+    "balance": 10000.486272,
+    "positions_value": 999.9267728,
+    "total_equity": 11000.4130448,
+    "unrealized_pnl": 0.486271999999939
+  },
+  {
+    "timestamp": "2026-01-17T17:28:30.340621",
+    "balance": 10000.4863768,
+    "positions_value": 999.9268775999999,
+    "total_equity": 11000.413254399999,
+    "unrealized_pnl": 0.4863767999998841
+  },
+  {
+    "timestamp": "2026-01-17T17:29:32.197615",
+    "balance": 10000.4863768,
+    "positions_value": 999.9268775999999,
+    "total_equity": 11000.413254399999,
+    "unrealized_pnl": 0.4863767999998841
+  },
+  {
+    "timestamp": "2026-01-17T17:30:34.067568",
+    "balance": 10000.486272,
+    "positions_value": 999.9267728,
+    "total_equity": 11000.4130448,
+    "unrealized_pnl": 0.486271999999939
+  },
+  {
+    "timestamp": "2026-01-17T17:31:35.965678",
+    "balance": 10000.486272,
+    "positions_value": 999.9267728,
+    "total_equity": 11000.4130448,
+    "unrealized_pnl": 0.486271999999939
+  },
+  {
+    "timestamp": "2026-01-17T17:32:37.749967",
+    "balance": 10000.4863768,
+    "positions_value": 999.9268775999999,
+    "total_equity": 11000.413254399999,
+    "unrealized_pnl": 0.4863767999998841
+  },
+  {
+    "timestamp": "2026-01-17T17:33:39.610046",
+    "balance": 10000.451164,
+    "positions_value": 999.8916648,
+    "total_equity": 11000.3428288,
+    "unrealized_pnl": 0.451163999999878
+  },
+  {
+    "timestamp": "2026-01-17T17:34:41.464976",
+    "balance": 10000.4070432,
+    "positions_value": 999.847544,
+    "total_equity": 11000.254587200001,
+    "unrealized_pnl": 0.4070431999999634
+  },
+  {
+    "timestamp": "2026-01-17T17:35:43.338866",
+    "balance": 10000.56592,
+    "positions_value": 1000.0064208,
+    "total_equity": 11000.5723408,
+    "unrealized_pnl": 0.56592
+  },
+  {
+    "timestamp": "2026-01-17T17:39:35.494019",
+    "balance": 10626.5101248,
+    "positions_value": 1000.1506256,
+    "total_equity": 11626.660750399999,
+    "unrealized_pnl": 0.710124799999945
+  },
+  {
+    "timestamp": "2026-01-17T17:40:37.634066",
+    "balance": 10626.510229599999,
+    "positions_value": 1000.1507303999999,
+    "total_equity": 11626.66096,
+    "unrealized_pnl": 0.7102295999998902
+  },
+  {
+    "timestamp": "2026-01-17T17:41:39.378063",
+    "balance": 10626.5101248,
+    "positions_value": 1000.1506256,
+    "total_equity": 11626.660750399999,
+    "unrealized_pnl": 0.710124799999945
+  },
+  {
+    "timestamp": "2026-01-17T17:42:41.308363",
+    "balance": 10626.157892,
+    "positions_value": 999.7983928,
+    "total_equity": 11625.956284799999,
+    "unrealized_pnl": 0.357891999999939
+  },
+  {
+    "timestamp": "2026-01-17T17:43:43.102544",
+    "balance": 10626.157892,
+    "positions_value": 999.7983928,
+    "total_equity": 11625.956284799999,
+    "unrealized_pnl": 0.357891999999939
+  },
+  {
+    "timestamp": "2026-01-17T17:44:44.984920",
+    "balance": 10626.532132799999,
+    "positions_value": 1000.1726336,
+    "total_equity": 11626.704766399998,
+    "unrealized_pnl": 0.7321328000000061
+  },
+  {
+    "timestamp": "2026-01-17T17:45:46.847736",
+    "balance": 10626.3777624,
+    "positions_value": 1000.0182632,
+    "total_equity": 11626.3960256,
+    "unrealized_pnl": 0.5777623999998963
+  },
+  {
+    "timestamp": "2026-01-17T17:46:48.715924",
+    "balance": 10626.020079999998,
+    "positions_value": 999.6605808,
+    "total_equity": 11625.680660799999,
+    "unrealized_pnl": 0.22008
+  },
+  {
+    "timestamp": "2026-01-17T17:47:50.576397",
+    "balance": 10626.20348,
+    "positions_value": 999.8439808,
+    "total_equity": 11626.0474608,
+    "unrealized_pnl": 0.40348
+  },
+  {
+    "timestamp": "2026-01-17T17:48:52.387496",
+    "balance": 10625.924712,
+    "positions_value": 999.5652127999999,
+    "total_equity": 11625.4899248,
+    "unrealized_pnl": 0.124711999999939
+  },
+  {
+    "timestamp": "2026-01-17T17:49:54.256658",
+    "balance": 10625.9060576,
+    "positions_value": 999.5465584,
+    "total_equity": 11625.452615999999,
+    "unrealized_pnl": 0.1060575999999512
+  },
+  {
+    "timestamp": "2026-01-17T17:50:56.121600",
+    "balance": 10625.829553599999,
+    "positions_value": 999.4700544,
+    "total_equity": 11625.299608,
+    "unrealized_pnl": 0.029553599999920698
+  },
+  {
+    "timestamp": "2026-01-17T17:51:57.885899",
+    "balance": 10625.829553599999,
+    "positions_value": 999.4700544,
+    "total_equity": 11625.299608,
+    "unrealized_pnl": 0.029553599999920698
+  },
+  {
+    "timestamp": "2026-01-17T17:52:59.850439",
+    "balance": 10625.7668832,
+    "positions_value": 999.407384,
+    "total_equity": 11625.1742672,
+    "unrealized_pnl": -0.0331168000000366
+  },
+  {
+    "timestamp": "2026-01-17T17:54:01.707212",
+    "balance": 10625.766988,
+    "positions_value": 999.4074887999999,
+    "total_equity": 11625.174476799999,
+    "unrealized_pnl": -0.0330120000000915
+  },
+  {
+    "timestamp": "2026-01-17T17:55:03.480546",
+    "balance": 10625.766988,
+    "positions_value": 999.4074887999999,
+    "total_equity": 11625.174476799999,
+    "unrealized_pnl": -0.0330120000000915
+  },
+  {
+    "timestamp": "2026-01-17T17:56:05.203282",
+    "balance": 10625.334164,
+    "positions_value": 998.9746647999999,
+    "total_equity": 11624.3088288,
+    "unrealized_pnl": -0.465836000000122
+  },
+  {
+    "timestamp": "2026-01-17T17:57:06.978241",
+    "balance": 10625.334059199999,
+    "positions_value": 998.97456,
+    "total_equity": 11624.3086192,
+    "unrealized_pnl": -0.4659408000000671
+  },
+  {
+    "timestamp": "2026-01-17T17:58:08.721394",
+    "balance": 10625.6274992,
+    "positions_value": 999.268,
+    "total_equity": 11624.8954992,
+    "unrealized_pnl": -0.1725008000000671
+  },
+  {
+    "timestamp": "2026-01-17T17:59:10.521856",
+    "balance": 10625.6274992,
+    "positions_value": 999.268,
+    "total_equity": 11624.8954992,
+    "unrealized_pnl": -0.1725008000000671
+  },
+  {
+    "timestamp": "2026-01-17T18:00:12.381877",
+    "balance": 10625.863299199998,
+    "positions_value": 999.5038,
+    "total_equity": 11625.367099199999,
+    "unrealized_pnl": 0.0632991999999329
+  },
+  {
+    "timestamp": "2026-01-17T18:01:14.255524",
+    "balance": 10625.863299199998,
+    "positions_value": 999.5038,
+    "total_equity": 11625.367099199999,
+    "unrealized_pnl": 0.0632991999999329
+  },
+  {
+    "timestamp": "2026-01-17T18:02:16.112650",
+    "balance": 10625.606644,
+    "positions_value": 999.2471447999999,
+    "total_equity": 11624.8537888,
+    "unrealized_pnl": -0.19335600000012199
+  },
+  {
+    "timestamp": "2026-01-17T18:03:17.985660",
+    "balance": 10625.9443096,
+    "positions_value": 999.5848103999999,
+    "total_equity": 11625.52912,
+    "unrealized_pnl": 0.14430959999989018
+  },
+  {
+    "timestamp": "2026-01-17T18:04:19.849657",
+    "balance": 10625.9627544,
+    "positions_value": 999.6032552,
+    "total_equity": 11625.5660096,
+    "unrealized_pnl": 0.1627543999999878
+  },
+  {
+    "timestamp": "2026-01-17T18:05:21.724221",
+    "balance": 10626.1513944,
+    "positions_value": 999.7918952,
+    "total_equity": 11625.9432896,
+    "unrealized_pnl": 0.3513943999999878
+  },
+  {
+    "timestamp": "2026-01-17T18:06:23.584903",
+    "balance": 10625.9981768,
+    "positions_value": 999.6386775999999,
+    "total_equity": 11625.6368544,
+    "unrealized_pnl": 0.19817679999988408
+  },
+  {
+    "timestamp": "2026-01-17T18:07:25.345606",
+    "balance": 10626.120164,
+    "positions_value": 999.7606648,
+    "total_equity": 11625.8808288,
+    "unrealized_pnl": 0.320163999999878
+  },
+  {
+    "timestamp": "2026-01-17T18:08:27.311333",
+    "balance": 10626.1933144,
+    "positions_value": 999.8338152,
+    "total_equity": 11626.0271296,
+    "unrealized_pnl": 0.3933143999999878
+  },
+  {
+    "timestamp": "2026-01-17T18:09:29.168702",
+    "balance": 10626.290254399999,
+    "positions_value": 999.9307552,
+    "total_equity": 11626.221009599998,
+    "unrealized_pnl": 0.49025439999998777
+  },
+  {
+    "timestamp": "2026-01-17T18:10:31.039092",
+    "balance": 10626.372732,
+    "positions_value": 1000.0132328,
+    "total_equity": 11626.3859648,
+    "unrealized_pnl": 0.572731999999939
+  },
+  {
+    "timestamp": "2026-01-17T18:11:32.909741",
+    "balance": 10626.5088672,
+    "positions_value": 1000.149368,
+    "total_equity": 11626.6582352,
+    "unrealized_pnl": 0.7088671999999939
+  },
+  {
+    "timestamp": "2026-01-17T18:12:34.904208",
+    "balance": 10626.5088672,
+    "positions_value": 1000.149368,
+    "total_equity": 11626.6582352,
+    "unrealized_pnl": 0.7088671999999939
+  },
+  {
+    "timestamp": "2026-01-17T18:13:36.712621",
+    "balance": 10626.508762399999,
+    "positions_value": 1000.1492632,
+    "total_equity": 11626.658025599998,
+    "unrealized_pnl": 0.7087623999998963
+  },
+  {
+    "timestamp": "2026-01-17T18:14:38.562506",
+    "balance": 10626.6316928,
+    "positions_value": 1000.2721936,
+    "total_equity": 11626.9038864,
+    "unrealized_pnl": 0.8316928000000061
+  },
+  {
+    "timestamp": "2026-01-17T18:15:40.379788",
+    "balance": 10626.541145599998,
+    "positions_value": 1000.1816463999999,
+    "total_equity": 11626.722791999999,
+    "unrealized_pnl": 0.7411455999998596
+  },
+  {
+    "timestamp": "2026-01-17T18:16:42.310056",
+    "balance": 10626.541145599998,
+    "positions_value": 1000.1816463999999,
+    "total_equity": 11626.722791999999,
+    "unrealized_pnl": 0.7411455999998596
+  },
+  {
+    "timestamp": "2026-01-17T18:17:45.449273",
+    "balance": 10626.7218208,
+    "positions_value": 1000.3623216,
+    "total_equity": 11627.0841424,
+    "unrealized_pnl": 0.9218207999999146
+  },
+  {
+    "timestamp": "2026-01-17T18:18:47.215979",
+    "balance": 10626.721925599999,
+    "positions_value": 1000.3624263999999,
+    "total_equity": 11627.084351999998,
+    "unrealized_pnl": 0.9219255999998597
+  },
+  {
+    "timestamp": "2026-01-17T18:19:49.046654",
+    "balance": 10626.721925599999,
+    "positions_value": 1000.3624263999999,
+    "total_equity": 11627.084351999998,
+    "unrealized_pnl": 0.9219255999998597
+  },
+  {
+    "timestamp": "2026-01-17T18:20:50.799010",
+    "balance": 10626.721925599999,
+    "positions_value": 1000.3624263999999,
+    "total_equity": 11627.084351999998,
+    "unrealized_pnl": 0.9219255999998597
+  },
+  {
+    "timestamp": "2026-01-17T18:21:52.686448",
+    "balance": 10626.7969624,
+    "positions_value": 1000.4374631999999,
+    "total_equity": 11627.2344256,
+    "unrealized_pnl": 0.9969623999998962
+  },
+  {
+    "timestamp": "2026-01-17T18:22:54.898389",
+    "balance": 10626.758081599999,
+    "positions_value": 1000.3985824,
+    "total_equity": 11627.156663999998,
+    "unrealized_pnl": 0.9580815999999817
+  },
+  {
+    "timestamp": "2026-01-17T18:23:56.672086",
+    "balance": 10626.7579768,
+    "positions_value": 1000.3984776,
+    "total_equity": 11627.1564544,
+    "unrealized_pnl": 0.957976799999884
+  },
+  {
+    "timestamp": "2026-01-17T18:24:58.675786",
+    "balance": 10626.84276,
+    "positions_value": 1000.4832608,
+    "total_equity": 11627.3260208,
+    "unrealized_pnl": 1.04276
+  },
+  {
+    "timestamp": "2026-01-17T18:26:00.532425",
+    "balance": 10626.7891024,
+    "positions_value": 1000.4296032,
+    "total_equity": 11627.2187056,
+    "unrealized_pnl": 0.9891023999998962
+  },
+  {
+    "timestamp": "2026-01-17T18:27:02.546601",
+    "balance": 10626.675499199999,
+    "positions_value": 1000.316,
+    "total_equity": 11626.9914992,
+    "unrealized_pnl": 0.8754991999999329
+  },
+  {
+    "timestamp": "2026-01-17T18:28:04.848121",
+    "balance": 10626.697507199999,
+    "positions_value": 1000.3380080000001,
+    "total_equity": 11627.0355152,
+    "unrealized_pnl": 0.8975071999999938
+  },
+  {
+    "timestamp": "2026-01-17T18:29:06.739385",
+    "balance": 10626.697507199999,
+    "positions_value": 1000.3380080000001,
+    "total_equity": 11627.0355152,
+    "unrealized_pnl": 0.8975071999999938
+  },
+  {
+    "timestamp": "2026-01-17T18:30:08.618963",
+    "balance": 10626.7299952,
+    "positions_value": 1000.3704959999999,
+    "total_equity": 11627.100491199999,
+    "unrealized_pnl": 0.9299951999999023
+  },
+  {
+    "timestamp": "2026-01-17T18:31:10.922859",
+    "balance": 10626.842969599998,
+    "positions_value": 1000.4834704,
+    "total_equity": 11627.326439999999,
+    "unrealized_pnl": 1.0429695999998903
+  },
+  {
+    "timestamp": "2026-01-17T18:32:12.784503",
+    "balance": 10626.842864799999,
+    "positions_value": 1000.4833656,
+    "total_equity": 11627.326230399998,
+    "unrealized_pnl": 1.042864799999945
+  },
+  {
+    "timestamp": "2026-01-17T18:33:14.650473",
+    "balance": 10626.842864799999,
+    "positions_value": 1000.4833656,
+    "total_equity": 11627.326230399998,
+    "unrealized_pnl": 1.042864799999945
+  },
+  {
+    "timestamp": "2026-01-17T18:34:16.510313",
+    "balance": 10626.632635999998,
+    "positions_value": 1000.2731368,
+    "total_equity": 11626.905772799999,
+    "unrealized_pnl": 0.8326359999999695
+  },
+  {
+    "timestamp": "2026-01-17T18:35:18.372709",
+    "balance": 10626.579397599999,
+    "positions_value": 1000.2198984,
+    "total_equity": 11626.799296,
+    "unrealized_pnl": 0.7793975999999512
+  },
+  {
+    "timestamp": "2026-01-17T18:36:20.241801",
+    "balance": 10626.579397599999,
+    "positions_value": 1000.2198984,
+    "total_equity": 11626.799296,
+    "unrealized_pnl": 0.7793975999999512
+  },
+  {
+    "timestamp": "2026-01-17T18:37:22.111031",
+    "balance": 10626.5792928,
+    "positions_value": 1000.2197936,
+    "total_equity": 11626.799086399998,
+    "unrealized_pnl": 0.7792928000000061
+  },
+  {
+    "timestamp": "2026-01-17T18:38:23.980417",
+    "balance": 10626.8232672,
+    "positions_value": 1000.4637680000001,
+    "total_equity": 11627.287035199999,
+    "unrealized_pnl": 1.0232671999999938
+  },
+  {
+    "timestamp": "2026-01-17T18:39:25.848262",
+    "balance": 10626.705262399999,
+    "positions_value": 1000.3457632,
+    "total_equity": 11627.051025599998,
+    "unrealized_pnl": 0.9052623999998963
+  },
+  {
+    "timestamp": "2026-01-17T18:40:27.775560",
+    "balance": 10626.705262399999,
+    "positions_value": 1000.3457632,
+    "total_equity": 11627.051025599998,
+    "unrealized_pnl": 0.9052623999998963
+  },
+  {
+    "timestamp": "2026-01-17T18:41:29.634016",
+    "balance": 10626.582855999999,
+    "positions_value": 1000.2233568,
+    "total_equity": 11626.806212799998,
+    "unrealized_pnl": 0.7828559999999695
+  },
+  {
+    "timestamp": "2026-01-17T18:42:31.478674",
+    "balance": 10626.665124,
+    "positions_value": 1000.3056247999999,
+    "total_equity": 11626.970748799999,
+    "unrealized_pnl": 0.865123999999878
+  },
+  {
+    "timestamp": "2026-01-17T18:43:33.376405",
+    "balance": 10626.6650192,
+    "positions_value": 1000.30552,
+    "total_equity": 11626.9705392,
+    "unrealized_pnl": 0.8650191999999329
+  },
+  {
+    "timestamp": "2026-01-17T18:44:35.235025",
+    "balance": 10626.5795024,
+    "positions_value": 1000.2200032,
+    "total_equity": 11626.7995056,
+    "unrealized_pnl": 0.7795023999998962
+  },
+  {
+    "timestamp": "2026-01-17T18:45:37.091675",
+    "balance": 10626.579397599999,
+    "positions_value": 1000.2198984,
+    "total_equity": 11626.799296,
+    "unrealized_pnl": 0.7793975999999512
+  },
+  {
+    "timestamp": "2026-01-17T18:46:39.846750",
+    "balance": 10626.430896,
+    "positions_value": 1000.0713968,
+    "total_equity": 11626.5022928,
+    "unrealized_pnl": 0.6308959999999695
+  },
+  {
+    "timestamp": "2026-01-17T18:47:41.558318",
+    "balance": 10626.406267999999,
+    "positions_value": 1000.0467688,
+    "total_equity": 11626.4530368,
+    "unrealized_pnl": 0.6062679999999084
+  },
+  {
+    "timestamp": "2026-01-17T18:48:43.425953",
+    "balance": 10626.4061632,
+    "positions_value": 1000.046664,
+    "total_equity": 11626.452827199999,
+    "unrealized_pnl": 0.6061631999999634
+  },
+  {
+    "timestamp": "2026-01-17T18:49:45.204721",
+    "balance": 10626.406267999999,
+    "positions_value": 1000.0467688,
+    "total_equity": 11626.4530368,
+    "unrealized_pnl": 0.6062679999999084
+  },
+  {
+    "timestamp": "2026-01-17T18:50:46.943610",
+    "balance": 10626.335528,
+    "positions_value": 999.9760288,
+    "total_equity": 11626.3115568,
+    "unrealized_pnl": 0.5355279999999085
+  },
+  {
+    "timestamp": "2026-01-17T18:51:49.687879",
+    "balance": 10626.335632799999,
+    "positions_value": 999.9761336,
+    "total_equity": 11626.311766399998,
+    "unrealized_pnl": 0.5356328000000061
+  },
+  {
+    "timestamp": "2026-01-17T18:52:51.430237",
+    "balance": 10626.335632799999,
+    "positions_value": 999.9761336,
+    "total_equity": 11626.311766399998,
+    "unrealized_pnl": 0.5356328000000061
+  },
+  {
+    "timestamp": "2026-01-17T18:53:53.197061",
+    "balance": 10626.335632799999,
+    "positions_value": 999.9761336,
+    "total_equity": 11626.311766399998,
+    "unrealized_pnl": 0.5356328000000061
+  },
+  {
+    "timestamp": "2026-01-17T18:54:55.045992",
+    "balance": 10626.335632799999,
+    "positions_value": 999.9761336,
+    "total_equity": 11626.311766399998,
+    "unrealized_pnl": 0.5356328000000061
+  },
+  {
+    "timestamp": "2026-01-17T18:55:57.025076",
+    "balance": 10626.391071999999,
+    "positions_value": 1000.0315727999999,
+    "total_equity": 11626.422644799999,
+    "unrealized_pnl": 0.591071999999939
+  },
+  {
+    "timestamp": "2026-01-17T18:56:58.886708",
+    "balance": 10626.391071999999,
+    "positions_value": 1000.0315727999999,
+    "total_equity": 11626.422644799999,
+    "unrealized_pnl": 0.591071999999939
+  },
+  {
+    "timestamp": "2026-01-17T18:58:00.647891",
+    "balance": 10626.4475592,
+    "positions_value": 1000.0880599999999,
+    "total_equity": 11626.5356192,
+    "unrealized_pnl": 0.6475591999999328
+  },
+  {
+    "timestamp": "2026-01-17T18:59:02.401947",
+    "balance": 10626.447454399999,
+    "positions_value": 1000.0879552,
+    "total_equity": 11626.5354096,
+    "unrealized_pnl": 0.6474543999999878
+  },
+  {
+    "timestamp": "2026-01-17T19:00:04.275182",
+    "balance": 10626.447454399999,
+    "positions_value": 1000.0879552,
+    "total_equity": 11626.5354096,
+    "unrealized_pnl": 0.6474543999999878
+  },
+  {
+    "timestamp": "2026-01-17T19:01:06.075206",
+    "balance": 10626.342025599999,
+    "positions_value": 999.9825263999999,
+    "total_equity": 11626.324551999998,
+    "unrealized_pnl": 0.5420255999998597
+  },
+  {
+    "timestamp": "2026-01-17T19:02:08.984972",
+    "balance": 10626.1549576,
+    "positions_value": 999.7954584,
+    "total_equity": 11625.950416,
+    "unrealized_pnl": 0.3549575999999512
+  },
+  {
+    "timestamp": "2026-01-17T19:03:11.625128",
+    "balance": 10626.1549576,
+    "positions_value": 999.7954584,
+    "total_equity": 11625.950416,
+    "unrealized_pnl": 0.3549575999999512
+  },
+  {
+    "timestamp": "2026-01-17T19:04:13.423651",
+    "balance": 10626.207252799999,
+    "positions_value": 999.8477536,
+    "total_equity": 11626.055006399998,
+    "unrealized_pnl": 0.4072528000000061
+  },
+  {
+    "timestamp": "2026-01-17T19:05:15.159206",
+    "balance": 10626.207148,
+    "positions_value": 999.8476488,
+    "total_equity": 11626.0547968,
+    "unrealized_pnl": 0.40714799999990847
+  },
+  {
+    "timestamp": "2026-01-17T19:06:17.052168",
+    "balance": 10626.207252799999,
+    "positions_value": 999.8477536,
+    "total_equity": 11626.055006399998,
+    "unrealized_pnl": 0.4072528000000061
+  },
+  {
+    "timestamp": "2026-01-17T19:07:18.995104",
+    "balance": 10626.207148,
+    "positions_value": 999.8476488,
+    "total_equity": 11626.0547968,
+    "unrealized_pnl": 0.40714799999990847
+  },
+  {
+    "timestamp": "2026-01-17T19:08:20.762111",
+    "balance": 10626.079920799999,
+    "positions_value": 999.7204216,
+    "total_equity": 11625.800342399998,
+    "unrealized_pnl": 0.2799207999999146
+  },
+  {
+    "timestamp": "2026-01-17T19:09:22.628724",
+    "balance": 10626.079816,
+    "positions_value": 999.7203168,
+    "total_equity": 11625.8001328,
+    "unrealized_pnl": 0.2798159999999695
+  },
+  {
+    "timestamp": "2026-01-17T19:10:24.433723",
+    "balance": 10626.079816,
+    "positions_value": 999.7203168,
+    "total_equity": 11625.8001328,
+    "unrealized_pnl": 0.2798159999999695
+  },
+  {
+    "timestamp": "2026-01-17T19:11:26.311799",
+    "balance": 10626.079920799999,
+    "positions_value": 999.7204216,
+    "total_equity": 11625.800342399998,
+    "unrealized_pnl": 0.2799207999999146
+  },
+  {
+    "timestamp": "2026-01-17T19:12:28.168202",
+    "balance": 10626.079920799999,
+    "positions_value": 999.7204216,
+    "total_equity": 11625.800342399998,
+    "unrealized_pnl": 0.2799207999999146
+  },
+  {
+    "timestamp": "2026-01-17T19:13:30.034879",
+    "balance": 10626.079816,
+    "positions_value": 999.7203168,
+    "total_equity": 11625.8001328,
+    "unrealized_pnl": 0.2798159999999695
+  },
+  {
+    "timestamp": "2026-01-17T19:14:31.906187",
+    "balance": 10626.079816,
+    "positions_value": 999.7203168,
+    "total_equity": 11625.8001328,
+    "unrealized_pnl": 0.2798159999999695
+  },
+  {
+    "timestamp": "2026-01-17T19:15:33.759778",
+    "balance": 10626.079816,
+    "positions_value": 999.7203168,
+    "total_equity": 11625.8001328,
+    "unrealized_pnl": 0.2798159999999695
+  },
+  {
+    "timestamp": "2026-01-17T19:16:35.627763",
+    "balance": 10625.795179199999,
+    "positions_value": 999.4356799999999,
+    "total_equity": 11625.230859199999,
+    "unrealized_pnl": -0.004820800000067102
+  },
+  {
+    "timestamp": "2026-01-17T19:17:37.498006",
+    "balance": 10625.900503199999,
+    "positions_value": 999.541004,
+    "total_equity": 11625.4415072,
+    "unrealized_pnl": 0.10050319999996339
+  },
+  {
+    "timestamp": "2026-01-17T19:18:39.370585",
+    "balance": 10625.9432616,
+    "positions_value": 999.5837624000001,
+    "total_equity": 11625.527023999999,
+    "unrealized_pnl": 0.1432615999999817
+  },
+  {
+    "timestamp": "2026-01-17T19:19:41.230972",
+    "balance": 10625.9431568,
+    "positions_value": 999.5836575999999,
+    "total_equity": 11625.5268144,
+    "unrealized_pnl": 0.1431567999998841
+  },
+  {
+    "timestamp": "2026-01-17T19:20:43.101099",
+    "balance": 10625.732403999998,
+    "positions_value": 999.3729047999999,
+    "total_equity": 11625.105308799999,
+    "unrealized_pnl": -0.067596000000122
+  },
+  {
+    "timestamp": "2026-01-17T19:21:44.961929",
+    "balance": 10625.627604,
+    "positions_value": 999.2681048,
+    "total_equity": 11624.895708799999,
+    "unrealized_pnl": -0.172396000000122
+  },
+  {
+    "timestamp": "2026-01-17T19:22:47.122763",
+    "balance": 10625.6274992,
+    "positions_value": 999.268,
+    "total_equity": 11624.8954992,
+    "unrealized_pnl": -0.1725008000000671
+  },
+  {
+    "timestamp": "2026-01-17T19:23:49.385028",
+    "balance": 10625.6175432,
+    "positions_value": 999.258044,
+    "total_equity": 11624.8755872,
+    "unrealized_pnl": -0.18245680000003658
+  },
+  {
+    "timestamp": "2026-01-17T19:24:51.134135",
+    "balance": 10625.617438399999,
+    "positions_value": 999.2579391999999,
+    "total_equity": 11624.8753776,
+    "unrealized_pnl": -0.1825616000001342
+  },
+  {
+    "timestamp": "2026-01-17T19:25:53.001731",
+    "balance": 10625.617438399999,
+    "positions_value": 999.2579391999999,
+    "total_equity": 11624.8753776,
+    "unrealized_pnl": -0.1825616000001342
+  },
+  {
+    "timestamp": "2026-01-17T19:26:55.232519",
+    "balance": 10625.6175432,
+    "positions_value": 999.258044,
+    "total_equity": 11624.8755872,
+    "unrealized_pnl": -0.18245680000003658
+  },
+  {
+    "timestamp": "2026-01-17T19:27:57.469084",
+    "balance": 10625.616704799999,
+    "positions_value": 999.2572056,
+    "total_equity": 11624.8739104,
+    "unrealized_pnl": -0.1832952000000549
+  },
+  {
+    "timestamp": "2026-01-17T19:28:59.350178",
+    "balance": 10625.5368472,
+    "positions_value": 999.177348,
+    "total_equity": 11624.714195199998,
+    "unrealized_pnl": -0.26315280000000607
+  },
+  {
+    "timestamp": "2026-01-17T19:30:01.224085",
+    "balance": 10625.4873816,
+    "positions_value": 999.1278824,
+    "total_equity": 11624.615264,
+    "unrealized_pnl": -0.3126184000000183
+  },
+  {
+    "timestamp": "2026-01-17T19:31:02.996379",
+    "balance": 10625.4874864,
+    "positions_value": 999.1279872,
+    "total_equity": 11624.615473599999,
+    "unrealized_pnl": -0.3125136000000732
+  },
+  {
+    "timestamp": "2026-01-17T19:32:04.724756",
+    "balance": 10625.487591199999,
+    "positions_value": 999.1280919999999,
+    "total_equity": 11624.615683199998,
+    "unrealized_pnl": -0.3124088000001281
+  },
+  {
+    "timestamp": "2026-01-17T19:33:06.582281",
+    "balance": 10625.4874864,
+    "positions_value": 999.1279872,
+    "total_equity": 11624.615473599999,
+    "unrealized_pnl": -0.3125136000000732
+  },
+  {
+    "timestamp": "2026-01-17T19:34:08.456231",
+    "balance": 10625.6175432,
+    "positions_value": 999.258044,
+    "total_equity": 11624.8755872,
+    "unrealized_pnl": -0.18245680000003658
+  },
+  {
+    "timestamp": "2026-01-17T19:35:10.311050",
+    "balance": 10625.617438399999,
+    "positions_value": 999.2579391999999,
+    "total_equity": 11624.8753776,
+    "unrealized_pnl": -0.1825616000001342
+  },
+  {
+    "timestamp": "2026-01-17T19:36:12.197016",
+    "balance": 10625.6175432,
+    "positions_value": 999.258044,
+    "total_equity": 11624.8755872,
+    "unrealized_pnl": -0.18245680000003658
+  },
+  {
+    "timestamp": "2026-01-17T19:37:14.042222",
+    "balance": 10625.726639999999,
+    "positions_value": 999.3671408,
+    "total_equity": 11625.093780799998,
+    "unrealized_pnl": -0.07336
+  },
+  {
+    "timestamp": "2026-01-17T19:38:15.915648",
+    "balance": 10625.726639999999,
+    "positions_value": 999.3671408,
+    "total_equity": 11625.093780799998,
+    "unrealized_pnl": -0.07336
+  },
+  {
+    "timestamp": "2026-01-17T19:39:17.839954",
+    "balance": 10625.7265352,
+    "positions_value": 999.367036,
+    "total_equity": 11625.0935712,
+    "unrealized_pnl": -0.0734648000000976
+  },
+  {
+    "timestamp": "2026-01-17T19:40:19.628465",
+    "balance": 10625.726639999999,
+    "positions_value": 999.3671408,
+    "total_equity": 11625.093780799998,
+    "unrealized_pnl": -0.07336
+  },
+  {
+    "timestamp": "2026-01-17T19:41:21.527231",
+    "balance": 10625.726639999999,
+    "positions_value": 999.3671408,
+    "total_equity": 11625.093780799998,
+    "unrealized_pnl": -0.07336
+  },
+  {
+    "timestamp": "2026-01-17T19:42:23.328491",
+    "balance": 10625.627604,
+    "positions_value": 999.2681048,
+    "total_equity": 11624.895708799999,
+    "unrealized_pnl": -0.172396000000122
+  },
+  {
+    "timestamp": "2026-01-17T19:43:25.194273",
+    "balance": 10625.3763984,
+    "positions_value": 999.0168991999999,
+    "total_equity": 11624.3932976,
+    "unrealized_pnl": -0.4236016000001342
+  },
+  {
+    "timestamp": "2026-01-17T19:44:27.054989",
+    "balance": 10625.103499199999,
+    "positions_value": 998.744,
+    "total_equity": 11623.8474992,
+    "unrealized_pnl": -0.6965008000000671
+  },
+  {
+    "timestamp": "2026-01-17T19:45:28.738327",
+    "balance": 10625.047850399998,
+    "positions_value": 998.6883511999999,
+    "total_equity": 11623.736201599999,
+    "unrealized_pnl": -0.7521496000000427
+  },
+  {
+    "timestamp": "2026-01-17T19:46:30.730344",
+    "balance": 10625.04806,
+    "positions_value": 998.6885608,
+    "total_equity": 11623.736620799998,
+    "unrealized_pnl": -0.7519399999999999
+  },
+  {
+    "timestamp": "2026-01-17T19:47:32.796327",
+    "balance": 10625.04806,
+    "positions_value": 998.6885608,
+    "total_equity": 11623.736620799998,
+    "unrealized_pnl": -0.7519399999999999
+  },
+  {
+    "timestamp": "2026-01-17T19:48:34.647188",
+    "balance": 10625.04806,
+    "positions_value": 998.6885608,
+    "total_equity": 11623.736620799998,
+    "unrealized_pnl": -0.7519399999999999
+  },
+  {
+    "timestamp": "2026-01-17T19:49:36.599972",
+    "balance": 10625.0479552,
+    "positions_value": 998.688456,
+    "total_equity": 11623.7364112,
+    "unrealized_pnl": -0.7520448000000975
   }
 ]

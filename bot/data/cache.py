@@ -6,6 +6,7 @@ TTL management and LRU eviction.
 """
 
 import json
+import io
 import sqlite3
 import time
 from abc import ABC, abstractmethod
@@ -187,7 +188,7 @@ class SQLiteCache(CacheBackend):
     def _deserialize(self, data: bytes, value_type: str) -> Any:
         """Deserialize bytes based on type."""
         if value_type == "dataframe":
-            return pd.read_json(data.decode())
+            return pd.read_json(io.StringIO(data.decode()))
         else:
             return json.loads(data.decode())
 

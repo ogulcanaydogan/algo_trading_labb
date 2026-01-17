@@ -33,7 +33,7 @@ class SafetyLimits:
 
     # Position limits (user priority)
     max_position_size_usd: float = 20.0  # $20 max for LIVE_LIMITED
-    max_position_size_pct: float = 0.20  # 20% of capital per position
+    max_position_size_pct: float = 0.05  # 5% of capital per position (CRITICAL: was 20% - unsafe!)
     max_open_positions: int = 3
 
     # Daily loss limits (user priority)
@@ -180,6 +180,12 @@ class SafetyController:
             if balance > self._peak_balance:
                 self._peak_balance = balance
                 self._save_state()
+            
+            # Recalculate dynamic position limits based on current balance
+            if self.limits.max_position_size_pct > 0:
+                self.limits.max_position_size_usd = balance * self.limits.max_position_size_pct
+            if self.limits.max_daily_loss_pct > 0:
+                self.limits.max_daily_loss_usd = balance * self.limits.max_daily_loss_pct
 
     def update_positions(self, positions: Dict[str, float]) -> None:
         """Update open positions. positions = {symbol: value_usd}."""
@@ -508,15 +514,15 @@ def create_safety_controller_for_mode(
     mode_enum = TradingMode(mode) if isinstance(mode, str) else mode
 
     if mode_enum == TradingMode.LIVE_LIMITED:
-        # Most restrictive - user selected $100 capital
+        # Most restrictive - enforce 5% position size limit (scales with balance)
         limits = SafetyLimits(
-            max_position_size_usd=20.0,  # 20% of $100
-            max_position_size_pct=0.20,
-            max_daily_loss_usd=2.0,  # 2% of $100
-            max_daily_loss_pct=0.02,
-            max_trades_per_day=10,
+            max_position_size_usd=capital * 0.05,  # 5% of current capital
+            max_position_size_pct=0.05,  # Will auto-scale with balance
+            max_daily_loss_usd=capital * 0.02,  # 2% of current capital
+            max_daily_loss_pct=0.02,  # Will auto-scale with balance
+            max_trades_per_day=20,
             max_open_positions=3,
-            capital_limit=100.0,
+            capital_limit=None,  # Remove hard capital limit, use percentage-based
         )
     elif mode_enum == TradingMode.LIVE_FULL:
         limits = SafetyLimits(

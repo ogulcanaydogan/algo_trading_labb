@@ -207,11 +207,22 @@ class PaperExecutionAdapter(ExecutionAdapter):
         self._prices[symbol] = price
 
     async def get_current_price(self, symbol: str) -> float:
-        """Get simulated current price."""
+        """Get simulated current price with random variation."""
+        import random
+        
         if symbol in self._prices:
-            return self._prices[symbol]
-        # Default price for testing
-        return 50000.0 if "BTC" in symbol else 3000.0
+            base_price = self._prices[symbol]
+        else:
+            # Default price for testing
+            base_price = 50000.0 if "BTC" in symbol else 3000.0
+            self._prices[symbol] = base_price
+        
+        # Add random price variation (±0.5% per call) to simulate market movement
+        # This makes the portfolio balance update in real-time as "market prices" change
+        variation_pct = random.uniform(-0.005, 0.005)  # ±0.5%
+        varied_price = base_price * (1 + variation_pct)
+        
+        return varied_price
 
     async def place_order(self, order: Order) -> OrderResult:
         """Simulate order placement."""

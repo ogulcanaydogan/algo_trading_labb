@@ -690,8 +690,13 @@
             font-size: 0.75rem;
             cursor: pointer;
             transition: all 0.2s ease;
-            border: none;
+            border: 1px solid transparent;
             margin-top: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            white-space: nowrap;
         }
 
         .market-control-btn.pause {
@@ -703,6 +708,7 @@
         .market-control-btn.pause:hover {
             background: #f59e0b;
             color: white;
+            transform: scale(1.02);
         }
 
         .market-control-btn.resume {
@@ -714,6 +720,7 @@
         .market-control-btn.resume:hover {
             background: #10b981;
             color: white;
+            transform: scale(1.02);
         }
 
         .market-control-btn.stop-all {
@@ -725,12 +732,19 @@
         .market-control-btn.stop-all:hover {
             background: #ef4444;
             color: white;
+            transform: scale(1.02);
         }
 
         .market-control-btn.start-all {
             background: rgba(16, 185, 129, 0.2);
             color: #10b981;
             border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+
+        .market-control-btn.start-all:hover {
+            background: #10b981;
+            color: white;
+            transform: scale(1.02);
         }
 
         .market-control-btn.start-all:hover {
@@ -3167,7 +3181,7 @@
                 <div style="display: flex; align-items: center; gap: var(--spacing-md); flex-wrap: wrap; margin-bottom: var(--spacing-sm);">
                     <!-- Master Control -->
                     <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
-                        <button class="market-control-btn stop-all" id="masterControlBtn" onclick="handleEmergencyButtonClick()" style="padding: 8px 16px; font-size: 0.85rem;">
+                        <button class="market-control-btn stop-all" id="masterControlBtn" onclick="handleMasterControl()" style="padding: 8px 16px; font-size: 0.85rem;">
                             🛑 STOP ALL
                         </button>
                         <span class="market-control-status running" id="masterStatus" style="font-size: 0.75rem;">
@@ -5524,9 +5538,11 @@
                 const valueEl = document.getElementById(`${prefix}Value`);
                 const pnlEl = document.getElementById(`${prefix}Pnl`);
 
-                if (valueEl && marketData.total_value !== undefined) {
-                    valueEl.textContent = formatCurrency(marketData.total_value);
-                }
+                // Do NOT update total_value from WS to avoid flicker/inconsistency.
+                // Single source of truth: fetchMarketData -> state.markets.*.total_value -> updatePortfolioAllocation
+                // if (valueEl && marketData.total_value !== undefined) {
+                //     valueEl.textContent = formatCurrency(marketData.total_value);
+                // }
 
                 if (pnlEl && marketData.pnl !== undefined) {
                     const pnlClass = marketData.pnl >= 0 ? 'positive' : 'negative';
@@ -5540,9 +5556,11 @@
                 const cashEl = document.getElementById(`${prefix}Cash`);
                 const pnlTodayEl = document.getElementById(`${prefix}PnlToday`);
 
-                if (totalValueEl) totalValueEl.textContent = formatCurrency(marketData.total_value);
+                // Keep total value driven by fetchMarketData to match pie chart
+                // if (totalValueEl) totalValueEl.textContent = formatCurrency(marketData.total_value);
                 if (positionsEl) positionsEl.textContent = marketData.positions_count || 0;
-                if (cashEl) cashEl.textContent = formatCurrency(marketData.cash_balance);
+                // Avoid cash flicker from mixed sources
+                // if (cashEl) cashEl.textContent = formatCurrency(marketData.cash_balance);
                 if (pnlTodayEl) pnlTodayEl.textContent = formatPercent(marketData.pnl_pct);
 
                 // Update DL state from crypto market
@@ -7448,12 +7466,37 @@
         async function fetchControlPanelData() {
             try {
                 const response = await fetch('/api/trading/control-panel');
-                if (!response.ok) throw new Error('Failed to fetch control panel data');
+                if (!response.ok) {
+                    console.warn('Failed to fetch control panel data, status:', response.status);
+                    throw new Error('Failed to fetch control panel data');
+                }
                 controlPanelData = await response.json();
+                
+                // Ensure controlPanelData has required structure
+                if (!controlPanelData.markets) {
+                    controlPanelData.markets = {};
+                }
+                if (!controlPanelData.master) {
+                    controlPanelData.master = { emergency_stop: false };
+                }
+                
                 updateControlPanelUI(controlPanelData);
                 return controlPanelData;
             } catch (error) {
                 console.error('Error fetching control panel data:', error);
+                
+                // Initialize with default structure on error
+                if (!controlPanelData) {
+                    controlPanelData = {
+                        master: { emergency_stop: false },
+                        markets: {
+                            crypto: { running: false, paused: false, pnl: 0, pnl_pct: 0, balance: 0, open_positions: 0 },
+                            commodity: { running: false, paused: false, pnl: 0, pnl_pct: 0, balance: 0, open_positions: 0 },
+                            stock: { running: false, paused: false, pnl: 0, pnl_pct: 0, balance: 0, open_positions: 0 }
+                        }
+                    };
+                    updateControlPanelUI(controlPanelData);
+                }
                 return null;
             }
         }
@@ -7474,26 +7517,28 @@
 
             if (masterActiveCount) masterActiveCount.textContent = `${activeCount}/3 markets`;
 
-            if (data.master?.emergency_stop) {
-                if (masterStatus) masterStatus.className = 'market-control-status stopped';
-                if (masterStatusText) masterStatusText.textContent = 'STOPPED';
-                if (masterBtn) {
-                    masterBtn.className = 'market-control-btn start-all';
+            // Update master button state
+            if (masterBtn) {
+                masterBtn.classList.remove('start-all', 'stop-all', 'resume', 'pause');
+                
+                if (data.master?.emergency_stop) {
+                    if (masterStatus) masterStatus.className = 'market-control-status stopped';
+                    if (masterStatusText) masterStatusText.textContent = 'STOPPED';
+                    masterBtn.classList.add('start-all');
                     masterBtn.innerHTML = '▶️ RESUME';
-                }
-            } else if (activeCount > 0) {
-                if (masterStatus) masterStatus.className = 'market-control-status running';
-                if (masterStatusText) masterStatusText.textContent = 'Active';
-                if (masterBtn) {
-                    masterBtn.className = 'market-control-btn stop-all';
+                    masterBtn.textContent = 'RESUME ALL';
+                } else if (activeCount > 0) {
+                    if (masterStatus) masterStatus.className = 'market-control-status running';
+                    if (masterStatusText) masterStatusText.textContent = 'Active';
+                    masterBtn.classList.add('stop-all');
                     masterBtn.innerHTML = '🛑 STOP ALL';
-                }
-            } else {
-                if (masterStatus) masterStatus.className = 'market-control-status offline';
-                if (masterStatusText) masterStatusText.textContent = 'Inactive';
-                if (masterBtn) {
-                    masterBtn.className = 'market-control-btn start-all';
+                    masterBtn.textContent = 'STOP ALL';
+                } else {
+                    if (masterStatus) masterStatus.className = 'market-control-status offline';
+                    if (masterStatusText) masterStatusText.textContent = 'Inactive';
+                    masterBtn.classList.add('start-all');
                     masterBtn.innerHTML = '▶️ START';
+                    masterBtn.textContent = 'START ALL';
                 }
             }
 
@@ -7521,27 +7566,34 @@
                     pnlPercentEl.textContent = `(${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%)`;
                 }
 
-                // Update status dot and text
+                // Update status dot and text, and button state
+                if (btn) {
+                    btn.classList.remove('pause', 'resume');
+                }
+                
                 if (market.paused) {
                     if (statusDot) statusDot.style.background = '#f59e0b';
                     if (statusText) statusText.textContent = 'Paused';
                     if (btn) {
-                        btn.className = 'market-control-btn resume';
-                        btn.textContent = 'Resume';
+                        btn.classList.add('resume');
+                        btn.textContent = '▶️ Resume';
+                        btn.title = `Resume ${marketId} trading`;
                     }
                 } else if (market.running) {
                     if (statusDot) statusDot.style.background = '#10b981';
                     if (statusText) statusText.textContent = 'Running';
                     if (btn) {
-                        btn.className = 'market-control-btn pause';
-                        btn.textContent = 'Pause';
+                        btn.classList.add('pause');
+                        btn.textContent = '⏸ Pause';
+                        btn.title = `Pause ${marketId} trading`;
                     }
                 } else {
                     if (statusDot) statusDot.style.background = '#64748b';
                     if (statusText) statusText.textContent = 'Offline';
                     if (btn) {
-                        btn.className = 'market-control-btn resume';
-                        btn.textContent = 'Start';
+                        btn.classList.add('resume');
+                        btn.textContent = '▶️ Start';
+                        btn.title = `Start ${marketId} trading`;
                     }
                 }
 
@@ -7584,88 +7636,170 @@
 
         async function handleMasterControl() {
             const btn = document.getElementById('masterControlBtn');
-            btn.disabled = true;
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = '...';
+            }
 
             try {
+                // Check if emergency stop is active
                 if (controlPanelData?.master?.emergency_stop) {
                     // Resume from emergency stop
                     const response = await fetch('/api/emergency/resume?approver=dashboard_user', {
                         method: 'POST'
                     });
                     if (response.ok) {
-                        showToast('Emergency stop cleared', 'success');
+                        showToast('Emergency stop cleared - trading resumed', 'success');
+                        if (controlPanelData?.master) {
+                            controlPanelData.master.emergency_stop = false;
+                        }
+                        // Update local state - all markets should be running
+                        Object.values(controlPanelData?.markets || {}).forEach(m => {
+                            m.paused = false;
+                            m.running = true;
+                        });
+                    } else {
+                        showToast('Failed to clear emergency stop', 'error');
                     }
                 } else {
-                    // Check if any markets are active
+                    // Check if any markets are running AND active (not paused)
                     let activeCount = 0;
                     Object.values(controlPanelData?.markets || {}).forEach(m => {
                         if (m.running && !m.paused) activeCount++;
                     });
 
                     if (activeCount > 0) {
-                        // Pause all
+                        // STOP ALL - pause all markets
                         const response = await fetch('/api/trading/pause-all', {
                             method: 'POST'
                         });
                         if (response.ok) {
-                            showToast('All markets paused', 'warning');
+                            showToast('All markets stopped', 'warning');
+                            // Update local state
+                            Object.values(controlPanelData?.markets || {}).forEach(m => {
+                                m.paused = true;
+                                m.running = false;
+                            });
+                        } else {
+                            showToast('Failed to stop all markets', 'error');
                         }
                     } else {
-                        // Resume all
-                        const response = await fetch('/api/trading/resume-all', {
+                        // START ALL - start engine and resume all markets
+                        
+                        // First, start the trading engine
+                        const engineResponse = await fetch('/api/trading/start-engine', {
                             method: 'POST'
                         });
-                        if (response.ok) {
-                            showToast('All markets resumed', 'success');
+                        
+                        if (engineResponse.ok) {
+                            const engineData = await engineResponse.json();
+                            showToast('Trading engine started - initializing markets', 'success');
+                            
+                            // Wait a moment for engine to start
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                            
+                            // Then resume all markets
+                            const resumeResponse = await fetch('/api/trading/resume-all', {
+                                method: 'POST'
+                            });
+                            
+                            if (resumeResponse.ok) {
+                                showToast('All markets started - trading enabled ✅', 'success');
+                                // Update local state
+                                Object.values(controlPanelData?.markets || {}).forEach(m => {
+                                    m.paused = false;
+                                    m.running = true;
+                                });
+                            } else {
+                                showToast('Engine started but failed to enable markets', 'warning');
+                            }
+                        } else {
+                            showToast('Failed to start trading engine', 'error');
                         }
                     }
                 }
 
-                // Refresh data
-                await fetchControlPanelData();
-                await fetchEmergencyStatus();
+                // Immediately update UI with local state
+                updateControlPanelUI(controlPanelData);
+
+                // Refresh data after brief delay to sync with server
+                setTimeout(async () => {
+                    await fetchControlPanelData();
+                    await fetchEmergencyStatus();
+                }, 500);
 
             } catch (error) {
                 console.error('Error in master control:', error);
-                showToast('Control action failed', 'error');
+                showToast(`Control action failed: ${error.message}`, 'error');
             } finally {
-                btn.disabled = false;
+                if (btn) btn.disabled = false;
             }
         }
 
         window.handleMarketControl = async function(marketId) {
             const btn = document.getElementById(`${marketId}ControlBtn`);
-            if (btn) btn.disabled = true;
+            if (btn) {
+                btn.disabled = true;
+                const originalText = btn.textContent;
+                btn.textContent = '...';
+            }
 
             try {
                 const market = controlPanelData?.markets?.[marketId];
                 const isPaused = market?.paused;
                 const isRunning = market?.running;
 
+                // Determine action based on current state
                 let endpoint;
+                let expectedAction;
+                
                 if (isPaused || !isRunning) {
+                    // If paused or offline, resume it
                     endpoint = `/api/trading/market/${marketId}/resume`;
-                } else {
+                    expectedAction = 'resumed';
+                } else if (isRunning) {
+                    // If running, pause it
                     endpoint = `/api/trading/market/${marketId}/pause`;
+                    expectedAction = 'paused';
+                } else {
+                    return;
                 }
 
                 const response = await fetch(endpoint, { method: 'POST' });
                 const data = await response.json();
 
                 if (response.ok) {
-                    showToast(`${marketId} ${data.action}`, data.action === 'paused' ? 'warning' : 'success');
+                    showToast(`${marketId.toUpperCase()} ${data.action || expectedAction}`, expectedAction === 'paused' ? 'warning' : 'success');
+                    
+                    // Update local state immediately for faster UI feedback
+                    if (controlPanelData?.markets?.[marketId]) {
+                        if (expectedAction === 'paused') {
+                            controlPanelData.markets[marketId].paused = true;
+                            controlPanelData.markets[marketId].running = false;
+                        } else {
+                            controlPanelData.markets[marketId].paused = false;
+                            controlPanelData.markets[marketId].running = true;
+                        }
+                    }
+                    
+                    // Immediately update button appearance
+                    updateControlPanelUI(controlPanelData);
                 } else {
                     showToast(data.detail || 'Action failed', 'error');
                 }
 
-                // Refresh data
-                await fetchControlPanelData();
+                // Fetch fresh data after a brief delay
+                setTimeout(async () => {
+                    await fetchControlPanelData();
+                }, 500);
 
             } catch (error) {
                 console.error(`Error controlling ${marketId}:`, error);
-                showToast(`Failed to control ${marketId}`, 'error');
+                showToast(`Failed to control ${marketId}: ${error.message}`, 'error');
             } finally {
-                if (btn) btn.disabled = false;
+                if (btn) {
+                    btn.disabled = false;
+                }
             }
         }
 
@@ -8267,10 +8401,20 @@
 
         async function fetchReadinessCheck() {
             try {
-                const response = await fetch('/api/unified/readiness-check?target_mode=live_limited');
+                const timestamp = new Date().getTime(); // Cache busting
+                const response = await fetch(`/api/unified/readiness-check?target_mode=live_limited&t=${timestamp}`, {
+                    method: 'GET',
+                    cache: 'no-store',
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate'
+                    }
+                });
                 if (response.ok) {
                     readinessData = await response.json();
+                    console.log('Readiness check updated:', readinessData.ready ? 'READY' : 'NOT READY', readinessData);
                     updateReadinessUI(readinessData);
+                } else {
+                    console.error('Readiness check response not OK:', response.status);
                 }
             } catch (error) {
                 console.error('Error fetching readiness check:', error);
@@ -8278,12 +8422,24 @@
         }
 
         function updateReadinessUI(data) {
+            if (!data) {
+                console.error('No readiness data to update');
+                return;
+            }
+            
             // Update badge
             const badge = document.getElementById('readinessBadge');
+            if (!badge) {
+                console.error('readinessBadge element not found');
+                return;
+            }
+            
+            console.log('Updating readiness UI. Ready:', data.ready, 'Blocking issues:', data.blocking_issues?.length || 0);
+            
             if (data.ready) {
                 badge.className = 'readiness-badge ready';
                 badge.textContent = 'Ready';
-            } else if (data.blocking_issues.length > 0) {
+            } else if (data.blocking_issues && data.blocking_issues.length > 0) {
                 badge.className = 'readiness-badge blocked';
                 badge.textContent = 'Not Ready';
             } else {
@@ -8295,31 +8451,29 @@
             updateModeProgression(data.current_mode);
 
             // Update checks
-            data.checks.forEach(check => {
-                const checkName = check.name.replace(/\s/g, '');
-                const statusEl = document.getElementById(`${checkName.toLowerCase().replace('keys', 'Keys').replace('count', 'Count').replace('rate', 'Rate')}Status`);
-                const badgeEl = document.getElementById(`${checkName.toLowerCase().replace('keys', 'Keys').replace('count', 'Count').replace('rate', 'Rate')}Badge`);
+            if (data.checks && Array.isArray(data.checks)) {
+                data.checks.forEach(check => {
+                    // Map check names to element IDs
+                    const elementMap = {
+                        'API Keys': { status: 'apiKeysStatus', badge: 'apiKeysBadge' },
+                        'Trade Count': { status: 'tradeCountStatus', badge: 'tradeCountBadge' },
+                        'Win Rate': { status: 'winRateStatus', badge: 'winRateBadge' },
+                        'Safety System': { status: 'safetyStatus', badge: 'safetyBadge' }
+                    };
 
-                // Map check names to element IDs
-                const elementMap = {
-                    'API Keys': { status: 'apiKeysStatus', badge: 'apiKeysBadge' },
-                    'Trade Count': { status: 'tradeCountStatus', badge: 'tradeCountBadge' },
-                    'Win Rate': { status: 'winRateStatus', badge: 'winRateBadge' },
-                    'Safety System': { status: 'safetyStatus', badge: 'safetyBadge' }
-                };
+                    const els = elementMap[check.name];
+                    if (els) {
+                        const statusElement = document.getElementById(els.status);
+                        const badgeElement = document.getElementById(els.badge);
 
-                const els = elementMap[check.name];
-                if (els) {
-                    const statusElement = document.getElementById(els.status);
-                    const badgeElement = document.getElementById(els.badge);
-
-                    if (statusElement) statusElement.textContent = check.message;
-                    if (badgeElement) {
-                        badgeElement.textContent = check.status.toUpperCase();
-                        badgeElement.className = `check-badge ${check.status}`;
+                        if (statusElement) statusElement.textContent = check.message;
+                        if (badgeElement) {
+                            badgeElement.textContent = check.status.toUpperCase();
+                            badgeElement.className = `check-badge ${check.status}`;
+                        }
                     }
-                }
-            });
+                });
+            }
 
             // Update recommendations
             const recList = document.getElementById('recommendationsList');
@@ -8332,11 +8486,20 @@
             // Update go live button
             const goLiveBtn = document.getElementById('goLiveBtn');
             if (goLiveBtn) {
+                const wasDisabled = goLiveBtn.disabled;
                 goLiveBtn.disabled = !data.ready;
                 const nextMode = getNextMode(data.current_mode);
-                goLiveBtn.querySelector('span:first-child').textContent =
-                    nextMode ? `Advance to ${MODE_LABELS[nextMode] || nextMode}` : 'Already at Live Full';
+                const btnText = nextMode ? `Advance to ${MODE_LABELS[nextMode] || nextMode}` : 'Already at Live Full';
+                const spanEl = goLiveBtn.querySelector('span:first-child');
+                if (spanEl) {
+                    spanEl.textContent = btnText;
+                }
+                console.log(`Go Live Button: was_disabled=${wasDisabled}, now_disabled=${goLiveBtn.disabled}, ready=${data.ready}, next_mode=${nextMode}, text="${btnText}"`);
+            } else {
+                console.warn('Go Live button element not found!');
             }
+            
+            console.log('Readiness UI update complete');
         }
 
         function getNextMode(currentMode) {
@@ -8454,8 +8617,15 @@
         }
 
         function initReadinessPanel() {
-            // Initial fetch
+            // Initial fetch immediately
+            console.log('Initializing readiness panel...');
             fetchReadinessCheck();
+
+            // Second fetch after 1 second to ensure fresh data
+            setTimeout(() => {
+                console.log('Second readiness check (after 1s)...');
+                fetchReadinessCheck();
+            }, 1000);
 
             // Poll every 30 seconds (less frequent as this is less time-sensitive)
             setInterval(fetchReadinessCheck, 30000);

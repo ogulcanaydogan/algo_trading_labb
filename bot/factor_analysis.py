@@ -191,7 +191,12 @@ class FactorAnalyzer:
 
             # Calculate t-statistics and p-values
             mse = ss_res / (n - p - 1) if n > p + 1 else 0
-            var_beta = mse * np.linalg.inv(X_with_const.T @ X_with_const).diagonal()
+            with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
+                xtx = X_with_const.T @ X_with_const
+                if mse == 0 or np.linalg.cond(xtx) > 1e8:
+                    var_beta = np.full(xtx.shape[0], 0.0)
+                else:
+                    var_beta = mse * np.linalg.pinv(xtx).diagonal()
             se_beta = np.sqrt(np.maximum(var_beta, 1e-10))
             t_stats = beta / se_beta
             p_values = 2 * (1 - stats.t.cdf(np.abs(t_stats), n - p - 1))
@@ -236,12 +241,18 @@ class FactorAnalyzer:
 
         # Residual analysis
         residuals = returns - predictions
+        resid_std = float(np.std(residuals)) if len(residuals) else 0.0
+        has_variance = resid_std > 1e-8
+        autocorr = 0
+        if len(residuals) > 1 and has_variance:
+            with np.errstate(divide="ignore", invalid="ignore"):
+                autocorr = np.corrcoef(residuals[:-1], residuals[1:])[0, 1]
         residual_analysis = {
             "mean": round(float(np.mean(residuals)) * 100, 4),
             "std": round(float(np.std(residuals)) * 100, 4),
-            "skewness": round(float(stats.skew(residuals)), 2),
-            "kurtosis": round(float(stats.kurtosis(residuals)), 2),
-            "autocorrelation": round(float(np.corrcoef(residuals[:-1], residuals[1:])[0, 1]), 3) if len(residuals) > 1 else 0,
+            "skewness": 0.0 if resid_std == 0 else round(float(stats.skew(residuals)), 2),
+            "kurtosis": 0.0 if resid_std == 0 else round(float(stats.kurtosis(residuals)), 2),
+            "autocorrelation": round(float(autocorr), 3) if has_variance and len(residuals) > 1 else 0,
         }
 
         total_return = float(np.sum(returns)) * 100

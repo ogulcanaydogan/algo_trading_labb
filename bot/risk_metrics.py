@@ -149,8 +149,9 @@ class RiskMetricsCalculator:
         max_dd, avg_dd, max_dd_duration = self._calculate_drawdown_metrics(returns)
 
         # Distribution metrics
-        skewness = float(stats.skew(returns))
-        kurtosis = float(stats.kurtosis(returns))
+        r_std = float(np.std(returns)) if len(returns) else 0.0
+        skewness = 0.0 if r_std < 1e-8 else float(stats.skew(returns))
+        kurtosis = 0.0 if r_std < 1e-8 else float(stats.kurtosis(returns))
         tail_ratio = self._calculate_tail_ratio(returns)
 
         # Win/Loss metrics

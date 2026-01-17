@@ -1,0 +1,30 @@
+[
+  {
+    "timestamp": "2026-01-17T15:00:54.352665",
+    "from_mode": "paper_live_data",
+    "to_mode": "testnet",
+    "reason": "api_switch",
+    "approver": "dashboard_user",
+    "stats_at_transition": {
+      "total_trades": 200,
+      "win_rate": 0.5,
+      "total_pnl": 4800.0,
+      "max_drawdown": 0.004752965899817204,
+      "days_in_mode": 14
+    }
+  },
+  {
+    "timestamp": "2026-01-17T17:37:57.115549",
+    "from_mode": "testnet",
+    "to_mode": "live_limited",
+    "reason": "api_switch",
+    "approver": "admin",
+    "stats_at_transition": {
+      "total_trades": 100,
+      "win_rate": 0.55,
+      "total_pnl": 625.8,
+      "max_drawdown": 0.0,
+      "days_in_mode": 14
+    }
+  }
+]

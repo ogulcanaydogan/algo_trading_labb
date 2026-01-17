@@ -31,6 +31,7 @@ from bot.safety_controller import (
     SafetyStatus,
     create_safety_controller_for_mode,
 )
+from bot.control import load_bot_control
 from bot.trading_mode import ModeConfig, TradingMode, TradingStatus
 from bot.transition_validator import TransitionValidator, create_transition_validator
 from bot.unified_state import (
@@ -149,9 +150,16 @@ class EngineConfig:
     def __post_init__(self):
         """Load API keys from environment if not provided."""
         if self.api_key is None:
-            self.api_key = os.getenv("BINANCE_API_KEY")
+            # Load testnet keys if in testnet mode, otherwise live keys
+            if self.initial_mode == TradingMode.TESTNET:
+                self.api_key = os.getenv("BINANCE_TESTNET_API_KEY")
+            else:
+                self.api_key = os.getenv("BINANCE_API_KEY")
         if self.api_secret is None:
-            self.api_secret = os.getenv("BINANCE_API_SECRET")
+            if self.initial_mode == TradingMode.TESTNET:
+                self.api_secret = os.getenv("BINANCE_TESTNET_API_SECRET")
+            else:
+                self.api_secret = os.getenv("BINANCE_API_SECRET")
 
 
 class UnifiedTradingEngine:
@@ -489,12 +497,28 @@ class UnifiedTradingEngine:
         if not self._state or not self.execution_adapter:
             return
 
+        # Check if manually paused via control.json
+        control_state = load_bot_control(self.state_store.data_dir)
+        if control_state.paused:
+            logger.debug(f"Trading paused: {control_state.reason}")
+            # Still update balance for display purposes
+            try:
+                balance = await self.execution_adapter.get_balance()
+                self._state.current_balance = balance.available + balance.in_positions
+                self.state_store.update_state(current_balance=self._state.current_balance)
+            except Exception as e:
+                logger.debug(f"Failed to update balance during pause: {e}")
+            return
+
         # Check if trading is allowed
         if self.safety_controller:
             allowed, reason = self.safety_controller.is_trading_allowed()
             if not allowed:
                 logger.warning(f"Trading blocked: {reason}")
+                # Log this EVERY iteration so we can see what's blocking
+                logger.info(f"[SAFETY BLOCK] Reason: {reason} | Allowed: {allowed}")
                 return
+            logger.debug(f"[SAFETY PASS] Trading allowed")
 
         # Update balance
         balance = await self.execution_adapter.get_balance()
@@ -513,6 +537,24 @@ class UnifiedTradingEngine:
         # Generate signals for each symbol
         for symbol in self.config.symbols:
             await self._process_symbol(symbol)
+
+        # Update balance with unrealized P&L from all open positions
+        total_unrealized_pnl = sum(
+            pos.unrealized_pnl for pos in self._state.positions.values()
+        )
+        # Balance = initial capital + realized trades P&L + unrealized position P&L
+        marked_to_market_balance = self._state.initial_capital + self._state.total_pnl + total_unrealized_pnl
+        
+        # Only update if different (to avoid constant writes)
+        if abs(marked_to_market_balance - self._state.current_balance) > 0.01:
+            self._state.current_balance = marked_to_market_balance
+            self.state_store.update_state(current_balance=self._state.current_balance)
+            if self.safety_controller:
+                self.safety_controller.update_balance(self._state.current_balance)
+            logger.debug(
+                f"Updated balance with unrealized P&L: ${self._state.current_balance:.2f} "
+                f"(unrealized: ${total_unrealized_pnl:.2f})"
+            )
 
         # Record equity point
         self.state_store.record_equity_point()
@@ -553,15 +595,46 @@ class UnifiedTradingEngine:
         signal = await self._generate_signal(symbol, current_price)
 
         if not signal:
+            logger.debug(f"No signal for {symbol}")
             return
 
         # Process signal
-        if signal["action"] == "BUY" and not has_position:
-            await self._open_position(symbol, "long", current_price, signal)
-        elif signal["action"] == "SELL" and has_position:
-            await self._close_position(symbol, "Signal sell", current_price)
-        elif signal["action"] == "SHORT" and not has_position:
-            await self._open_position(symbol, "short", current_price, signal)
+        action = signal.get("action", "FLAT")
+        logger.info(f"Processing signal for {symbol}: action={action}, has_position={has_position}")
+        
+        if action == "BUY":
+            if not has_position:
+                await self._open_position(symbol, "long", current_price, signal)
+            else:
+                # Already have position, close if short and open long
+                pos = self._state.positions[symbol]
+                if pos.side == "short":
+                    logger.info(f"Closing SHORT position for {symbol} due to BUY signal")
+                    await self._close_position(symbol, "Signal reversal: BUY", current_price)
+                else:
+                    logger.debug(f"Already in LONG position for {symbol}, ignoring BUY signal")
+        elif action == "SELL":
+            if has_position:
+                pos = self._state.positions[symbol]
+                if pos.side == "long":
+                    logger.info(f"Closing LONG position for {symbol} due to SELL signal")
+                    await self._close_position(symbol, "Signal sell", current_price)
+                else:
+                    logger.debug(f"In SHORT position for {symbol}, ignoring SELL signal")
+            else:
+                logger.debug(f"No position to sell for {symbol}")
+        elif action == "SHORT":
+            if not has_position:
+                await self._open_position(symbol, "short", current_price, signal)
+            else:
+                pos = self._state.positions[symbol]
+                if pos.side == "long":
+                    logger.info(f"Closing LONG position for {symbol} due to SHORT signal")
+                    await self._close_position(symbol, "Signal reversal: SHORT", current_price)
+                else:
+                    logger.debug(f"Already in SHORT position for {symbol}, ignoring SHORT signal")
+        else:
+            logger.debug(f"No action for signal: {action}")
 
     async def _generate_signal(
         self, symbol: str, current_price: float
@@ -569,9 +642,12 @@ class UnifiedTradingEngine:
         """Generate trading signal."""
         if self._signal_generator:
             try:
-                return await self._signal_generator(symbol, current_price)
+                signal = await self._signal_generator(symbol, current_price)
+                if signal:
+                    logger.info(f"Signal generated for {symbol}: {signal}")
+                return signal
             except Exception as e:
-                logger.error(f"Signal generation error: {e}")
+                logger.error(f"Signal generation error for {symbol}: {e}")
 
         # Default simple signal (for testing)
         return None
@@ -639,8 +715,9 @@ class UnifiedTradingEngine:
         )
 
         logger.info(
-            f"Opened {side} position: {symbol} @ {result.average_price:.2f} "
-            f"(qty: {result.filled_quantity})"
+            f"Opened {side.upper()} position: {symbol} @ ${result.average_price:.2f} "
+            f"(qty: {result.filled_quantity}) | SL: ${position.stop_loss:.2f}, TP: ${position.take_profit:.2f} "
+            f"| Reason: {signal.get('reason', 'unknown')}"
         )
 
         # Notify callbacks
@@ -716,9 +793,11 @@ class UnifiedTradingEngine:
             return
 
         if symbol not in self._state.positions:
+            logger.warning(f"No position to close for {symbol}")
             return
 
         position = self._state.positions[symbol]
+        logger.info(f"Closing {position.side.upper()} position for {symbol} - Reason: {reason}")
 
         # Create close order
         order = Order(
@@ -732,7 +811,7 @@ class UnifiedTradingEngine:
         result = await self.execution_adapter.place_order(order)
 
         if not result.success:
-            logger.error(f"Close order failed: {result.error_message}")
+            logger.error(f"Close order failed for {symbol}: {result.error_message}")
             return
 
         if result.average_price is None:
@@ -747,6 +826,8 @@ class UnifiedTradingEngine:
 
         pnl -= result.commission or 0
         pnl_pct = pnl / (position.quantity * position.entry_price) * 100
+        
+        logger.info(f"Position closed for {symbol}: P&L=${pnl:.2f} ({pnl_pct:.2f}%)")
 
         # Record trade
         trade = TradeRecord(

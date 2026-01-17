@@ -112,6 +112,63 @@ def _get_state_path() -> Path:
     return Path("data/unified_trading/state.json")
 
 
+def _load_execution_log(limit: Optional[int] = None) -> List[Dict[str, Any]]:
+    """Load execution log; rebuild from DataStore trades if missing/empty."""
+    log_path = Path("data/unified_trading/execution_log.json")
+
+    try:
+        if log_path.exists():
+            with open(log_path) as f:
+                logs = json.load(f)
+        else:
+            logs = []
+    except (OSError, json.JSONDecodeError):
+        logs = []
+
+    if logs:
+        return logs[-limit:] if limit else logs
+
+    # Rebuild from DataStore trades when execution log is absent
+    try:
+        from bot.data_store import DataStore
+
+        ds = DataStore()
+        trades = ds.get_trades(limit=5000)  # grab recent history
+        rebuilt: List[Dict[str, Any]] = []
+
+        for trade in trades:
+            meta = trade.get("metadata", {}) or {}
+            rebuilt.append(
+                {
+                    "order_id": trade.get("trade_id")
+                    or meta.get("order_id")
+                    or f"sync_{trade.get('timestamp', '')}",
+                    "timestamp": trade.get("timestamp"),
+                    "symbol": trade.get("symbol"),
+                    "side": str(trade.get("action", "")).lower(),
+                    "quantity": trade.get("quantity", 0),
+                    "price": trade.get("price", 0),
+                    "fill_price": trade.get("price", None),
+                    "slippage_pct": meta.get("slippage_pct"),
+                    "commission": meta.get("fees_paid")
+                    or trade.get("fees_paid")
+                    or 0,
+                    "status": meta.get("status", "filled"),
+                    "mode": meta.get("mode", meta.get("execution_mode", "sync")),
+                    "execution_time_ms": meta.get("execution_time_ms"),
+                }
+            )
+
+        if rebuilt:
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(log_path, "w") as f:
+                json.dump(rebuilt, f, indent=2)
+            return rebuilt[-limit:] if limit else rebuilt
+    except Exception as e:  # pragma: no cover - safe fallback
+        logger.warning(f"Could not rebuild execution log: {e}")
+
+    return []
+
 def _get_safety_path() -> Path:
     """Get the safety state path."""
     return Path("data/safety_state.json")
@@ -503,8 +560,13 @@ async def test_exchange_connection(
     import time
     from datetime import datetime
 
-    api_key = os.getenv("BINANCE_API_KEY", "")
-    api_secret = os.getenv("BINANCE_API_SECRET", "")
+    # Use testnet keys if mode is testnet, otherwise use live keys
+    if mode == "testnet":
+        api_key = os.getenv("BINANCE_TESTNET_API_KEY", "")
+        api_secret = os.getenv("BINANCE_TESTNET_API_SECRET", "")
+    else:
+        api_key = os.getenv("BINANCE_API_KEY", "")
+        api_secret = os.getenv("BINANCE_API_SECRET", "")
 
     if not api_key or not api_secret:
         return ExchangeConnectionResponse(
@@ -565,17 +627,7 @@ async def get_execution_log(limit: int = Query(default=50, le=500)):
     Shows all executed orders with fill prices, slippage, and execution times.
     Critical for monitoring real trading performance.
     """
-    log_path = Path("data/unified_trading/execution_log.json")
-
-    if not log_path.exists():
-        return []
-
-    try:
-        with open(log_path) as f:
-            logs = json.load(f)
-        return logs[-limit:]
-    except (OSError, json.JSONDecodeError):
-        return []
+    return _load_execution_log(limit=limit)
 
 
 @router.get("/pending-orders", response_model=List[PendingOrderConfirmation])
@@ -655,7 +707,7 @@ async def confirm_order(order_id: str, approve: bool = True):
 
 @router.get("/readiness-check", response_model=ReadinessCheckResponse)
 async def check_trading_readiness(
-    target_mode: str = Query(default="live_limited", description="Target trading mode")
+    target_mode: str = Query(default=None, description="Target trading mode (if None, uses next mode in progression)")
 ):
     """
     Comprehensive readiness check for transitioning to live trading.
@@ -666,14 +718,32 @@ async def check_trading_readiness(
     - Paper trading performance requirements
     - Safety limits configuration
     - Risk management setup
+    - Days in current mode
     """
     import os
     from bot.trading_mode import TradingMode
 
-    try:
-        target = TradingMode(target_mode)
-    except ValueError:
-        raise HTTPException(status_code=400, detail=f"Invalid target mode: {target_mode}")
+    # Load current state to determine actual current mode
+    state = _load_state()
+    current_mode_str = state.get("mode", "paper_live_data") if state else "paper_live_data"
+    current_mode = TradingMode(current_mode_str)
+    
+    # If no target_mode specified, get the next mode in progression
+    if target_mode is None:
+        progression = TradingMode.get_progression()
+        try:
+            current_idx = progression.index(current_mode)
+            if current_idx < len(progression) - 1:
+                target = progression[current_idx + 1]
+            else:
+                target = progression[-1]  # Already at highest mode
+        except ValueError:
+            target = TradingMode.TESTNET  # Default fallback
+    else:
+        try:
+            target = TradingMode(target_mode)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid target mode: {target_mode}")
 
     checks = []
     blocking = []
@@ -761,6 +831,36 @@ async def check_trading_readiness(
                 "icon": "📉"
             })
             warnings.append("High drawdown - consider adjusting risk parameters")
+
+        # Check days in mode (NEW: This is critical for mode transitions)
+        days_in_mode = state.get("days_in_mode", 0)
+        
+        # Get required days based on transition path
+        required_days = 0
+        if current_mode == TradingMode.PAPER_LIVE_DATA and target == TradingMode.TESTNET:
+            required_days = 14
+        elif current_mode == TradingMode.TESTNET and target == TradingMode.LIVE_LIMITED:
+            required_days = 14
+        elif current_mode == TradingMode.LIVE_LIMITED and target == TradingMode.LIVE_FULL:
+            required_days = 30
+        
+        if required_days > 0:
+            if days_in_mode >= required_days:
+                checks.append({
+                    "name": "Time in Mode",
+                    "status": "pass",
+                    "message": f"{days_in_mode} days in current mode (min: {required_days})",
+                    "icon": "⏰"
+                })
+            else:
+                checks.append({
+                    "name": "Time in Mode",
+                    "status": "fail",
+                    "message": f"{days_in_mode}/{required_days} days in current mode",
+                    "icon": "⏰"
+                })
+                days_remaining = required_days - days_in_mode
+                blocking.append(f"Wait {days_remaining} more day(s) in current mode before transitioning")
     else:
         checks.append({
             "name": "Paper Trading",
@@ -834,18 +934,135 @@ async def check_trading_readiness(
         "Review execution log after each trade for slippage",
     ])
 
-    current_mode = state.get("mode", "paper_live_data") if state else "paper_live_data"
     ready = len(blocking) == 0
 
     return ReadinessCheckResponse(
         ready=ready,
-        current_mode=current_mode,
-        target_mode=target_mode,
+        current_mode=current_mode_str,
+        target_mode=target.value,
         checks=checks,
         blocking_issues=blocking,
         warnings=warnings,
         recommendations=recommendations,
     )
+
+
+@router.get("/positions")
+async def get_positions():
+    """
+    Get currently open positions.
+    
+    Returns list of all open positions with entry price, current price,
+    unrealized P&L, and other position details.
+    """
+    state_path = Path("data/unified_trading/state.json")
+    
+    if not state_path.exists():
+        return {"positions": [], "total_open": 0}
+    
+    try:
+        with open(state_path) as f:
+            state = json.load(f)
+        
+        positions = state.get("positions", {})
+        position_list = []
+        
+        for symbol, pos_data in positions.items():
+            if isinstance(pos_data, dict):
+                position_list.append({
+                    "symbol": symbol,
+                    "side": pos_data.get("side", "LONG"),
+                    "quantity": pos_data.get("quantity", 0),
+                    "entry_price": pos_data.get("entry_price", 0),
+                    "current_price": pos_data.get("current_price", pos_data.get("entry_price", 0)),
+                    "unrealized_pnl": pos_data.get("unrealized_pnl", 0),
+                    "unrealized_pnl_pct": pos_data.get("unrealized_pnl_pct", 0),
+                    "entry_time": pos_data.get("entry_time", ""),
+                    "stop_loss": pos_data.get("stop_loss", 0),
+                    "take_profit": pos_data.get("take_profit", 0),
+                })
+        
+        return {
+            "positions": position_list,
+            "total_open": len(position_list),
+        }
+    
+    except (OSError, json.JSONDecodeError):
+        return {"positions": [], "total_open": 0}
+
+
+@router.get("/performance")
+async def get_performance(days: int = Query(default=7, ge=1, le=365)):
+    """
+    Get performance metrics for the last N days.
+    
+    Returns daily P&L, win rate, trade count, and other metrics
+    for the specified lookback period.
+    """
+    state_path = Path("data/unified_trading/state.json")
+    equity_path = Path("data/unified_trading/equity.json")
+    trades_path = Path("data/unified_trading/trades.json")
+    
+    try:
+        # Get current state
+        state_data = {}
+        if state_path.exists():
+            with open(state_path) as f:
+                state_data = json.load(f)
+        
+        # Get recent trades
+        recent_trades = []
+        if trades_path.exists():
+            with open(trades_path) as f:
+                all_trades = json.load(f)
+                # Get trades from last N days
+                from datetime import datetime, timedelta
+                cutoff_time = datetime.now() - timedelta(days=days)
+                for trade in all_trades:
+                    try:
+                        trade_time = datetime.fromisoformat(trade.get("entry_time", ""))
+                        if trade_time > cutoff_time:
+                            recent_trades.append(trade)
+                    except (ValueError, KeyError):
+                        pass
+        
+        # Calculate metrics
+        total_trades = len(recent_trades)
+        winning_trades = len([t for t in recent_trades if (t.get("pnl", 0) or 0) > 0])
+        losing_trades = len([t for t in recent_trades if (t.get("pnl", 0) or 0) < 0])
+        win_rate = (winning_trades / total_trades * 100) if total_trades > 0 else 0
+        
+        total_pnl = sum(t.get("pnl", 0) or 0 for t in recent_trades)
+        avg_win = (sum(t.get("pnl", 0) or 0 for t in recent_trades if (t.get("pnl", 0) or 0) > 0) / winning_trades) if winning_trades > 0 else 0
+        avg_loss = (sum(t.get("pnl", 0) or 0 for t in recent_trades if (t.get("pnl", 0) or 0) < 0) / losing_trades) if losing_trades > 0 else 0
+        
+        return {
+            "days": days,
+            "total_trades": total_trades,
+            "winning_trades": winning_trades,
+            "losing_trades": losing_trades,
+            "win_rate": win_rate / 100,  # Return as decimal (0.0 to 1.0)
+            "total_pnl": total_pnl,
+            "avg_win": avg_win,
+            "avg_loss": avg_loss,
+            "current_balance": state_data.get("current_balance", 0),
+            "initial_capital": state_data.get("initial_capital", 0),
+        }
+    
+    except (OSError, json.JSONDecodeError) as e:
+        return {
+            "days": days,
+            "total_trades": 0,
+            "winning_trades": 0,
+            "losing_trades": 0,
+            "win_rate": 0,
+            "total_pnl": 0,
+            "avg_win": 0,
+            "avg_loss": 0,
+            "current_balance": 0,
+            "initial_capital": 0,
+            "error": str(e),
+        }
 
 
 @router.get("/slippage-analysis")
@@ -856,31 +1073,19 @@ async def get_slippage_analysis():
     Returns average slippage, worst slippage, and per-symbol breakdown.
     Critical for understanding true trading costs.
     """
-    log_path = Path("data/unified_trading/execution_log.json")
+    logs = _load_execution_log()
 
-    if not log_path.exists():
+    if not logs:
         return {
             "total_trades": 0,
             "avg_slippage_pct": 0,
             "max_slippage_pct": 0,
             "total_slippage_cost": 0,
             "by_symbol": {},
-            "message": "No execution data available yet"
+            "message": "No execution data available yet",
         }
 
     try:
-        with open(log_path) as f:
-            logs = json.load(f)
-
-        if not logs:
-            return {
-                "total_trades": 0,
-                "avg_slippage_pct": 0,
-                "max_slippage_pct": 0,
-                "total_slippage_cost": 0,
-                "by_symbol": {},
-            }
-
         slippages = [l.get("slippage_pct", 0) for l in logs if l.get("slippage_pct") is not None]
         by_symbol = {}
 
@@ -917,3 +1122,122 @@ async def get_slippage_analysis():
             "total_slippage_cost": 0,
             "by_symbol": {},
         }
+
+
+# =============================================================================
+# Position Management Endpoints
+# =============================================================================
+
+
+class ClosePositionRequest(BaseModel):
+    """Request to close a position."""
+    symbol: str
+    reason: Optional[str] = "Manual closure"
+
+
+class ClosePositionResponse(BaseModel):
+    """Response for position closure."""
+    success: bool
+    symbol: str
+    closed_qty: float
+    close_price: float
+    pnl: float
+    message: str
+
+
+@router.post("/close-position", response_model=ClosePositionResponse)
+async def close_position(request: ClosePositionRequest):
+    """
+    Manually close an open position.
+    
+    This endpoint allows manual liquidation of positions during emergency stops
+    or for manual portfolio management.
+    """
+    import os
+    from datetime import datetime
+    
+    state_path = _get_state_path()
+    
+    if not state_path.exists():
+        raise HTTPException(status_code=404, detail="State file not found")
+    
+    try:
+        # Load current state
+        with open(state_path) as f:
+            state = json.load(f)
+        
+        positions = state.get("positions", {})
+        
+        if request.symbol not in positions:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No open position found for {request.symbol}"
+            )
+        
+        position = positions[request.symbol]
+        qty = position.get("quantity", position.get("qty", 0))
+        entry_price = position.get("entry_price", 0)
+        side = position.get("side", "LONG").upper()
+        
+        if qty == 0:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Position has zero quantity"
+            )
+        
+        # Get current market price (use entry price as fallback for emergency closures)
+        # In production, this should fetch from exchange
+        close_price = entry_price  # Simplified for emergency closure
+        
+        # Calculate P&L
+        if side == "LONG":
+            pnl = (close_price - entry_price) * qty
+        else:
+            pnl = (entry_price - close_price) * qty
+        
+        # Update state
+        del positions[request.symbol]
+        state["positions"] = positions
+        state["current_balance"] = state.get("current_balance", 0) + pnl
+        state["total_pnl"] = state.get("total_pnl", 0) + pnl
+        state["daily_pnl"] = state.get("daily_pnl", 0) + pnl
+        state["timestamp"] = datetime.utcnow().isoformat()
+        
+        # Log closure
+        closure_log = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "symbol": request.symbol,
+            "side": side,
+            "qty": qty,
+            "entry_price": entry_price,
+            "close_price": close_price,
+            "pnl": pnl,
+            "reason": request.reason,
+            "type": "manual_closure"
+        }
+        
+        # Append to trade history
+        if "trade_history" not in state:
+            state["trade_history"] = []
+        state["trade_history"].append(closure_log)
+        
+        # Save updated state
+        with open(state_path, 'w') as f:
+            json.dump(state, f, indent=2)
+        
+        return ClosePositionResponse(
+            success=True,
+            symbol=request.symbol,
+            closed_qty=qty,
+            close_price=close_price,
+            pnl=pnl,
+            message=f"Position closed successfully: {side} {qty} @ ${close_price:.2f}, P&L: ${pnl:.2f}"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error closing position: {str(e)}"
+        )

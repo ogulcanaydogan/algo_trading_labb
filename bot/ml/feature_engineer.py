@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import List, Optional
 
 import numpy as np
+import warnings
 import pandas as pd
 
 # Suppress PerformanceWarning for DataFrame fragmentation
@@ -131,7 +132,11 @@ class FeatureEngineer:
                             isinstance(lower, (int, float)) and
                             isinstance(upper, (int, float)) and
                             float(lower) < float(upper)):
-                            df[col] = df[col].clip(lower=float(lower), upper=float(upper))
+                            df[col] = (
+                                df[col]
+                                .astype(float)
+                                .clip(lower=float(lower), upper=float(upper))
+                            )
                 except (TypeError, ValueError):
                     # Skip columns that can't be processed
                     continue
@@ -332,84 +337,89 @@ class FeatureEngineer:
         if not isinstance(df.index, pd.DatetimeIndex):
             return df
 
-        # === Hour of Day (cyclical encoding for 24-hour cycle) ===
-        hour = df.index.hour
-        df["hour_sin"] = np.sin(2 * np.pi * hour / 24)
-        df["hour_cos"] = np.cos(2 * np.pi * hour / 24)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", pd.errors.PerformanceWarning)
 
-        # === Day of Week (cyclical encoding for 7-day cycle) ===
-        dayofweek = df.index.dayofweek
-        df["dow_sin"] = np.sin(2 * np.pi * dayofweek / 7)
-        df["dow_cos"] = np.cos(2 * np.pi * dayofweek / 7)
+            # === Hour of Day (cyclical encoding for 24-hour cycle) ===
+            hour = df.index.hour
+            df["hour_sin"] = np.sin(2 * np.pi * hour / 24)
+            df["hour_cos"] = np.cos(2 * np.pi * hour / 24)
 
-        # === Month (cyclical encoding for 12-month cycle) ===
-        month = df.index.month
-        df["month_sin"] = np.sin(2 * np.pi * month / 12)
-        df["month_cos"] = np.cos(2 * np.pi * month / 12)
+            # === Day of Week (cyclical encoding for 7-day cycle) ===
+            dayofweek = df.index.dayofweek
+            df["dow_sin"] = np.sin(2 * np.pi * dayofweek / 7)
+            df["dow_cos"] = np.cos(2 * np.pi * dayofweek / 7)
 
-        # === Day of Month Effects ===
-        day = df.index.day
-        df["day_of_month"] = day / 31  # Normalized
+            # === Month (cyclical encoding for 12-month cycle) ===
+            month = df.index.month
+            df["month_sin"] = np.sin(2 * np.pi * month / 12)
+            df["month_cos"] = np.cos(2 * np.pi * month / 12)
 
-        # Month-end effect (last 5 days)
-        days_in_month = df.index.to_series().apply(
-            lambda x: pd.Timestamp(x.year, x.month, 1) + pd.offsets.MonthEnd(0)
-        ).dt.day
-        df["is_month_end"] = ((days_in_month - day) <= 5).astype(int)
+            # === Day of Month Effects ===
+            day = df.index.day
+            df["day_of_month"] = day / 31  # Normalized
 
-        # Month-start effect (first 5 days)
-        df["is_month_start"] = (day <= 5).astype(int)
+            # Month-end effect (last 5 days)
+            days_in_month = df.index.to_series().apply(
+                lambda x: pd.Timestamp(x.year, x.month, 1) + pd.offsets.MonthEnd(0)
+            ).dt.day
+            df["is_month_end"] = ((days_in_month - day) <= 5).astype(int)
 
-        # === Trading Session Indicators ===
-        # Crypto trades 24/7, but traditional market hours still matter for volume
+            # Month-start effect (first 5 days)
+            df["is_month_start"] = (day <= 5).astype(int)
 
-        # Asian session (00:00 - 09:00 UTC)
-        df["is_asian_session"] = ((hour >= 0) & (hour < 9)).astype(int)
+            # === Trading Session Indicators ===
+            # Crypto trades 24/7, but traditional market hours still matter for volume
 
-        # European session (07:00 - 16:00 UTC)
-        df["is_european_session"] = ((hour >= 7) & (hour < 16)).astype(int)
+            # Asian session (00:00 - 09:00 UTC)
+            df["is_asian_session"] = ((hour >= 0) & (hour < 9)).astype(int)
 
-        # US session (13:00 - 22:00 UTC)
-        df["is_us_session"] = ((hour >= 13) & (hour < 22)).astype(int)
+            # European session (07:00 - 16:00 UTC)
+            df["is_european_session"] = ((hour >= 7) & (hour < 16)).astype(int)
 
-        # Overlap periods (high liquidity)
-        # London-NY overlap (13:00 - 16:00 UTC)
-        df["is_overlap"] = ((hour >= 13) & (hour < 16)).astype(int)
+            # US session (13:00 - 22:00 UTC)
+            df["is_us_session"] = ((hour >= 13) & (hour < 22)).astype(int)
 
-        # === Weekend/Off-hours Indicators ===
-        df["is_weekend"] = (dayofweek >= 5).astype(int)
+            # Overlap periods (high liquidity)
+            # London-NY overlap (13:00 - 16:00 UTC)
+            df["is_overlap"] = ((hour >= 13) & (hour < 16)).astype(int)
 
-        # Low liquidity hours (generally 20:00 - 05:00 UTC)
-        df["is_low_liquidity"] = ((hour >= 20) | (hour < 5)).astype(int)
+            # === Weekend/Off-hours Indicators ===
+            df["is_weekend"] = (dayofweek >= 5).astype(int)
 
-        # === Time Since Events ===
-        # Bars since session open
-        session_start = pd.Series((hour == 0) | (hour == 9) | (hour == 14), index=df.index)
-        session_groups = (session_start != session_start.shift()).cumsum()
-        df["bars_since_session_open"] = session_start.groupby(session_groups).cumcount()
-        df["bars_since_session_open"] = df["bars_since_session_open"].clip(upper=50) / 50
+            # Low liquidity hours (generally 20:00 - 05:00 UTC)
+            df["is_low_liquidity"] = ((hour >= 20) | (hour < 5)).astype(int)
 
-        # === Minute of Hour (for intraday data) ===
-        if hasattr(df.index, 'minute'):
-            minute = df.index.minute
-            df["minute_sin"] = np.sin(2 * np.pi * minute / 60)
-            df["minute_cos"] = np.cos(2 * np.pi * minute / 60)
+            # === Time Since Events ===
+            # Bars since session open
+            session_start = pd.Series((hour == 0) | (hour == 9) | (hour == 14), index=df.index)
+            session_groups = (session_start != session_start.shift()).cumsum()
+            df["bars_since_session_open"] = session_start.groupby(session_groups).cumcount()
+            df["bars_since_session_open"] = df["bars_since_session_open"].clip(upper=50) / 50
 
-        # === Quarter Indicators ===
-        quarter = df.index.quarter
-        df["is_q1"] = (quarter == 1).astype(int)
-        df["is_q4"] = (quarter == 4).astype(int)  # Year-end effects
+            # === Minute of Hour (for intraday data) ===
+            if hasattr(df.index, 'minute'):
+                minute = df.index.minute
+                df["minute_sin"] = np.sin(2 * np.pi * minute / 60)
+                df["minute_cos"] = np.cos(2 * np.pi * minute / 60)
 
-        # === Special Day Indicators ===
-        # First trading day of month
-        df["is_first_of_month"] = (day == 1).astype(int)
+            # === Quarter Indicators ===
+            quarter = df.index.quarter
+            df["is_q1"] = (quarter == 1).astype(int)
+            df["is_q4"] = (quarter == 4).astype(int)  # Year-end effects
 
-        # Monday effect
-        df["is_monday"] = (dayofweek == 0).astype(int)
+            # === Special Day Indicators ===
+            # First trading day of month
+            df["is_first_of_month"] = (day == 1).astype(int)
 
-        # Friday effect
-        df["is_friday"] = (dayofweek == 4).astype(int)
+            # Monday effect
+            df["is_monday"] = (dayofweek == 0).astype(int)
 
+            # Friday effect
+            df["is_friday"] = (dayofweek == 4).astype(int)
+
+        # Defragment DataFrame after many inserts
+        df = df.copy()
         return df
 
     def _add_target(self, df: pd.DataFrame, forward_periods: int = 1) -> pd.DataFrame:

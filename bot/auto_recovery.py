@@ -9,6 +9,7 @@ Automatically detects failures and recovers components:
 """
 
 import asyncio
+import inspect
 import logging
 import subprocess
 import time
@@ -248,7 +249,7 @@ class AutoRecovery:
         """Send notification."""
         if self.notification_callback:
             try:
-                if asyncio.iscoroutinefunction(self.notification_callback):
+                if inspect.iscoroutinefunction(self.notification_callback):
                     await self.notification_callback(message, context)
                 else:
                     self.notification_callback(message, context)
@@ -261,7 +262,7 @@ class AutoRecovery:
 
         if self.escalation_callback:
             try:
-                if asyncio.iscoroutinefunction(self.escalation_callback):
+                if inspect.iscoroutinefunction(self.escalation_callback):
                     await self.escalation_callback(component, reason)
                 else:
                     self.escalation_callback(component, reason)
@@ -333,7 +334,7 @@ class AutoRecovery:
             return False
 
         try:
-            if asyncio.iscoroutinefunction(reconnect_func):
+            if inspect.iscoroutinefunction(reconnect_func):
                 await reconnect_func()
             else:
                 reconnect_func()
@@ -361,7 +362,7 @@ class AutoRecovery:
 
             # Rebuild if function provided
             if rebuild_func:
-                if asyncio.iscoroutinefunction(rebuild_func):
+                if inspect.iscoroutinefunction(rebuild_func):
                     await rebuild_func()
                 else:
                     rebuild_func()

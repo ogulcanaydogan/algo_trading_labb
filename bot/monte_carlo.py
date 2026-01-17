@@ -200,6 +200,7 @@ class MonteCarloSimulator:
         self, final_values: np.ndarray, max_drawdowns: np.ndarray
     ) -> Dict[str, float]:
         """Calculate summary statistics."""
+        value_std = float(np.std(final_values)) if len(final_values) else 0.0
         return {
             "mean_final_value": round(float(np.mean(final_values)), 2),
             "median_final_value": round(float(np.median(final_values)), 2),
@@ -211,8 +212,8 @@ class MonteCarloSimulator:
             "mean_max_drawdown_pct": round(float(np.mean(max_drawdowns)), 2),
             "median_max_drawdown_pct": round(float(np.median(max_drawdowns)), 2),
             "worst_max_drawdown_pct": round(float(np.max(max_drawdowns)), 2),
-            "skewness": round(float(stats.skew(final_values)), 2),
-            "kurtosis": round(float(stats.kurtosis(final_values)), 2),
+            "skewness": 0.0 if value_std < 1e-8 else round(float(stats.skew(final_values)), 2),
+            "kurtosis": 0.0 if value_std < 1e-8 else round(float(stats.kurtosis(final_values)), 2),
         }
 
     def _calculate_percentile_curves(

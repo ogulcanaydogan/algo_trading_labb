@@ -11,6 +11,7 @@ States:
 """
 
 import asyncio
+import inspect
 import logging
 import time
 from dataclasses import dataclass, field
@@ -167,7 +168,7 @@ class CircuitBreaker:
 
         start_time = time.time()
         try:
-            if asyncio.iscoroutinefunction(func):
+            if inspect.iscoroutinefunction(func):
                 result = await func(*args, **kwargs)
             else:
                 result = func(*args, **kwargs)
@@ -275,7 +276,7 @@ class CircuitBreaker:
 
         if self.on_trip:
             try:
-                if asyncio.iscoroutinefunction(self.on_trip):
+                if inspect.iscoroutinefunction(self.on_trip):
                     await self.on_trip(self.name, reason, details)
                 else:
                     self.on_trip(self.name, reason, details)
@@ -317,7 +318,7 @@ class CircuitBreaker:
 
         if self.on_state_change:
             try:
-                if asyncio.iscoroutinefunction(self.on_state_change):
+                if inspect.iscoroutinefunction(self.on_state_change):
                     await self.on_state_change(self.name, old_state, new_state)
                 else:
                     self.on_state_change(self.name, old_state, new_state)
@@ -408,7 +409,7 @@ class CircuitBreakerManager:
 
         async def on_trip(circuit_name: str, reason: TripReason, details: str):
             if self.on_any_trip:
-                if asyncio.iscoroutinefunction(self.on_any_trip):
+                if inspect.iscoroutinefunction(self.on_any_trip):
                     await self.on_any_trip(circuit_name, reason, details)
                 else:
                     self.on_any_trip(circuit_name, reason, details)

@@ -1045,6 +1045,7 @@ def health_check() -> HealthCheckResponse:
 
     # Check bot state - check all active trading state files
     active_state_files = [
+        STATE_DIR / "unified_trading" / "state.json",  # Primary unified state
         STATE_DIR / "regime_trading" / "state.json",
         STATE_DIR / "live_paper_trading" / "state.json",
         STATE_DIR / "commodity_trading" / "state.json",
@@ -1130,7 +1131,12 @@ async def dashboard() -> HTMLResponse:
             content="<html><body><h1>Dashboard template missing.</h1></body></html>",
             status_code=200,
         )
-    return HTMLResponse(content=DASHBOARD_UNIFIED_TEMPLATE.read_text())
+    # Return with cache-control headers to prevent stale dashboard caching
+    response = HTMLResponse(content=DASHBOARD_UNIFIED_TEMPLATE.read_text())
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 @app.get("/dashboard/v2")
@@ -2121,12 +2127,12 @@ async def get_market_summary(
 
     Returns unified market data including prices, positions, signals.
     """
-    # Check cache first
-    global _market_summary_cache
-    if market_type in _market_summary_cache:
-        cached_time, cached_data = _market_summary_cache[market_type]
-        if time.time() - cached_time < _CACHE_TTL:
-            return cached_data
+    # Skip cache - need fresh data from unified state
+    # global _market_summary_cache
+    # if market_type in _market_summary_cache:
+    #     cached_time, cached_data = _market_summary_cache[market_type]
+    #     if time.time() - cached_time < _CACHE_TTL:
+    #         return cached_data
 
     try:
         from bot.data import MarketDataService, MarketType, get_symbols_by_market
@@ -2154,33 +2160,57 @@ async def get_market_summary(
             symbols_dict = get_symbols_by_market(market_map[market_type])
             symbols = list(symbols_dict.keys())
 
-        # Try to load bot state for signals and portfolio data
-        # For crypto, check multiple possible state files (production, ML, paper)
-        state_dirs = {
-            "crypto": [
-                STATE_DIR / "production" / "state.json",  # Live/testnet trading
-                STATE_DIR / "ml_paper_trading_enhanced" / "state.json",
-                STATE_DIR / "ml_paper_trading_aggressive" / "state.json",
-                STATE_DIR / "ml_paper_trading" / "state.json",
-                STATE_DIR / "live_paper_trading" / "state.json",
-            ],
-            "commodity": [STATE_DIR / "commodity_trading" / "state.json"],
-            "stock": [STATE_DIR / "stock_trading" / "state.json"],
-        }
+        # Load unified state for all markets (ensures consistency)
+        unified_state_file = STATE_DIR / "unified_trading" / "state.json"
+        bot_state = {}
         bot_signals = {}
-        bot_state = {}  # Store full state for portfolio data
-        if market_type in state_dirs:
-            for state_file in state_dirs[market_type]:
-                if state_file.exists():
-                    try:
-                        with open(state_file) as f:
-                            candidate_state = json.load(f)
-                            # Use this state if it's newer or we don't have one yet
-                            if not bot_state or candidate_state.get("timestamp", "") > bot_state.get("timestamp", ""):
-                                bot_state = candidate_state
-                                bot_signals = bot_state.get("signals", {})
-                    except Exception:
-                        pass
+        ai_features = {}
+        
+        if unified_state_file.exists():
+            try:
+                with open(unified_state_file) as f:
+                    unified_state = json.load(f)
+                    bot_state = unified_state
+                    bot_signals = unified_state.get("signals", {})
+                    ai_features = unified_state.get("ai_features", {})
+            except Exception:
+                pass
+        
+        # For market-specific portfolio data, calculate from positions
+        # Split total portfolio equally across 3 markets
+        total_balance = bot_state.get("current_balance", 10000.0)
+        initial_capital = bot_state.get("initial_capital", 10000.0)
+        capital_per_market = initial_capital / 3
+        
+        # Get positions for this market
+        all_positions = bot_state.get("positions", {})
+        symbol_to_market_mapping = {
+            # Crypto
+            "BTC/USDT": "crypto", "ETH/USDT": "crypto", "SOL/USDT": "crypto", "AVAX/USDT": "crypto",
+            # Commodities
+            "XAU/USD": "commodity", "XAG/USD": "commodity", "USOIL/USD": "commodity", "NATGAS/USD": "commodity",
+            # Stocks
+            "AAPL": "stock", "MSFT": "stock", "GOOGL": "stock", "AMZN": "stock", "TSLA": "stock",
+        }
+        
+        # Calculate market-specific P&L and position value from positions
+        market_pnl = 0.0
+        market_position_count = 0
+        market_positions_value = 0.0
+        for symbol, position in all_positions.items():
+            if symbol_to_market_mapping.get(symbol) == market_type:
+                market_pnl += position.get("unrealized_pnl", 0.0)
+                market_position_count += 1
+                value = position.get("value")
+                if value is None:
+                    qty = position.get("quantity", 0.0)
+                    price = position.get("current_price", position.get("price", 0.0))
+                    value = qty * price
+                market_positions_value += float(value or 0.0)
+
+        # Market balance = capital allocation + unrealized P&L
+        market_balance = capital_per_market + market_pnl
+        market_pnl_pct = (market_pnl / capital_per_market * 100) if capital_per_market > 0 else 0.0
 
         # Fast price fetching using yfinance batch download (bypasses rate limiter)
         import yfinance as yf
@@ -2243,14 +2273,14 @@ async def get_market_summary(
                 "total_assets": len(assets),
                 "available_data": len([a for a in assets if a.get("price")]),
             },
-            # Include portfolio data from bot state
-            "total_value": bot_state.get("total_value", bot_state.get("portfolio_value", 0)),
-            "cash_balance": bot_state.get("cash_balance", bot_state.get("cash", 0)),
-            "initial_capital": bot_state.get("initial_capital", 10000),
-            "pnl": bot_state.get("pnl", 0),
-            "pnl_pct": bot_state.get("pnl_pct", 0),
-            "positions_count": bot_state.get("positions_count", bot_state.get("position_count", 0)),
-            "positions": bot_state.get("positions", {}),
+            # Use market-specific portfolio data
+            "total_value": market_balance,
+            "cash_balance": max(0.0, capital_per_market - market_positions_value),
+            "initial_capital": capital_per_market,
+            "pnl": market_pnl,
+            "pnl_pct": market_pnl_pct,
+            "positions_count": market_position_count,
+            "positions": {k: v for k, v in all_positions.items() if symbol_to_market_mapping.get(k) == market_type},
             "bot_running": bool(bot_state),
             "deep_learning_enabled": bot_state.get("deep_learning_enabled", False),
             # AI Enhancement features
@@ -2266,8 +2296,8 @@ async def get_market_summary(
             } if ai_features else None,
         }
 
-        # Cache the result
-        _market_summary_cache[market_type] = (time.time(), result)
+        # Skip cache - need fresh data
+        # _market_summary_cache[market_type] = (time.time(), result)
 
         return result
 
@@ -2289,6 +2319,8 @@ async def get_market_indexes(
     """
     try:
         from bot.data import MarketDataService
+
+ 
 
         data_service = MarketDataService(data_dir=str(STATE_DIR))
 
@@ -2330,6 +2362,39 @@ async def get_market_indexes(
             "indexes": {},
             "error": "Data service not available",
         }
+
+# --- Unified Reset Endpoint ---
+@app.post("/api/unified/reset")
+async def reset_unified_portfolio(_: bool = Depends(verify_api_key)) -> Dict[str, Any]:
+    """Reset unified trading state to a clean baseline.
+
+    Sets initial capital and clears positions and P&L to remove accumulated noise.
+    """
+    try:
+        unified_dir = STATE_DIR / "unified_trading"
+        unified_dir.mkdir(parents=True, exist_ok=True)
+        state_file = unified_dir / "state.json"
+
+        baseline = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "initial_capital": 10000.0,
+            "current_balance": 10000.0,
+            "total_pnl": 0.0,
+            "signals": {},
+            "positions": {},
+            "mode": "paper_live_data",
+        }
+
+        with open(state_file, "w") as f:
+            json.dump(baseline, f)
+
+        # Also clear in-memory cache if any
+        global _market_summary_cache
+        _market_summary_cache = {}
+
+        return {"status": "reset", "state": baseline}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Reset failed: {e}")
 
 
 @app.get("/api/macro/indicators")
@@ -4187,44 +4252,12 @@ async def get_live_trading_status() -> Dict[str, Any]:
 @app.get("/api/trading/control-panel", tags=["Status"])
 async def get_trading_control_panel() -> Dict[str, Any]:
     """
-    Get comprehensive trading control panel data.
-
-    Returns status for all markets with activity indicators.
+    Get trading control panel status from unified trading engine.
     """
-    # Check production state first, then fall back to paper trading
-    def get_best_crypto_path():
-        prod_path = STATE_DIR / "production" / "state.json"
-        paper_path = STATE_DIR / "live_paper_trading" / "state.json"
-        if prod_path.exists():
-            return prod_path, STATE_DIR / "production"
-        return paper_path, STATE_DIR / "live_paper_trading"
-
-    crypto_state, crypto_control = get_best_crypto_path()
-    markets = {
-        "crypto": {
-            "name": "Crypto",
-            "emoji": "🪙",
-            "state_path": crypto_state,
-            "control_path": crypto_control,
-        },
-        "commodity": {
-            "name": "Commodity",
-            "emoji": "🛢️",
-            "state_path": STATE_DIR / "commodity_trading" / "state.json",
-            "control_path": STATE_DIR / "commodity_trading",
-        },
-        "stock": {
-            "name": "Stock",
-            "emoji": "📈",
-            "state_path": STATE_DIR / "stock_trading" / "state.json",
-            "control_path": STATE_DIR / "stock_trading",
-        },
-    }
-
     result = {
         "master": {
             "emergency_stop": False,
-            "all_paused": True,
+            "all_paused": False,
             "any_active": False,
         },
         "markets": {},
@@ -4235,96 +4268,147 @@ async def get_trading_control_panel() -> Dict[str, Any]:
     controller = _get_safety_controller()
     status = controller.get_status()
     result["master"]["emergency_stop"] = status["emergency_stop_active"]
-
-    for market_id, config in markets.items():
-        market_status = {
-            "name": config["name"],
-            "emoji": config["emoji"],
-            "running": False,
-            "paused": False,
-            "actively_trading": False,
-            "last_update": None,
-            "last_trade": None,
-            "open_positions": 0,
-            "current_signal": "FLAT",
-            "balance": 0.0,
-            "pnl": 0.0,
-            "pnl_pct": 0.0,
-            "health": "offline",
-        }
-
+    
+    # Check unified trading control file for pause status
+    unified_control_path = STATE_DIR / "unified_trading" / "control.json"
+    if unified_control_path.exists():
         try:
-            # Check if state file exists and is recent
-            state_path = config["state_path"]
-            if state_path.exists():
-                mtime = state_path.stat().st_mtime
-                last_update = datetime.fromtimestamp(mtime)
-                market_status["last_update"] = last_update.isoformat()
+            with open(unified_control_path, "r") as f:
+                unified_control = json.load(f)
+                result["master"]["all_paused"] = unified_control.get("paused", False)
+        except:
+            pass
 
-                age_seconds = (datetime.now() - last_update).total_seconds()
+    # Map unified symbols to market categories
+    symbol_to_market = {
+        "BTC/USDT": "crypto",
+        "ETH/USDT": "crypto",
+        "XAU/USD": "commodity",
+        "XAG/USD": "commodity",
+        "USOIL/USD": "commodity",
+        "AAPL": "stock",
+        "MSFT": "stock",
+        "TSLA": "stock",
+        "NVDA": "stock",
+        "GOOGL": "stock",
+    }
+    
+    # Initialize market summaries
+    market_config = {
+        "crypto": {"name": "Crypto", "emoji": "🪙"},
+        "commodity": {"name": "Commodity", "emoji": "🛢️"},
+        "stock": {"name": "Stock", "emoji": "📈"},
+    }
 
-                with open(state_path, "r") as f:
-                    state = json.load(f)
-
-                # Extract state data
-                market_status["balance"] = state.get("balance", state.get("total_value", 0))
-                market_status["open_positions"] = len(state.get("open_positions", []))
-
-                # Calculate P&L
-                initial = state.get("initial_capital", state.get("initial_balance", 10000))
-                current = market_status["balance"]
-                market_status["pnl"] = current - initial
-                market_status["pnl_pct"] = ((current - initial) / initial * 100) if initial > 0 else 0
-
-                # Get current signal
-                if state.get("last_signal"):
-                    market_status["current_signal"] = state["last_signal"].get("decision", "FLAT")
-
-                # Get last trade time
-                trades = state.get("trades", state.get("trade_history", []))
-                if trades:
-                    last_trade = trades[-1]
-                    if isinstance(last_trade, dict):
-                        trade_time = last_trade.get("exit_time", last_trade.get("timestamp"))
-                        if trade_time:
-                            market_status["last_trade"] = trade_time
-
-                # Determine health status
-                if age_seconds < 120:  # Updated in last 2 minutes
-                    market_status["running"] = True
-                    market_status["health"] = "healthy"
-                    result["master"]["all_paused"] = False
-                    result["master"]["any_active"] = True
-
-                    # Check if actively trading (has recent trades or open positions)
-                    if market_status["open_positions"] > 0:
-                        market_status["actively_trading"] = True
-                    elif market_status["last_trade"]:
-                        # Check if last trade was within 1 hour
-                        try:
-                            if isinstance(market_status["last_trade"], str):
-                                last_trade_time = datetime.fromisoformat(market_status["last_trade"].replace("Z", "+00:00"))
-                                if (datetime.now(timezone.utc) - last_trade_time).total_seconds() < 3600:
-                                    market_status["actively_trading"] = True
-                        except:
-                            pass
-                elif age_seconds < 600:  # Updated in last 10 minutes
-                    market_status["running"] = True
-                    market_status["health"] = "stale"
-                else:
-                    market_status["health"] = "offline"
-
-            # Check control file for pause status
-            control_path = config["control_path"] / "control.json"
-            if control_path.exists():
-                with open(control_path, "r") as f:
-                    control = json.load(f)
-                    market_status["paused"] = control.get("paused", False)
-
-        except Exception as e:
-            market_status["error"] = str(e)
-
-        result["markets"][market_id] = market_status
+    # Read from unified trading state
+    unified_state_path = STATE_DIR / "unified_trading" / "state.json"
+    
+    try:
+        if unified_state_path.exists():
+            mtime = unified_state_path.stat().st_mtime
+            last_update = datetime.fromtimestamp(mtime)
+            age_seconds = (datetime.now() - last_update).total_seconds()
+            
+            with open(unified_state_path, "r") as f:
+                unified_state = json.load(f)
+            
+            # Extract overall state
+            current_balance = unified_state.get("current_balance", 10000.0)
+            initial_capital = unified_state.get("initial_capital", 10000.0)
+            total_pnl = current_balance - initial_capital
+            total_pnl_pct = (total_pnl / initial_capital * 100) if initial_capital > 0 else 0
+            
+            positions = unified_state.get("positions", {})
+            is_active = age_seconds < 120  # Updated in last 2 minutes
+            has_positions = len(positions) > 0
+            
+            # Count positions by market and calculate per-market P&L
+            market_positions = {"crypto": 0, "commodity": 0, "stock": 0}
+            market_pnl = {"crypto": 0.0, "commodity": 0.0, "stock": 0.0}
+            
+            for symbol, position in positions.items():
+                market = symbol_to_market.get(symbol, "stock")
+                market_positions[market] += 1
+                # Add unrealized P&L from this position to the market's total
+                unrealized = position.get("unrealized_pnl", 0.0)
+                market_pnl[market] += unrealized
+            
+            # Calculate per-market balance based on equal capital allocation
+            capital_per_market = initial_capital / 3  # Equally divided among 3 markets
+            market_balance = {}
+            for market_id in market_config.keys():
+                market_balance[market_id] = capital_per_market + market_pnl[market_id]
+            
+            # Determine health
+            if is_active:
+                health = "healthy"
+                result["master"]["any_active"] = True
+            elif age_seconds < 600:
+                health = "stale"
+            else:
+                health = "offline"
+            
+            # Build market status for each category
+            for market_id, config in market_config.items():
+                market_balance_val = market_balance.get(market_id, capital_per_market)
+                market_pnl_val = market_pnl.get(market_id, 0.0)
+                market_pnl_pct_val = (market_pnl_val / capital_per_market * 100) if capital_per_market > 0 else 0.0
+                
+                market_status = {
+                    "name": config["name"],
+                    "emoji": config["emoji"],
+                    "running": is_active,
+                    "paused": result["master"]["all_paused"],
+                    "actively_trading": has_positions and is_active,
+                    "last_update": last_update.isoformat(),
+                    "last_trade": None,
+                    "open_positions": market_positions[market_id],
+                    "current_signal": "FLAT",
+                    "balance": market_balance_val,
+                    "pnl": market_pnl_val,
+                    "pnl_pct": market_pnl_pct_val,
+                    "health": health,
+                }
+                
+                result["markets"][market_id] = market_status
+        else:
+            # No state file found - return offline status
+            for market_id, config in market_config.items():
+                result["markets"][market_id] = {
+                    "name": config["name"],
+                    "emoji": config["emoji"],
+                    "running": False,
+                    "paused": result["master"]["all_paused"],
+                    "actively_trading": False,
+                    "last_update": None,
+                    "last_trade": None,
+                    "open_positions": 0,
+                    "current_signal": "FLAT",
+                    "balance": 0.0,
+                    "pnl": 0.0,
+                    "pnl_pct": 0.0,
+                    "health": "offline",
+                }
+    
+    except Exception as e:
+        logger.error(f"Error reading unified state: {e}")
+        # Return offline status on error
+        for market_id, config in market_config.items():
+            result["markets"][market_id] = {
+                "name": config["name"],
+                "emoji": config["emoji"],
+                "running": False,
+                "paused": result["master"]["all_paused"],
+                "actively_trading": False,
+                "last_update": None,
+                "last_trade": None,
+                "open_positions": 0,
+                "current_signal": "FLAT",
+                "balance": 0.0,
+                "pnl": 0.0,
+                "pnl_pct": 0.0,
+                "health": "offline",
+            }
 
     return result
 
@@ -4403,30 +4487,27 @@ async def pause_all_markets(
     reason: str = Query(default="Manual pause all via dashboard", description="Reason for pause"),
     _auth: Optional[str] = Depends(verify_api_key),
 ) -> Dict[str, Any]:
-    """Pause all markets."""
-    results = {}
-    for market_id in ["crypto", "commodity", "stock"]:
-        try:
-            market_dir = _get_market_dir(market_id)
-            market_dir.mkdir(parents=True, exist_ok=True)
-            update_bot_control(market_dir, paused=True, reason=reason)
-            results[market_id] = "paused"
-        except Exception as e:
-            results[market_id] = f"error: {e}"
-
-    return {
-        "success": True,
-        "action": "pause_all",
-        "results": results,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    }
+    """Pause all markets by setting unified control file."""
+    try:
+        unified_dir = STATE_DIR / "unified_trading"
+        unified_dir.mkdir(parents=True, exist_ok=True)
+        update_bot_control(unified_dir, paused=True, reason=reason)
+        
+        return {
+            "success": True,
+            "action": "pause_all",
+            "message": "All markets paused",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/trading/resume-all", tags=["Status"])
 async def resume_all_markets(
     _auth: Optional[str] = Depends(verify_api_key),
 ) -> Dict[str, Any]:
-    """Resume all markets."""
+    """Resume all markets by updating unified control file."""
     # Check if emergency stop is active
     controller = _get_safety_controller()
     if controller.get_status()["emergency_stop_active"]:
@@ -4435,21 +4516,72 @@ async def resume_all_markets(
             detail="Cannot resume: Emergency stop is active. Clear emergency stop first."
         )
 
-    results = {}
-    for market_id in ["crypto", "commodity", "stock"]:
-        try:
-            market_dir = _get_market_dir(market_id)
-            update_bot_control(market_dir, paused=False, reason="Resumed via dashboard")
-            results[market_id] = "resumed"
-        except Exception as e:
-            results[market_id] = f"error: {e}"
+    try:
+        unified_dir = STATE_DIR / "unified_trading"
+        unified_dir.mkdir(parents=True, exist_ok=True)
+        update_bot_control(unified_dir, paused=False, reason="Resumed via dashboard")
+        
+        return {
+            "success": True,
+            "action": "resume_all",
+            "message": "All markets resumed",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-    return {
-        "success": True,
-        "action": "resume_all",
-        "results": results,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    }
+
+@app.post("/api/trading/start-engine", tags=["Status"])
+async def start_trading_engine(
+    _auth: Optional[str] = Depends(verify_api_key),
+) -> Dict[str, Any]:
+    """Start the unified trading engine in background."""
+    import subprocess
+    import sys
+    
+    try:
+        # Check if engine is already running
+        check_result = subprocess.run(
+            ["pgrep", "-f", "run_unified_trading.py"],
+            capture_output=True,
+            text=True,
+        )
+        
+        if check_result.returncode == 0:
+            return {
+                "success": True,
+                "status": "already_running",
+                "message": "Trading engine is already running",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        
+        # Start the unified trading engine
+        venv_path = Path(__file__).parent.parent / ".venv" / "bin" / "python"
+        if not venv_path.exists():
+            venv_path = sys.executable
+        
+        script_path = Path(__file__).parent.parent / "run_unified_trading.py"
+        
+        subprocess.Popen(
+            [str(venv_path), str(script_path)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+        
+        return {
+            "success": True,
+            "status": "started",
+            "message": "Trading engine started in background",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "status": "error",
+            "message": f"Failed to start trading engine: {str(e)}",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
 
 
 # =============================================================================
