@@ -4,6 +4,8 @@ Execution module for order management and execution quality.
 Provides:
 - Slippage tracking and analytics
 - Smart order execution (TWAP/VWAP)
+- Iceberg orders
+- Smart order routing
 """
 
 from .slippage_tracker import (
@@ -23,6 +25,26 @@ from .smart_order import (
     create_smart_executor,
 )
 
+from .iceberg_order import (
+    IcebergExecutor,
+    IcebergOrder,
+    IcebergSlice,
+    IcebergState,
+    IcebergConfig,
+    create_iceberg_executor,
+)
+
+from .smart_router import (
+    SmartOrderRouter,
+    Venue,
+    VenueType,
+    VenueQuote,
+    RouteDecision,
+    RoutingStrategy,
+    RoutingConfig,
+    create_smart_router,
+)
+
 __all__ = [
     # Slippage tracking
     "SlippageTracker",
@@ -37,4 +59,20 @@ __all__ = [
     "TWAPConfig",
     "VWAPConfig",
     "create_smart_executor",
+    # Iceberg orders
+    "IcebergExecutor",
+    "IcebergOrder",
+    "IcebergSlice",
+    "IcebergState",
+    "IcebergConfig",
+    "create_iceberg_executor",
+    # Smart routing
+    "SmartOrderRouter",
+    "Venue",
+    "VenueType",
+    "VenueQuote",
+    "RouteDecision",
+    "RoutingStrategy",
+    "RoutingConfig",
+    "create_smart_router",
 ]

@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trading-config
+  namespace: trading
+  labels:
+    app: algo-trading-bot
+data:
+  config.yaml: |
+    # Trading Bot Configuration
+    environment: production
+
+    # API Settings
+    api:
+      host: "0.0.0.0"
+      port: 8000
+      debug: false
+      cors_origins:
+        - "https://trading.example.com"
+
+    # Trading Settings
+    trading:
+      mode: paper  # paper or live
+      symbols:
+        - BTC/USDT
+        - ETH/USDT
+      default_position_size: 0.05
+      max_positions: 3
+      max_daily_trades: 20
+
+    # Risk Settings
+    risk:
+      max_position_size_pct: 0.05
+      max_daily_loss_pct: 0.02
+      max_drawdown_pct: 0.15
+      stop_loss_pct: 0.02
+      take_profit_pct: 0.04
+
+    # ML Settings
+    ml:
+      model_type: random_forest
+      confidence_threshold: 0.60
+      retrain_interval_hours: 24
+      walk_forward_days: 30
+
+    # Strategy Settings
+    strategy:
+      default: ensemble
+      ensemble_strategies:
+        - ema_crossover
+        - rsi_mean_reversion
+        - macd
+      multi_timeframe: true
+      timeframes:
+        - 1h
+        - 4h
+        - 1d
+
+    # Data Settings
+    data:
+      update_interval_seconds: 60
+      history_days: 365
+      cache_enabled: true
+
+    # Notification Settings
+    notifications:
+      telegram_enabled: false
+      discord_enabled: false
+      email_enabled: false
+
+    # Logging
+    logging:
+      level: INFO
+      format: json
+      file_enabled: true
+      file_path: /app/data/logs/trading.log
