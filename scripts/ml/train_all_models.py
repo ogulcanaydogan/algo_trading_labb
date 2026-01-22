@@ -24,6 +24,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from bot.config import load_config
+from bot.ml.data_quality import (
+    build_quality_report,
+    get_feature_columns,
+    save_quality_report,
+    validate_feature_leakage,
+    validate_target_alignment,
+)
 from bot.ml.predictor import MLPredictor
 from bot.ml.feature_engineer import FeatureEngineer
 from bot.ml.regime_classifier import MarketRegimeClassifier
@@ -84,6 +91,11 @@ def train_traditional_models(
     ohlcv: pd.DataFrame,
     model_types: List[str] = ["random_forest", "xgboost"],
     save_dir: str = "data/models",
+    label_horizon: int = 1,
+    use_triple_barrier: bool = False,
+    atr_multiplier: float = 2.0,
+    min_return: float = 0.001,
+    report_dir: str = "data/reports",
 ) -> Dict:
     """Train traditional ML models (Random Forest, XGBoost)."""
     results = {}
@@ -97,7 +109,16 @@ def train_traditional_models(
                 model_dir=save_dir,
             )
 
-            metrics = predictor.train(ohlcv)
+            metrics = predictor.train(
+                ohlcv,
+                label_horizon=label_horizon,
+                use_triple_barrier=use_triple_barrier,
+                atr_multiplier=atr_multiplier,
+                min_return=min_return,
+                report_data_quality=True,
+                report_dir=report_dir,
+                symbol=symbol,
+            )
             model_name = f"{symbol.replace('/', '_')}_{model_type}"
             predictor.save(model_name)
 
@@ -124,6 +145,11 @@ def train_deep_learning_models(
     model_types: List[str] = ["lstm", "transformer"],
     save_dir: str = "data/model_registry",
     epochs: int = 50,
+    label_horizon: int = 1,
+    use_triple_barrier: bool = False,
+    atr_multiplier: float = 2.0,
+    min_return: float = 0.001,
+    report_dir: str = "data/reports",
 ) -> Dict:
     """Train deep learning models (LSTM, Transformer)."""
     if not HAS_DL:
@@ -136,25 +162,56 @@ def train_deep_learning_models(
     # Extract features
     logger.info(f"Extracting features for {symbol}...")
     df_features = feature_engineer.extract_features(ohlcv)
+    df_features = feature_engineer.build_labels(
+        df_features,
+        horizon=label_horizon,
+        use_triple_barrier=use_triple_barrier,
+        atr_multiplier=atr_multiplier,
+        min_return=min_return,
+    )
+    df_features = df_features.dropna()
 
     if len(df_features) < 200:
         logger.warning(f"Insufficient data for deep learning ({len(df_features)} samples)")
         return {}
 
     # Prepare data
-    exclude_cols = ["target_return", "target_direction", "target_class",
-                    "open", "high", "low", "close", "volume"]
-    feature_cols = [c for c in df_features.columns if c not in exclude_cols]
+    feature_cols = get_feature_columns(df_features)
+    leakage = validate_feature_leakage(feature_cols)
+    if leakage:
+        logger.warning(f"Leakage columns detected and removed: {leakage}")
+        feature_cols = [c for c in feature_cols if c not in leakage]
 
     X = df_features[feature_cols].values
 
-    # Create target (3-class classification)
-    returns = df_features["close"].pct_change().shift(-1)
-    threshold = returns.std() * 0.5
+    alignment_warnings = validate_target_alignment(
+        df_features,
+        target_col="target_return",
+        horizon=label_horizon,
+    )
+    for warning in alignment_warnings:
+        logger.warning(warning)
 
-    y = np.where(returns > threshold, 2,  # LONG
-                 np.where(returns < -threshold, 0,  # SHORT
-                          1))  # FLAT
+    target_label = "target_class"
+    if use_triple_barrier and "target_triple_barrier" in df_features.columns:
+        target_label = "target_triple_barrier"
+
+    y = df_features[target_label].values
+
+    report = build_quality_report(
+        df_features,
+        feature_cols=feature_cols,
+        target_col=target_label,
+        symbol=symbol,
+        metadata={
+            "model_type": "deep_learning",
+            "label_horizon": label_horizon,
+            "use_triple_barrier": use_triple_barrier,
+        },
+        alignment_warnings=alignment_warnings,
+    )
+    report_path = save_quality_report(report, report_dir=report_dir)
+    logger.info(f"Data quality report saved to {report_path}")
 
     # Remove NaN rows
     valid_mask = ~np.isnan(X).any(axis=1) & ~np.isnan(y)
@@ -314,6 +371,16 @@ def main():
                         help="Skip deep learning models")
     parser.add_argument("--backtest", action="store_true",
                         help="Run backtest after training")
+    parser.add_argument("--label-horizon", type=int, default=1,
+                        help="Forward return horizon (bars) for labels")
+    parser.add_argument("--use-triple-barrier", action="store_true",
+                        help="Use triple-barrier labels")
+    parser.add_argument("--atr-multiplier", type=float, default=2.0,
+                        help="ATR multiplier for triple-barrier thresholds")
+    parser.add_argument("--min-return", type=float, default=0.001,
+                        help="Minimum return threshold for labels")
+    parser.add_argument("--report-dir", default="data/reports",
+                        help="Directory to save data quality reports")
 
     args = parser.parse_args()
 
@@ -354,6 +421,11 @@ def main():
             traditional_results = train_traditional_models(
                 symbol, ohlcv,
                 model_types=["random_forest"],  # XGBoost optional
+                label_horizon=args.label_horizon,
+                use_triple_barrier=args.use_triple_barrier,
+                atr_multiplier=args.atr_multiplier,
+                min_return=args.min_return,
+                report_dir=args.report_dir,
             )
             symbol_results["traditional"] = traditional_results
 
@@ -363,6 +435,11 @@ def main():
                 symbol, ohlcv,
                 model_types=["lstm"],  # Transformer optional for speed
                 epochs=args.epochs,
+                label_horizon=args.label_horizon,
+                use_triple_barrier=args.use_triple_barrier,
+                atr_multiplier=args.atr_multiplier,
+                min_return=args.min_return,
+                report_dir=args.report_dir,
             )
             symbol_results["deep_learning"] = dl_results
 

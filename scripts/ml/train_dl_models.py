@@ -15,13 +15,26 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import sys
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+# Add project root to path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
 import numpy as np
 import pandas as pd
+
+from bot.ml.data_quality import (
+    build_quality_report,
+    get_feature_columns,
+    save_quality_report,
+    validate_feature_leakage,
+    validate_target_alignment,
+)
+from bot.ml.feature_engineer import FeatureEngineer
 
 # Setup logging
 logging.basicConfig(
@@ -123,6 +136,12 @@ def prepare_training_data(
     sequence_length: int = 60,
     validation_split: float = 0.2,
     test_split: float = 0.1,
+    label_horizon: int = 1,
+    use_triple_barrier: bool = False,
+    atr_multiplier: float = 2.0,
+    min_return: float = 0.001,
+    report_dir: str = "data/reports",
+    symbol: Optional[str] = None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, List[str]]:
     """
     Prepare data for model training.
@@ -136,27 +155,60 @@ def prepare_training_data(
     Returns:
         X_train, y_train, X_val, y_val, X_test, y_test, feature_names
     """
-    from bot.ml.feature_engineer import FeatureEngineer
-
     # Extract features
     logger.info("Extracting features...")
     fe = FeatureEngineer()
     features_df = fe.extract_features(df)
+    features_df = fe.build_labels(
+        features_df,
+        horizon=label_horizon,
+        use_triple_barrier=use_triple_barrier,
+        atr_multiplier=atr_multiplier,
+        min_return=min_return,
+    )
+    features_df = features_df.dropna()
 
     if len(features_df) < sequence_length + 100:
         logger.warning(f"Insufficient data after feature extraction: {len(features_df)} rows")
         return None
 
     # Get feature columns (exclude targets and OHLCV)
-    exclude_cols = [
-        "open", "high", "low", "close", "volume",
-        "target_return", "target_direction", "target_class",
-    ]
-    feature_cols = [c for c in features_df.columns if c not in exclude_cols]
+    feature_cols = get_feature_columns(features_df)
+    leakage = validate_feature_leakage(feature_cols)
+    if leakage:
+        logger.warning(f"Leakage columns detected and removed: {leakage}")
+        feature_cols = [c for c in feature_cols if c not in leakage]
+
+    alignment_warnings = validate_target_alignment(
+        features_df,
+        target_col="target_return",
+        horizon=label_horizon,
+    )
+    for warning in alignment_warnings:
+        logger.warning(warning)
+
+    target_label = "target_class"
+    if use_triple_barrier and "target_triple_barrier" in features_df.columns:
+        target_label = "target_triple_barrier"
 
     # Prepare features and targets
     X = features_df[feature_cols].values
-    y = features_df["target_class"].values.astype(int)
+    y = features_df[target_label].values.astype(int)
+
+    report = build_quality_report(
+        features_df,
+        feature_cols=feature_cols,
+        target_col=target_label,
+        symbol=symbol,
+        metadata={
+            "model_type": "deep_learning",
+            "label_horizon": label_horizon,
+            "use_triple_barrier": use_triple_barrier,
+        },
+        alignment_warnings=alignment_warnings,
+    )
+    report_path = save_quality_report(report, report_dir=report_dir)
+    logger.info(f"Data quality report saved to {report_path}")
 
     # Handle NaN/Inf values
     X = np.nan_to_num(X, nan=0.0, posinf=1e6, neginf=-1e6)
@@ -348,6 +400,11 @@ def train_market_models(
     epochs: int = 50,
     sequence_length: int = 60,
     skip_existing: bool = False,
+    label_horizon: int = 1,
+    use_triple_barrier: bool = False,
+    atr_multiplier: float = 2.0,
+    min_return: float = 0.001,
+    report_dir: str = "data/reports",
 ) -> List[Dict]:
     """
     Train models for a specific market type.
@@ -393,7 +450,16 @@ def train_market_models(
             continue
 
         # Prepare data
-        data = prepare_training_data(df, sequence_length=sequence_length)
+        data = prepare_training_data(
+            df,
+            sequence_length=sequence_length,
+            label_horizon=label_horizon,
+            use_triple_barrier=use_triple_barrier,
+            atr_multiplier=atr_multiplier,
+            min_return=min_return,
+            report_dir=report_dir,
+            symbol=symbol,
+        )
         if data is None:
             logger.error(f"Failed to prepare data for {symbol}")
             continue
@@ -465,6 +531,35 @@ def main():
         help="Skip training if models already exist",
     )
     parser.add_argument(
+        "--label-horizon",
+        type=int,
+        default=1,
+        help="Forward return horizon for labels",
+    )
+    parser.add_argument(
+        "--use-triple-barrier",
+        action="store_true",
+        help="Use triple-barrier labels",
+    )
+    parser.add_argument(
+        "--atr-multiplier",
+        type=float,
+        default=2.0,
+        help="ATR multiplier for triple-barrier labels",
+    )
+    parser.add_argument(
+        "--min-return",
+        type=float,
+        default=0.001,
+        help="Minimum return threshold for labels",
+    )
+    parser.add_argument(
+        "--report-dir",
+        type=str,
+        default="data/reports",
+        help="Output directory for data quality reports",
+    )
+    parser.add_argument(
         "--output",
         type=str,
         default="data/training_results.json",
@@ -507,6 +602,11 @@ def main():
             epochs=args.epochs,
             sequence_length=args.sequence_length,
             skip_existing=args.skip_existing,
+            label_horizon=args.label_horizon,
+            use_triple_barrier=args.use_triple_barrier,
+            atr_multiplier=args.atr_multiplier,
+            min_return=args.min_return,
+            report_dir=args.report_dir,
         )
         all_results.extend(results)
 

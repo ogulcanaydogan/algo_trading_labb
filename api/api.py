@@ -131,6 +131,180 @@ API_TAGS_METADATA = [
 ]
 
 
+# =============================================================================
+# WebSocket Connection Manager for Real-Time Updates
+# =============================================================================
+
+class ConnectionManager:
+    """Manage WebSocket connections for real-time updates."""
+
+    def __init__(self) -> None:
+        self.active_connections: Set[WebSocket] = set()
+        self._broadcast_task: Optional[asyncio.Task] = None
+        self._running = False
+
+    async def connect(self, websocket: WebSocket) -> None:
+        """Accept a new WebSocket connection."""
+        await websocket.accept()
+        self.active_connections.add(websocket)
+
+    def disconnect(self, websocket: WebSocket) -> None:
+        """Remove a WebSocket connection."""
+        self.active_connections.discard(websocket)
+
+    async def broadcast(self, message: Dict[str, Any]) -> None:
+        """Broadcast a message to all connected clients."""
+        if not self.active_connections:
+            return
+
+        disconnected: Set[WebSocket] = set()
+        for connection in self.active_connections:
+            try:
+                await connection.send_json(message)
+            except Exception:
+                disconnected.add(connection)
+
+        # Clean up disconnected clients
+        for conn in disconnected:
+            self.active_connections.discard(conn)
+
+    def get_connection_count(self) -> int:
+        """Return the number of active connections."""
+        return len(self.active_connections)
+
+
+# Global connection manager instance
+ws_manager = ConnectionManager()
+
+
+def _get_ws_update_payload() -> Dict[str, Any]:
+    """Build the WebSocket update payload with portfolio data from UNIFIED trading state."""
+    result: Dict[str, Any] = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "type": "portfolio_update",
+        "prices": {},
+        "signals": {},
+        "portfolio_value": 0,
+        "positions": {},
+        "markets": {},
+    }
+
+    # Load UNIFIED trading state (single source of truth)
+    unified_state_file = STATE_DIR / "unified_trading" / "state.json"
+    
+    if not unified_state_file.exists():
+        # Fallback to old multi-market approach if unified doesn't exist
+        result["markets"] = {
+            "crypto": {"status": "not_running"},
+            "commodity": {"status": "not_running"},
+            "stock": {"status": "not_running"},
+        }
+        return result
+
+    try:
+        with open(unified_state_file, "r") as f:
+            state = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        result["markets"] = {
+            "crypto": {"status": "not_running"},
+            "commodity": {"status": "not_running"},
+            "stock": {"status": "not_running"},
+        }
+        return result
+
+    # Extract unified state data
+    current_balance = state.get("current_balance", 0)
+    initial_capital = state.get("initial_capital", 10000)
+    total_pnl = state.get("total_pnl", 0)
+    positions = state.get("positions", {})
+    
+    # Calculate daily P&L
+    daily_pnl = state.get("daily_pnl", 0)
+    daily_pnl_pct = (daily_pnl / initial_capital * 100) if initial_capital > 0 else 0
+    
+    # Portfolio totals
+    result["portfolio_value"] = current_balance
+    result["total_pnl"] = total_pnl
+    result["total_pnl_pct"] = (total_pnl / initial_capital * 100) if initial_capital > 0 else 0
+    result["daily_pnl"] = daily_pnl
+    result["daily_pnl_pct"] = daily_pnl_pct
+    
+    # Extract positions
+    for symbol, pos_data in positions.items():
+        result["positions"][symbol] = {
+            "value": pos_data.get("value", 0),
+            "quantity": pos_data.get("quantity", pos_data.get("qty", 0)),
+            "entry_price": pos_data.get("entry_price", 0),
+            "unrealized_pnl": pos_data.get("unrealized_pnl", 0),
+        }
+    
+    # Divide portfolio equally across 3 markets for display
+    market_allocation = current_balance / 3
+    positions_per_market = {
+        "crypto": 0,
+        "commodity": 0,
+        "stock": 0,
+    }
+    
+    # Count positions by market type
+    crypto_symbols = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "AVAX/USDT"]
+    commodity_symbols = ["XAU/USD", "XAG/USD", "USOIL/USD", "NATGAS/USD"]
+    
+    for symbol in positions.keys():
+        if any(s in symbol for s in crypto_symbols) or "USDT" in symbol:
+            positions_per_market["crypto"] += 1
+        elif any(s in symbol for s in commodity_symbols) or symbol.startswith("X"):
+            positions_per_market["commodity"] += 1
+        else:
+            positions_per_market["stock"] += 1
+    
+    # Market status (all running if unified engine is active)
+    is_active = state.get("status") == "active"
+    
+    result["markets"] = {
+        "crypto": {
+            "total_value": market_allocation,
+            "pnl": daily_pnl / 3,  # Divide daily P&L equally
+            "pnl_pct": daily_pnl_pct,
+            "cash_balance": market_allocation,
+            "positions_count": positions_per_market["crypto"],
+            "deep_learning_enabled": False,
+            "dl_model_selection": None,
+            "status": "running" if is_active else "stopped",
+        },
+        "commodity": {
+            "total_value": market_allocation,
+            "pnl": daily_pnl / 3,
+            "pnl_pct": daily_pnl_pct,
+            "cash_balance": market_allocation,
+            "positions_count": positions_per_market["commodity"],
+            "status": "running" if is_active else "stopped",
+        },
+        "stock": {
+            "total_value": market_allocation,
+            "pnl": daily_pnl / 3,
+            "pnl_pct": daily_pnl_pct,
+            "cash_balance": market_allocation,
+            "positions_count": positions_per_market["stock"],
+            "status": "running" if is_active else "stopped",
+        },
+    }
+
+    return result
+
+
+async def _ws_broadcast_loop() -> None:
+    """Background task that broadcasts updates every 3 seconds."""
+    while ws_manager._running:
+        if ws_manager.get_connection_count() > 0:
+            try:
+                payload = _get_ws_update_payload()
+                await ws_manager.broadcast(payload)
+            except Exception:
+                pass  # Silently handle broadcast errors
+        await asyncio.sleep(3)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown events."""
@@ -192,158 +366,24 @@ app.add_middleware(
 # Include unified trading API router
 app.include_router(unified_trading_router)
 
+# Include advanced API router
+try:
+    from api.advanced_api import router as advanced_router
+    app.include_router(advanced_router)
+except ImportError as e:
+    logger.warning(f"Advanced API not available: {e}")
+
+# Include WebSocket router
+try:
+    from api.websocket_api import router as websocket_router
+    app.include_router(websocket_router)
+except ImportError as e:
+    logger.warning(f"WebSocket API not available: {e}")
+
 # Track application start time for health checks
 _app_start_time = time.time()
 
 _state_store: Optional[StateStore] = None
-
-
-# =============================================================================
-# WebSocket Connection Manager for Real-Time Updates
-# =============================================================================
-
-class ConnectionManager:
-    """Manage WebSocket connections for real-time updates."""
-
-    def __init__(self) -> None:
-        self.active_connections: Set[WebSocket] = set()
-        self._broadcast_task: Optional[asyncio.Task] = None
-        self._running = False
-
-    async def connect(self, websocket: WebSocket) -> None:
-        """Accept a new WebSocket connection."""
-        await websocket.accept()
-        self.active_connections.add(websocket)
-
-    def disconnect(self, websocket: WebSocket) -> None:
-        """Remove a WebSocket connection."""
-        self.active_connections.discard(websocket)
-
-    async def broadcast(self, message: Dict[str, Any]) -> None:
-        """Broadcast a message to all connected clients."""
-        if not self.active_connections:
-            return
-
-        disconnected: Set[WebSocket] = set()
-        for connection in self.active_connections:
-            try:
-                await connection.send_json(message)
-            except Exception:
-                disconnected.add(connection)
-
-        # Clean up disconnected clients
-        for conn in disconnected:
-            self.active_connections.discard(conn)
-
-    def get_connection_count(self) -> int:
-        """Return the number of active connections."""
-        return len(self.active_connections)
-
-
-# Global connection manager instance
-ws_manager = ConnectionManager()
-
-
-def _get_ws_update_payload() -> Dict[str, Any]:
-    """Build the WebSocket update payload with portfolio data."""
-    result: Dict[str, Any] = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "type": "portfolio_update",
-        "prices": {},
-        "signals": {},
-        "portfolio_value": 0,
-        "positions": {},
-        "markets": {},
-    }
-
-    # Load bot state data from various state directories
-    # For crypto, check multiple possible state files and use the newest one
-    state_dirs = {
-        "crypto": [
-            STATE_DIR / "production" / "state.json",  # Live/testnet trading
-            STATE_DIR / "ml_paper_trading_enhanced" / "state.json",
-            STATE_DIR / "ml_paper_trading_aggressive" / "state.json",
-            STATE_DIR / "ml_paper_trading" / "state.json",
-            STATE_DIR / "live_paper_trading" / "state.json",
-        ],
-        "commodity": [STATE_DIR / "commodity_trading" / "state.json"],
-        "stock": [STATE_DIR / "stock_trading" / "state.json"],
-    }
-
-    total_value = 0
-    total_pnl = 0
-
-    for market_type, state_files in state_dirs.items():
-        # Find the newest state file for this market
-        state_data = None
-        for state_file in state_files:
-            if state_file.exists():
-                try:
-                    with open(state_file, "r") as f:
-                        candidate = json.load(f)
-                        if state_data is None or candidate.get("timestamp", "") > state_data.get("timestamp", ""):
-                            state_data = candidate
-                except (OSError, json.JSONDecodeError):
-                    pass
-
-        if state_data:
-            # Handle different key names: crypto uses portfolio_value, others use total_value
-            market_value = state_data.get("total_value", state_data.get("portfolio_value", 0))
-            market_pnl = state_data.get("pnl", 0)
-            total_value += market_value
-            total_pnl += market_pnl
-
-            # Extract signals and prices
-            market_signals = state_data.get("signals", {})
-            for symbol, sig_data in market_signals.items():
-                result["signals"][symbol] = {
-                    "action": sig_data.get("signal", "FLAT"),
-                    "regime": sig_data.get("regime"),
-                    "confidence": sig_data.get("confidence"),
-                    "dl_prediction": sig_data.get("dl_prediction"),
-                }
-                if "price" in sig_data:
-                    result["prices"][symbol] = sig_data["price"]
-
-            # Extract positions
-            market_positions = state_data.get("positions", {})
-            for symbol, pos_data in market_positions.items():
-                result["positions"][symbol] = {
-                    "value": pos_data.get("value", 0),
-                    "quantity": pos_data.get("quantity", 0),
-                    "entry_price": pos_data.get("entry_price"),
-                    "unrealized_pnl": pos_data.get("unrealized_pnl", 0),
-                }
-
-            result["markets"][market_type] = {
-                "total_value": market_value,
-                "pnl": market_pnl,
-                "pnl_pct": state_data.get("pnl_pct", 0),
-                "cash_balance": state_data.get("cash_balance", state_data.get("cash", 0)),
-                "positions_count": len(market_positions),
-                "deep_learning_enabled": state_data.get("deep_learning_enabled", False),
-                "dl_model_selection": state_data.get("dl_model_selection"),
-            }
-        else:
-            result["markets"][market_type] = {"status": "not_running"}
-
-    result["portfolio_value"] = total_value
-    result["total_pnl"] = total_pnl
-    result["total_pnl_pct"] = (total_pnl / 30000 * 100) if total_value > 0 else 0
-
-    return result
-
-
-async def _ws_broadcast_loop() -> None:
-    """Background task that broadcasts updates every 3 seconds."""
-    while ws_manager._running:
-        if ws_manager.get_connection_count() > 0:
-            try:
-                payload = _get_ws_update_payload()
-                await ws_manager.broadcast(payload)
-            except Exception:
-                pass  # Silently handle broadcast errors
-        await asyncio.sleep(3)
 
 
 def get_store() -> StateStore:
@@ -2180,7 +2220,7 @@ async def get_market_summary(
         # Split total portfolio equally across 3 markets
         total_balance = bot_state.get("current_balance", 10000.0)
         initial_capital = bot_state.get("initial_capital", 10000.0)
-        capital_per_market = initial_capital / 3
+        capital_per_market = total_balance / 3  # ✅ Use current balance, not initial capital
         
         # Get positions for this market
         all_positions = bot_state.get("positions", {})
@@ -4334,7 +4374,7 @@ async def get_trading_control_panel() -> Dict[str, Any]:
                 market_pnl[market] += unrealized
             
             # Calculate per-market balance based on equal capital allocation
-            capital_per_market = initial_capital / 3  # Equally divided among 3 markets
+            capital_per_market = current_balance / 3  # ✅ Use current balance, not initial capital
             market_balance = {}
             for market_id in market_config.keys():
                 market_balance[market_id] = capital_per_market + market_pnl[market_id]
@@ -4705,6 +4745,29 @@ async def _apply_risk_settings(settings: Dict[str, bool]) -> None:
 
         except Exception as e:
             print(f"Warning: Could not apply risk settings to {market_id}: {e}")
+
+    # Also update unified trading control file
+    try:
+        unified_control_file = STATE_DIR / "unified_trading" / "control.json"
+        unified_control_file.parent.mkdir(parents=True, exist_ok=True)
+
+        control = {}
+        if unified_control_file.exists():
+            with open(unified_control_file) as f:
+                control = json.load(f)
+
+        control["allow_shorting"] = settings.get("shorting", False)
+        control["allow_leverage"] = settings.get("leverage", False)
+        control["aggressive_mode"] = settings.get("aggressive", False)
+        control["max_leverage"] = 3.0 if settings.get("leverage", False) else 1.0
+        control["risk_settings_updated"] = datetime.now(timezone.utc).isoformat()
+
+        with open(unified_control_file, "w") as f:
+            json.dump(control, f, indent=2)
+
+        print(f"Risk settings applied: shorting={settings.get('shorting')}, leverage={settings.get('leverage')}")
+    except Exception as e:
+        print(f"Warning: Could not apply risk settings to unified trading: {e}")
 
 
 # =============================================================================

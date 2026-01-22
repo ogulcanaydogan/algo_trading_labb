@@ -193,6 +193,14 @@ data/ai_brain/
 data/claude_usage/
 data/intelligence/
 data/persistent_storage/
+data/master_ai/
+data/reports/
+
+# Logs
+data/logs/
+
+# Training data (large files)
+data/training/*.parquet
 
 # Trained ML models (large binary files)
 data/models/*.pkl
@@ -202,13 +210,24 @@ data/models/*.pt
 data/models/*.pth
 data/models/*_meta.json
 data/models/*_scaler.pkl
+data/models/*_metadata.json
+data/models/*_selected_features.json
+data/models/training_summary.json
 data/model_registry/models/
 
 # State files (may contain sensitive runtime data)
 data/*/state.json
 data/*/control.json
+data/*/equity.json
+data/*/trade_journal.json
+data/*/trades.json
 data/risk_settings.json
 data/risk_guardian_state.json
+data/regime_risk_state.json
+data/safety_state.json
+
+# Backups
+backups/
 
 # Dashboard backups
 api/dashboard_*_backup*.html

@@ -62,12 +62,14 @@ class TestZeroAndNegativeValues:
 class TestBoundaryValues:
     """Test boundary and extreme values."""
 
-    def test_max_position_size(self):
+    def test_max_position_size(self, tmp_path):
         """Test maximum allowed position size."""
-        limits = SafetyLimits(max_position_size_usd=1000000.0)
-        controller = SafetyController(limits=limits)
+        # Set pct to 0 to prevent auto-scaling from overriding usd value
+        limits = SafetyLimits(max_position_size_usd=1000000.0, max_position_size_pct=0.0)
+        # Use temp state path to avoid loading persisted state
+        controller = SafetyController(limits=limits, state_path=tmp_path / "safety_state.json")
         controller.update_balance(1000000.0)
-        
+
         controller.update_positions({"BTC/USDT": 999999.0})
         assert sum(controller._open_positions.values()) < limits.max_position_size_usd
 
@@ -226,12 +228,13 @@ class TestRiskManagementEdgeCases:
         
         assert position.take_profit < position.entry_price
 
-    def test_daily_loss_limit_zero(self):
+    def test_daily_loss_limit_zero(self, tmp_path):
         """Test with daily loss limit set to zero."""
-        limits = SafetyLimits(max_daily_loss_usd=0.0)
-        controller = SafetyController(limits=limits)
+        # Set both usd and pct to 0 to prevent auto-scaling
+        limits = SafetyLimits(max_daily_loss_usd=0.0, max_daily_loss_pct=0.0)
+        controller = SafetyController(limits=limits, state_path=tmp_path / "safety_state.json")
         controller.update_balance(10000.0)
-        
+
         controller._daily_stats.total_loss = 0.01
         assert controller._daily_stats.total_loss > limits.max_daily_loss_usd
 

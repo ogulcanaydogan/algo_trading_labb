@@ -25,6 +25,7 @@ load_dotenv()
 
 from bot.trading_mode import TradingMode
 from bot.unified_engine import EngineConfig, UnifiedTradingEngine
+from bot.broker_router import create_multi_asset_adapter
 
 
 def setup_logging(mode: str, data_dir: Path) -> None:
@@ -58,12 +59,33 @@ async def run_trading(args) -> None:
     setup_logging(mode.value, data_dir)
     logger = logging.getLogger(__name__)
 
+    # Determine symbols based on mode
+    multi_asset = getattr(args, 'multi_asset', False)
+    if multi_asset:
+        # Multi-asset mode: crypto + forex + commodities + stocks with trained models
+        symbols = [
+            # Crypto (Binance)
+            "BTC/USDT", "ETH/USDT", "SOL/USDT",
+            # Forex (OANDA) - best performers
+            "EUR/USD", "GBP/USD",
+            # Indices (OANDA)
+            "SPX500/USD", "NAS100/USD",
+            # Commodities (OANDA)
+            "WTICO/USD",  # WTI Oil
+            # US Stocks (Alpaca)
+            "AAPL/USD", "NVDA/USD", "MSFT/USD", "GOOGL/USD",
+        ]
+        logger.info("Multi-asset mode enabled: crypto + forex + indices + commodities + stocks")
+    else:
+        symbols = args.symbols.split(",") if args.symbols else ["BTC/USDT", "ETH/USDT"]
+
     config = EngineConfig(
         initial_mode=mode,
         initial_capital=args.capital,
-        symbols=args.symbols.split(",") if args.symbols else ["BTC/USDT", "ETH/USDT"],
+        symbols=symbols,
         loop_interval_seconds=args.interval,
         data_dir=data_dir,
+        multi_asset=multi_asset,
     )
 
     engine = UnifiedTradingEngine(config)
@@ -192,10 +214,11 @@ def main():
     run_p = subparsers.add_parser("run", help="Run trading")
     run_p.add_argument("--mode", default="paper_live_data")
     run_p.add_argument("--capital", type=float, default=10000)
-    run_p.add_argument("--symbols", default="BTC/USDT,ETH/USDT")
+    run_p.add_argument("--symbols", default="BTC/USDT,ETH/USDT,SOL/USDT")
     run_p.add_argument("--interval", type=int, default=60)
     run_p.add_argument("--confirm", action="store_true")
     run_p.add_argument("--fresh", action="store_true")
+    run_p.add_argument("--multi-asset", action="store_true", help="Enable multi-asset trading (crypto, forex, commodities)")
 
     # Status
     subparsers.add_parser("status", help="Show status")
@@ -214,10 +237,11 @@ def main():
         args.command = "run"
         args.mode = "paper_live_data"
         args.capital = 10000
-        args.symbols = "BTC/USDT,ETH/USDT"
+        args.symbols = "BTC/USDT,ETH/USDT,SOL/USDT"
         args.interval = 60
         args.confirm = False
         args.fresh = False
+        args.multi_asset = False
 
     if args.command == "run":
         asyncio.run(run_trading(args))

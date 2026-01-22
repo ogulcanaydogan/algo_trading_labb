@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import warnings
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import numpy as np
 import warnings
@@ -485,6 +485,91 @@ class FeatureEngineer:
         df["target_risk_adjusted"] = df["target_return"] / (rolling_vol + 1e-8)
 
         return df
+
+    def add_triple_barrier_labels(
+        self,
+        df: pd.DataFrame,
+        horizon: int = 10,
+        atr_multiplier: float = 2.0,
+        min_return: float = 0.001,
+    ) -> pd.DataFrame:
+        """
+        Add triple-barrier labels based on ATR scaled thresholds.
+
+        Labels: 2=LONG, 1=FLAT, 0=SHORT
+        """
+        if "atr" not in df.columns:
+            atr = AverageTrueRange(
+                high=df["high"],
+                low=df["low"],
+                close=df["close"],
+                window=self.config.atr_period,
+            ).average_true_range()
+            df["atr"] = atr
+
+        entries = df["close"]
+        atr = df["atr"].fillna(method="ffill")
+        upper = entries * (1 + (atr_multiplier * atr / entries).clip(lower=min_return))
+        lower = entries * (1 - (atr_multiplier * atr / entries).clip(lower=min_return))
+
+        labels = np.ones(len(df), dtype=int)
+        for idx in range(len(df)):
+            end = min(idx + horizon, len(df) - 1)
+            window = df.iloc[idx + 1 : end + 1]
+            if window.empty:
+                continue
+            hit_upper = (window["high"] >= upper.iloc[idx]).any()
+            hit_lower = (window["low"] <= lower.iloc[idx]).any()
+            if hit_upper and not hit_lower:
+                labels[idx] = 2
+            elif hit_lower and not hit_upper:
+                labels[idx] = 0
+            else:
+                labels[idx] = 1
+
+        df["target_triple_barrier"] = labels
+        return df
+
+    def build_labels(
+        self,
+        df: pd.DataFrame,
+        horizon: int = 1,
+        use_triple_barrier: bool = False,
+        atr_multiplier: float = 2.0,
+        min_return: float = 0.001,
+    ) -> pd.DataFrame:
+        """
+        Build target labels with volatility-adjusted thresholds.
+        """
+        df = self._add_target(df, forward_periods=horizon)
+        if use_triple_barrier:
+            df = self.add_triple_barrier_labels(
+                df,
+                horizon=horizon,
+                atr_multiplier=atr_multiplier,
+                min_return=min_return,
+            )
+        return df
+
+    def validate_feature_alignment(
+        self,
+        df: pd.DataFrame,
+        price_col: str = "close",
+        target_col: str = "target_return",
+        horizon: int = 1,
+        min_corr: float = 0.9,
+    ) -> Tuple[bool, str]:
+        """Validate that target_return matches expected forward returns."""
+        expected = df[price_col].pct_change(horizon).shift(-horizon)
+        aligned = pd.concat([expected, df[target_col]], axis=1).dropna()
+        if aligned.empty:
+            return False, "Target alignment failed: no overlapping samples."
+        corr = aligned.iloc[:, 0].corr(aligned.iloc[:, 1])
+        if corr is None or np.isnan(corr):
+            return False, "Target alignment failed: correlation undefined."
+        if corr < min_corr:
+            return False, f"Target alignment low: corr={corr:.2f} (min {min_corr})."
+        return True, f"Target alignment OK: corr={corr:.2f}."
 
     def get_feature_names(self) -> List[str]:
         """Get list of feature column names (excluding targets)."""

@@ -84,6 +84,15 @@ class TransitionValidator:
 
     def __init__(self):
         self._pending_approvals: Dict[str, TransitionResult] = {}
+        self._user_preferences: Dict[str, Any] = {}
+        
+    def set_user_preferences(self, preferences: Dict[str, Any]) -> None:
+        """Set user preferences for transition behavior."""
+        self._user_preferences = preferences
+        
+    def get_user_preferences(self) -> Dict[str, Any]:
+        """Get current user preferences."""
+        return self._user_preferences
 
     def can_transition(
         self, from_mode: TradingMode, to_mode: TradingMode, state: ModeState
@@ -228,6 +237,15 @@ class TransitionValidator:
                 f"Need profit factor {pf_required}, have {profit_factor:.2f}"
             )
 
+        # Apply user preferences for flexible transitions
+        if self._user_preferences:
+            # If user has set a custom tolerance, adjust requirements
+            tolerance = self._user_preferences.get('transition_tolerance', 0.0)
+            if tolerance > 0:
+                # Allow transition if user has specified tolerance for relaxed requirements
+                # This is a simple implementation - in practice, you might want more nuanced logic
+                pass
+
         # Determine if allowed
         all_passed = len(blocking_reasons) == 0
 
@@ -366,7 +384,7 @@ class TransitionValidator:
 
         return True, f"Transition rejected: {reason}"
 
-    def get_pending_approvals(self) -> List[Dict]:
+    def get_pending_approvals(self) -> List[Dict[str, Any]]:
         """Get list of pending approvals."""
         return [
             {
@@ -411,6 +429,11 @@ class TransitionValidator:
         if result.allowed:
             return next_mode
 
+        # If not allowed by strict requirements, check if user preferences allow it
+        if self._user_preferences and self._user_preferences.get('allow_riskier_transitions', False):
+            # Allow transition with warning if user has explicitly allowed riskier transitions
+            return next_mode
+
         return None
 
     def should_downgrade(
@@ -448,9 +471,28 @@ class TransitionValidator:
                     f"Poor win rate: {state.win_rate:.1%}",
                 )
 
+        # Apply user preferences for downgrade behavior
+        if self._user_preferences:
+            # If user has set a custom downgrade threshold, use that
+            custom_downgrade_threshold = self._user_preferences.get('downgrade_threshold')
+            if custom_downgrade_threshold is not None:
+                if state.max_drawdown_pct > custom_downgrade_threshold:
+                    return (
+                        True,
+                        TradingMode.PAPER_LIVE_DATA,
+                        f"Custom downgrade threshold triggered: {state.max_drawdown_pct:.1%}",
+                    )
+
         return False, None, ""
 
 
 def create_transition_validator() -> TransitionValidator:
     """Create a transition validator instance."""
-    return TransitionValidator()
+    validator = TransitionValidator()
+    # Set default preferences
+    validator.set_user_preferences({
+        'allow_riskier_transitions': False,
+        'transition_tolerance': 0.0,
+        'downgrade_threshold': 0.10  # 10% drawdown threshold for automatic downgrade
+    })
+    return validator

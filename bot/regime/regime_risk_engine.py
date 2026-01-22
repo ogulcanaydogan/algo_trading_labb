@@ -108,11 +108,11 @@ class RegimeLimits:
                 size_multiplier=0.5,
             ),
             MarketRegime.UNKNOWN: cls(
-                max_leverage=1.0,
-                max_position_pct=0.05,
-                risk_per_trade_pct=0.005,
-                allowed_directions=[],  # No trading in unknown regime
-                size_multiplier=0.0,
+                max_leverage=1.5,
+                max_position_pct=0.10,
+                risk_per_trade_pct=0.01,
+                allowed_directions=["long", "short"],  # Allow trading to accumulate paper trades
+                size_multiplier=0.5,  # Reduced size for safety
             ),
         }
         return defaults.get(regime, defaults[MarketRegime.UNKNOWN])

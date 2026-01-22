@@ -31,6 +31,9 @@ class PositionState:
     take_profit: Optional[float] = None
     unrealized_pnl: float = 0.0
     current_price: Optional[float] = None
+    signal_confidence: Optional[float] = None
+    signal_reason: Optional[str] = None
+    signal_meta: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict:
         """Convert to dictionary."""
@@ -61,6 +64,7 @@ class TradeRecord:
     mode: str = "paper"
     signal_confidence: Optional[float] = None
     signal_reasons: List[str] = field(default_factory=list)
+    signal_metadata: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict:
         """Convert to dictionary."""

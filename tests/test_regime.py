@@ -569,8 +569,8 @@ class TestRiskEngine:
         result = risk_engine.check_trade(request)
         assert BlockReason.KILL_SWITCH_ACTIVE not in result.block_reasons
 
-    def test_unknown_regime_blocks_all(self, risk_engine, default_portfolio_state):
-        """Test that UNKNOWN regime blocks all trades."""
+    def test_unknown_regime_allows_cautious_trading(self, risk_engine, default_portfolio_state):
+        """Test that UNKNOWN regime allows trades with reduced sizing."""
         risk_engine.update_portfolio(default_portfolio_state)
 
         # Set UNKNOWN regime
@@ -593,8 +593,10 @@ class TestRiskEngine:
 
         result = risk_engine.check_trade(request)
 
-        assert not result.is_approved
-        assert BlockReason.REGIME_NOT_ALLOWED in result.block_reasons
+        # UNKNOWN regime now allows trading with reduced sizing (size_multiplier=0.5)
+        assert result.is_approved
+        # Position should be smaller due to 0.5x size multiplier
+        assert result.approved_quantity > 0
 
 
 # =============================================================================

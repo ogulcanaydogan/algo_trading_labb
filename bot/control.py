@@ -15,16 +15,26 @@ def _utcnow() -> datetime:
 
 @dataclass
 class BotControlState:
-    """Represents the manual pause/resume state for a bot."""
+    """Represents the manual pause/resume state and risk settings for a bot."""
 
     paused: bool = False
     reason: Optional[str] = None
     updated_at: Optional[datetime] = field(default=None)
 
+    # Risk settings
+    allow_shorting: bool = False
+    allow_leverage: bool = False
+    aggressive_mode: bool = False
+    max_leverage: float = 1.0  # 1.0 = no leverage
+
     def to_dict(self) -> dict[str, object]:
         payload: dict[str, object] = {
             "paused": self.paused,
             "reason": self.reason,
+            "allow_shorting": self.allow_shorting,
+            "allow_leverage": self.allow_leverage,
+            "aggressive_mode": self.aggressive_mode,
+            "max_leverage": self.max_leverage,
         }
         if self.updated_at is not None:
             payload["updated_at"] = self.updated_at.isoformat()
@@ -46,6 +56,10 @@ class BotControlState:
             paused=bool(payload.get("paused", False)),
             reason=payload.get("reason") if isinstance(payload.get("reason"), str) else None,
             updated_at=updated_at,
+            allow_shorting=bool(payload.get("allow_shorting", False)),
+            allow_leverage=bool(payload.get("allow_leverage", False)),
+            aggressive_mode=bool(payload.get("aggressive_mode", False)),
+            max_leverage=float(payload.get("max_leverage", 1.0)),
         )
 
 

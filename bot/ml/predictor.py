@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import os
 import pickle
+import joblib
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -32,6 +33,13 @@ try:
 except ImportError:
     HAS_XGBOOST = False
 
+from .data_quality import (
+    build_quality_report,
+    get_feature_columns,
+    save_quality_report,
+    validate_feature_leakage,
+    validate_target_alignment,
+)
 from .feature_engineer import FeatureEngineer, FeatureConfig
 
 
@@ -152,6 +160,13 @@ class MLPredictor:
         ohlcv: pd.DataFrame,
         test_size: float = 0.2,
         validate: bool = True,
+        label_horizon: int = 1,
+        use_triple_barrier: bool = False,
+        atr_multiplier: float = 2.0,
+        min_return: float = 0.001,
+        report_data_quality: bool = True,
+        report_dir: str = "data/reports",
+        symbol: Optional[str] = None,
     ) -> ModelMetrics:
         """
         Train the ML model on historical data.
@@ -168,15 +183,53 @@ class MLPredictor:
 
         # Extract features
         df = self.feature_engineer.extract_features(ohlcv)
+        df = self.feature_engineer.build_labels(
+            df,
+            horizon=label_horizon,
+            use_triple_barrier=use_triple_barrier,
+            atr_multiplier=atr_multiplier,
+            min_return=min_return,
+        )
+        df = df.dropna()
 
         # Prepare features and target
-        feature_cols = [col for col in df.columns
-                       if col not in ["target_return", "target_direction", "target_class",
-                                     "open", "high", "low", "close", "volume"]]
+        feature_cols = get_feature_columns(df)
+        leakage = validate_feature_leakage(feature_cols)
+        if leakage:
+            print(f"Warning: leakage columns detected and removed: {leakage}")
+            feature_cols = [col for col in feature_cols if col not in leakage]
+
+        alignment_warnings = validate_target_alignment(
+            df,
+            target_col="target_return",
+            horizon=label_horizon,
+        )
+        for warning in alignment_warnings:
+            print(f"Warning: {warning}")
+
+        target_label = "target_class"
+        if use_triple_barrier and "target_triple_barrier" in df.columns:
+            target_label = "target_triple_barrier"
         self.feature_names = feature_cols
 
         X = df[feature_cols].values
-        y = df["target_class"].values  # 0=SHORT, 1=FLAT, 2=LONG
+        y = df[target_label].values  # 0=SHORT, 1=FLAT, 2=LONG
+
+        if report_data_quality:
+            report = build_quality_report(
+                df,
+                feature_cols=feature_cols,
+                target_col=target_label,
+                symbol=symbol,
+                metadata={
+                    "model_type": self.model_type,
+                    "label_horizon": label_horizon,
+                    "use_triple_barrier": use_triple_barrier,
+                },
+                alignment_warnings=alignment_warnings,
+            )
+            report_path = save_quality_report(report, report_dir=report_dir)
+            print(f"Data quality report saved to {report_path}")
 
         # Split data (time-series aware - no shuffle)
         split_idx = int(len(X) * (1 - test_size))
@@ -332,11 +385,18 @@ class MLPredictor:
             print(f"Model files not found at {self.model_dir}")
             return False
 
-        with open(model_path, "rb") as f:
-            self.model = pickle.load(f)
+        # Try joblib first (newer models), fall back to pickle
+        try:
+            self.model = joblib.load(model_path)
+        except Exception:
+            with open(model_path, "rb") as f:
+                self.model = pickle.load(f)
 
-        with open(scaler_path, "rb") as f:
-            self.scaler = pickle.load(f)
+        try:
+            self.scaler = joblib.load(scaler_path)
+        except Exception:
+            with open(scaler_path, "rb") as f:
+                self.scaler = pickle.load(f)
 
         with open(meta_path, "r") as f:
             meta = json.load(f)
@@ -412,3 +472,54 @@ class MLPredictor:
             "total_trades": trades,
             "win_rate": round(wins / trades * 100, 2) if trades > 0 else 0,
         }
+
+
+# Global instance for singleton pattern
+_predictor: Optional[MLPredictor] = None
+
+
+def get_predictor(
+    model_type: str = "random_forest",
+    model_dir: str = "data/models",
+    symbol: str = "BTC_USDT"
+) -> Optional[MLPredictor]:
+    """
+    Get or create a predictor instance.
+
+    Attempts to load a pre-trained model if available.
+
+    Args:
+        model_type: Type of model to use
+        model_dir: Directory containing saved models
+        symbol: Symbol for the model
+
+    Returns:
+        MLPredictor instance or None if unavailable
+    """
+    global _predictor
+
+    if _predictor is not None:
+        return _predictor
+
+    try:
+        predictor = MLPredictor(model_type=model_type, model_dir=model_dir)
+
+        # Try to load saved model
+        model_name = f"{symbol}_{model_type}"
+        if predictor.load(model_name):
+            _predictor = predictor
+            return _predictor
+
+        # Try without symbol prefix
+        if predictor.load(model_type):
+            _predictor = predictor
+            return _predictor
+
+        # Return untrained predictor
+        _predictor = predictor
+        return _predictor
+
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Could not create predictor: {e}")
+        return None

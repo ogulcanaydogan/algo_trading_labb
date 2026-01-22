@@ -1695,6 +1695,85 @@
             to { transform: translateX(0); opacity: 1; }
         }
 
+        /* Banner Notification - More prominent than toast */
+        .notification-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10001;
+            padding: var(--spacing-md) var(--spacing-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-md);
+            font-weight: 500;
+            transform: translateY(-100%);
+            transition: transform 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .notification-banner.show {
+            transform: translateY(0);
+        }
+
+        .notification-banner.success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+
+        .notification-banner.warning {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+
+        .notification-banner.error {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+
+        .notification-banner.info {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+        }
+
+        .notification-banner .banner-icon {
+            font-size: 1.25rem;
+        }
+
+        .notification-banner .banner-message {
+            flex: 1;
+            text-align: center;
+        }
+
+        .notification-banner .banner-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            transition: background 0.2s;
+        }
+
+        .notification-banner .banner-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        @keyframes bannerPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        .notification-banner.pulse {
+            animation: bannerPulse 2s infinite;
+        }
+
         /* Mobile Responsive */
         @media (max-width: 768px) {
             .header {
@@ -3099,6 +3178,13 @@
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
 
+    <!-- Notification Banner -->
+    <div class="notification-banner" id="notificationBanner">
+        <span class="banner-icon" id="bannerIcon"></span>
+        <span class="banner-message" id="bannerMessage"></span>
+        <button class="banner-close" onclick="hideNotification()">&times;</button>
+    </div>
+
     <!-- Tab Navigation -->
     <nav class="tab-navigation">
         <button class="tab-button active" data-tab="overview">
@@ -3920,6 +4006,226 @@
                 </div>
             </div>
 
+            <!-- Advanced Analytics Section -->
+            <div class="card" style="margin-top: var(--spacing-md);">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                        <span style="font-size: 1.2rem;">📊</span>
+                        <span style="font-weight: 600;">Advanced Analytics</span>
+                        <span id="analyticsGrade" style="padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; background: rgba(100, 116, 139, 0.2); color: var(--text-muted);">--</span>
+                    </div>
+                    <button onclick="refreshAnalytics()" style="background: none; border: 1px solid rgba(255,255,255,0.1); color: var(--text-secondary); padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">Refresh</button>
+                </div>
+
+                <!-- Key Metrics -->
+                <div class="grid-4" style="margin-top: var(--spacing-md);">
+                    <div class="stat-card">
+                        <div class="stat-value" id="expectancy">$0.00</div>
+                        <div class="stat-label">Expectancy / Trade</div>
+                        <div class="stat-sublabel" style="font-size: 0.7rem; color: var(--text-muted);">Expected profit per trade</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="profitFactor">0.00</div>
+                        <div class="stat-label">Profit Factor</div>
+                        <div class="stat-sublabel" style="font-size: 0.7rem; color: var(--text-muted);">&gt;1.5 = Good, &gt;2.0 = Excellent</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="sharpeRatio">0.00</div>
+                        <div class="stat-label">Sharpe Ratio</div>
+                        <div class="stat-sublabel" style="font-size: 0.7rem; color: var(--text-muted);">Risk-adjusted returns</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="qualityScore">0</div>
+                        <div class="stat-label">Quality Score</div>
+                        <div class="stat-sublabel" style="font-size: 0.7rem; color: var(--text-muted);">Overall system quality</div>
+                    </div>
+                </div>
+
+                <!-- Secondary Metrics -->
+                <div class="grid-4" style="margin-top: var(--spacing-sm);">
+                    <div class="stat-card" style="padding: var(--spacing-sm);">
+                        <div class="stat-value" style="font-size: 1.1rem;" id="sortinoRatio">0.00</div>
+                        <div class="stat-label" style="font-size: 0.7rem;">Sortino Ratio</div>
+                    </div>
+                    <div class="stat-card" style="padding: var(--spacing-sm);">
+                        <div class="stat-value" style="font-size: 1.1rem;" id="calmarRatio">0.00</div>
+                        <div class="stat-label" style="font-size: 0.7rem;">Calmar Ratio</div>
+                    </div>
+                    <div class="stat-card" style="padding: var(--spacing-sm);">
+                        <div class="stat-value" style="font-size: 1.1rem;" id="avgRMultiple">0.00R</div>
+                        <div class="stat-label" style="font-size: 0.7rem;">Avg R-Multiple</div>
+                    </div>
+                    <div class="stat-card" style="padding: var(--spacing-sm);">
+                        <div class="stat-value" style="font-size: 1.1rem;" id="maxDrawdown">0.00%</div>
+                        <div class="stat-label" style="font-size: 0.7rem;">Max Drawdown</div>
+                    </div>
+                </div>
+
+                <!-- Streaks and Rolling -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md); margin-top: var(--spacing-md);">
+                    <div style="background: var(--bg-secondary); border-radius: var(--radius-sm); padding: var(--spacing-md);">
+                        <div style="font-size: 0.8rem; font-weight: 600; margin-bottom: var(--spacing-sm);">Streaks</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-sm);">
+                            <div>
+                                <span style="font-size: 0.7rem; color: var(--text-muted);">Max Win</span>
+                                <div id="maxWinStreak" style="font-size: 1rem; font-weight: 600; color: var(--signal-long);">0</div>
+                            </div>
+                            <div>
+                                <span style="font-size: 0.7rem; color: var(--text-muted);">Max Loss</span>
+                                <div id="maxLossStreak" style="font-size: 1rem; font-weight: 600; color: var(--signal-short);">0</div>
+                            </div>
+                            <div>
+                                <span style="font-size: 0.7rem; color: var(--text-muted);">Current</span>
+                                <div id="currentStreak" style="font-size: 1rem; font-weight: 600;">0</div>
+                            </div>
+                            <div>
+                                <span style="font-size: 0.7rem; color: var(--text-muted);">Type</span>
+                                <div id="currentStreakType" style="font-size: 1rem; font-weight: 600;">--</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="background: var(--bg-secondary); border-radius: var(--radius-sm); padding: var(--spacing-md);">
+                        <div style="font-size: 0.8rem; font-weight: 600; margin-bottom: var(--spacing-sm);">Rolling Win Rate</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-sm);">
+                            <div>
+                                <span style="font-size: 0.7rem; color: var(--text-muted);">Last 10</span>
+                                <div id="rollingWr10" style="font-size: 1.2rem; font-weight: 600;">0%</div>
+                            </div>
+                            <div>
+                                <span style="font-size: 0.7rem; color: var(--text-muted);">Last 20</span>
+                                <div id="rollingWr20" style="font-size: 1.2rem; font-weight: 600;">0%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- P&L Chart Section - Compact -->
+            <div class="card" style="margin-top: var(--spacing-md);">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; padding-bottom: var(--spacing-xs);">
+                    <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                        <span style="font-size: 1rem;">📈</span>
+                        <span style="font-weight: 600; font-size: 0.9rem;">P&L</span>
+                        <span id="chartTotalPnl" style="font-size: 0.75rem; font-weight: 600;">$0.00</span>
+                        <span style="font-size: 0.65rem; color: var(--text-muted);"><span id="chartWinners" style="color: var(--signal-long);">0</span>W/<span id="chartLosers" style="color: var(--signal-short);">0</span>L</span>
+                    </div>
+                    <div style="display: flex; gap: 2px;">
+                        <button class="period-btn active" data-chart-view="cumulative" onclick="setPnlChartView('cumulative')" style="padding: 2px 6px; font-size: 0.65rem;">Cum</button>
+                        <button class="period-btn" data-chart-view="pertrade" onclick="setPnlChartView('pertrade')" style="padding: 2px 6px; font-size: 0.65rem;">Trade</button>
+                        <button class="period-btn" data-chart-view="drawdown" onclick="setPnlChartView('drawdown')" style="padding: 2px 6px; font-size: 0.65rem;">DD</button>
+                    </div>
+                </div>
+                <div style="height: 150px; position: relative;">
+                    <canvas id="pnlChartCanvas"></canvas>
+                </div>
+            </div>
+
+            <!-- Daily P&L Calendar - Compact -->
+            <div class="card" style="margin-top: var(--spacing-md);">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; padding-bottom: var(--spacing-xs);">
+                    <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                        <span style="font-size: 1rem;">📅</span>
+                        <span style="font-weight: 600; font-size: 0.9rem;">Daily P&L</span>
+                        <span id="calTargetHit" style="font-size: 0.7rem; padding: 2px 6px; background: rgba(16, 185, 129, 0.2); border-radius: 4px; color: var(--signal-long);">0/0 hit</span>
+                        <span id="calMonthlyPnl" style="font-size: 0.7rem; font-weight: 600;">$0.00</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <button onclick="changeCalendarMonth(-1)" style="background: none; border: none; color: var(--text-muted); padding: 2px 6px; cursor: pointer; font-size: 0.8rem;">&lt;</button>
+                        <span id="calendarMonthYear" style="font-size: 0.75rem; min-width: 80px; text-align: center;">Jan 2026</span>
+                        <button onclick="changeCalendarMonth(1)" style="background: none; border: none; color: var(--text-muted); padding: 2px 6px; cursor: pointer; font-size: 0.8rem;">&gt;</button>
+                    </div>
+                </div>
+
+                <!-- Compact Calendar Grid -->
+                <div style="position: relative;">
+                    <!-- Weekday Headers -->
+                    <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 2px;">
+                        <div style="text-align: center; font-size: 0.6rem; color: var(--text-muted);">M</div>
+                        <div style="text-align: center; font-size: 0.6rem; color: var(--text-muted);">T</div>
+                        <div style="text-align: center; font-size: 0.6rem; color: var(--text-muted);">W</div>
+                        <div style="text-align: center; font-size: 0.6rem; color: var(--text-muted);">T</div>
+                        <div style="text-align: center; font-size: 0.6rem; color: var(--text-muted);">F</div>
+                        <div style="text-align: center; font-size: 0.6rem; color: var(--text-muted);">S</div>
+                        <div style="text-align: center; font-size: 0.6rem; color: var(--text-muted);">S</div>
+                    </div>
+                    <!-- Calendar Days -->
+                    <div id="calendarGrid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;">
+                        <!-- Days will be inserted here -->
+                    </div>
+                    <!-- Popup Tooltip -->
+                    <div id="calendarPopup" style="
+                        display: none;
+                        position: absolute;
+                        background: var(--bg-card);
+                        border: 1px solid rgba(255,255,255,0.2);
+                        border-radius: 8px;
+                        padding: 10px 12px;
+                        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+                        z-index: 1000;
+                        min-width: 160px;
+                        pointer-events: none;
+                    ">
+                        <div id="popupDate" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px;"></div>
+                        <div id="popupPnl" style="font-size: 0.8rem; margin-bottom: 4px;"></div>
+                        <div id="popupTrades" style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 4px;"></div>
+                        <div id="popupTarget" style="font-size: 0.75rem;"></div>
+                    </div>
+                </div>
+
+                <!-- Compact Legend -->
+                <div style="display: flex; gap: var(--spacing-sm); margin-top: var(--spacing-xs); flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 2px; font-size: 0.6rem; color: var(--text-muted);">
+                        <div style="width: 8px; height: 8px; border-radius: 2px; background: var(--signal-long);"></div>
+                        <span>1%+</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 2px; font-size: 0.6rem; color: var(--text-muted);">
+                        <div style="width: 8px; height: 8px; border-radius: 2px; background: rgba(16, 185, 129, 0.4);"></div>
+                        <span>Profit</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 2px; font-size: 0.6rem; color: var(--text-muted);">
+                        <div style="width: 8px; height: 8px; border-radius: 2px; background: var(--signal-short);"></div>
+                        <span>Loss</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 2px; font-size: 0.6rem; color: var(--text-muted);">
+                        <div style="width: 8px; height: 8px; border-radius: 2px; background: rgba(100, 116, 139, 0.3);"></div>
+                        <span>None</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trade Journal Insights -->
+            <div class="card" style="margin-top: var(--spacing-md);">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                        <span style="font-size: 1.2rem;">📓</span>
+                        <span style="font-weight: 600;">Trade Journal Insights</span>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md); margin-top: var(--spacing-md);">
+                    <!-- Time Analysis -->
+                    <div style="background: var(--bg-secondary); border-radius: var(--radius-sm); padding: var(--spacing-md);">
+                        <div style="font-size: 0.8rem; font-weight: 600; margin-bottom: var(--spacing-sm);">Best Trading Times</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">
+                            <div style="margin-bottom: 4px;">Best Hours: <span id="bestHours" style="color: var(--signal-long);">--</span></div>
+                            <div style="margin-bottom: 4px;">Worst Hours: <span id="worstHours" style="color: var(--signal-short);">--</span></div>
+                            <div style="margin-bottom: 4px;">Best Days: <span id="bestDays" style="color: var(--signal-long);">--</span></div>
+                        </div>
+                    </div>
+                    <!-- Recommendations -->
+                    <div style="background: var(--bg-secondary); border-radius: var(--radius-sm); padding: var(--spacing-md);">
+                        <div style="font-size: 0.8rem; font-weight: 600; margin-bottom: var(--spacing-sm);">Recommendations</div>
+                        <ul id="journalRecommendations" style="font-size: 0.75rem; color: var(--text-secondary); padding-left: var(--spacing-md); margin: 0;">
+                            <li>Need more trades for analysis</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- Patterns -->
+                <div id="journalPatterns" style="margin-top: var(--spacing-md); display: none;">
+                    <div style="font-size: 0.8rem; font-weight: 600; margin-bottom: var(--spacing-sm);">Detected Patterns</div>
+                    <div id="patternsContainer" style="display: flex; flex-wrap: wrap; gap: var(--spacing-sm);"></div>
+                </div>
+            </div>
+
         </div>
 
         <!-- Crypto Tab -->
@@ -4497,6 +4803,66 @@
                 toast.style.transform = 'translateX(100%)';
                 setTimeout(() => toast.remove(), 300);
             }, duration);
+        }
+
+        // Banner notification system - more prominent than toast
+        let notificationTimeout = null;
+
+        function showNotification(message, type = 'info', duration = 6000, pulse = false) {
+            const banner = document.getElementById('notificationBanner');
+            const icon = document.getElementById('bannerIcon');
+            const msg = document.getElementById('bannerMessage');
+            if (!banner || !icon || !msg) return;
+
+            // Clear any existing timeout
+            if (notificationTimeout) {
+                clearTimeout(notificationTimeout);
+            }
+
+            // Set icon based on type
+            const icons = {
+                success: '✓',
+                warning: '⚠',
+                error: '✕',
+                info: 'ℹ'
+            };
+            icon.textContent = icons[type] || icons.info;
+            msg.innerHTML = message;
+
+            // Update classes
+            banner.className = `notification-banner ${type}`;
+            if (pulse) {
+                banner.classList.add('pulse');
+            }
+
+            // Show banner
+            requestAnimationFrame(() => {
+                banner.classList.add('show');
+            });
+
+            // Auto-hide after duration (0 = persistent)
+            if (duration > 0) {
+                notificationTimeout = setTimeout(() => {
+                    hideNotification();
+                }, duration);
+            }
+
+            // Also play sound if enabled
+            if (soundEnabled && (type === 'success' || type === 'warning' || type === 'error')) {
+                playAlertSound(type === 'success' ? 'long' : type === 'error' ? 'short' : 'signal');
+            }
+        }
+
+        function hideNotification() {
+            const banner = document.getElementById('notificationBanner');
+            if (banner) {
+                banner.classList.remove('show');
+                banner.classList.remove('pulse');
+            }
+            if (notificationTimeout) {
+                clearTimeout(notificationTimeout);
+                notificationTimeout = null;
+            }
         }
 
         // Sound alert
@@ -6366,9 +6732,12 @@
         }
 
         // Update portfolio allocation display
-        function updatePortfolioAllocation(cryptoValue, commodityValue, stockValue) {
-            const total = cryptoValue + commodityValue + stockValue;
-            console.log('updatePortfolioAllocation:', { cryptoValue, commodityValue, stockValue, total });
+        // apiTotal is optional - if provided, use it as the total (single source of truth from API)
+        function updatePortfolioAllocation(cryptoValue, commodityValue, stockValue, apiTotal = null) {
+            const calculatedTotal = cryptoValue + commodityValue + stockValue;
+            // Use API total if provided and valid, otherwise calculate from market values
+            const total = (apiTotal && apiTotal > 0) ? apiTotal : calculatedTotal;
+            console.log('updatePortfolioAllocation:', { cryptoValue, commodityValue, stockValue, calculatedTotal, apiTotal, total });
 
             // Don't update if all values are 0 (keep showing "Loading...")
             if (total === 0) {
@@ -6766,12 +7135,26 @@
                 document.getElementById('totalPnl').className = `summary-change ${totalPnlClass}`;
                 document.getElementById('totalPnl').textContent = `${formatCurrency(data.total_pnl)} (${formatPercent(data.total_pnl_pct)})`;
 
-                // Update portfolio allocation pie chart using state.markets (from fetchMarketData API)
-                // This ensures pie chart shows values from /api/markets/*/summary, not /api/bot/state/all
-                const cryptoVal = state.markets.crypto.total_value || 0;
-                const commodityVal = state.markets.commodity.total_value || 0;
-                const stockVal = state.markets.stock.total_value || 0;
-                updatePortfolioAllocation(cryptoVal, commodityVal, stockVal);
+                // Use API's pre-calculated total_portfolio_value as single source of truth
+                // This prevents mismatches from summing potentially stale market values
+                const apiTotalValue = data.total_portfolio_value || 0;
+
+                // Get market values - prefer API response, fallback to cached state
+                const cryptoVal = (markets.crypto?.total_value ?? state.markets.crypto.total_value) || 0;
+                const commodityVal = (markets.commodity?.total_value ?? state.markets.commodity.total_value) || 0;
+                const stockVal = (markets.stock?.total_value ?? state.markets.stock.total_value) || 0;
+
+                // Update state with API values to keep in sync
+                if (markets.crypto?.total_value !== undefined) state.markets.crypto.total_value = markets.crypto.total_value;
+                if (markets.commodity?.total_value !== undefined) state.markets.commodity.total_value = markets.commodity.total_value;
+                if (markets.stock?.total_value !== undefined) state.markets.stock.total_value = markets.stock.total_value;
+
+                // Update portfolio allocation - use API total if available for consistency
+                if (apiTotalValue > 0) {
+                    updatePortfolioAllocation(cryptoVal, commodityVal, stockVal, apiTotalValue);
+                } else {
+                    updatePortfolioAllocation(cryptoVal, commodityVal, stockVal);
+                }
 
             } catch (error) {
                 console.error('Error fetching bot state:', error);
@@ -9167,6 +9550,493 @@
         }
 
         // =========================================================================
+        // ADVANCED ANALYTICS FUNCTIONS
+        // =========================================================================
+
+        let pnlChartData = null;
+        let pnlChartView = 'cumulative';
+        let pnlChartInstance = null;
+
+        async function fetchAnalytics() {
+            try {
+                const response = await fetch('/api/unified/analytics?days=30');
+                const data = await response.json();
+                updateAnalyticsDisplay(data);
+            } catch (error) {
+                console.error('Error fetching analytics:', error);
+            }
+        }
+
+        function updateAnalyticsDisplay(data) {
+            if (!data || data.error) return;
+
+            // Key metrics
+            document.getElementById('expectancy').textContent = `$${data.expectancy?.toFixed(2) || '0.00'}`;
+            document.getElementById('profitFactor').textContent = data.profit_factor?.toFixed(2) || '0.00';
+            document.getElementById('sharpeRatio').textContent = data.sharpe_ratio?.toFixed(2) || '0.00';
+            document.getElementById('qualityScore').textContent = data.quality_score?.toFixed(0) || '0';
+
+            // Update grade badge
+            const gradeEl = document.getElementById('analyticsGrade');
+            if (gradeEl && data.quality_grade) {
+                gradeEl.textContent = data.quality_grade;
+                const gradeColors = {
+                    'A+': 'rgba(16, 185, 129, 0.3)',
+                    'A': 'rgba(16, 185, 129, 0.2)',
+                    'B': 'rgba(59, 130, 246, 0.2)',
+                    'C': 'rgba(245, 158, 11, 0.2)',
+                    'D': 'rgba(239, 68, 68, 0.2)',
+                    'F': 'rgba(239, 68, 68, 0.3)'
+                };
+                gradeEl.style.background = gradeColors[data.quality_grade] || 'rgba(100, 116, 139, 0.2)';
+                gradeEl.style.color = data.quality_grade.startsWith('A') ? '#10b981' :
+                                      data.quality_grade === 'B' ? '#3b82f6' :
+                                      data.quality_grade === 'C' ? '#f59e0b' : '#ef4444';
+            }
+
+            // Secondary metrics
+            document.getElementById('sortinoRatio').textContent = data.sortino_ratio?.toFixed(2) || '0.00';
+            document.getElementById('calmarRatio').textContent = data.calmar_ratio?.toFixed(2) || '0.00';
+            document.getElementById('avgRMultiple').textContent = `${data.avg_r_multiple?.toFixed(2) || '0.00'}R`;
+            document.getElementById('maxDrawdown').textContent = `${data.max_drawdown_pct?.toFixed(2) || '0.00'}%`;
+
+            // Streaks
+            document.getElementById('maxWinStreak').textContent = data.max_win_streak || '0';
+            document.getElementById('maxLossStreak').textContent = data.max_loss_streak || '0';
+            document.getElementById('currentStreak').textContent = data.current_streak || '0';
+            document.getElementById('currentStreakType').textContent = data.current_streak_type || '--';
+
+            // Rolling
+            document.getElementById('rollingWr10').textContent = `${data.rolling_win_rate_10?.toFixed(1) || '0'}%`;
+            document.getElementById('rollingWr20').textContent = `${data.rolling_win_rate_20?.toFixed(1) || '0'}%`;
+
+            // Color code expectancy
+            const expEl = document.getElementById('expectancy');
+            if (expEl) {
+                expEl.style.color = data.expectancy > 0 ? 'var(--signal-long)' :
+                                    data.expectancy < 0 ? 'var(--signal-short)' : 'var(--text-primary)';
+            }
+        }
+
+        async function fetchPnlChart() {
+            try {
+                const response = await fetch('/api/unified/pnl-chart?limit=100');
+                pnlChartData = await response.json();
+                drawPnlChart();
+                updatePnlChartSummary();
+            } catch (error) {
+                console.error('Error fetching P&L chart:', error);
+            }
+        }
+
+        function drawPnlChart() {
+            const canvas = document.getElementById('pnlChartCanvas');
+            if (!canvas || !pnlChartData) return;
+
+            const ctx = canvas.getContext('2d');
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width * 2;
+            canvas.height = rect.height * 2;
+            ctx.scale(2, 2);
+
+            const width = rect.width;
+            const height = rect.height;
+            const padding = { top: 20, right: 20, bottom: 30, left: 60 };
+
+            ctx.clearRect(0, 0, width, height);
+
+            const series = pnlChartData.pnl_series || [];
+            if (series.length < 2) {
+                ctx.fillStyle = '#64748b';
+                ctx.font = '14px -apple-system, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('Not enough data for chart', width / 2, height / 2);
+                return;
+            }
+
+            // Get data based on view
+            let values;
+            let label;
+            let colorPositive = '#10b981';
+            let colorNegative = '#ef4444';
+
+            switch (pnlChartView) {
+                case 'pertrade':
+                    values = series.map(s => s.pnl);
+                    label = 'Per Trade P&L';
+                    break;
+                case 'drawdown':
+                    values = series.map(s => -s.drawdown);
+                    label = 'Drawdown';
+                    colorPositive = '#ef4444';
+                    colorNegative = '#ef4444';
+                    break;
+                default: // cumulative
+                    values = series.map(s => s.cumulative_pnl);
+                    label = 'Cumulative P&L';
+            }
+
+            const minVal = Math.min(...values, 0);
+            const maxVal = Math.max(...values, 0);
+            const range = maxVal - minVal || 1;
+
+            const chartWidth = width - padding.left - padding.right;
+            const chartHeight = height - padding.top - padding.bottom;
+
+            const scaleX = (i) => padding.left + (i / (values.length - 1)) * chartWidth;
+            const scaleY = (v) => padding.top + chartHeight - ((v - minVal) / range) * chartHeight;
+
+            // Draw grid
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.1)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 4; i++) {
+                const y = padding.top + (i / 4) * chartHeight;
+                ctx.beginPath();
+                ctx.moveTo(padding.left, y);
+                ctx.lineTo(width - padding.right, y);
+                ctx.stroke();
+            }
+
+            // Draw zero line
+            if (minVal < 0 && maxVal > 0) {
+                const zeroY = scaleY(0);
+                ctx.strokeStyle = 'rgba(148, 163, 184, 0.3)';
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(padding.left, zeroY);
+                ctx.lineTo(width - padding.right, zeroY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // Draw bars for per-trade view
+            if (pnlChartView === 'pertrade') {
+                const barWidth = Math.max(2, chartWidth / values.length - 2);
+                const zeroY = scaleY(0);
+
+                values.forEach((v, i) => {
+                    const x = scaleX(i) - barWidth / 2;
+                    const y = scaleY(v);
+                    const h = Math.abs(zeroY - y);
+
+                    ctx.fillStyle = v >= 0 ? colorPositive : colorNegative;
+                    ctx.fillRect(x, Math.min(y, zeroY), barWidth, h);
+                });
+            } else {
+                // Draw line
+                ctx.strokeStyle = values[values.length - 1] >= 0 ? colorPositive : colorNegative;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                values.forEach((v, i) => {
+                    const x = scaleX(i);
+                    const y = scaleY(v);
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+
+                // Fill area
+                ctx.lineTo(scaleX(values.length - 1), scaleY(0));
+                ctx.lineTo(scaleX(0), scaleY(0));
+                ctx.closePath();
+                const gradient = ctx.createLinearGradient(0, padding.top, 0, height - padding.bottom);
+                const lastVal = values[values.length - 1];
+                if (lastVal >= 0) {
+                    gradient.addColorStop(0, 'rgba(16, 185, 129, 0.3)');
+                    gradient.addColorStop(1, 'rgba(16, 185, 129, 0)');
+                } else {
+                    gradient.addColorStop(0, 'rgba(239, 68, 68, 0)');
+                    gradient.addColorStop(1, 'rgba(239, 68, 68, 0.3)');
+                }
+                ctx.fillStyle = gradient;
+                ctx.fill();
+            }
+
+            // Draw Y-axis labels
+            ctx.fillStyle = '#64748b';
+            ctx.font = '10px -apple-system, sans-serif';
+            ctx.textAlign = 'right';
+            ctx.fillText(`$${maxVal.toFixed(0)}`, padding.left - 5, padding.top + 10);
+            ctx.fillText(`$${minVal.toFixed(0)}`, padding.left - 5, height - padding.bottom);
+
+            // Draw title
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '11px -apple-system, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText(label, padding.left, 12);
+        }
+
+        function updatePnlChartSummary() {
+            if (!pnlChartData || !pnlChartData.summary) return;
+
+            const summary = pnlChartData.summary;
+            document.getElementById('chartTotalPnl').textContent = `$${summary.total_pnl?.toFixed(2) || '0.00'}`;
+            document.getElementById('chartWinners').textContent = summary.winning_trades || '0';
+            document.getElementById('chartLosers').textContent = summary.losing_trades || '0';
+            document.getElementById('chartMaxDD').textContent = `$${summary.max_drawdown?.toFixed(2) || '0.00'}`;
+
+            // Color code total P&L
+            const totalEl = document.getElementById('chartTotalPnl');
+            if (totalEl) {
+                totalEl.style.color = summary.total_pnl > 0 ? 'var(--signal-long)' :
+                                      summary.total_pnl < 0 ? 'var(--signal-short)' : 'var(--text-primary)';
+            }
+        }
+
+        function setPnlChartView(view) {
+            pnlChartView = view;
+            document.querySelectorAll('[data-chart-view]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.chartView === view);
+            });
+            drawPnlChart();
+        }
+
+        async function fetchJournalInsights() {
+            try {
+                const response = await fetch('/api/unified/journal');
+                const data = await response.json();
+                updateJournalDisplay(data);
+            } catch (error) {
+                console.error('Error fetching journal:', error);
+            }
+        }
+
+        function updateJournalDisplay(data) {
+            if (!data) return;
+
+            // Best hours
+            const bestHoursEl = document.getElementById('bestHours');
+            if (bestHoursEl) {
+                bestHoursEl.textContent = data.best_trading_hours?.length > 0
+                    ? data.best_trading_hours.map(h => `${h}:00`).join(', ')
+                    : '--';
+            }
+
+            // Worst hours
+            const worstHoursEl = document.getElementById('worstHours');
+            if (worstHoursEl) {
+                worstHoursEl.textContent = data.worst_trading_hours?.length > 0
+                    ? data.worst_trading_hours.map(h => `${h}:00`).join(', ')
+                    : '--';
+            }
+
+            // Best days
+            const bestDaysEl = document.getElementById('bestDays');
+            if (bestDaysEl) {
+                bestDaysEl.textContent = data.best_trading_days?.length > 0
+                    ? data.best_trading_days.join(', ')
+                    : '--';
+            }
+
+            // Recommendations
+            const recsEl = document.getElementById('journalRecommendations');
+            if (recsEl && data.recommendations?.length > 0) {
+                recsEl.innerHTML = data.recommendations.map(r => `<li>${r}</li>`).join('');
+            }
+
+            // Patterns
+            const patternsSection = document.getElementById('journalPatterns');
+            const patternsContainer = document.getElementById('patternsContainer');
+            if (patternsSection && patternsContainer && data.patterns?.length > 0) {
+                patternsSection.style.display = 'block';
+                patternsContainer.innerHTML = data.patterns.map(p => `
+                    <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 6px; padding: 8px 12px; font-size: 0.75rem;">
+                        <div style="font-weight: 600; margin-bottom: 2px;">${p.description}</div>
+                        <div style="color: var(--text-muted);">${p.recommendation}</div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        async function refreshAnalytics() {
+            await Promise.all([
+                fetchAnalytics(),
+                fetchPnlChart(),
+                fetchJournalInsights(),
+                fetchDailyCalendar()
+            ]);
+        }
+
+        // Refresh analytics periodically
+        setInterval(refreshAnalytics, 60000); // Every minute
+
+        // =========================================================================
+        // DAILY P&L CALENDAR
+        // =========================================================================
+
+        let calendarYear = new Date().getFullYear();
+        let calendarMonth = new Date().getMonth() + 1;
+
+        async function fetchDailyCalendar() {
+            try {
+                const response = await fetch(`/api/unified/daily-calendar?year=${calendarYear}&month=${calendarMonth}`);
+                const data = await response.json();
+                renderDailyCalendar(data);
+            } catch (error) {
+                console.error('Error fetching calendar:', error);
+            }
+        }
+
+        function changeCalendarMonth(delta) {
+            calendarMonth += delta;
+            if (calendarMonth > 12) {
+                calendarMonth = 1;
+                calendarYear++;
+            } else if (calendarMonth < 1) {
+                calendarMonth = 12;
+                calendarYear--;
+            }
+            fetchDailyCalendar();
+        }
+
+        let calendarData = []; // Store calendar data for popup
+
+        function renderDailyCalendar(data) {
+            if (!data || data.error) return;
+
+            calendarData = data.calendar || []; // Store for popup
+
+            // Update month/year header
+            const headerEl = document.getElementById('calendarMonthYear');
+            if (headerEl) {
+                headerEl.textContent = `${data.month_name?.substring(0, 3)} ${data.year}`;
+            }
+
+            // Update stats (compact)
+            const stats = data.stats || {};
+            document.getElementById('calTargetHit').textContent = `${stats.target_hit_days || 0}/${stats.trading_days || 0} hit`;
+
+            const monthlyPnlEl = document.getElementById('calMonthlyPnl');
+            if (monthlyPnlEl) {
+                const pnl = stats.monthly_pnl || 0;
+                monthlyPnlEl.textContent = `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}`;
+                monthlyPnlEl.style.color = pnl > 0 ? 'var(--signal-long)' : pnl < 0 ? 'var(--signal-short)' : 'var(--text-muted)';
+            }
+
+            // Render calendar grid
+            const grid = document.getElementById('calendarGrid');
+            if (!grid) return;
+
+            const calendar = data.calendar || [];
+            const firstWeekday = data.first_weekday || 0;
+
+            // Build grid HTML
+            let html = '';
+
+            // Add empty cells for days before the first day of month
+            for (let i = 0; i < firstWeekday; i++) {
+                html += `<div style="width: 100%; aspect-ratio: 1;"></div>`;
+            }
+
+            // Add day cells
+            calendar.forEach((day, index) => {
+                let bg, textColor, border;
+                const isToday = day.is_today;
+
+                switch (day.status) {
+                    case 'target_hit':
+                        bg = 'var(--signal-long)';
+                        textColor = 'white';
+                        break;
+                    case 'profit':
+                        bg = 'rgba(16, 185, 129, 0.5)';
+                        textColor = 'white';
+                        break;
+                    case 'loss':
+                        bg = 'var(--signal-short)';
+                        textColor = 'white';
+                        break;
+                    case 'future':
+                        bg = 'rgba(100, 116, 139, 0.1)';
+                        textColor = 'var(--text-muted)';
+                        break;
+                    default: // no_trades, breakeven
+                        bg = 'rgba(100, 116, 139, 0.2)';
+                        textColor = 'var(--text-muted)';
+                }
+
+                border = isToday ? '2px solid white' : 'none';
+
+                html += `
+                    <div
+                        class="cal-day"
+                        data-day-index="${index}"
+                        onmouseenter="showCalendarPopup(event, ${index})"
+                        onmouseleave="hideCalendarPopup()"
+                        style="
+                            width: 100%;
+                            aspect-ratio: 1;
+                            border-radius: 3px;
+                            background: ${bg};
+                            border: ${border};
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            cursor: pointer;
+                            font-size: 0.7rem;
+                            font-weight: 500;
+                            color: ${textColor};
+                            transition: transform 0.1s;
+                        "
+                    >${day.day}</div>
+                `;
+            });
+
+            grid.innerHTML = html;
+        }
+
+        function showCalendarPopup(event, dayIndex) {
+            const day = calendarData[dayIndex];
+            if (!day) return;
+
+            const popup = document.getElementById('calendarPopup');
+            if (!popup) return;
+
+            // Fill popup content
+            document.getElementById('popupDate').textContent = day.date;
+
+            if (day.trades > 0) {
+                const pnlColor = day.pnl > 0 ? 'var(--signal-long)' : day.pnl < 0 ? 'var(--signal-short)' : 'var(--text-primary)';
+                document.getElementById('popupPnl').innerHTML = `P&L: <span style="color: ${pnlColor}; font-weight: 600;">${day.pnl >= 0 ? '+' : ''}$${day.pnl.toFixed(2)} (${day.pnl_pct >= 0 ? '+' : ''}${day.pnl_pct.toFixed(2)}%)</span>`;
+                document.getElementById('popupTrades').textContent = `Trades: ${day.trades} (${day.wins}W / ${day.losses}L)`;
+
+                const targetColor = day.target_hit ? 'var(--signal-long)' : day.pnl > 0 ? '#f59e0b' : 'var(--text-muted)';
+                const targetText = day.target_hit ? 'TARGET HIT!' : `Target: ${day.target_progress.toFixed(0)}% of 1%`;
+                document.getElementById('popupTarget').innerHTML = `<span style="color: ${targetColor};">${targetText}</span>`;
+            } else if (day.status === 'future') {
+                document.getElementById('popupPnl').textContent = 'Future date';
+                document.getElementById('popupTrades').textContent = '';
+                document.getElementById('popupTarget').textContent = '';
+            } else {
+                document.getElementById('popupPnl').textContent = 'No trades';
+                document.getElementById('popupTrades').textContent = '';
+                document.getElementById('popupTarget').textContent = '';
+            }
+
+            // Position popup
+            const rect = event.target.getBoundingClientRect();
+            const gridRect = document.getElementById('calendarGrid').getBoundingClientRect();
+
+            let left = rect.left - gridRect.left + rect.width / 2;
+            let top = rect.bottom - gridRect.top + 5;
+
+            // Keep popup within bounds
+            if (left + 160 > gridRect.width) {
+                left = gridRect.width - 170;
+            }
+            if (left < 0) left = 10;
+
+            popup.style.left = `${left}px`;
+            popup.style.top = `${top}px`;
+            popup.style.display = 'block';
+        }
+
+        function hideCalendarPopup() {
+            const popup = document.getElementById('calendarPopup');
+            if (popup) popup.style.display = 'none';
+        }
+
+        // =========================================================================
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -9239,6 +10109,9 @@
             // Initialize analytics features (calendar, drawdown, calculators, alerts)
             initAnalyticsFeatures();
 
+            // Initialize advanced analytics (Expectancy, Sharpe, P&L chart, Journal)
+            refreshAnalytics();
+
             // Draw initial pie chart with zeros (will show empty state)
             updatePortfolioAllocation(0, 0, 0);
 
@@ -9279,7 +10152,8 @@
                         const cryptoVal = markets.crypto?.total_value || 0;
                         const commodityVal = markets.commodity?.total_value || 0;
                         const stockVal = markets.stock?.total_value || 0;
-                        const total = cryptoVal + commodityVal + stockVal;
+                        // Use API's pre-calculated total as single source of truth
+                        const total = data.total_portfolio_value || (cryptoVal + commodityVal + stockVal);
 
                         if (total > 0) {
                             console.log('Fallback values:', { cryptoVal, commodityVal, stockVal, total });

@@ -6,7 +6,7 @@
 
 **File:** `bot/safety_controller.py`
 
-**Change 1: Dynamic Limit Recalculation (Lines 176-189)**
+## Change 1: Dynamic Limit Recalculation (Lines 176-189)
 
 ```python
 def update_balance(self, balance: float) -> None:
@@ -28,9 +28,10 @@ def update_balance(self, balance: float) -> None:
 
 ---
 
-**Change 2: Fixed SafetyLimits for live_limited Mode (Lines 513-524)**
+## Change 2: Fixed SafetyLimits for live_limited Mode (Lines 513-524)
 
 **Before:**
+
 ```python
 if mode_enum == TradingMode.LIVE_LIMITED:
     limits = SafetyLimits(
@@ -45,6 +46,7 @@ if mode_enum == TradingMode.LIVE_LIMITED:
 ```
 
 **After:**
+
 ```python
 if mode_enum == TradingMode.LIVE_LIMITED:
     limits = SafetyLimits(
@@ -58,7 +60,8 @@ if mode_enum == TradingMode.LIVE_LIMITED:
     )
 ```
 
-**Impact:** 
+**Impact:**
+
 - Position size limit: 5% of balance (was 20%)
 - Daily loss limit: 2% of balance (was 2%)
 - Limits auto-scale with balance via `update_balance()` call
@@ -70,7 +73,7 @@ if mode_enum == TradingMode.LIVE_LIMITED:
 
 **File:** `api/unified_trading_api.py`
 
-**Addition: POST /api/unified/close-position (Lines 1080-1180)**
+## Addition: POST /api/unified/close-position (Lines 1080-1180)
 
 ```python
 class ClosePositionRequest(BaseModel):
@@ -99,6 +102,7 @@ async def close_position(request: ClosePositionRequest):
 ```
 
 **Features:**
+
 - Handles flexible position structure (qty vs quantity field)
 - Calculates P&L at close
 - Logs closure reason for audit trail
@@ -106,6 +110,7 @@ async def close_position(request: ClosePositionRequest):
 - Records closure in trade history
 
 **Usage:**
+
 ```bash
 curl -X POST http://localhost:8000/api/unified/close-position \
   -H "Content-Type: application/json" \
@@ -118,7 +123,7 @@ curl -X POST http://localhost:8000/api/unified/close-position \
 
 ### SafetyController Position Sizing Test
 
-```
+```text
 TEST RESULTS:
 ✅ Position limit correctly scaled to $531.31 (5% of $10,625)
 ✅ Daily loss limit correctly scaled to $212.52 (2% of $10,625)
@@ -132,7 +137,7 @@ Key Validations:
 
 ### Emergency Stop Test
 
-```
+```text
 RESULTS:
 ✅ Emergency stop activated with reason
 ✅ Trading halted immediately
@@ -143,7 +148,7 @@ RESULTS:
 
 ### Position Closure Test
 
-```
+```text
 RESULTS:
 ✅ BTC/USDT position (0.01048 qty) closed successfully
 ✅ Balance updated: $10,625.05 → $10,625.05 (no P&L change at close price)
@@ -157,7 +162,7 @@ RESULTS:
 ## Validation Summary
 
 | Check | Before | After | Status |
-|-------|--------|-------|--------|
+| -------- | ------ | ----- | ------ |
 | Max Position % | 20% (hardcoded) | 5% (auto-scaling) | ✅ Fixed |
 | Max Daily Loss % | 2% (hardcoded) | 2% (auto-scaling) | ✅ Enforced |
 | Position Closure API | None | `/close-position` | ✅ Added |
@@ -171,15 +176,18 @@ RESULTS:
 ## Files Modified
 
 ### Core Trading Logic
+
 - **bot/safety_controller.py**
   - Lines 176-189: Dynamic limit recalculation
   - Lines 513-524: Fixed SafetyLimits initialization
 
 ### API Endpoints
+
 - **api/unified_trading_api.py**
   - Lines 1080-1180: New `/close-position` endpoint
 
 ### State Files (Reset)
+
 - **data/unified_trading/state.json**
   - Closed BTC/USDT position
   - Cleared emergency_stop flag
@@ -190,6 +198,7 @@ RESULTS:
 ## Risk Assessment
 
 ### Before Recovery
+
 - ❌ Position 2x oversized (10% vs 5% limit)
 - ❌ Safety limits not scaling with growth
 - ❌ No way to manually close positions
@@ -197,6 +206,7 @@ RESULTS:
 - ❌ System not ready for live trading
 
 ### After Recovery
+
 - ✅ All positions within limits (0 open)
 - ✅ Safety limits automatically scale with balance
 - ✅ Manual position closure available
@@ -204,6 +214,7 @@ RESULTS:
 - ✅ System ready for safe live trading
 
 ### Residual Risks
+
 - Low: All safety controls verified and tested
 - Medium: API latency was 3.4s (improved to 13ms)
 - Low: Data integrity verified across state files
@@ -222,7 +233,9 @@ RESULTS:
 ## Operational Notes
 
 ### When to Call `update_balance()`
+
 The SafetyController's `update_balance()` method must be called:
+
 1. After every trade execution (to capture new balance)
 2. When balance is manually updated (deposits/withdrawals)
 3. When checking safety limits (to ensure latest balance)
@@ -230,6 +243,7 @@ The SafetyController's `update_balance()` method must be called:
 The UnifiedTradingEngine should call this on every loop iteration.
 
 ### Monitoring Limits in Production
+
 To verify limits are correctly enforced:
 
 ```bash
@@ -247,8 +261,6 @@ curl http://localhost:8000/api/unified/status | jq '.safety.limits'
 # Try oversized position (should fail)
 # Try safe position (should work)
 ```
-
----
 
 ## Future Improvements
 
@@ -275,6 +287,41 @@ curl http://localhost:8000/api/unified/status | jq '.safety.limits'
 - ✅ `QUICK_START.md` - Getting started guide
 - ✅ `TECHNICAL_CHANGES.md` - This document
 - ✅ `copilot-instructions.md` - Updated with recovery notes
+
+---
+
+## AI Decisioning Improvements (2026-01-21)
+
+**Files:**
+- `bot/ml/model_monitor.py`
+- `bot/ml_signal_generator.py`
+- `bot/unified_engine.py`
+- `bot/unified_state.py`
+
+**Summary:**
+- Added calibration + drift/performance-aware gating for ML signals
+- Integrated learning feedback guards (AI Brain daily budget + OptimalActionTracker EV)
+- Added regime-aware risk checks and confidence-scaled position sizing
+- Persisted signal metadata for post-trade analysis and monitoring
+
+---
+
+## Data Quality + Labeling Improvements (2026-01-21)
+
+**Files:**
+- `bot/ml/data_quality.py`
+- `bot/ml/feature_engineer.py`
+- `bot/ml/predictor.py`
+- `scripts/ml/train_all_models.py`
+- `scripts/ml/improved_training.py`
+- `scripts/ml/train_dl_models.py`
+- `scripts/ml/auto_retrain.py`
+
+**Summary:**
+- Added dataset QA reports (missingness, outliers, class balance, drift/PSI)
+- Added leakage detection + target alignment validation during training
+- Added volatility-adjusted horizons and optional triple-barrier labeling
+- Added CLI flags for label configuration and report output directory
 
 ---
 

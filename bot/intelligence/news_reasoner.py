@@ -234,7 +234,7 @@ class NewsReasoner:
                     published_at=datetime.fromisoformat(article["publishedAt"].replace("Z", "+00:00")) if article.get("publishedAt") else None,
                     summary=article.get("description", ""),
                 )
-                self._analyze_sentiment(item)
+                item.sentiment = self._analyze_sentiment_rule_based(item.title)
                 items.append(item)
 
             return items
@@ -275,7 +275,7 @@ class NewsReasoner:
                     published_at=datetime.fromtimestamp(article["datetime"]) if article.get("datetime") else None,
                     summary=article.get("summary", ""),
                 )
-                self._analyze_sentiment(item)
+                item.sentiment = self._analyze_sentiment_rule_based(item.title)
                 items.append(item)
 
             return items
@@ -473,12 +473,24 @@ class NewsReasoner:
             except Exception as e:
                 logger.debug(f"CryptoPanic fetch error: {e}")
 
-        # Fetch from Yahoo Finance
-        try:
-            yahoo_news = self._fetch_yahoo_news(symbols)
-            all_news.extend(yahoo_news)
-        except Exception as e:
-            logger.debug(f"Yahoo news fetch error: {e}")
+        # Fetch from Finnhub (premium - works best)
+        if "finnhub" in self._premium_keys:
+            try:
+                finnhub_news = self._fetch_finnhub("general")
+                all_news.extend(finnhub_news)
+                # Also fetch crypto category
+                crypto_news = self._fetch_finnhub("crypto")
+                all_news.extend(crypto_news)
+            except Exception as e:
+                logger.debug(f"Finnhub fetch error: {e}")
+
+        # Fetch from Yahoo Finance (fallback)
+        if not all_news:
+            try:
+                yahoo_news = self._fetch_yahoo_news(symbols)
+                all_news.extend(yahoo_news)
+            except Exception as e:
+                logger.debug(f"Yahoo news fetch error: {e}")
 
         # Cache results
         self._news_cache[cache_key] = (all_news, datetime.now())

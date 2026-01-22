@@ -383,6 +383,7 @@
     .log-message { color: var(--text-secondary); }
     .log-message.buy { color: var(--accent-green); }
     .log-message.sell { color: var(--accent-red); }
+    .log-message.neutral { color: var(--text-muted); }
 
     /* Buttons */
     .btn {
@@ -761,7 +762,7 @@
       regimeGrid.innerHTML = Object.entries(regimes).map(([symbol, data]) => `
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: var(--bg-secondary); border-radius: 6px;">
           <span style="font-weight: 600;">${symbol}</span>
-          <span class="asset-regime ${getRegimeClass(data.regime)}">${data.regime}</span>
+          <span class="asset-regime ${getRegimeClass(data.regime)}">${data.regime || 'Unknown'}</span>
         </div>
       `).join('');
     }
@@ -805,7 +806,10 @@
       });
 
       html += '</table></div>';
-      html += `<p style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-muted);">Avg: ${correlations.average_correlation?.toFixed(2) || '-'}</p>`;
+      const avgCorr = Number.isFinite(correlations.average_correlation)
+        ? correlations.average_correlation.toFixed(2)
+        : '-';
+      html += `<p style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-muted);">Avg: ${avgCorr}</p>`;
       correlationMatrix.innerHTML = html;
     }
 
@@ -1136,9 +1140,38 @@
     // Fetch data from API
     async function fetchData() {
       try {
-        // Fetch live trading status
-        const liveRes = await fetch('/api/live-status');
-        const liveData = await liveRes.json();
+        // Fetch unified trading status (primary)
+        const unifiedRes = await fetch('/api/unified/status');
+        let liveData = {};
+        if (unifiedRes.ok) {
+          const unifiedData = await unifiedRes.json();
+          // Map unified data to expected format
+          liveData = {
+            running: unifiedData.running,
+            iteration: unifiedData.total_trades || 0,
+            timestamp: new Date().toLocaleTimeString(),
+            prices: {},
+            signals: unifiedData.positions || {},
+            portfolio_value: unifiedData.balance + Object.values(unifiedData.positions || {}).reduce((sum, p) => sum + (p.quantity * p.entry_price), 0),
+            cash_balance: unifiedData.balance,
+            positions: unifiedData.positions || {},
+            initial_capital: unifiedData.initial_capital || 30000,
+            pnl: unifiedData.total_pnl || 0,
+            pnl_pct: unifiedData.total_pnl_pct || 0,
+          };
+        } else {
+          // Fallback to old endpoint
+          const liveRes = await fetch('/api/live-status');
+          liveData = await liveRes.json();
+        }
+        const prices = liveData.prices || {};
+        const signalsObj = liveData.signals || {};
+        const portfolioValue = Number.isFinite(liveData.portfolio_value)
+          ? liveData.portfolio_value
+          : 10000;
+        const cashValue = Number.isFinite(liveData.cash_balance)
+          ? liveData.cash_balance
+          : 10000;
 
         // Update connection status based on bot running state
         if (liveData.running) {
@@ -1150,11 +1183,11 @@
         }
 
         // Update portfolio overview
-        totalValue.textContent = formatCurrency(liveData.portfolio_value || 10000);
-        cashBalance.textContent = formatCurrency(liveData.cash_balance || 10000);
+        totalValue.textContent = formatCurrency(portfolioValue);
+        cashBalance.textContent = formatCurrency(cashValue);
 
         // Calculate active positions count
-        const activePositions = Object.values(liveData.signals || {}).filter(s => s.action !== 'FLAT').length;
+        const activePositions = Object.values(signalsObj).filter(s => s.action !== 'FLAT').length;
         positionsCount.textContent = activePositions;
 
         // Update P&L
@@ -1170,8 +1203,8 @@
         }
 
         // Update equity curve
-        if (liveData.portfolio_value > 0) {
-          equityData.push({ time: new Date(), value: liveData.portfolio_value });
+        if (portfolioValue > 0) {
+          equityData.push({ time: new Date(), value: portfolioValue });
           if (equityData.length > maxEquityPoints) equityData.shift();
           drawEquityCurve();
         }
@@ -1201,46 +1234,50 @@
         }
 
         // Render asset positions with signals
-        const assets = Object.entries(liveData.signals || {}).map(([symbol, signal]) => ({
+        const assets = Object.entries(signalsObj).map(([symbol, signal]) => ({
           symbol,
-          price: liveData.prices[symbol] || 0,
+          price: prices[symbol] || 0,
           regime: signal.regime,
           action: signal.action,
           confidence: signal.confidence,
-          quantity: signal.action !== 'FLAT' ? (liveData.portfolio_value - liveData.cash_balance) / (Object.values(liveData.signals).filter(s => s.action !== 'FLAT').length || 1) / (liveData.prices[symbol] || 1) : 0,
-          value: signal.action !== 'FLAT' ? (liveData.portfolio_value - liveData.cash_balance) / (Object.values(liveData.signals).filter(s => s.action !== 'FLAT').length || 1) : 0,
+          quantity: signal.action !== 'FLAT'
+            ? (portfolioValue - cashValue) / (Object.values(signalsObj).filter(s => s.action !== 'FLAT').length || 1) / (prices[symbol] || 1)
+            : 0,
+          value: signal.action !== 'FLAT'
+            ? (portfolioValue - cashValue) / (Object.values(signalsObj).filter(s => s.action !== 'FLAT').length || 1)
+            : 0,
           change: 0
         }));
 
-        if (assets.length > 0) {
-          renderAssetCards(assets);
+        renderAssetCards(assets);
 
-          // Update allocation data for pie chart
-          allocationData = {};
-          assets.forEach(asset => {
-            if (asset.value > 0) {
-              allocationData[asset.symbol] = asset.value;
-            }
-          });
-          // Add cash as a category if there's remaining cash
-          if (liveData.cash_balance > 0 && liveData.portfolio_value > 0) {
-            const investedValue = Object.values(allocationData).reduce((s, v) => s + v, 0);
-            if (liveData.cash_balance > investedValue * 0.05) { // Only show if > 5% of invested
-              allocationData['Cash'] = liveData.cash_balance;
-            }
+        // Update allocation data for pie chart
+        allocationData = {};
+        assets.forEach(asset => {
+          if (asset.value > 0) {
+            allocationData[asset.symbol] = asset.value;
           }
-          drawAllocationPieChart();
+        });
+        // Add cash as a category if there's remaining cash
+        if (cashValue > 0 && portfolioValue > 0) {
+          const investedValue = Object.values(allocationData).reduce((s, v) => s + v, 0);
+          if (cashValue > investedValue * 0.05) { // Only show if > 5% of invested
+            allocationData['Cash'] = cashValue;
+          }
         }
+        drawAllocationPieChart();
 
         // Render market regimes
-        renderRegimes(liveData.signals || {});
+        renderRegimes(signalsObj);
 
         // Update ML insights
-        const signals = Object.values(liveData.signals || {});
+        const signals = Object.values(signalsObj);
         activeSignals.textContent = signals.filter(s => s.action !== 'FLAT').length;
         if (signals.length > 0) {
           const avgConf = signals.reduce((sum, s) => sum + (s.confidence || 0), 0) / signals.length;
           avgConfidence.textContent = (avgConf * 100).toFixed(0) + '%';
+        } else {
+          avgConfidence.textContent = '-';
         }
 
         // Fetch correlations (still useful)

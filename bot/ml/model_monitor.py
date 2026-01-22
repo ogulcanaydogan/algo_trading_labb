@@ -760,3 +760,14 @@ class ModelMonitor:
             "samples_monitored": len(self._current_predictions),
             "last_retrain": self._last_retrain.isoformat() if self._last_retrain else None,
         }
+
+
+_model_monitor: Optional[ModelMonitor] = None
+
+
+def get_model_monitor() -> ModelMonitor:
+    """Get the global model monitor instance."""
+    global _model_monitor
+    if _model_monitor is None:
+        _model_monitor = ModelMonitor()
+    return _model_monitor
