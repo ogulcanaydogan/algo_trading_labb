@@ -277,6 +277,9 @@ class TestSymbolInfo:
 
     def test_is_market_open_with_hours(self):
         """Test market hours check with hours specified."""
+        import pytz
+        from datetime import datetime
+
         stock = SymbolInfo(
             standard_symbol="AAPL",
             market_type=MarketType.STOCK,
@@ -285,8 +288,25 @@ class TestSymbolInfo:
             provider_mappings={"yahoo": "AAPL"},
             trading_hours={"open": "09:30", "close": "16:00", "timezone": "US/Eastern"},
         )
-        # Currently returns True (TODO in implementation)
-        assert stock.is_market_open() is True
+
+        # Test with specific times for deterministic results
+        eastern = pytz.timezone('US/Eastern')
+
+        # Monday at 10:00 AM Eastern - should be open
+        market_open_time = eastern.localize(datetime(2024, 1, 15, 10, 0))
+        assert stock.is_market_open(market_open_time) is True
+
+        # Saturday at 10:00 AM Eastern - should be closed (weekend)
+        weekend_time = eastern.localize(datetime(2024, 1, 13, 10, 0))
+        assert stock.is_market_open(weekend_time) is False
+
+        # Monday at 6:00 PM Eastern - should be closed (after hours)
+        after_hours_time = eastern.localize(datetime(2024, 1, 15, 18, 0))
+        assert stock.is_market_open(after_hours_time) is False
+
+        # Monday at 8:00 AM Eastern - should be closed (before hours)
+        before_hours_time = eastern.localize(datetime(2024, 1, 15, 8, 0))
+        assert stock.is_market_open(before_hours_time) is False
 
     def test_to_dict(self, sample_symbol):
         """Test conversion to dict."""

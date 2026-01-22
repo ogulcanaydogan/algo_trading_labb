@@ -13,6 +13,10 @@ import pandas as pd
 
 from .adapters.base import DataAdapter
 from .adapters.yahoo_adapter import YahooAdapter
+from .adapters import HAS_CCXT
+
+if HAS_CCXT:
+    from .adapters.ccxt_adapter import CCXTAdapter
 from .cache import CacheManager, make_ohlcv_key, make_quote_key
 from .models import (
     ALL_SYMBOLS,
@@ -78,9 +82,14 @@ class MarketDataService:
         except ImportError as e:
             logger.warning(f"Yahoo adapter not available: {e}")
 
-        # TODO: Add more adapters as needed
-        # self.adapters["ccxt"] = CCXTAdapter()
-        # self.adapters["polygon"] = PolygonAdapter()
+        # CCXT for real-time crypto data
+        if HAS_CCXT:
+            try:
+                self.adapters["ccxt"] = CCXTAdapter(exchange_id="binance")
+                self._provider_health["ccxt"] = True
+                logger.info("CCXT adapter initialized (binance)")
+            except Exception as e:
+                logger.warning(f"CCXT adapter not available: {e}")
 
     def fetch_ohlcv(
         self,

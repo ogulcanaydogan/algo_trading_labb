@@ -180,15 +180,55 @@ class SymbolInfo:
         return self.provider_mappings.get(provider)
 
     def is_market_open(self, current_time: Optional[datetime] = None) -> bool:
-        """Check if market is currently open (for stocks)."""
+        """
+        Check if market is currently open (for stocks).
+
+        Args:
+            current_time: Time to check (defaults to now in UTC)
+
+        Returns:
+            True if market is open, False otherwise
+        """
         if self.market_type == MarketType.CRYPTO:
             return True  # Crypto is 24/7
 
         if not self.trading_hours:
             return True  # Assume open if no hours specified
 
-        # TODO: Implement proper market hours check with timezone
-        return True
+        try:
+            import pytz
+
+            # Get current time in market timezone
+            tz_name = self.trading_hours.get("timezone", "US/Eastern")
+            market_tz = pytz.timezone(tz_name)
+
+            if current_time is None:
+                current_time = datetime.now(pytz.UTC)
+            elif current_time.tzinfo is None:
+                current_time = pytz.UTC.localize(current_time)
+
+            local_time = current_time.astimezone(market_tz)
+
+            # Check if weekend (most stock markets closed Sat/Sun)
+            if local_time.weekday() >= 5:  # Saturday = 5, Sunday = 6
+                return False
+
+            # Parse trading hours
+            open_str = self.trading_hours.get("open", "09:30")
+            close_str = self.trading_hours.get("close", "16:00")
+
+            open_hour, open_min = map(int, open_str.split(":"))
+            close_hour, close_min = map(int, close_str.split(":"))
+
+            # Create time objects for comparison
+            market_open = local_time.replace(hour=open_hour, minute=open_min, second=0, microsecond=0)
+            market_close = local_time.replace(hour=close_hour, minute=close_min, second=0, microsecond=0)
+
+            return market_open <= local_time <= market_close
+
+        except Exception:
+            # On any error, assume market is open to avoid blocking trades
+            return True
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""
