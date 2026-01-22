@@ -4,6 +4,7 @@ Analytics module for comprehensive trading performance analysis.
 Key components:
 - PerformanceMetrics: Expectancy, Sharpe, Sortino, Calmar, Profit Factor
 - TradeJournal: Learning from trades, pattern recognition
+- PnLAttributor: P&L attribution by strategy, asset, factor
 """
 
 from .performance_metrics import (
@@ -25,6 +26,16 @@ from .trade_journal import (
     analyze_trades,
 )
 
+from .pnl_attribution import (
+    PnLAttributor,
+    AttributionResult,
+    AttributionMethod,
+    AttributionPeriod,
+    Trade as AttributionTrade,
+    FactorExposure,
+    create_pnl_attributor,
+)
+
 __all__ = [
     # Performance metrics
     'PerformanceMetrics',
@@ -41,4 +52,12 @@ __all__ = [
     'TradeJournalSummary',
     'PatternInsight',
     'analyze_trades',
+    # P&L Attribution
+    'PnLAttributor',
+    'AttributionResult',
+    'AttributionMethod',
+    'AttributionPeriod',
+    'AttributionTrade',
+    'FactorExposure',
+    'create_pnl_attributor',
 ]
