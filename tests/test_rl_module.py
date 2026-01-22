@@ -2,16 +2,30 @@
 Comprehensive tests for Reinforcement Learning module.
 
 Tests trading environment, policy networks, trainers, and position sizer.
+
+NOTE: PyTorch tests are skipped on Python 3.14+ due to segfault issues
+with PyTorch's MPS backend initialization. This is a known incompatibility.
 """
 
 from __future__ import annotations
 
+import sys
 import pytest
 from unittest.mock import MagicMock, patch
 from datetime import datetime
 
 import numpy as np
 import pandas as pd
+
+# Skip all tests in this module on Python 3.14+ due to PyTorch/MPS segfault
+PYTHON_314_PLUS = sys.version_info >= (3, 14)
+pytestmark = [
+    pytest.mark.pytorch,
+    pytest.mark.skipif(
+        PYTHON_314_PLUS,
+        reason="PyTorch MPS backend segfaults on Python 3.14+ (known issue)"
+    ),
+]
 
 from bot.rl import (
     TradingEnvironment,

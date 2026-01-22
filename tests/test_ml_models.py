@@ -1,14 +1,28 @@
 """
 Unit tests for ML deep learning models (LSTM and Transformer).
+
+NOTE: PyTorch tests are skipped on Python 3.14+ due to segfault issues
+with PyTorch's MPS backend initialization. This is a known incompatibility.
 """
 
 from __future__ import annotations
 
+import sys
 import math
 import pytest
 import numpy as np
 from unittest.mock import patch, MagicMock, PropertyMock
 from dataclasses import dataclass
+
+# Skip all tests in this module on Python 3.14+ due to PyTorch/MPS segfault
+PYTHON_314_PLUS = sys.version_info >= (3, 14)
+pytestmark = [
+    pytest.mark.pytorch,
+    pytest.mark.skipif(
+        PYTHON_314_PLUS,
+        reason="PyTorch MPS backend segfaults on Python 3.14+ (known issue)"
+    ),
+]
 
 # Test whether torch is available
 try:

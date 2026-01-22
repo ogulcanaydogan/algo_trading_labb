@@ -329,8 +329,17 @@ def get_optimal_device() -> str:
     Returns:
         'mps' for Apple Silicon, 'cuda' for NVIDIA, 'cpu' otherwise
     """
+    import sys
+
     try:
         import torch
+
+        # Skip MPS on Python 3.14+ due to segfault in torch.backends.mps.is_available()
+        # This is a known PyTorch incompatibility with Python 3.14
+        if sys.version_info >= (3, 14):
+            if torch.cuda.is_available():
+                return "cuda"
+            return "cpu"
 
         if torch.backends.mps.is_available():
             return "mps"
