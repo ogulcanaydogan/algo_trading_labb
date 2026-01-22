@@ -13,6 +13,15 @@ from .feature_engineer import FeatureEngineer
 from .predictor import MLPredictor, PredictionResult
 from .regime_classifier import MarketRegimeClassifier, MarketRegime, RegimeAnalysis
 
+# Enhanced predictor with improved accuracy
+from .enhanced_predictor import (
+    EnhancedMLPredictor,
+    EnhancedPredictionResult,
+    EnhancedModelConfig,
+    FeatureSelector,
+    create_enhanced_predictor,
+)
+
 # Auto-retraining components
 from .auto_retrainer import (
     AutoRetrainingScheduler,
@@ -58,6 +67,12 @@ __all__ = [
     "MarketRegimeClassifier",
     "MarketRegime",
     "RegimeAnalysis",
+    # Enhanced predictor
+    "EnhancedMLPredictor",
+    "EnhancedPredictionResult",
+    "EnhancedModelConfig",
+    "FeatureSelector",
+    "create_enhanced_predictor",
     # Auto-retraining
     "AutoRetrainingScheduler",
     "ModelHealth",
