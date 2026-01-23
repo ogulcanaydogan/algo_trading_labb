@@ -101,7 +101,7 @@ class TestPortfolioRebalancer:
         symbols = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
         weights = equal_weight_rebalancer.calculate_target_weights(symbols, {})
 
-        expected_weight = 1/3
+        expected_weight = 1 / 3
         for symbol in symbols:
             # After constraints applied, weights should be close to 1/3
             assert symbol in weights
@@ -254,8 +254,8 @@ class TestPortfolioRebalancer:
 
         current_positions = {
             "BTC/USDT": {"quantity": 0.001, "value": 2000},  # 20% of portfolio
-            "ETH/USDT": {"quantity": 1.0, "value": 3000},    # 30%
-            "SOL/USDT": {"quantity": 50, "value": 5000},     # 50%
+            "ETH/USDT": {"quantity": 1.0, "value": 3000},  # 30%
+            "SOL/USDT": {"quantity": 50, "value": 5000},  # 50%
         }
 
         current_prices = {
@@ -292,7 +292,7 @@ class TestPortfolioRebalancer:
 
         current_positions = {
             "BTC": {"quantity": 0.001, "value": 4800},  # 48%
-            "ETH": {"quantity": 1.0, "value": 5200},    # 52%
+            "ETH": {"quantity": 1.0, "value": 5200},  # 52%
         }
 
         orders = rebalancer.generate_rebalance_orders(

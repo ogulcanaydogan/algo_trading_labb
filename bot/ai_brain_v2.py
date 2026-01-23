@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class MarketContext:
     """Complete market context for decision making."""
+
     symbol: str
     price: float
     timestamp: datetime
@@ -77,11 +78,13 @@ class MarketContext:
             self.fear_greed_index / 100,
             self.btc_correlation,
             self.vix_level / 100,
-            1 if self.trend == 'up' else (-1 if self.trend == 'down' else 0),
-            1 if self.regime == 'bull' else (-1 if self.regime in ['bear', 'crash'] else 0),
-            1 if self.whale_activity == 'accumulating' else (-1 if self.whale_activity == 'distributing' else 0),
-            1 if self.exchange_flow == 'outflow' else (-1 if self.exchange_flow == 'inflow' else 0),
-            1 if self.fed_stance == 'dovish' else (-1 if self.fed_stance == 'hawkish' else 0),
+            1 if self.trend == "up" else (-1 if self.trend == "down" else 0),
+            1 if self.regime == "bull" else (-1 if self.regime in ["bear", "crash"] else 0),
+            1
+            if self.whale_activity == "accumulating"
+            else (-1 if self.whale_activity == "distributing" else 0),
+            1 if self.exchange_flow == "outflow" else (-1 if self.exchange_flow == "inflow" else 0),
+            1 if self.fed_stance == "dovish" else (-1 if self.fed_stance == "hawkish" else 0),
         ]
         return np.array(features, dtype=np.float32)
 
@@ -89,6 +92,7 @@ class MarketContext:
 @dataclass
 class TradingExperience:
     """A single trading experience for learning."""
+
     context: MarketContext
     action: str  # BUY, SELL, HOLD
     position_size: float
@@ -129,6 +133,7 @@ class TradingExperience:
 @dataclass
 class ActionStrategy:
     """A trading strategy with learned parameters."""
+
     name: str
     regime: str
     confidence_threshold: float
@@ -190,11 +195,11 @@ class ExperienceReplayBuffer:
 
         rewards = [exp.reward for exp in self.buffer]
         return {
-            'count': len(self.buffer),
-            'avg_reward': np.mean(rewards),
-            'max_reward': np.max(rewards),
-            'min_reward': np.min(rewards),
-            'positive_pct': sum(1 for r in rewards if r > 0) / len(rewards)
+            "count": len(self.buffer),
+            "avg_reward": np.mean(rewards),
+            "max_reward": np.max(rewards),
+            "min_reward": np.min(rewards),
+            "positive_pct": sum(1 for r in rewards if r > 0) / len(rewards),
         }
 
 
@@ -214,9 +219,15 @@ class AdaptiveQNetwork:
         # Actions: BUY, SELL, HOLD
         # Position sizes: 0.25, 0.5, 0.75, 1.0 of max
         self.actions = [
-            ('BUY', 0.25), ('BUY', 0.5), ('BUY', 0.75), ('BUY', 1.0),
-            ('SELL', 0.25), ('SELL', 0.5), ('SELL', 0.75), ('SELL', 1.0),
-            ('HOLD', 0.0)
+            ("BUY", 0.25),
+            ("BUY", 0.5),
+            ("BUY", 0.75),
+            ("BUY", 1.0),
+            ("SELL", 0.25),
+            ("SELL", 0.5),
+            ("SELL", 0.75),
+            ("SELL", 1.0),
+            ("HOLD", 0.0),
         ]
         self.n_actions = len(self.actions)
 
@@ -249,8 +260,13 @@ class AdaptiveQNetwork:
         action, size = self.actions[action_idx]
         return action, size, action_idx
 
-    def update(self, state: np.ndarray, action_idx: int, reward: float,
-               next_state: Optional[np.ndarray] = None):
+    def update(
+        self,
+        state: np.ndarray,
+        action_idx: int,
+        reward: float,
+        next_state: Optional[np.ndarray] = None,
+    ):
         """Update Q-values using temporal difference learning."""
         current_q = self.get_q_values(state)[action_idx]
 
@@ -280,9 +296,9 @@ class AdaptiveQNetwork:
         """Load model weights."""
         if os.path.exists(path):
             data = np.load(path)
-            self.weights = data['weights']
-            self.bias = data['bias']
-            self.epsilon = float(data['epsilon'])
+            self.weights = data["weights"]
+            self.bias = data["bias"]
+            self.epsilon = float(data["epsilon"])
 
 
 class StrategyEvolver:
@@ -302,7 +318,7 @@ class StrategyEvolver:
 
     def _initialize_population(self):
         """Create initial population of strategies."""
-        regimes = ['bull', 'bear', 'sideways', 'volatile', 'crash']
+        regimes = ["bull", "bear", "sideways", "volatile", "crash"]
 
         for regime in regimes:
             self.strategies[regime] = []
@@ -313,22 +329,22 @@ class StrategyEvolver:
     def _create_random_strategy(self, regime: str, idx: int) -> ActionStrategy:
         """Create a random strategy with regime-appropriate defaults."""
         # Base parameters vary by regime
-        if regime == 'bull':
+        if regime == "bull":
             conf_range = (0.5, 0.7)
             sl_range = (0.01, 0.03)
             tp_range = (0.02, 0.06)
             size_range = (0.5, 1.0)
-        elif regime == 'bear':
+        elif regime == "bear":
             conf_range = (0.6, 0.8)
             sl_range = (0.01, 0.02)
             tp_range = (0.01, 0.03)
             size_range = (0.25, 0.5)
-        elif regime == 'crash':
+        elif regime == "crash":
             conf_range = (0.75, 0.9)
             sl_range = (0.005, 0.01)
             tp_range = (0.01, 0.02)
             size_range = (0.1, 0.25)
-        elif regime == 'volatile':
+        elif regime == "volatile":
             conf_range = (0.65, 0.8)
             sl_range = (0.02, 0.04)
             tp_range = (0.03, 0.08)
@@ -348,13 +364,13 @@ class StrategyEvolver:
             take_profit_pct=random.uniform(*tp_range),
             trailing_stop=random.random() > 0.5,
             dca_enabled=random.random() > 0.7,
-            max_hold_hours=random.randint(1, 48)
+            max_hold_hours=random.randint(1, 48),
         )
 
     def get_best_strategy(self, regime: str) -> ActionStrategy:
         """Get best performing strategy for regime."""
         if regime not in self.strategies:
-            regime = 'sideways'  # Default
+            regime = "sideways"  # Default
 
         strategies = self.strategies[regime]
 
@@ -376,11 +392,11 @@ class StrategyEvolver:
             sorted_strategies = sorted(
                 strategies,
                 key=lambda s: s.win_rate * s.total_pnl if s.total_trades > 0 else -1,
-                reverse=True
+                reverse=True,
             )
 
             # Keep top 50%
-            survivors = sorted_strategies[:self.population_size // 2]
+            survivors = sorted_strategies[: self.population_size // 2]
 
             # Create offspring through crossover and mutation
             offspring = []
@@ -392,8 +408,9 @@ class StrategyEvolver:
 
             self.strategies[regime] = survivors + offspring
 
-    def _crossover(self, p1: ActionStrategy, p2: ActionStrategy,
-                   regime: str, idx: int) -> ActionStrategy:
+    def _crossover(
+        self, p1: ActionStrategy, p2: ActionStrategy, regime: str, idx: int
+    ) -> ActionStrategy:
         """Create child strategy from two parents."""
         return ActionStrategy(
             name=f"{regime}_gen{self.generation}_{idx}",
@@ -404,7 +421,7 @@ class StrategyEvolver:
             take_profit_pct=(p1.take_profit_pct + p2.take_profit_pct) / 2,
             trailing_stop=random.choice([p1.trailing_stop, p2.trailing_stop]),
             dca_enabled=random.choice([p1.dca_enabled, p2.dca_enabled]),
-            max_hold_hours=random.choice([p1.max_hold_hours, p2.max_hold_hours])
+            max_hold_hours=random.choice([p1.max_hold_hours, p2.max_hold_hours]),
         )
 
     def _mutate(self, strategy: ActionStrategy, mutation_rate: float = 0.2) -> ActionStrategy:
@@ -474,10 +491,12 @@ class AIBrainV2:
         if state_path.exists():
             with open(state_path) as f:
                 state = json.load(f)
-            self.trade_count = state.get('trade_count', 0)
-            self.total_reward = state.get('total_reward', 0.0)
-            self.symbol_stats = state.get('symbol_stats', {})
-            logger.info(f"Loaded brain state: {self.trade_count} trades, {self.total_reward:.2f} total reward")
+            self.trade_count = state.get("trade_count", 0)
+            self.total_reward = state.get("total_reward", 0.0)
+            self.symbol_stats = state.get("symbol_stats", {})
+            logger.info(
+                f"Loaded brain state: {self.trade_count} trades, {self.total_reward:.2f} total reward"
+            )
 
         if q_path.exists():
             self.q_network.load(str(q_path))
@@ -486,22 +505,19 @@ class AIBrainV2:
     def _save_state(self):
         """Save brain state."""
         state = {
-            'trade_count': self.trade_count,
-            'total_reward': self.total_reward,
-            'symbol_stats': self.symbol_stats,
-            'timestamp': datetime.now().isoformat()
+            "trade_count": self.trade_count,
+            "total_reward": self.total_reward,
+            "symbol_stats": self.symbol_stats,
+            "timestamp": datetime.now().isoformat(),
         }
 
-        with open(self.data_dir / "brain_state.json", 'w') as f:
+        with open(self.data_dir / "brain_state.json", "w") as f:
             json.dump(state, f, indent=2)
 
         self.q_network.save(str(self.data_dir / "q_network.npz"))
 
     async def get_trading_decision(
-        self,
-        symbol: str,
-        ml_signal: Dict[str, Any],
-        market_data: Dict[str, Any]
+        self, symbol: str, ml_signal: Dict[str, Any], market_data: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Get optimal trading decision combining all intelligence sources.
@@ -525,8 +541,8 @@ class AIBrainV2:
         strategy = self.strategy_evolver.get_best_strategy(context.regime)
 
         # Combine ML signal with RL decision
-        ml_action = ml_signal.get('action', 'HOLD')
-        ml_confidence = ml_signal.get('confidence', 0.5)
+        ml_action = ml_signal.get("action", "HOLD")
+        ml_confidence = ml_signal.get("confidence", 0.5)
 
         # Decision logic:
         # - If ML and RL agree, high confidence
@@ -541,8 +557,8 @@ class AIBrainV2:
         else:
             # Disagreement - evaluate recent performance
             symbol_stats = self.symbol_stats.get(symbol, {})
-            ml_recent_accuracy = symbol_stats.get('ml_accuracy', 0.5)
-            rl_recent_accuracy = symbol_stats.get('rl_accuracy', 0.5)
+            ml_recent_accuracy = symbol_stats.get("ml_accuracy", 0.5)
+            rl_recent_accuracy = symbol_stats.get("rl_accuracy", 0.5)
 
             if ml_recent_accuracy > rl_recent_accuracy:
                 final_action = ml_action
@@ -555,8 +571,10 @@ class AIBrainV2:
 
         # Apply strategy thresholds
         if final_confidence < strategy.confidence_threshold:
-            final_action = 'HOLD'
-            reason = f"Below threshold ({final_confidence:.2f} < {strategy.confidence_threshold:.2f})"
+            final_action = "HOLD"
+            reason = (
+                f"Below threshold ({final_confidence:.2f} < {strategy.confidence_threshold:.2f})"
+            )
         else:
             reason = f"{agreement}, confidence {final_confidence:.2f}"
 
@@ -565,78 +583,71 @@ class AIBrainV2:
 
         # Build enhanced decision
         decision = {
-            'action': final_action,
-            'confidence': final_confidence,
-            'position_size_pct': position_size,
-            'stop_loss_pct': strategy.stop_loss_pct,
-            'take_profit_pct': strategy.take_profit_pct,
-            'trailing_stop': strategy.trailing_stop,
-            'dca_enabled': strategy.dca_enabled,
-            'max_hold_hours': strategy.max_hold_hours,
-            'reason': reason,
-            'regime': context.regime,
-            'strategy_name': strategy.name,
-            'q_action': q_action,
-            'ml_action': ml_action,
-            'context': {
-                'trend': context.trend,
-                'volatility': context.volatility,
-                'news_sentiment': context.news_sentiment,
-                'fear_greed': context.fear_greed_index
-            }
+            "action": final_action,
+            "confidence": final_confidence,
+            "position_size_pct": position_size,
+            "stop_loss_pct": strategy.stop_loss_pct,
+            "take_profit_pct": strategy.take_profit_pct,
+            "trailing_stop": strategy.trailing_stop,
+            "dca_enabled": strategy.dca_enabled,
+            "max_hold_hours": strategy.max_hold_hours,
+            "reason": reason,
+            "regime": context.regime,
+            "strategy_name": strategy.name,
+            "q_action": q_action,
+            "ml_action": ml_action,
+            "context": {
+                "trend": context.trend,
+                "volatility": context.volatility,
+                "news_sentiment": context.news_sentiment,
+                "fear_greed": context.fear_greed_index,
+            },
         }
 
         logger.info(f"[{symbol}] AI Decision: {final_action} ({reason})")
         return decision
 
     async def _build_market_context(
-        self,
-        symbol: str,
-        ml_signal: Dict[str, Any],
-        market_data: Dict[str, Any]
+        self, symbol: str, ml_signal: Dict[str, Any], market_data: Dict[str, Any]
     ) -> MarketContext:
         """Build complete market context from available data."""
         # Extract from ML signal metadata
-        meta = ml_signal.get('signal_meta', {})
+        meta = ml_signal.get("signal_meta", {})
 
         # Get additional data (with defaults)
         sentiment = await self._get_sentiment(symbol)
         macro = await self._get_macro_context()
-        onchain = await self._get_onchain_data(symbol) if 'USDT' in symbol else {}
+        onchain = await self._get_onchain_data(symbol) if "USDT" in symbol else {}
 
         return MarketContext(
             symbol=symbol,
-            price=market_data.get('price', 0),
+            price=market_data.get("price", 0),
             timestamp=datetime.now(),
-
             # Technical
-            trend=meta.get('trend', 'neutral'),
-            volatility=meta.get('volatility_score', 0.5) if isinstance(meta.get('volatility_score'), float) else 0.5,
-            rsi=meta.get('rsi', 50),
-            macd_signal=meta.get('macd_signal', 0),
-
+            trend=meta.get("trend", "neutral"),
+            volatility=meta.get("volatility_score", 0.5)
+            if isinstance(meta.get("volatility_score"), float)
+            else 0.5,
+            rsi=meta.get("rsi", 50),
+            macd_signal=meta.get("macd_signal", 0),
             # Regime
-            regime=meta.get('regime', 'unknown'),
-            regime_confidence=meta.get('regime_confidence', 0.5),
-
+            regime=meta.get("regime", "unknown"),
+            regime_confidence=meta.get("regime_confidence", 0.5),
             # Sentiment
-            news_sentiment=sentiment.get('news', 0),
-            social_sentiment=sentiment.get('social', 0),
-            fear_greed_index=sentiment.get('fear_greed', 50),
-
+            news_sentiment=sentiment.get("news", 0),
+            social_sentiment=sentiment.get("social", 0),
+            fear_greed_index=sentiment.get("fear_greed", 50),
             # Cross-market
-            btc_correlation=macro.get('btc_correlation', 0),
-            sp500_trend=macro.get('sp500_trend', 'neutral'),
-            dxy_trend=macro.get('dxy_trend', 'neutral'),
-            vix_level=macro.get('vix', 20),
-
+            btc_correlation=macro.get("btc_correlation", 0),
+            sp500_trend=macro.get("sp500_trend", "neutral"),
+            dxy_trend=macro.get("dxy_trend", "neutral"),
+            vix_level=macro.get("vix", 20),
             # On-chain
-            whale_activity=onchain.get('whale_activity', 'neutral'),
-            exchange_flow=onchain.get('exchange_flow', 'neutral'),
-
+            whale_activity=onchain.get("whale_activity", "neutral"),
+            exchange_flow=onchain.get("exchange_flow", "neutral"),
             # Economic
-            fed_stance=macro.get('fed_stance', 'neutral'),
-            next_event=macro.get('next_event')
+            fed_stance=macro.get("fed_stance", "neutral"),
+            next_event=macro.get("next_event"),
         )
 
     async def _get_sentiment(self, symbol: str) -> Dict[str, float]:
@@ -644,36 +655,34 @@ class AIBrainV2:
         # Try to use existing news reasoner
         try:
             from bot.intelligence.news_reasoner import NewsReasoner
+
             reasoner = NewsReasoner()
             score = await reasoner.analyze_sentiment(symbol)
             return {
-                'news': score,
-                'social': 0,  # Could integrate Twitter/Reddit later
-                'fear_greed': 50  # Could fetch from alternative.me API
+                "news": score,
+                "social": 0,  # Could integrate Twitter/Reddit later
+                "fear_greed": 50,  # Could fetch from alternative.me API
             }
         except Exception as e:
             logger.debug(f"Sentiment fetch failed: {e}")
-            return {'news': 0, 'social': 0, 'fear_greed': 50}
+            return {"news": 0, "social": 0, "fear_greed": 50}
 
     async def _get_macro_context(self) -> Dict[str, Any]:
         """Get macro economic context."""
         # This could be enhanced with real API calls
         return {
-            'btc_correlation': 0.7,
-            'sp500_trend': 'up',
-            'dxy_trend': 'neutral',
-            'vix': 18,
-            'fed_stance': 'neutral',
-            'next_event': None
+            "btc_correlation": 0.7,
+            "sp500_trend": "up",
+            "dxy_trend": "neutral",
+            "vix": 18,
+            "fed_stance": "neutral",
+            "next_event": None,
         }
 
     async def _get_onchain_data(self, symbol: str) -> Dict[str, str]:
         """Get on-chain data for crypto."""
         # Could integrate Glassnode, CryptoQuant APIs
-        return {
-            'whale_activity': 'neutral',
-            'exchange_flow': 'neutral'
-        }
+        return {"whale_activity": "neutral", "exchange_flow": "neutral"}
 
     def record_trade_outcome(
         self,
@@ -686,7 +695,7 @@ class AIBrainV2:
         hold_time_minutes: int,
         was_stopped: bool,
         was_target_hit: bool,
-        context: Optional[MarketContext] = None
+        context: Optional[MarketContext] = None,
     ):
         """
         Record trade outcome for learning.
@@ -701,11 +710,22 @@ class AIBrainV2:
                 symbol=symbol,
                 price=entry_price,
                 timestamp=datetime.now(),
-                trend='neutral', volatility=0.5, rsi=50, macd_signal=0,
-                regime='unknown', regime_confidence=0.5,
-                news_sentiment=0, social_sentiment=0, fear_greed_index=50,
-                btc_correlation=0, sp500_trend='neutral', dxy_trend='neutral', vix_level=20,
-                whale_activity='neutral', exchange_flow='neutral', fed_stance='neutral'
+                trend="neutral",
+                volatility=0.5,
+                rsi=50,
+                macd_signal=0,
+                regime="unknown",
+                regime_confidence=0.5,
+                news_sentiment=0,
+                social_sentiment=0,
+                fear_greed_index=50,
+                btc_correlation=0,
+                sp500_trend="neutral",
+                dxy_trend="neutral",
+                vix_level=20,
+                whale_activity="neutral",
+                exchange_flow="neutral",
+                fed_stance="neutral",
             )
 
         experience = TradingExperience(
@@ -718,7 +738,7 @@ class AIBrainV2:
             pnl_pct=pnl_pct,
             hold_time=hold_time_minutes,
             was_stopped=was_stopped,
-            was_target_hit=was_target_hit
+            was_target_hit=was_target_hit,
         )
 
         # Add to experience buffer
@@ -732,15 +752,18 @@ class AIBrainV2:
         # Update symbol stats
         if symbol not in self.symbol_stats:
             self.symbol_stats[symbol] = {
-                'trades': 0, 'wins': 0, 'total_pnl': 0,
-                'ml_correct': 0, 'rl_correct': 0
+                "trades": 0,
+                "wins": 0,
+                "total_pnl": 0,
+                "ml_correct": 0,
+                "rl_correct": 0,
             }
 
         stats = self.symbol_stats[symbol]
-        stats['trades'] += 1
-        stats['total_pnl'] += pnl
+        stats["trades"] += 1
+        stats["total_pnl"] += pnl
         if pnl > 0:
-            stats['wins'] += 1
+            stats["wins"] += 1
 
         # Update strategy performance
         strategy = self.strategy_evolver.get_best_strategy(context.regime)
@@ -758,7 +781,9 @@ class AIBrainV2:
         # Save state
         self._save_state()
 
-        logger.info(f"[{symbol}] Recorded trade: {action} -> PnL {pnl_pct*100:.2f}%, Reward {reward:.2f}")
+        logger.info(
+            f"[{symbol}] Recorded trade: {action} -> PnL {pnl_pct * 100:.2f}%, Reward {reward:.2f}"
+        )
 
     def _learn_from_experiences(self):
         """Learn from batch of experiences using Q-learning."""
@@ -772,7 +797,7 @@ class AIBrainV2:
             state = exp.context.to_features()
 
             # Map action to index
-            action_map = {'BUY': 0, 'SELL': 4, 'HOLD': 8}
+            action_map = {"BUY": 0, "SELL": 4, "HOLD": 8}
             action_idx = action_map.get(exp.action, 8)
 
             # Update Q-network
@@ -780,7 +805,9 @@ class AIBrainV2:
             total_td_error += abs(td_error)
 
         avg_td_error = total_td_error / len(batch)
-        logger.info(f"Learning update: avg TD error = {avg_td_error:.4f}, epsilon = {self.q_network.epsilon:.3f}")
+        logger.info(
+            f"Learning update: avg TD error = {avg_td_error:.4f}, epsilon = {self.q_network.epsilon:.3f}"
+        )
 
     def get_performance_report(self) -> Dict[str, Any]:
         """Get comprehensive performance report."""
@@ -794,26 +821,27 @@ class AIBrainV2:
         for regime, strategies in self.strategy_evolver.strategies.items():
             best = max(strategies, key=lambda s: s.win_rate if s.total_trades > 0 else 0)
             strategy_perf[regime] = {
-                'best_strategy': best.name,
-                'win_rate': best.win_rate,
-                'total_pnl': best.total_pnl,
-                'trades': best.total_trades
+                "best_strategy": best.name,
+                "win_rate": best.win_rate,
+                "total_pnl": best.total_pnl,
+                "trades": best.total_trades,
             }
 
         return {
-            'total_trades': self.trade_count,
-            'total_reward': self.total_reward,
-            'recent_avg_reward': recent_reward,
-            'q_network_epsilon': self.q_network.epsilon,
-            'strategy_generation': self.strategy_evolver.generation,
-            'experience_buffer': buffer_stats,
-            'strategy_performance': strategy_perf,
-            'symbol_stats': self.symbol_stats
+            "total_trades": self.trade_count,
+            "total_reward": self.total_reward,
+            "recent_avg_reward": recent_reward,
+            "q_network_epsilon": self.q_network.epsilon,
+            "strategy_generation": self.strategy_evolver.generation,
+            "experience_buffer": buffer_stats,
+            "strategy_performance": strategy_perf,
+            "symbol_stats": self.symbol_stats,
         }
 
 
 # Global instance
 _ai_brain_v2: Optional[AIBrainV2] = None
+
 
 def get_ai_brain_v2() -> AIBrainV2:
     """Get or create the AI Brain V2 instance."""

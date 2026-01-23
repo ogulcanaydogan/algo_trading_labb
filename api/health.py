@@ -9,12 +9,13 @@ import asyncio
 
 router = APIRouter(prefix="/health", tags=["health"])
 
+
 class HealthStatus:
     def __init__(self):
         self.startup_time = datetime.utcnow()
         self.is_ready = False
         self.components = {}
-    
+
     async def check_database(self):
         """Check database connectivity."""
         try:
@@ -23,7 +24,7 @@ class HealthStatus:
             return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
         except Exception as e:
             return {"status": "unhealthy", "error": str(e)}
-    
+
     async def check_cache(self):
         """Check Redis/cache connectivity."""
         try:
@@ -31,7 +32,7 @@ class HealthStatus:
             return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
         except Exception as e:
             return {"status": "unhealthy", "error": str(e)}
-    
+
     async def check_market_data(self):
         """Check market data freshness."""
         try:
@@ -40,7 +41,9 @@ class HealthStatus:
         except Exception as e:
             return {"status": "unhealthy", "error": str(e)}
 
+
 health_status = HealthStatus()
+
 
 @router.get("/live")
 async def liveness():
@@ -48,19 +51,18 @@ async def liveness():
     return {
         "status": "alive",
         "timestamp": datetime.utcnow().isoformat(),
-        "uptime_seconds": (datetime.utcnow() - health_status.startup_time).total_seconds()
+        "uptime_seconds": (datetime.utcnow() - health_status.startup_time).total_seconds(),
     }
+
 
 @router.get("/ready")
 async def readiness():
     """Readiness probe: is the service ready to accept traffic?"""
     if not health_status.is_ready:
         raise HTTPException(status_code=503, detail="Service not ready")
-    
-    return {
-        "status": "ready",
-        "timestamp": datetime.utcnow().isoformat()
-    }
+
+    return {"status": "ready", "timestamp": datetime.utcnow().isoformat()}
+
 
 @router.get("/detailed")
 async def health_detailed():
@@ -68,13 +70,15 @@ async def health_detailed():
     db_status = await health_status.check_database()
     cache_status = await health_status.check_cache()
     market_data_status = await health_status.check_market_data()
-    
-    all_healthy = all([
-        db_status.get("status") == "healthy",
-        cache_status.get("status") == "healthy",
-        market_data_status.get("status") == "healthy"
-    ])
-    
+
+    all_healthy = all(
+        [
+            db_status.get("status") == "healthy",
+            cache_status.get("status") == "healthy",
+            market_data_status.get("status") == "healthy",
+        ]
+    )
+
     return {
         "status": "healthy" if all_healthy else "degraded",
         "timestamp": datetime.utcnow().isoformat(),
@@ -84,8 +88,9 @@ async def health_detailed():
             "market_data": market_data_status,
             "cpu_percent": psutil.cpu_percent(interval=0.1),
             "memory_percent": psutil.virtual_memory().percent,
-        }
+        },
     }
+
 
 @router.post("/ready/init")
 async def mark_ready():

@@ -49,15 +49,17 @@ logger = logging.getLogger(__name__)
 
 class ExperimentStatus(Enum):
     """Status of an A/B experiment."""
-    DRAFT = "draft"           # Not started
-    RUNNING = "running"       # Actively running
-    PAUSED = "paused"         # Temporarily paused
-    COMPLETED = "completed"   # Finished, winner selected
-    STOPPED = "stopped"       # Stopped without winner
+
+    DRAFT = "draft"  # Not started
+    RUNNING = "running"  # Actively running
+    PAUSED = "paused"  # Temporarily paused
+    COMPLETED = "completed"  # Finished, winner selected
+    STOPPED = "stopped"  # Stopped without winner
 
 
 class WinnerDecision(Enum):
     """Decision on experiment winner."""
+
     CONTROL = "control"
     TREATMENT = "treatment"
     NO_WINNER = "no_winner"
@@ -67,6 +69,7 @@ class WinnerDecision(Enum):
 @dataclass
 class ExperimentOutcome:
     """Single outcome from an experiment."""
+
     timestamp: datetime
     symbol: str
     variant: str  # "control" or "treatment"
@@ -79,6 +82,7 @@ class ExperimentOutcome:
 @dataclass
 class VariantMetrics:
     """Aggregated metrics for a variant."""
+
     total_samples: int = 0
     correct_predictions: int = 0
     accuracy: float = 0.0
@@ -108,6 +112,7 @@ class VariantMetrics:
 @dataclass
 class ExperimentResults:
     """Results of an A/B experiment analysis."""
+
     experiment_name: str
     status: ExperimentStatus
     control_metrics: VariantMetrics
@@ -155,6 +160,7 @@ class ExperimentResults:
 @dataclass
 class ABExperiment:
     """An A/B testing experiment configuration."""
+
     name: str
     description: str
     control_model: Any
@@ -524,10 +530,14 @@ class ABTestManager:
             # Chi-squared test for accuracy
             try:
                 contingency = [
-                    [control_metrics.correct_predictions,
-                     control_metrics.total_samples - control_metrics.correct_predictions],
-                    [treatment_metrics.correct_predictions,
-                     treatment_metrics.total_samples - treatment_metrics.correct_predictions],
+                    [
+                        control_metrics.correct_predictions,
+                        control_metrics.total_samples - control_metrics.correct_predictions,
+                    ],
+                    [
+                        treatment_metrics.correct_predictions,
+                        treatment_metrics.total_samples - treatment_metrics.correct_predictions,
+                    ],
                 ]
                 _, accuracy_p_value, _, _ = stats.chi2_contingency(contingency)
             except (ValueError, ZeroDivisionError):
@@ -550,11 +560,15 @@ class ABTestManager:
         # Calculate lifts
         accuracy_lift = 0.0
         if control_metrics.accuracy > 0:
-            accuracy_lift = (treatment_metrics.accuracy - control_metrics.accuracy) / control_metrics.accuracy
+            accuracy_lift = (
+                treatment_metrics.accuracy - control_metrics.accuracy
+            ) / control_metrics.accuracy
 
         pnl_lift = 0.0
         if control_metrics.avg_pnl != 0:
-            pnl_lift = (treatment_metrics.avg_pnl - control_metrics.avg_pnl) / abs(control_metrics.avg_pnl)
+            pnl_lift = (treatment_metrics.avg_pnl - control_metrics.avg_pnl) / abs(
+                control_metrics.avg_pnl
+            )
 
         # Determine winner
         winner = WinnerDecision.INCONCLUSIVE
@@ -571,8 +585,12 @@ class ABTestManager:
                 # Both metrics significant
                 if treatment_metrics.avg_pnl > control_metrics.avg_pnl * (1 + exp.min_effect_size):
                     winner = WinnerDecision.TREATMENT
-                    recommendation = "Deploy treatment model - significant improvement in both metrics"
-                elif control_metrics.avg_pnl > treatment_metrics.avg_pnl * (1 + exp.min_effect_size):
+                    recommendation = (
+                        "Deploy treatment model - significant improvement in both metrics"
+                    )
+                elif control_metrics.avg_pnl > treatment_metrics.avg_pnl * (
+                    1 + exp.min_effect_size
+                ):
                     winner = WinnerDecision.CONTROL
                     recommendation = "Keep control model - treatment underperformed"
                 else:

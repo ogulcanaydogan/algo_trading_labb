@@ -14,7 +14,9 @@ def test_testnet_connection():
     api_secret = os.getenv("BINANCE_TESTNET_API_SECRET")
 
     if not api_key or not api_secret:
-        print("❌ Error: BINANCE_TESTNET_API_KEY and BINANCE_TESTNET_API_SECRET must be set in .env")
+        print(
+            "❌ Error: BINANCE_TESTNET_API_KEY and BINANCE_TESTNET_API_SECRET must be set in .env"
+        )
         return
 
     print("🔄 Testing Binance Spot Testnet connection...")
@@ -48,7 +50,7 @@ def test_testnet_connection():
             print(f"Total assets: {len(balance.get('total', {}))}")
 
             # Show non-zero balances
-            total = balance.get('total', {})
+            total = balance.get("total", {})
             non_zero = {k: v for k, v in total.items() if v > 0}
             if non_zero:
                 print("\nNon-zero balances:")

@@ -34,6 +34,7 @@ AI_STATE_FILE = STATE_DIR / "ai_trading_state.json"
 @dataclass
 class AIAdvice:
     """AI-generated trading advice."""
+
     action: Literal["BUY", "SELL", "HOLD", "REDUCE"]
     confidence: float  # 0.0 - 1.0
     reasoning: str
@@ -186,22 +187,16 @@ class AITradingAdvisor:
                 json={
                     "model": self.model,
                     "messages": [
-                        {
-                            "role": "system",
-                            "content": self._get_system_prompt()
-                        },
-                        {
-                            "role": "user",
-                            "content": prompt
-                        }
+                        {"role": "system", "content": self._get_system_prompt()},
+                        {"role": "user", "content": prompt},
                     ],
                     "stream": False,
                     "format": "json",
                     "options": {
                         "temperature": 0.2,
                         "num_ctx": 4096,
-                    }
-                }
+                    },
+                },
             )
             response.raise_for_status()
             result = response.json()

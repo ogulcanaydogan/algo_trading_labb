@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -20,12 +21,23 @@ logger = logging.getLogger(__name__)
 # Optional imports
 try:
     from sqlalchemy import (
-        create_engine, Column, Integer, Float, String, DateTime,
-        Boolean, Text, JSON, ForeignKey, Index, event
+        create_engine,
+        Column,
+        Integer,
+        Float,
+        String,
+        DateTime,
+        Boolean,
+        Text,
+        JSON,
+        ForeignKey,
+        Index,
+        event,
     )
     from sqlalchemy.ext.declarative import declarative_base
     from sqlalchemy.orm import sessionmaker, relationship, Session
     from sqlalchemy.pool import QueuePool
+
     HAS_SQLALCHEMY = True
 except ImportError:
     HAS_SQLALCHEMY = False
@@ -33,6 +45,7 @@ except ImportError:
 
 try:
     import redis
+
     HAS_REDIS = True
 except ImportError:
     HAS_REDIS = False
@@ -48,22 +61,45 @@ else:
 
 @dataclass
 class DatabaseConfig:
-    """Database configuration."""
-    # PostgreSQL
-    postgres_host: str = "localhost"
-    postgres_port: int = 5432
-    postgres_user: str = "trading"
-    postgres_password: str = "trading"
-    postgres_database: str = "algo_trading"
-    postgres_pool_size: int = 5
-    postgres_max_overflow: int = 10
+    """Database configuration.
+
+    Credentials should be provided via environment variables:
+    - POSTGRES_HOST, POSTGRES_PORT, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DATABASE
+    - REDIS_HOST, REDIS_PORT, REDIS_DB, REDIS_PASSWORD
+    """
+
+    # PostgreSQL - defaults only for development, production should use env vars
+    postgres_host: str = field(default_factory=lambda: os.getenv("POSTGRES_HOST", "localhost"))
+    postgres_port: int = field(default_factory=lambda: int(os.getenv("POSTGRES_PORT", "5432")))
+    postgres_user: str = field(default_factory=lambda: os.getenv("POSTGRES_USER", "trading"))
+    postgres_password: str = field(default_factory=lambda: os.getenv("POSTGRES_PASSWORD", ""))
+    postgres_database: str = field(
+        default_factory=lambda: os.getenv("POSTGRES_DATABASE", "algo_trading")
+    )
+    postgres_pool_size: int = field(
+        default_factory=lambda: int(os.getenv("POSTGRES_POOL_SIZE", "5"))
+    )
+    postgres_max_overflow: int = field(
+        default_factory=lambda: int(os.getenv("POSTGRES_MAX_OVERFLOW", "10"))
+    )
 
     # Redis
-    redis_host: str = "localhost"
-    redis_port: int = 6379
-    redis_db: int = 0
-    redis_password: Optional[str] = None
-    redis_ttl_seconds: int = 3600
+    redis_host: str = field(default_factory=lambda: os.getenv("REDIS_HOST", "localhost"))
+    redis_port: int = field(default_factory=lambda: int(os.getenv("REDIS_PORT", "6379")))
+    redis_db: int = field(default_factory=lambda: int(os.getenv("REDIS_DB", "0")))
+    redis_password: Optional[str] = field(default_factory=lambda: os.getenv("REDIS_PASSWORD"))
+    redis_ttl_seconds: int = field(
+        default_factory=lambda: int(os.getenv("REDIS_TTL_SECONDS", "3600"))
+    )
+
+    def __post_init__(self):
+        """Validate configuration and warn about insecure defaults."""
+        if not self.postgres_password:
+            logger.warning(
+                "POSTGRES_PASSWORD not set. Set via environment variable for production."
+            )
+        if self.postgres_host == "localhost" and os.getenv("TRADING_ENV") == "production":
+            logger.warning("Using localhost for PostgreSQL in production environment!")
 
     @property
     def postgres_url(self) -> str:
@@ -76,6 +112,7 @@ if HAS_SQLALCHEMY:
 
     class TradeModel(Base):
         """Trade record model."""
+
         __tablename__ = "trades"
 
         id = Column(Integer, primary_key=True, autoincrement=True)
@@ -95,9 +132,7 @@ if HAS_SQLALCHEMY:
         metadata_json = Column(JSON)
         created_at = Column(DateTime, default=datetime.utcnow)
 
-        __table_args__ = (
-            Index("ix_trades_symbol_timestamp", "symbol", "timestamp"),
-        )
+        __table_args__ = (Index("ix_trades_symbol_timestamp", "symbol", "timestamp"),)
 
         def to_dict(self) -> Dict:
             return {
@@ -114,9 +149,9 @@ if HAS_SQLALCHEMY:
                 "timestamp": self.timestamp.isoformat() if self.timestamp else None,
             }
 
-
     class PositionModel(Base):
         """Position record model."""
+
         __tablename__ = "positions"
 
         id = Column(Integer, primary_key=True, autoincrement=True)
@@ -155,9 +190,9 @@ if HAS_SQLALCHEMY:
                 "closed_at": self.closed_at.isoformat() if self.closed_at else None,
             }
 
-
     class SignalModel(Base):
         """Trading signal record."""
+
         __tablename__ = "signals"
 
         id = Column(Integer, primary_key=True, autoincrement=True)
@@ -187,9 +222,9 @@ if HAS_SQLALCHEMY:
                 "timestamp": self.timestamp.isoformat() if self.timestamp else None,
             }
 
-
     class EquityModel(Base):
         """Equity snapshot model."""
+
         __tablename__ = "equity_snapshots"
 
         id = Column(Integer, primary_key=True, autoincrement=True)
@@ -203,13 +238,11 @@ if HAS_SQLALCHEMY:
         timestamp = Column(DateTime, nullable=False, index=True)
         created_at = Column(DateTime, default=datetime.utcnow)
 
-        __table_args__ = (
-            Index("ix_equity_timestamp", "timestamp"),
-        )
-
+        __table_args__ = (Index("ix_equity_timestamp", "timestamp"),)
 
     class MLPredictionModel(Base):
         """ML prediction record."""
+
         __tablename__ = "ml_predictions"
 
         id = Column(Integer, primary_key=True, autoincrement=True)
@@ -231,7 +264,9 @@ class PostgresDatabase:
 
     def __init__(self, config: Optional[DatabaseConfig] = None):
         if not HAS_SQLALCHEMY:
-            raise ImportError("SQLAlchemy required. Install: pip install sqlalchemy psycopg2-binary")
+            raise ImportError(
+                "SQLAlchemy required. Install: pip install sqlalchemy psycopg2-binary"
+            )
 
         self.config = config or DatabaseConfig()
         self._engine = None
@@ -329,9 +364,11 @@ class PostgresDatabase:
     def save_position(self, position_data: Dict) -> str:
         """Save or update a position."""
         with self.session() as session:
-            existing = session.query(PositionModel).filter(
-                PositionModel.position_id == position_data["position_id"]
-            ).first()
+            existing = (
+                session.query(PositionModel)
+                .filter(PositionModel.position_id == position_data["position_id"])
+                .first()
+            )
 
             if existing:
                 for key, value in position_data.items():
@@ -368,9 +405,11 @@ class PostgresDatabase:
     def close_position(self, position_id: str, close_data: Dict):
         """Close a position."""
         with self.session() as session:
-            position = session.query(PositionModel).filter(
-                PositionModel.position_id == position_id
-            ).first()
+            position = (
+                session.query(PositionModel)
+                .filter(PositionModel.position_id == position_id)
+                .first()
+            )
 
             if position:
                 position.status = "closed"

@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 class SignalStrength(Enum):
     """Signal strength levels."""
+
     STRONG_LONG = "strong_long"
     LONG = "long"
     WEAK_LONG = "weak_long"
@@ -36,6 +37,7 @@ class SignalStrength(Enum):
 @dataclass
 class TimeframeSignal:
     """Signal from a single timeframe."""
+
     timeframe: str
     direction: Literal["long", "short", "neutral"]
     strength: float  # -1 to 1
@@ -59,6 +61,7 @@ class TimeframeSignal:
 @dataclass
 class FusedSignal:
     """Fused signal from multiple timeframes."""
+
     action: Literal["LONG", "SHORT", "FLAT"]
     confidence: float
     strength: SignalStrength
@@ -90,15 +93,18 @@ class FusedSignal:
 @dataclass
 class MTFConfig:
     """Multi-timeframe fusion configuration."""
+
     # Timeframes to analyze
     timeframes: List[str] = field(default_factory=lambda: ["1h", "4h", "1d"])
 
     # Weights for each timeframe (higher = more important)
-    timeframe_weights: Dict[str, float] = field(default_factory=lambda: {
-        "1h": 0.3,
-        "4h": 0.4,
-        "1d": 0.3,
-    })
+    timeframe_weights: Dict[str, float] = field(
+        default_factory=lambda: {
+            "1h": 0.3,
+            "4h": 0.4,
+            "1d": 0.3,
+        }
+    )
 
     # Indicator settings
     ema_fast: int = 12
@@ -164,7 +170,9 @@ class MultiTimeframeFusion:
         ema_slow = EMAIndicator(df["close"], window=self.config.ema_slow).ema_indicator()
         ema_trend = EMAIndicator(df["close"], window=self.config.ema_trend).ema_indicator()
         rsi = RSIIndicator(df["close"], window=self.config.rsi_period).rsi()
-        atr = AverageTrueRange(df["high"], df["low"], df["close"], window=self.config.atr_period).average_true_range()
+        atr = AverageTrueRange(
+            df["high"], df["low"], df["close"], window=self.config.atr_period
+        ).average_true_range()
 
         macd = MACD(df["close"])
         macd_line = macd.macd()
@@ -206,9 +214,7 @@ class MultiTimeframeFusion:
         momentum = (macd_h / close * 100) if close > 0 else 0
 
         # Calculate signal strength
-        strength = self._calculate_strength(
-            close, ema_f, ema_s, ema_t, rsi_val, macd_h, trend
-        )
+        strength = self._calculate_strength(close, ema_f, ema_s, ema_t, rsi_val, macd_h, trend)
 
         # Determine direction
         if strength > 0.2:
@@ -325,21 +331,36 @@ class MultiTimeframeFusion:
         alignment_score = self._calculate_alignment(directions)
 
         # Find supporting and conflicting timeframes
-        primary_direction = "long" if weighted_strength > 0 else "short" if weighted_strength < 0 else "neutral"
+        primary_direction = (
+            "long" if weighted_strength > 0 else "short" if weighted_strength < 0 else "neutral"
+        )
         supporting = [tf for tf, s in timeframe_signals.items() if s.direction == primary_direction]
-        conflicting = [tf for tf, s in timeframe_signals.items() if s.direction != primary_direction and s.direction != "neutral"]
+        conflicting = [
+            tf
+            for tf, s in timeframe_signals.items()
+            if s.direction != primary_direction and s.direction != "neutral"
+        ]
 
         # Generate reasoning
         for tf, signal in timeframe_signals.items():
-            reasoning.append(f"{tf}: {signal.direction} (strength={signal.strength:.2f}, trend={signal.trend})")
+            reasoning.append(
+                f"{tf}: {signal.direction} (strength={signal.strength:.2f}, trend={signal.trend})"
+            )
 
         # Check higher timeframe confirmation
         if self.config.require_higher_tf_confirmation:
             higher_tfs = self.config.timeframes[1:]  # Skip lowest timeframe
             higher_confirms = all(
-                timeframe_signals.get(tf, TimeframeSignal(tf, "neutral", 0, {}, "sideways", 0)).direction == primary_direction
-                or timeframe_signals.get(tf, TimeframeSignal(tf, "neutral", 0, {}, "sideways", 0)).direction == "neutral"
-                for tf in higher_tfs if tf in timeframe_signals
+                timeframe_signals.get(
+                    tf, TimeframeSignal(tf, "neutral", 0, {}, "sideways", 0)
+                ).direction
+                == primary_direction
+                or timeframe_signals.get(
+                    tf, TimeframeSignal(tf, "neutral", 0, {}, "sideways", 0)
+                ).direction
+                == "neutral"
+                for tf in higher_tfs
+                if tf in timeframe_signals
             )
             if not higher_confirms and primary_direction != "neutral":
                 reasoning.append("Warning: Higher timeframes not confirming signal")
@@ -430,7 +451,7 @@ class MultiTimeframeFusion:
 
         # Reduce confidence if conflicting signals
         if conflicting:
-            confidence *= (1 - 0.2 * len(conflicting))
+            confidence *= 1 - 0.2 * len(conflicting)
 
         return action, max(0, min(1, confidence)), strength
 

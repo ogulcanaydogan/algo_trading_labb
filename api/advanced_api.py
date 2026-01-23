@@ -64,7 +64,7 @@ async def get_kelly_criterion(
     return {
         "kelly": kelly.to_dict(),
         "trades_analyzed": len(trades),
-        "recommendation": f"Use {kelly.recommended_fraction*100:.1f}% of capital per trade",
+        "recommendation": f"Use {kelly.recommended_fraction * 100:.1f}% of capital per trade",
     }
 
 
@@ -115,8 +115,7 @@ async def run_monte_carlo(request: MonteCarloRequest) -> Dict[str, Any]:
 
     if len(trades) < 10:
         raise HTTPException(
-            status_code=400,
-            detail="Need at least 10 trades for Monte Carlo simulation"
+            status_code=400, detail="Need at least 10 trades for Monte Carlo simulation"
         )
 
     manager = AdvancedRiskManager()
@@ -133,8 +132,8 @@ async def run_monte_carlo(request: MonteCarloRequest) -> Dict[str, Any]:
             "worst_case_5pct": f"5% chance of ending below ${result.percentile_5:,.2f}",
             "best_case_5pct": f"5% chance of ending above ${result.percentile_95:,.2f}",
             "median_outcome": f"50% chance of ending around ${result.median_final_balance:,.2f}",
-            "ruin_probability": f"{result.probability_of_ruin*100:.1f}% chance of 50%+ drawdown",
-        }
+            "ruin_probability": f"{result.probability_of_ruin * 100:.1f}% chance of 50%+ drawdown",
+        },
     }
 
 
@@ -159,18 +158,19 @@ async def compare_to_benchmark(
 
     if len(equity_history) < 10:
         raise HTTPException(
-            status_code=400,
-            detail="Not enough equity history for benchmark comparison"
+            status_code=400, detail="Not enough equity history for benchmark comparison"
         )
 
-    strategy_equity = [e["equity"] for e in equity_history[-days*24:]]  # Assuming hourly
+    strategy_equity = [e["equity"] for e in equity_history[-days * 24 :]]  # Assuming hourly
 
     # Fetch benchmark prices
     try:
         import ccxt
-        exchange = ccxt.binance({'enableRateLimit': True})
+
+        exchange = ccxt.binance({"enableRateLimit": True})
 
         from datetime import timedelta
+
         since = int((datetime.now() - timedelta(days=days)).timestamp() * 1000)
         ohlcv = exchange.fetch_ohlcv(benchmark_symbol, "1h", since=since, limit=1000)
 
@@ -215,18 +215,12 @@ async def get_feature_importance(
     top_features = analyzer.get_top_features(symbol, top_n)
 
     if not top_features:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No model found for {symbol}"
-        )
+        raise HTTPException(status_code=404, detail=f"No model found for {symbol}")
 
     return {
         "symbol": symbol,
         "model_type": model_type,
-        "top_features": [
-            {"name": name, "importance": round(imp, 4)}
-            for name, imp in top_features
-        ],
+        "top_features": [{"name": name, "importance": round(imp, 4)} for name, imp in top_features],
         "total_features": len(top_features),
     }
 
@@ -278,7 +272,9 @@ async def send_report_email(
     return {
         "success": success,
         "date": report.date,
-        "message": "Email sent successfully" if success else "Email sending failed or not configured",
+        "message": "Email sent successfully"
+        if success
+        else "Email sending failed or not configured",
     }
 
 
@@ -296,6 +292,7 @@ async def get_trailing_stops() -> Dict[str, Any]:
     stops_file = DATA_DIR / "trailing_stops.json"
     if stops_file.exists():
         import json
+
         with open(stops_file) as f:
             stops_data = json.load(f)
             manager.load_state(stops_data)
@@ -359,38 +356,48 @@ async def get_ensemble_prediction(
     )
 
     if predictor is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No models found for {symbol}"
-        )
+        raise HTTPException(status_code=404, detail=f"No models found for {symbol}")
 
     # Get latest features (placeholder - in production would fetch live data)
     # This is a simplified example
     try:
         import ccxt
-        exchange = ccxt.binance({'enableRateLimit': True})
+
+        exchange = ccxt.binance({"enableRateLimit": True})
         ohlcv = exchange.fetch_ohlcv(symbol, "1h", limit=50)
 
         # Simple feature extraction
         closes = [c[4] for c in ohlcv]
         volumes = [c[5] for c in ohlcv]
 
-        features = np.array([[
-            (closes[-1] - closes[-2]) / closes[-2],  # return_1
-            (closes[-1] - closes[-6]) / closes[-6],  # return_5
-            (closes[-1] - closes[-11]) / closes[-11],  # return_10
-            (closes[-1] - closes[-21]) / closes[-21] if len(closes) > 20 else 0,  # return_20
-            closes[-1] / np.mean(closes[-5:]),  # price_sma5_ratio
-            closes[-1] / np.mean(closes[-10:]),  # price_sma10_ratio
-            closes[-1] / np.mean(closes[-20:]) if len(closes) >= 20 else 1,  # price_sma20_ratio
-            np.std(np.diff(closes[-5:])/closes[-6:-1]),  # volatility_5
-            np.std(np.diff(closes[-20:])/closes[-21:-1]) if len(closes) > 20 else 0,  # volatility_20
-            volumes[-1] / np.mean(volumes[-20:]) if len(volumes) >= 20 else 1,  # volume_ratio
-            50,  # RSI placeholder
-            0,  # MACD hist placeholder
-            0.5,  # BB position placeholder
-            0.02,  # ATR ratio placeholder
-        ]])
+        features = np.array(
+            [
+                [
+                    (closes[-1] - closes[-2]) / closes[-2],  # return_1
+                    (closes[-1] - closes[-6]) / closes[-6],  # return_5
+                    (closes[-1] - closes[-11]) / closes[-11],  # return_10
+                    (closes[-1] - closes[-21]) / closes[-21]
+                    if len(closes) > 20
+                    else 0,  # return_20
+                    closes[-1] / np.mean(closes[-5:]),  # price_sma5_ratio
+                    closes[-1] / np.mean(closes[-10:]),  # price_sma10_ratio
+                    closes[-1] / np.mean(closes[-20:])
+                    if len(closes) >= 20
+                    else 1,  # price_sma20_ratio
+                    np.std(np.diff(closes[-5:]) / closes[-6:-1]),  # volatility_5
+                    np.std(np.diff(closes[-20:]) / closes[-21:-1])
+                    if len(closes) > 20
+                    else 0,  # volatility_20
+                    volumes[-1] / np.mean(volumes[-20:])
+                    if len(volumes) >= 20
+                    else 1,  # volume_ratio
+                    50,  # RSI placeholder
+                    0,  # MACD hist placeholder
+                    0.5,  # BB position placeholder
+                    0.02,  # ATR ratio placeholder
+                ]
+            ]
+        )
 
         prediction, confidence, details = predictor.predict(features)
 
@@ -405,10 +412,7 @@ async def get_ensemble_prediction(
         }
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Prediction failed: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
 
 
 # Correlation Analysis
@@ -422,10 +426,11 @@ async def get_position_correlations() -> Dict[str, Any]:
         import numpy as np
         from datetime import timedelta
 
-        exchange = ccxt.binance({'enableRateLimit': True})
+        exchange = ccxt.binance({"enableRateLimit": True})
 
         # Get current positions
         import json
+
         state_file = DATA_DIR / "state.json"
         state = {}
         if state_file.exists():
@@ -445,7 +450,7 @@ async def get_position_correlations() -> Dict[str, Any]:
                 ohlcv = exchange.fetch_ohlcv(symbol, "1h", since=since, limit=720)
                 returns = []
                 for i in range(1, len(ohlcv)):
-                    ret = (ohlcv[i][4] - ohlcv[i-1][4]) / ohlcv[i-1][4]
+                    ret = (ohlcv[i][4] - ohlcv[i - 1][4]) / ohlcv[i - 1][4]
                     returns.append(ret)
                 price_data[symbol] = returns
             except (KeyError, IndexError, ZeroDivisionError, Exception) as e:
@@ -527,5 +532,9 @@ async def get_risk_summary() -> Dict[str, Any]:
         "drawdown": drawdown.to_dict(),
         "monte_carlo": monte_carlo.to_dict() if monte_carlo else None,
         "trades_analyzed": len(trades),
-        "overall_risk_level": "LOW" if drawdown.scale_factor > 0.75 else "MEDIUM" if drawdown.scale_factor > 0.25 else "HIGH",
+        "overall_risk_level": "LOW"
+        if drawdown.scale_factor > 0.75
+        else "MEDIUM"
+        if drawdown.scale_factor > 0.25
+        else "HIGH",
     }

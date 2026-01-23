@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 class AlertType(Enum):
     """Types of alerts."""
+
     PRICE_MOVE = "price_move"
     PRICE_LEVEL = "price_level"
     SIGNAL_GENERATED = "signal_generated"
@@ -38,6 +39,7 @@ class AlertType(Enum):
 
 class AlertPriority(Enum):
     """Alert priority levels."""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -46,6 +48,7 @@ class AlertPriority(Enum):
 
 class AlertChannel(Enum):
     """Notification channels."""
+
     TELEGRAM = "telegram"
     DISCORD = "discord"
     EMAIL = "email"
@@ -57,6 +60,7 @@ class AlertChannel(Enum):
 @dataclass
 class AlertThreshold:
     """Configuration for a single alert threshold."""
+
     alert_type: AlertType
     name: str
     enabled: bool
@@ -95,6 +99,7 @@ class AlertThreshold:
 @dataclass
 class AlertEvent:
     """A triggered alert event."""
+
     alert_id: str
     alert_type: AlertType
     name: str
@@ -297,8 +302,12 @@ class AlertConfigManager:
                     for event_data in data[-100:]:
                         event_data["alert_type"] = AlertType(event_data["alert_type"])
                         event_data["priority"] = AlertPriority(event_data["priority"])
-                        event_data["sent_channels"] = [AlertChannel(c) for c in event_data["sent_channels"]]
-                        event_data["triggered_at"] = datetime.fromisoformat(event_data["triggered_at"])
+                        event_data["sent_channels"] = [
+                            AlertChannel(c) for c in event_data["sent_channels"]
+                        ]
+                        event_data["triggered_at"] = datetime.fromisoformat(
+                            event_data["triggered_at"]
+                        )
                         self._alert_history.append(AlertEvent(**event_data))
             except (json.JSONDecodeError, IOError):
                 pass
@@ -645,7 +654,9 @@ class AlertConfigManager:
             "total_thresholds": len(self.thresholds),
             "enabled_thresholds": len([t for t in self.thresholds.values() if t.enabled]),
             "by_type": {
-                t.value: len([th for th in self.thresholds.values() if th.alert_type == t and th.enabled])
+                t.value: len(
+                    [th for th in self.thresholds.values() if th.alert_type == t and th.enabled]
+                )
                 for t in AlertType
             },
             "recent_alerts_count": len(self._alert_history),

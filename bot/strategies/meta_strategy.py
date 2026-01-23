@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 class AllocationMethod(Enum):
     """Strategy allocation methods."""
+
     EQUAL_WEIGHT = "equal_weight"
     RISK_PARITY = "risk_parity"
     MOMENTUM = "momentum"
@@ -31,6 +32,7 @@ class AllocationMethod(Enum):
 @dataclass
 class StrategyPerformance:
     """Performance metrics for a strategy."""
+
     strategy_name: str
     total_return: float
     sharpe_ratio: float
@@ -64,16 +66,17 @@ class StrategyPerformance:
     def score(self) -> float:
         """Calculate overall strategy score."""
         return (
-            self.sharpe_ratio * 0.3 +
-            self.win_rate * 0.2 +
-            (1 - self.max_drawdown) * 0.2 +
-            self.recent_performance * 0.3
+            self.sharpe_ratio * 0.3
+            + self.win_rate * 0.2
+            + (1 - self.max_drawdown) * 0.2
+            + self.recent_performance * 0.3
         )
 
 
 @dataclass
 class StrategyAllocation:
     """Allocation to a strategy."""
+
     strategy_name: str
     weight: float
     capital_allocated: float
@@ -93,6 +96,7 @@ class StrategyAllocation:
 @dataclass
 class MetaSignal:
     """Combined signal from meta strategy."""
+
     action: Literal["LONG", "SHORT", "FLAT"]
     confidence: float
     contributing_strategies: List[Dict[str, Any]]
@@ -118,6 +122,7 @@ class MetaSignal:
 @dataclass
 class MetaStrategyConfig:
     """Meta strategy configuration."""
+
     # Allocation method
     allocation_method: AllocationMethod = AllocationMethod.ADAPTIVE
 
@@ -189,12 +194,14 @@ class MetaStrategy:
         if strategy_name not in self._trade_history:
             self._trade_history[strategy_name] = []
 
-        self._trade_history[strategy_name].append({
-            "pnl": pnl,
-            "return_pct": return_pct,
-            "regime": regime or self._current_regime,
-            "timestamp": datetime.now(),
-        })
+        self._trade_history[strategy_name].append(
+            {
+                "pnl": pnl,
+                "return_pct": return_pct,
+                "regime": regime or self._current_regime,
+                "timestamp": datetime.now(),
+            }
+        )
 
         # Update performance metrics
         self._update_performance(strategy_name)
@@ -275,22 +282,24 @@ class MetaStrategy:
 
         # Get strategies with sufficient performance data
         eligible = {
-            name: perf for name, perf in self._performance.items()
-            if perf.sharpe_ratio >= self.config.min_sharpe_for_allocation
-            and perf.trade_count >= 10
+            name: perf
+            for name, perf in self._performance.items()
+            if perf.sharpe_ratio >= self.config.min_sharpe_for_allocation and perf.trade_count >= 10
         }
 
         if not eligible:
             # Equal weight fallback
             weight = 1.0 / len(self._strategies)
             for name in self._strategies:
-                allocations.append(StrategyAllocation(
-                    strategy_name=name,
-                    weight=weight,
-                    capital_allocated=total_capital * weight,
-                    reason="equal_weight_fallback",
-                    constraints_applied=[],
-                ))
+                allocations.append(
+                    StrategyAllocation(
+                        strategy_name=name,
+                        weight=weight,
+                        capital_allocated=total_capital * weight,
+                        reason="equal_weight_fallback",
+                        constraints_applied=[],
+                    )
+                )
             return allocations
 
         # Calculate raw weights based on method
@@ -340,15 +349,21 @@ class MetaStrategy:
         # Create allocation objects
         for name, weight in final_weights.items():
             perf = self._performance.get(name)
-            reason = f"{method.value}: sharpe={perf.sharpe_ratio:.2f}, recent={perf.recent_performance:.2%}" if perf else method.value
+            reason = (
+                f"{method.value}: sharpe={perf.sharpe_ratio:.2f}, recent={perf.recent_performance:.2%}"
+                if perf
+                else method.value
+            )
 
-            allocations.append(StrategyAllocation(
-                strategy_name=name,
-                weight=weight,
-                capital_allocated=total_capital * weight,
-                reason=reason,
-                constraints_applied=constraints_log.get(name, []),
-            ))
+            allocations.append(
+                StrategyAllocation(
+                    strategy_name=name,
+                    weight=weight,
+                    capital_allocated=total_capital * weight,
+                    reason=reason,
+                    constraints_applied=constraints_log.get(name, []),
+                )
+            )
 
         # Store allocations
         self._allocations = final_weights
@@ -403,11 +418,11 @@ class MetaStrategy:
             if self._current_regime in perf.regime_performance:
                 regime_perf = perf.regime_performance[self._current_regime]
                 if regime_perf > 0:
-                    score *= (1 + regime_perf)
+                    score *= 1 + regime_perf
 
             # Recency bonus
             if perf.recent_performance > 0:
-                score *= (1 + perf.recent_performance)
+                score *= 1 + perf.recent_performance
 
             weights[name] = max(0.1, score)
 
@@ -463,13 +478,15 @@ class MetaStrategy:
                 weighted_vote = confidence * weight
                 votes[action] += weighted_vote
 
-                contributing.append({
-                    "strategy": name,
-                    "action": action,
-                    "confidence": confidence,
-                    "weight": weight,
-                    "weighted_vote": weighted_vote,
-                })
+                contributing.append(
+                    {
+                        "strategy": name,
+                        "action": action,
+                        "confidence": confidence,
+                        "weight": weight,
+                        "weighted_vote": weighted_vote,
+                    }
+                )
 
                 reasoning.append(f"{name}: {action} ({confidence:.0%} conf, {weight:.0%} weight)")
 
@@ -498,19 +515,23 @@ class MetaStrategy:
         primary = max(
             [c for c in contributing if c["action"] == winning_action],
             key=lambda x: x["weighted_vote"],
-            default={"strategy": ""}
+            default={"strategy": ""},
         )
 
         # Apply consensus threshold
         if consensus_level < self.config.consensus_threshold:
             winning_action = "FLAT"
-            reasoning.append(f"Consensus too low ({consensus_level:.0%} < {self.config.consensus_threshold:.0%})")
+            reasoning.append(
+                f"Consensus too low ({consensus_level:.0%} < {self.config.consensus_threshold:.0%})"
+            )
 
         # Check minimum strategies
         agreeing_strategies = sum(1 for c in contributing if c["action"] == winning_action)
         if agreeing_strategies < self.config.min_strategies_for_signal:
             winning_action = "FLAT"
-            reasoning.append(f"Insufficient agreement ({agreeing_strategies} < {self.config.min_strategies_for_signal})")
+            reasoning.append(
+                f"Insufficient agreement ({agreeing_strategies} < {self.config.min_strategies_for_signal})"
+            )
 
         return MetaSignal(
             action=winning_action,
@@ -527,14 +548,16 @@ class MetaStrategy:
         rankings = []
 
         for name, perf in self._performance.items():
-            rankings.append({
-                "strategy": name,
-                "score": perf.score,
-                "sharpe_ratio": perf.sharpe_ratio,
-                "win_rate": perf.win_rate,
-                "recent_performance": perf.recent_performance,
-                "allocation": self._allocations.get(name, 0),
-            })
+            rankings.append(
+                {
+                    "strategy": name,
+                    "score": perf.score,
+                    "sharpe_ratio": perf.sharpe_ratio,
+                    "win_rate": perf.win_rate,
+                    "recent_performance": perf.recent_performance,
+                    "allocation": self._allocations.get(name, 0),
+                }
+            )
 
         rankings.sort(key=lambda x: x["score"], reverse=True)
         return rankings

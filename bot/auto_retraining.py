@@ -31,17 +31,19 @@ logger = logging.getLogger(__name__)
 
 class ModelStatus(Enum):
     """Model lifecycle status."""
+
     TRAINING = "training"
     VALIDATING = "validating"
-    CANDIDATE = "candidate"      # Ready for A/B test
-    SHADOW = "shadow"            # Running in shadow mode
-    PRODUCTION = "production"    # Active in production
-    DEPRECATED = "deprecated"    # Replaced by newer model
-    FAILED = "failed"            # Failed validation
+    CANDIDATE = "candidate"  # Ready for A/B test
+    SHADOW = "shadow"  # Running in shadow mode
+    PRODUCTION = "production"  # Active in production
+    DEPRECATED = "deprecated"  # Replaced by newer model
+    FAILED = "failed"  # Failed validation
 
 
 class DegradationReason(Enum):
     """Reasons for model degradation."""
+
     ACCURACY_DROP = "accuracy_drop"
     PRECISION_DROP = "precision_drop"
     PROFIT_FACTOR_DROP = "profit_factor_drop"
@@ -54,6 +56,7 @@ class DegradationReason(Enum):
 @dataclass
 class ModelMetrics:
     """Model performance metrics."""
+
     timestamp: datetime
     model_id: str
 
@@ -84,13 +87,14 @@ class ModelMetrics:
             "win_rate": self.win_rate,
             "profit_factor": self.profit_factor,
             "sharpe_ratio": self.sharpe_ratio,
-            "total_trades": self.total_trades
+            "total_trades": self.total_trades,
         }
 
 
 @dataclass
 class ModelRecord:
     """Record of a trained model."""
+
     model_id: str
     model_path: str
     created_at: datetime
@@ -131,13 +135,14 @@ class ModelRecord:
             precision=np.mean([m.precision for m in recent]),
             win_rate=np.mean([m.win_rate for m in recent]),
             profit_factor=np.mean([m.profit_factor for m in recent]),
-            total_trades=sum(m.total_trades for m in recent)
+            total_trades=sum(m.total_trades for m in recent),
         )
 
 
 @dataclass
 class RetrainingTrigger:
     """Trigger for model retraining."""
+
     trigger_id: str
     triggered_at: datetime
     reason: DegradationReason
@@ -167,12 +172,12 @@ class PerformanceMonitor:
 
     def __init__(
         self,
-        accuracy_threshold: float = 0.05,      # 5% accuracy drop triggers alert
+        accuracy_threshold: float = 0.05,  # 5% accuracy drop triggers alert
         precision_threshold: float = 0.05,
         profit_factor_threshold: float = 0.3,  # 30% profit factor drop
         drift_threshold: float = 0.1,
-        window_size: int = 100,                # Predictions to track
-        min_samples: int = 50                  # Minimum samples before evaluation
+        window_size: int = 100,  # Predictions to track
+        min_samples: int = 50,  # Minimum samples before evaluation
     ):
         """
         Initialize performance monitor.
@@ -205,23 +210,27 @@ class PerformanceMonitor:
         self.baseline_metrics = metrics
         if feature_stats:
             self._baseline_feature_stats = feature_stats
-        logger.info(f"Baseline set: accuracy={metrics.accuracy:.3f}, precision={metrics.precision:.3f}")
+        logger.info(
+            f"Baseline set: accuracy={metrics.accuracy:.3f}, precision={metrics.precision:.3f}"
+        )
 
     def record_prediction(
         self,
         prediction: int,
         actual: int,
         features: Optional[np.ndarray] = None,
-        trade_pnl: Optional[float] = None
+        trade_pnl: Optional[float] = None,
     ):
         """Record a prediction result."""
-        self.predictions.append({
-            "timestamp": datetime.now(),
-            "prediction": prediction,
-            "actual": actual,
-            "correct": prediction == actual,
-            "pnl": trade_pnl
-        })
+        self.predictions.append(
+            {
+                "timestamp": datetime.now(),
+                "prediction": prediction,
+                "actual": actual,
+                "correct": prediction == actual,
+                "pnl": trade_pnl,
+            }
+        )
 
         # Track features for drift detection
         if features is not None:
@@ -233,7 +242,7 @@ class PerformanceMonitor:
 
         # Trim to window size
         if len(self.predictions) > self.window_size * 2:
-            self.predictions = self.predictions[-self.window_size:]
+            self.predictions = self.predictions[-self.window_size :]
 
     def check_degradation(self) -> Tuple[bool, Optional[DegradationReason], Dict]:
         """
@@ -253,30 +262,44 @@ class PerformanceMonitor:
         # Check accuracy drop
         accuracy_drop = self.baseline_metrics.accuracy - current_metrics.accuracy
         if accuracy_drop > self.accuracy_threshold:
-            return True, DegradationReason.ACCURACY_DROP, {
-                "baseline": self.baseline_metrics.accuracy,
-                "current": current_metrics.accuracy,
-                "drop": accuracy_drop
-            }
+            return (
+                True,
+                DegradationReason.ACCURACY_DROP,
+                {
+                    "baseline": self.baseline_metrics.accuracy,
+                    "current": current_metrics.accuracy,
+                    "drop": accuracy_drop,
+                },
+            )
 
         # Check precision drop
         precision_drop = self.baseline_metrics.precision - current_metrics.precision
         if precision_drop > self.precision_threshold:
-            return True, DegradationReason.PRECISION_DROP, {
-                "baseline": self.baseline_metrics.precision,
-                "current": current_metrics.precision,
-                "drop": precision_drop
-            }
+            return (
+                True,
+                DegradationReason.PRECISION_DROP,
+                {
+                    "baseline": self.baseline_metrics.precision,
+                    "current": current_metrics.precision,
+                    "drop": precision_drop,
+                },
+            )
 
         # Check profit factor drop (if baseline has it)
         if self.baseline_metrics.profit_factor > 0:
-            pf_drop = (self.baseline_metrics.profit_factor - current_metrics.profit_factor) / self.baseline_metrics.profit_factor
+            pf_drop = (
+                self.baseline_metrics.profit_factor - current_metrics.profit_factor
+            ) / self.baseline_metrics.profit_factor
             if pf_drop > self.profit_factor_threshold:
-                return True, DegradationReason.PROFIT_FACTOR_DROP, {
-                    "baseline": self.baseline_metrics.profit_factor,
-                    "current": current_metrics.profit_factor,
-                    "drop_pct": pf_drop
-                }
+                return (
+                    True,
+                    DegradationReason.PROFIT_FACTOR_DROP,
+                    {
+                        "baseline": self.baseline_metrics.profit_factor,
+                        "current": current_metrics.profit_factor,
+                        "drop_pct": pf_drop,
+                    },
+                )
 
         # Check data drift
         drift_detected, drift_details = self._check_data_drift()
@@ -287,7 +310,7 @@ class PerformanceMonitor:
 
     def _compute_current_metrics(self) -> ModelMetrics:
         """Compute metrics from recent predictions."""
-        recent = self.predictions[-self.window_size:]
+        recent = self.predictions[-self.window_size :]
 
         correct = sum(1 for p in recent if p["correct"])
         total = len(recent)
@@ -307,7 +330,7 @@ class PerformanceMonitor:
             profit_factor=gross_profit / gross_loss if gross_loss > 0 else 0,
             total_trades=len(trades_with_pnl),
             predictions_made=total,
-            correct_predictions=correct
+            correct_predictions=correct,
         )
 
     def _check_data_drift(self) -> Tuple[bool, Dict]:
@@ -325,19 +348,21 @@ class PerformanceMonitor:
                 continue
 
             baseline_mean, baseline_std = self._baseline_feature_stats[feature_name]
-            current_mean = np.mean(values[-self.window_size:])
-            current_std = np.std(values[-self.window_size:])
+            current_mean = np.mean(values[-self.window_size :])
+            current_std = np.std(values[-self.window_size :])
 
             # Simple drift detection: check if mean shifted significantly
             if baseline_std > 0:
                 z_score = abs(current_mean - baseline_mean) / baseline_std
                 if z_score > 3:  # 3 sigma rule
-                    drifted_features.append({
-                        "feature": feature_name,
-                        "baseline_mean": baseline_mean,
-                        "current_mean": current_mean,
-                        "z_score": z_score
-                    })
+                    drifted_features.append(
+                        {
+                            "feature": feature_name,
+                            "baseline_mean": baseline_mean,
+                            "current_mean": current_mean,
+                            "z_score": z_score,
+                        }
+                    )
 
         if len(drifted_features) > len(self.feature_distributions) * 0.2:  # 20% features drifted
             return True, {"drifted_features": drifted_features}
@@ -375,7 +400,7 @@ class ModelRegistry:
         """Load registry from disk."""
         registry_file = self.registry_dir / "registry.json"
         if registry_file.exists():
-            with open(registry_file, 'r') as f:
+            with open(registry_file, "r") as f:
                 data = json.load(f)
                 self.production_model_id = data.get("production_model_id")
                 # Would load model records here
@@ -393,13 +418,13 @@ class ModelRegistry:
                     "created_at": record.created_at.isoformat(),
                     "model_path": record.model_path,
                     "training_metrics": record.training_metrics,
-                    "validation_metrics": record.validation_metrics
+                    "validation_metrics": record.validation_metrics,
                 }
                 for model_id, record in self.models.items()
             },
-            "updated_at": datetime.now().isoformat()
+            "updated_at": datetime.now().isoformat(),
         }
-        with open(registry_file, 'w') as f:
+        with open(registry_file, "w") as f:
             json.dump(data, f, indent=2)
 
     def register_model(self, record: ModelRecord) -> str:
@@ -470,7 +495,9 @@ class ModelRegistry:
             self.models[model_id].production_metrics.append(metrics)
             # Keep only last 1000 metrics
             if len(self.models[model_id].production_metrics) > 1000:
-                self.models[model_id].production_metrics = self.models[model_id].production_metrics[-1000:]
+                self.models[model_id].production_metrics = self.models[model_id].production_metrics[
+                    -1000:
+                ]
 
 
 class AutoRetrainingManager:
@@ -492,7 +519,7 @@ class AutoRetrainingManager:
         performance_monitor: Optional[PerformanceMonitor] = None,
         notification_manager=None,
         check_interval_minutes: int = 60,
-        min_retrain_interval_hours: int = 24
+        min_retrain_interval_hours: int = 24,
     ):
         """
         Initialize auto-retraining manager.
@@ -580,7 +607,7 @@ class AutoRetrainingManager:
             model_id=model_id,
             current_value=details.get("current", 0),
             threshold=details.get("threshold", 0),
-            baseline_value=details.get("baseline", 0)
+            baseline_value=details.get("baseline", 0),
         )
 
         self._pending_triggers.append(trigger)
@@ -598,7 +625,7 @@ class AutoRetrainingManager:
                 alert_type="Model Degradation",
                 message=f"Model {model_id} degraded: {reason.value}",
                 metrics=details,
-                critical=reason == DegradationReason.ACCURACY_DROP
+                critical=reason == DegradationReason.ACCURACY_DROP,
             )
 
         # Check if we should retrain
@@ -618,7 +645,7 @@ class AutoRetrainingManager:
         self,
         trigger: Optional[RetrainingTrigger] = None,
         price_data: Optional[pd.DataFrame] = None,
-        news_features: Optional[pd.DataFrame] = None
+        news_features: Optional[pd.DataFrame] = None,
     ) -> Optional[str]:
         """
         Trigger model retraining.
@@ -641,8 +668,7 @@ class AutoRetrainingManager:
         try:
             # Train new model
             result = self.training_pipeline.train(
-                price_data=price_data,
-                news_features=news_features
+                price_data=price_data, news_features=news_features
             )
 
             # Create model record
@@ -653,10 +679,10 @@ class AutoRetrainingManager:
                 status=ModelStatus.CANDIDATE,
                 training_data_hash=result.data_hash,
                 training_samples=0,  # Would come from training
-                feature_names=[],    # Would come from training
+                feature_names=[],  # Would come from training
                 training_metrics=result.train_metrics,
                 validation_metrics=result.val_metrics,
-                config={}
+                config={},
             )
 
             # Register model
@@ -678,7 +704,7 @@ class AutoRetrainingManager:
                     category="system",
                     title="Model Retrained",
                     message=f"New model {result.model_id} trained. Accuracy: {result.val_metrics.get('accuracy', 0):.3f}",
-                    priority="medium"
+                    priority="medium",
                 )
 
             logger.info(f"New model trained: {result.model_id}")
@@ -689,8 +715,7 @@ class AutoRetrainingManager:
 
             if self.notification_manager:
                 await self.notification_manager.notify_system_error(
-                    error_type="Retraining Failed",
-                    error_message=str(e)
+                    error_type="Retraining Failed", error_message=str(e)
                 )
 
             return None
@@ -700,7 +725,7 @@ class AutoRetrainingManager:
         model_id: str,
         validation_data: pd.DataFrame,
         min_accuracy: float = 0.52,
-        min_profit_factor: float = 1.1
+        min_profit_factor: float = 1.1,
     ) -> bool:
         """
         Validate a candidate model and promote if good enough.
@@ -727,7 +752,9 @@ class AutoRetrainingManager:
         # Check thresholds
         accuracy = val_metrics.get("accuracy", 0)
         if accuracy < min_accuracy:
-            logger.warning(f"Model {model_id} failed accuracy check: {accuracy:.3f} < {min_accuracy}")
+            logger.warning(
+                f"Model {model_id} failed accuracy check: {accuracy:.3f} < {min_accuracy}"
+            )
             self.registry.update_status(model_id, ModelStatus.FAILED)
             return False
 
@@ -736,7 +763,9 @@ class AutoRetrainingManager:
         if current_model:
             current_accuracy = current_model.validation_metrics.get("accuracy", 0)
             if accuracy < current_accuracy * 0.95:  # Must be within 5% of current
-                logger.warning(f"Model {model_id} not better than current: {accuracy:.3f} vs {current_accuracy:.3f}")
+                logger.warning(
+                    f"Model {model_id} not better than current: {accuracy:.3f} vs {current_accuracy:.3f}"
+                )
                 self.registry.update_status(model_id, ModelStatus.FAILED)
                 return False
 
@@ -752,19 +781,21 @@ class AutoRetrainingManager:
                     logger.error(f"Promotion callback error: {e}")
 
             # Update monitor baseline
-            self.monitor.set_baseline(ModelMetrics(
-                timestamp=datetime.now(),
-                model_id=model_id,
-                accuracy=accuracy,
-                precision=val_metrics.get("precision", accuracy)
-            ))
+            self.monitor.set_baseline(
+                ModelMetrics(
+                    timestamp=datetime.now(),
+                    model_id=model_id,
+                    accuracy=accuracy,
+                    precision=val_metrics.get("precision", accuracy),
+                )
+            )
 
             if self.notification_manager:
                 await self.notification_manager.notify(
                     category="system",
                     title="Model Promoted",
                     message=f"Model {model_id} promoted to production",
-                    priority="high"
+                    priority="high",
                 )
 
         return success
@@ -779,7 +810,7 @@ class AutoRetrainingManager:
                     category="system",
                     title="Model Rollback",
                     message=f"Rolled back to model {previous_id}: {reason}",
-                    priority="high"
+                    priority="high",
                 )
 
         return previous_id
@@ -789,7 +820,7 @@ class AutoRetrainingManager:
         prediction: int,
         actual: int,
         features: Optional[np.ndarray] = None,
-        trade_pnl: Optional[float] = None
+        trade_pnl: Optional[float] = None,
     ):
         """Record a prediction for monitoring."""
         self.monitor.record_prediction(prediction, actual, features, trade_pnl)
@@ -797,10 +828,7 @@ class AutoRetrainingManager:
         # Also record to registry if we have a production model
         if self.registry.production_model_id:
             metrics = self.monitor.get_current_metrics()
-            self.registry.record_production_metrics(
-                self.registry.production_model_id,
-                metrics
-            )
+            self.registry.record_production_metrics(self.registry.production_model_id, metrics)
 
     def on_degradation(self, callback: Callable):
         """Register callback for degradation events."""
@@ -822,29 +850,28 @@ class AutoRetrainingManager:
             "running": self._running,
             "production_model_id": self.registry.production_model_id,
             "production_model_status": production_model.status.value if production_model else None,
-            "last_retrain_time": self._last_retrain_time.isoformat() if self._last_retrain_time else None,
+            "last_retrain_time": self._last_retrain_time.isoformat()
+            if self._last_retrain_time
+            else None,
             "pending_triggers": len(self._pending_triggers),
             "total_models": len(self.registry.models),
-            "current_metrics": self.monitor.get_current_metrics().to_dict()
+            "current_metrics": self.monitor.get_current_metrics().to_dict(),
         }
 
 
 def create_auto_retraining_manager(
-    training_pipeline,
-    notification_manager=None,
-    **kwargs
+    training_pipeline, notification_manager=None, **kwargs
 ) -> AutoRetrainingManager:
     """Factory function to create auto-retraining manager."""
     return AutoRetrainingManager(
-        training_pipeline=training_pipeline,
-        notification_manager=notification_manager,
-        **kwargs
+        training_pipeline=training_pipeline, notification_manager=notification_manager, **kwargs
     )
 
 
 if __name__ == "__main__":
     # Demo
     import asyncio
+
     logging.basicConfig(level=logging.INFO)
 
     async def demo():
@@ -872,19 +899,19 @@ if __name__ == "__main__":
         # Create manager
         manager = AutoRetrainingManager(
             training_pipeline=MockPipeline(),
-            check_interval_minutes=1  # Fast for demo
+            check_interval_minutes=1,  # Fast for demo
         )
 
         # Set baseline
-        manager.monitor.set_baseline(ModelMetrics(
-            timestamp=datetime.now(),
-            model_id="baseline",
-            accuracy=0.55,
-            precision=0.54
-        ))
+        manager.monitor.set_baseline(
+            ModelMetrics(
+                timestamp=datetime.now(), model_id="baseline", accuracy=0.55, precision=0.54
+            )
+        )
 
         # Simulate predictions
         import random
+
         for i in range(100):
             pred = random.randint(0, 1)
             actual = random.randint(0, 1)

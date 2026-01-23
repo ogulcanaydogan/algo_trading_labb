@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class SimulationConfig:
     """Configuration for Monte Carlo simulation."""
+
     num_simulations: int = 1000
     time_horizon_days: int = 252  # 1 year
     confidence_levels: List[float] = field(default_factory=lambda: [0.95, 0.99])
@@ -32,6 +33,7 @@ class SimulationConfig:
 @dataclass
 class SimulationPath:
     """A single simulation path."""
+
     final_value: float
     max_value: float
     min_value: float
@@ -43,6 +45,7 @@ class SimulationPath:
 @dataclass
 class MonteCarloResult:
     """Complete Monte Carlo simulation results."""
+
     config: SimulationConfig
     paths: List[SimulationPath]
     statistics: Dict[str, float]
@@ -176,7 +179,7 @@ class MonteCarloSimulator:
             min_value=round(min_value, 2),
             max_drawdown=round(max_drawdown * 100, 2),
             total_return=round(total_return, 2),
-            values=[round(v, 2) for v in values[::max(1, len(values) // 100)]],  # Downsample
+            values=[round(v, 2) for v in values[:: max(1, len(values) // 100)]],  # Downsample
         )
 
     def _simple_bootstrap(self) -> np.ndarray:
@@ -192,9 +195,9 @@ class MonteCarloSimulator:
         simulated = []
         for _ in range(n_blocks):
             start_idx = np.random.randint(0, len(self._returns) - block_size + 1)
-            simulated.extend(self._returns[start_idx:start_idx + block_size])
+            simulated.extend(self._returns[start_idx : start_idx + block_size])
 
-        return np.array(simulated[:self.config.time_horizon_days])
+        return np.array(simulated[: self.config.time_horizon_days])
 
     def _calculate_statistics(
         self, final_values: np.ndarray, max_drawdowns: np.ndarray
@@ -207,8 +210,12 @@ class MonteCarloSimulator:
             "std_final_value": round(float(np.std(final_values)), 2),
             "min_final_value": round(float(np.min(final_values)), 2),
             "max_final_value": round(float(np.max(final_values)), 2),
-            "mean_return_pct": round((float(np.mean(final_values)) / self.config.initial_capital - 1) * 100, 2),
-            "median_return_pct": round((float(np.median(final_values)) / self.config.initial_capital - 1) * 100, 2),
+            "mean_return_pct": round(
+                (float(np.mean(final_values)) / self.config.initial_capital - 1) * 100, 2
+            ),
+            "median_return_pct": round(
+                (float(np.median(final_values)) / self.config.initial_capital - 1) * 100, 2
+            ),
             "mean_max_drawdown_pct": round(float(np.mean(max_drawdowns)), 2),
             "median_max_drawdown_pct": round(float(np.median(max_drawdowns)), 2),
             "worst_max_drawdown_pct": round(float(np.max(max_drawdowns)), 2),
@@ -216,9 +223,7 @@ class MonteCarloSimulator:
             "kurtosis": 0.0 if value_std < 1e-8 else round(float(stats.kurtosis(final_values)), 2),
         }
 
-    def _calculate_percentile_curves(
-        self, paths: List[SimulationPath]
-    ) -> Dict[int, List[float]]:
+    def _calculate_percentile_curves(self, paths: List[SimulationPath]) -> Dict[int, List[float]]:
         """Calculate percentile curves across all simulations."""
         # Align all paths to same length
         max_len = max(len(p.values) for p in paths)
@@ -309,14 +314,14 @@ class MonteCarloSimulator:
             },
             "statistics": result.statistics,
             "risk": {
-                "var_estimates": {f"{int(k*100)}%": v for k, v in result.var_estimates.items()},
+                "var_estimates": {f"{int(k * 100)}%": v for k, v in result.var_estimates.items()},
                 "confidence_intervals": {
-                    f"{int(k*100)}%": {"lower": v[0], "upper": v[1]}
+                    f"{int(k * 100)}%": {"lower": v[0], "upper": v[1]}
                     for k, v in result.confidence_intervals.items()
                 },
             },
             "targets": {
-                f"{int((k-1)*100)}%_gain": round(v * 100, 1)
+                f"{int((k - 1) * 100)}%_gain": round(v * 100, 1)
                 for k, v in result.probability_of_target.items()
             },
             "percentile_curves": result.percentile_curves,

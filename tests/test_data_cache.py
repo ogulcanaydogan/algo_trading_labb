@@ -159,10 +159,12 @@ class TestSQLiteCache:
 
     def test_dataframe_serialization(self, cache):
         """Test DataFrame serialization."""
-        df = pd.DataFrame({
-            "a": [1, 2, 3],
-            "b": [4, 5, 6],
-        })
+        df = pd.DataFrame(
+            {
+                "a": [1, 2, 3],
+                "b": [4, 5, 6],
+            }
+        )
         cache.set("df_key", df, ttl=60)
 
         result = cache.get("df_key")

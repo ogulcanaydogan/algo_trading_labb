@@ -137,8 +137,7 @@ class PerformanceMetrics:
     total_slippage: float = 0.0
 
     def to_dict(self) -> Dict[str, Any]:
-        return {k: round(v, 4) if isinstance(v, float) else v
-                for k, v in self.__dict__.items()}
+        return {k: round(v, 4) if isinstance(v, float) else v for k, v in self.__dict__.items()}
 
 
 @dataclass
@@ -182,8 +181,10 @@ class BacktestReport:
         print("\n" + "=" * 70)
         print(f"BACKTEST REPORT - {self.symbol} ({self.strategy_name})")
         print("=" * 70)
-        print(f"Period: {self.start_date.date() if self.start_date else 'N/A'} to "
-              f"{self.end_date.date() if self.end_date else 'N/A'}")
+        print(
+            f"Period: {self.start_date.date() if self.start_date else 'N/A'} to "
+            f"{self.end_date.date() if self.end_date else 'N/A'}"
+        )
         print("-" * 70)
 
         print("\n📊 PERFORMANCE SUMMARY")
@@ -218,7 +219,9 @@ class BacktestReport:
         if self.monte_carlo_results:
             print("\n🎲 MONTE CARLO ANALYSIS")
             mc = self.monte_carlo_results
-            print(f"  95% CI for Final Equity: ${mc.get('equity_lower', 0):,.2f} - ${mc.get('equity_upper', 0):,.2f}")
+            print(
+                f"  95% CI for Final Equity: ${mc.get('equity_lower', 0):,.2f} - ${mc.get('equity_upper', 0):,.2f}"
+            )
             print(f"  Probability of Profit: {mc.get('prob_profit', 0):.1%}")
             print(f"  Expected Drawdown (95%): {mc.get('expected_max_dd_95', 0):.2f}%")
 
@@ -269,7 +272,9 @@ class MetricsCalculator:
         metrics.total_trades = len(trades)
         metrics.winning_trades = sum(1 for t in trades if t.pnl > 0)
         metrics.losing_trades = metrics.total_trades - metrics.winning_trades
-        metrics.win_rate = metrics.winning_trades / metrics.total_trades if metrics.total_trades > 0 else 0
+        metrics.win_rate = (
+            metrics.winning_trades / metrics.total_trades if metrics.total_trades > 0 else 0
+        )
 
         # Profit metrics
         wins = [t.pnl for t in trades if t.pnl > 0]
@@ -281,10 +286,16 @@ class MetricsCalculator:
 
         metrics.avg_win = np.mean(wins) if wins else 0
         metrics.avg_loss = np.mean(losses) if losses else 0
-        metrics.avg_win_loss_ratio = metrics.avg_win / metrics.avg_loss if metrics.avg_loss > 0 else 0
+        metrics.avg_win_loss_ratio = (
+            metrics.avg_win / metrics.avg_loss if metrics.avg_loss > 0 else 0
+        )
 
-        metrics.profit_factor = metrics.gross_profit / metrics.gross_loss if metrics.gross_loss > 0 else float('inf')
-        metrics.expectancy = (metrics.win_rate * metrics.avg_win) - ((1 - metrics.win_rate) * metrics.avg_loss)
+        metrics.profit_factor = (
+            metrics.gross_profit / metrics.gross_loss if metrics.gross_loss > 0 else float("inf")
+        )
+        metrics.expectancy = (metrics.win_rate * metrics.avg_win) - (
+            (1 - metrics.win_rate) * metrics.avg_loss
+        )
 
         # Return metrics
         final_balance = equity_curve[-1]["balance"] if equity_curve else initial_balance
@@ -302,19 +313,25 @@ class MetricsCalculator:
                 days = (end_time - start_time).days
                 if days > 0:
                     years = days / 365
-                    metrics.annualized_return_pct = ((final_balance / initial_balance) ** (1 / years) - 1) * 100
+                    metrics.annualized_return_pct = (
+                        (final_balance / initial_balance) ** (1 / years) - 1
+                    ) * 100
 
         # Daily returns for risk metrics
         daily_returns = MetricsCalculator._calculate_daily_returns(equity_curve)
 
         if daily_returns:
             # Volatility
-            metrics.annualized_volatility = np.std(daily_returns) * np.sqrt(trading_days_per_year) * 100
+            metrics.annualized_volatility = (
+                np.std(daily_returns) * np.sqrt(trading_days_per_year) * 100
+            )
 
             # Downside deviation
             negative_returns = [r for r in daily_returns if r < 0]
             if negative_returns:
-                metrics.downside_deviation = np.std(negative_returns) * np.sqrt(trading_days_per_year) * 100
+                metrics.downside_deviation = (
+                    np.std(negative_returns) * np.sqrt(trading_days_per_year) * 100
+                )
 
             # Risk-adjusted returns (assuming risk-free rate = 0)
             mean_daily = np.mean(daily_returns)
@@ -324,7 +341,7 @@ class MetricsCalculator:
                 metrics.sharpe_ratio = (mean_daily / std_daily) * np.sqrt(trading_days_per_year)
 
             if metrics.downside_deviation > 0:
-                metrics.sortino_ratio = (metrics.annualized_return_pct / metrics.downside_deviation)
+                metrics.sortino_ratio = metrics.annualized_return_pct / metrics.downside_deviation
 
         # Drawdown metrics
         dd_info = MetricsCalculator._calculate_drawdown(equity_curve)
@@ -340,8 +357,9 @@ class MetricsCalculator:
         metrics.avg_trade_duration_hours = np.mean(durations) if durations else 0
 
         # Consecutive wins/losses
-        metrics.max_consecutive_wins, metrics.max_consecutive_losses = \
+        metrics.max_consecutive_wins, metrics.max_consecutive_losses = (
             MetricsCalculator._calculate_streaks(trades)
+        )
 
         # Costs
         metrics.total_commission = sum(t.commission for t in trades)
@@ -359,8 +377,8 @@ class MetricsCalculator:
         returns = []
 
         for i in range(1, len(balances)):
-            if balances[i-1] > 0:
-                daily_return = (balances[i] / balances[i-1]) - 1
+            if balances[i - 1] > 0:
+                daily_return = (balances[i] / balances[i - 1]) - 1
                 returns.append(daily_return)
 
         return returns
@@ -524,15 +542,21 @@ class WalkForwardAnalyzer:
             backtester = AdvancedBacktester(config, signal_generator)
             report = backtester.run(test_data)
 
-            results.append({
-                "period_start": test_data.index[0].isoformat() if hasattr(test_data.index[0], 'isoformat') else str(test_data.index[0]),
-                "period_end": test_data.index[-1].isoformat() if hasattr(test_data.index[-1], 'isoformat') else str(test_data.index[-1]),
-                "total_return_pct": report.metrics.total_return_pct,
-                "sharpe_ratio": report.metrics.sharpe_ratio,
-                "max_drawdown_pct": report.metrics.max_drawdown_pct,
-                "total_trades": report.metrics.total_trades,
-                "win_rate": report.metrics.win_rate,
-            })
+            results.append(
+                {
+                    "period_start": test_data.index[0].isoformat()
+                    if hasattr(test_data.index[0], "isoformat")
+                    else str(test_data.index[0]),
+                    "period_end": test_data.index[-1].isoformat()
+                    if hasattr(test_data.index[-1], "isoformat")
+                    else str(test_data.index[-1]),
+                    "total_return_pct": report.metrics.total_return_pct,
+                    "sharpe_ratio": report.metrics.sharpe_ratio,
+                    "max_drawdown_pct": report.metrics.max_drawdown_pct,
+                    "total_trades": report.metrics.total_trades,
+                    "win_rate": report.metrics.win_rate,
+                }
+            )
 
             start_idx += test_window
 
@@ -587,7 +611,7 @@ class AdvancedBacktester:
                 continue
 
             current_bar = data.iloc[i]
-            current_data = data.iloc[:i+1]
+            current_data = data.iloc[: i + 1]
 
             # Check existing position
             if self.position:
@@ -602,12 +626,16 @@ class AdvancedBacktester:
 
             # Update equity curve
             unrealized_pnl = self._calculate_unrealized_pnl(current_bar)
-            self.equity_curve.append({
-                "timestamp": current_bar.name if hasattr(current_bar.name, 'isoformat') else str(current_bar.name),
-                "balance": self.balance + unrealized_pnl,
-                "price": float(current_bar["close"]),
-                "position": self.position.direction if self.position else "FLAT",
-            })
+            self.equity_curve.append(
+                {
+                    "timestamp": current_bar.name
+                    if hasattr(current_bar.name, "isoformat")
+                    else str(current_bar.name),
+                    "balance": self.balance + unrealized_pnl,
+                    "price": float(current_bar["close"]),
+                    "position": self.position.direction if self.position else "FLAT",
+                }
+            )
 
             # Check max drawdown limit
             if self._check_max_drawdown():
@@ -635,8 +663,8 @@ class AdvancedBacktester:
             metrics=metrics,
             trades=self.trades,
             equity_curve=self.equity_curve,
-            start_date=data.index[0] if hasattr(data.index[0], 'date') else None,
-            end_date=data.index[-1] if hasattr(data.index[-1], 'date') else None,
+            start_date=data.index[0] if hasattr(data.index[0], "date") else None,
+            end_date=data.index[-1] if hasattr(data.index[-1], "date") else None,
             symbol=symbol,
             strategy_name=self.signal_generator.name if self.signal_generator else "Unknown",
         )
@@ -761,7 +789,7 @@ class AdvancedBacktester:
         pnl_pct = (pnl / (self.position.entry_price * self.position.size)) * 100
 
         # Calculate holding period
-        if hasattr(exit_time, 'timestamp') and hasattr(self.position.entry_time, 'timestamp'):
+        if hasattr(exit_time, "timestamp") and hasattr(self.position.entry_time, "timestamp"):
             holding_hours = (exit_time - self.position.entry_time).total_seconds() / 3600
         else:
             holding_hours = 0

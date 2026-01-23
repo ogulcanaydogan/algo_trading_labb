@@ -100,11 +100,14 @@ class TestCorrelationCircuitBreaker:
         """Create sample returns data."""
         np.random.seed(42)
         dates = pd.date_range(end=datetime.now(), periods=100, freq="1H")
-        return pd.DataFrame({
-            "BTC": np.random.randn(100) * 0.02,
-            "ETH": np.random.randn(100) * 0.025,
-            "SOL": np.random.randn(100) * 0.03,
-        }, index=dates)
+        return pd.DataFrame(
+            {
+                "BTC": np.random.randn(100) * 0.02,
+                "ETH": np.random.randn(100) * 0.025,
+                "SOL": np.random.randn(100) * 0.03,
+            },
+            index=dates,
+        )
 
     def test_initial_state(self, breaker):
         assert breaker.state == CircuitBreakerState.NORMAL
@@ -121,20 +124,24 @@ class TestCorrelationCircuitBreaker:
         base = np.random.randn(100) * 0.02
         uncorrelated = np.random.randn(100) * 0.02  # Independent
 
-        returns = pd.DataFrame({
-            "BTC": base,
-            "ETH": uncorrelated,
-        })
+        returns = pd.DataFrame(
+            {
+                "BTC": base,
+                "ETH": uncorrelated,
+            }
+        )
 
         # First update establishes baseline
         breaker.update_correlations(returns)
 
         # Create moderately correlated data (spike but not extreme)
         correlated = base * 0.5 + np.random.randn(100) * 0.015
-        spike_returns = pd.DataFrame({
-            "BTC": base,
-            "ETH": correlated,
-        })
+        spike_returns = pd.DataFrame(
+            {
+                "BTC": base,
+                "ETH": correlated,
+            }
+        )
 
         status = breaker.update_correlations(spike_returns)
         # Circuit breaker should detect the spike

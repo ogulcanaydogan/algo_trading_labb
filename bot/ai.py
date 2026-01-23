@@ -98,15 +98,9 @@ class RuleBasedAIPredictor:
         recommended_action = max(probabilities, key=probabilities.get)
         confidence = float(probabilities[recommended_action])
         direction = (
-            1
-            if recommended_action == "LONG"
-            else -1
-            if recommended_action == "SHORT"
-            else 0
+            1 if recommended_action == "LONG" else -1 if recommended_action == "SHORT" else 0
         )
-        expected_move_pct = float(
-            (ema_gap_pct * 0.65 + momentum_pct * 0.9) * 100.0 * direction
-        )
+        expected_move_pct = float((ema_gap_pct * 0.65 + momentum_pct * 0.9) * 100.0 * direction)
 
         summary = self._summarise_prediction(
             recommended_action,
@@ -138,9 +132,7 @@ class RuleBasedAIPredictor:
             macro_confidence=round(macro_confidence, 4),
             macro_summary=(macro.summary if macro else ""),
             macro_drivers=(macro.drivers if macro else []),
-            macro_interest_rate_outlook=(
-                macro.interest_rate_outlook if macro else None
-            ),
+            macro_interest_rate_outlook=(macro.interest_rate_outlook if macro else None),
             macro_political_risk=(macro.political_risk if macro else None),
         )
 
@@ -175,22 +167,19 @@ class RuleBasedAIPredictor:
             drivers.append(f"recent price momentum of {momentum_pct * 100:.2f}%")
         if abs(rsi_distance_from_mid) > 0.05:
             bias = "bullish" if rsi_distance_from_mid > 0 else "bearish"
-            drivers.append(f"RSI {bias} bias of {abs(rsi_distance_from_mid) * 100:.1f}% from midline")
+            drivers.append(
+                f"RSI {bias} bias of {abs(rsi_distance_from_mid) * 100:.1f}% from midline"
+            )
 
         driver_text = ", driven by " + ", ".join(drivers) if drivers else ""
         if action == "FLAT":
             expectation = "Model sees limited edge and prefers to stay flat"
         else:
-            expectation = (
-                f"Model leans {direction} with {confidence * 100:.1f}% confidence"
-            )
+            expectation = f"Model leans {direction} with {confidence * 100:.1f}% confidence"
         macro_text = ""
         if macro and macro.summary:
             macro_text = f" Macro overlay: {macro.summary}"
-        return (
-            f"{expectation}{driver_text}. Expected move: {expected_move_pct:.2f}%"
-            f"{macro_text}"
-        )
+        return f"{expectation}{driver_text}. Expected move: {expected_move_pct:.2f}%{macro_text}"
 
 
 class QuestionAnsweringEngine:
@@ -355,17 +344,11 @@ class QuestionAnsweringEngine:
         if macro_insight:
             parts.append(macro_insight.summary)
             if macro_insight.drivers:
-                parts.append(
-                    "Key drivers: " + ", ".join(macro_insight.drivers[:3]) + "."
-                )
+                parts.append("Key drivers: " + ", ".join(macro_insight.drivers[:3]) + ".")
             if macro_insight.interest_rate_outlook:
-                parts.append(
-                    f"Interest-rate outlook: {macro_insight.interest_rate_outlook}."
-                )
+                parts.append(f"Interest-rate outlook: {macro_insight.interest_rate_outlook}.")
             if macro_insight.political_risk:
-                parts.append(
-                    f"Political watch: {macro_insight.political_risk}."
-                )
+                parts.append(f"Political watch: {macro_insight.political_risk}.")
         else:
             parts.append(
                 "No macro catalysts registered yet. Upload a macro_events.json file or set MACRO_EVENTS_PATH for richer context."

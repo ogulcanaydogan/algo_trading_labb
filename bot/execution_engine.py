@@ -37,6 +37,7 @@ from bot.unified_execution import (
 @dataclass
 class ExecutionConfig:
     """Configuration for execution engine."""
+
     mode: ExecutionMode = ExecutionMode.PAPER
     paper_mode: bool = True  # Backward compatibility alias
     fee_structure: Optional[FeeStructure] = None

@@ -17,6 +17,7 @@ from .policy_network import TradingPolicyNetwork, PolicyConfig
 try:
     import torch
     import torch.nn.functional as F
+
     HAS_TORCH = True
 except ImportError:
     HAS_TORCH = False
@@ -27,6 +28,7 @@ except ImportError:
 @dataclass
 class HybridConfig:
     """Configuration for hybrid ML+RL agent."""
+
     ml_weight: float = 0.6  # Weight for ML predictions
     rl_weight: float = 0.4  # Weight for RL policy
     adaptive_weights: bool = True  # Adjust weights based on performance
@@ -108,9 +110,7 @@ class HybridMLRLAgent:
         confidence = combined_probs[action_idx]
 
         # Check for high-confidence overrides
-        action_idx, confidence = self._check_overrides(
-            action_idx, confidence, ml_probs, rl_probs
-        )
+        action_idx, confidence = self._check_overrides(action_idx, confidence, ml_probs, rl_probs)
 
         # Convert to action string
         action = ["SHORT", "FLAT", "LONG"][action_idx]
@@ -170,10 +170,7 @@ class HybridMLRLAgent:
     ) -> np.ndarray:
         """Combine ML and RL predictions."""
         # Weighted average
-        combined = (
-            self._ml_weight * ml_probs +
-            self._rl_weight * rl_probs
-        )
+        combined = self._ml_weight * ml_probs + self._rl_weight * rl_probs
 
         # Normalize
         combined = combined / combined.sum()
@@ -264,17 +261,19 @@ class HybridMLRLAgent:
         self.update_weights(ml_correct, rl_correct)
 
         # Track for analysis
-        self._recent_predictions.append({
-            "prediction": prediction,
-            "actual": actual_outcome,
-            "ml_prediction": ml_prediction,
-            "rl_prediction": rl_prediction,
-            "hybrid_correct": outcome_correct,
-            "ml_correct": ml_correct,
-            "rl_correct": rl_correct,
-            "ml_weight": self._ml_weight,
-            "rl_weight": self._rl_weight,
-        })
+        self._recent_predictions.append(
+            {
+                "prediction": prediction,
+                "actual": actual_outcome,
+                "ml_prediction": ml_prediction,
+                "rl_prediction": rl_prediction,
+                "hybrid_correct": outcome_correct,
+                "ml_correct": ml_correct,
+                "rl_correct": rl_correct,
+                "ml_weight": self._ml_weight,
+                "rl_weight": self._rl_weight,
+            }
+        )
 
         # Keep only recent history
         if len(self._recent_predictions) > 1000:
@@ -321,6 +320,7 @@ class HybridMLRLAgent:
     def save(self, path: str) -> None:
         """Save agent state."""
         import json
+
         state = {
             "config": {
                 "ml_weight": self.config.ml_weight,
@@ -344,6 +344,7 @@ class HybridMLRLAgent:
     ) -> "HybridMLRLAgent":
         """Load agent from file."""
         import json
+
         with open(path, "r") as f:
             state = json.load(f)
 

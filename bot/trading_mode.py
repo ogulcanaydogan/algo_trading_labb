@@ -267,20 +267,14 @@ class TransitionRequirements:
 
         if state.days_in_mode < self.min_days_in_current_mode:
             failures.append(
-                f"Need {self.min_days_in_current_mode} days in mode, "
-                f"have {state.days_in_mode}"
+                f"Need {self.min_days_in_current_mode} days in mode, have {state.days_in_mode}"
             )
 
         if state.total_trades < self.min_trades:
-            failures.append(
-                f"Need {self.min_trades} trades, have {state.total_trades}"
-            )
+            failures.append(f"Need {self.min_trades} trades, have {state.total_trades}")
 
         if state.win_rate < self.min_win_rate:
-            failures.append(
-                f"Need {self.min_win_rate:.0%} win rate, "
-                f"have {state.win_rate:.0%}"
-            )
+            failures.append(f"Need {self.min_win_rate:.0%} win rate, have {state.win_rate:.0%}")
 
         if state.max_drawdown_pct > self.max_drawdown_pct:
             failures.append(
@@ -290,8 +284,7 @@ class TransitionRequirements:
 
         if state.profit_factor < self.min_profit_factor:
             failures.append(
-                f"Need profit factor {self.min_profit_factor}, "
-                f"have {state.profit_factor:.2f}"
+                f"Need profit factor {self.min_profit_factor}, have {state.profit_factor:.2f}"
             )
 
         return len(failures) == 0, failures

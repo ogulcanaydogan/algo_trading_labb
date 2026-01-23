@@ -3,6 +3,7 @@
 Tests data consistency between API responses and dashboard expectations.
 Verifies that indicators and numbers match across all endpoints.
 """
+
 from __future__ import annotations
 
 import json
@@ -125,10 +126,22 @@ class TestUnifiedStatusEndpoint:
         data = response.json()
 
         required_fields = [
-            "mode", "status", "running", "balance", "initial_capital",
-            "portfolio_value", "total_pnl", "total_pnl_pct", "total_trades",
-            "win_rate", "max_drawdown", "open_positions", "positions",
-            "safety", "daily_trades", "daily_pnl"
+            "mode",
+            "status",
+            "running",
+            "balance",
+            "initial_capital",
+            "portfolio_value",
+            "total_pnl",
+            "total_pnl_pct",
+            "total_trades",
+            "win_rate",
+            "max_drawdown",
+            "open_positions",
+            "positions",
+            "safety",
+            "daily_trades",
+            "daily_pnl",
         ]
 
         for field in required_fields:
@@ -351,10 +364,12 @@ class TestDataConsistency:
         # Create 100 trades with 55 wins to match state
         for i in range(100):
             pnl = 100 if i < 55 else -50
-            trades.append({
-                "pnl": pnl,
-                "entry_time": datetime.now().isoformat(),
-            })
+            trades.append(
+                {
+                    "pnl": pnl,
+                    "entry_time": datetime.now().isoformat(),
+                }
+            )
         (state_dir / "trades.json").write_text(json.dumps(trades), encoding="utf-8")
         monkeypatch.chdir(mock_state_file)
 
@@ -380,17 +395,12 @@ class TestDataConsistency:
         positions_data = positions_response.json()
 
         # Count active positions in positions endpoint
-        active_count = len([
-            p for p in positions_data["positions"]
-            if p.get("quantity", 0) > 0
-        ])
+        active_count = len([p for p in positions_data["positions"] if p.get("quantity", 0) > 0])
 
         # Should match status open_positions (only active ones)
         assert status_data["open_positions"] == active_count
 
-    def test_portfolio_value_matches_detailed_positions(
-        self, client, mock_state_file, monkeypatch
-    ):
+    def test_portfolio_value_matches_detailed_positions(self, client, mock_state_file, monkeypatch):
         """Test that portfolio_value calculation is consistent."""
         monkeypatch.chdir(mock_state_file)
 
@@ -435,9 +445,24 @@ class TestExecutionTelemetry:
         log_dir.mkdir(parents=True, exist_ok=True)
 
         logs = [
-            {"symbol": "BTC/USDT", "slippage_pct": 0.1, "execution_time_ms": 100, "commission": 1.0},
-            {"symbol": "BTC/USDT", "slippage_pct": 0.2, "execution_time_ms": 150, "commission": 1.5},
-            {"symbol": "ETH/USDT", "slippage_pct": 0.15, "execution_time_ms": 120, "commission": 0.8},
+            {
+                "symbol": "BTC/USDT",
+                "slippage_pct": 0.1,
+                "execution_time_ms": 100,
+                "commission": 1.0,
+            },
+            {
+                "symbol": "BTC/USDT",
+                "slippage_pct": 0.2,
+                "execution_time_ms": 150,
+                "commission": 1.5,
+            },
+            {
+                "symbol": "ETH/USDT",
+                "slippage_pct": 0.15,
+                "execution_time_ms": 120,
+                "commission": 0.8,
+            },
         ]
         (log_dir / "execution_log.json").write_text(json.dumps(logs), encoding="utf-8")
         monkeypatch.chdir(tmp_path)
@@ -539,7 +564,11 @@ class TestModeHistoryEndpoint:
         """Test that mode history endpoint returns 200."""
         state_dir = mock_state_file / "data" / "unified_trading"
         history = [
-            {"from_mode": "paper_live_data", "to_mode": "testnet", "timestamp": "2024-01-15T10:00:00Z"},
+            {
+                "from_mode": "paper_live_data",
+                "to_mode": "testnet",
+                "timestamp": "2024-01-15T10:00:00Z",
+            },
         ]
         (state_dir / "mode_history.json").write_text(json.dumps(history), encoding="utf-8")
         monkeypatch.chdir(mock_state_file)
@@ -577,7 +606,12 @@ class TestPnlChartEndpoint:
         state_dir = mock_state_file / "data" / "unified_trading"
         trades = [
             {"pnl": 100, "pnl_pct": 1.0, "timestamp": "2024-01-15T10:00:00Z", "symbol": "BTC/USDT"},
-            {"pnl": -50, "pnl_pct": -0.5, "timestamp": "2024-01-15T11:00:00Z", "symbol": "ETH/USDT"},
+            {
+                "pnl": -50,
+                "pnl_pct": -0.5,
+                "timestamp": "2024-01-15T11:00:00Z",
+                "symbol": "ETH/USDT",
+            },
         ]
         (state_dir / "trades.json").write_text(json.dumps(trades), encoding="utf-8")
         monkeypatch.chdir(mock_state_file)
@@ -635,8 +669,7 @@ class TestClosePositionEndpoint:
         monkeypatch.chdir(tmp_path)
 
         response = client.post(
-            "/api/unified/close-position",
-            json={"symbol": "BTC/USDT", "reason": "test"}
+            "/api/unified/close-position", json={"symbol": "BTC/USDT", "reason": "test"}
         )
         assert response.status_code == 404
 
@@ -647,8 +680,7 @@ class TestClosePositionEndpoint:
         monkeypatch.chdir(mock_state_file)
 
         response = client.post(
-            "/api/unified/close-position",
-            json={"symbol": "DOGE/USDT", "reason": "test"}
+            "/api/unified/close-position", json={"symbol": "DOGE/USDT", "reason": "test"}
         )
         assert response.status_code == 404
 
@@ -665,8 +697,7 @@ class TestEmergencyStopEndpoint:
             mock_controller.return_value = mock_instance
 
             response = client.post(
-                "/api/unified/emergency-stop",
-                json={"reason": "Manual emergency stop"}
+                "/api/unified/emergency-stop", json={"reason": "Manual emergency stop"}
             )
             # Should work or error depending on module availability
             assert response.status_code in [200, 500]
@@ -684,10 +715,7 @@ class TestClearStopEndpoint:
             mock_instance.clear_emergency_stop.return_value = True
             mock_controller.return_value = mock_instance
 
-            response = client.post(
-                "/api/unified/clear-stop",
-                json={"approver": "admin"}
-            )
+            response = client.post("/api/unified/clear-stop", json={"approver": "admin"})
             assert response.status_code in [200, 500]
 
 

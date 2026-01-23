@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TradingState:
     """Current trading state for RL agent."""
+
     price: float
     position: float  # -1 to 1 (short to long)
     unrealized_pnl: float
@@ -40,6 +41,7 @@ class TradingState:
 @dataclass
 class TradingAction:
     """Action taken by RL agent."""
+
     position_delta: float  # Change in position (-1 to 1)
     stop_loss: float
     take_profit: float
@@ -49,6 +51,7 @@ class TradingAction:
 @dataclass
 class Experience:
     """Single experience for replay buffer."""
+
     state: np.ndarray
     action: int
     reward: float
@@ -68,7 +71,9 @@ class ReplayBuffer:
 
     def sample(self, batch_size: int) -> List[Experience]:
         """Sample random batch from buffer."""
-        indices = np.random.choice(len(self.buffer), min(batch_size, len(self.buffer)), replace=False)
+        indices = np.random.choice(
+            len(self.buffer), min(batch_size, len(self.buffer)), replace=False
+        )
         return [self.buffer[i] for i in indices]
 
     def __len__(self):
@@ -91,7 +96,7 @@ class DQNAgent:
         gamma: float = 0.99,
         epsilon: float = 1.0,
         epsilon_decay: float = 0.995,
-        epsilon_min: float = 0.01
+        epsilon_min: float = 0.01,
     ):
         self.state_dim = state_dim
         self.action_dim = action_dim
@@ -124,11 +129,11 @@ class DQNAgent:
 
         # Action mapping
         self.action_map = {
-            0: ('STRONG_BUY', 1.0),
-            1: ('BUY', 0.5),
-            2: ('HOLD', 0.0),
-            3: ('SELL', -0.5),
-            4: ('STRONG_SELL', -1.0)
+            0: ("STRONG_BUY", 1.0),
+            1: ("BUY", 0.5),
+            2: ("HOLD", 0.0),
+            3: ("SELL", -0.5),
+            4: ("STRONG_SELL", -1.0),
         }
 
     def _relu(self, x: np.ndarray) -> np.ndarray:
@@ -266,7 +271,7 @@ class TradingEnvironment:
         features: pd.DataFrame,
         initial_capital: float = 10000,
         transaction_cost: float = 0.001,
-        max_position: float = 1.0
+        max_position: float = 1.0,
     ):
         self.prices = prices.values
         self.features = features.values
@@ -294,16 +299,21 @@ class TradingEnvironment:
         tech_features = self.features[self.current_step]
 
         # Position features
-        position_features = np.array([
-            self.position,
-            self.portfolio_value / self.initial_capital - 1,  # Return
-            (self.portfolio_value - self.max_portfolio_value) / self.max_portfolio_value,  # Drawdown
-        ])
+        position_features = np.array(
+            [
+                self.position,
+                self.portfolio_value / self.initial_capital - 1,  # Return
+                (self.portfolio_value - self.max_portfolio_value)
+                / self.max_portfolio_value,  # Drawdown
+            ]
+        )
 
         # Price features
         current_price = self.prices[self.current_step]
         if self.current_step > 0:
-            price_change = (current_price - self.prices[self.current_step - 1]) / self.prices[self.current_step - 1]
+            price_change = (current_price - self.prices[self.current_step - 1]) / self.prices[
+                self.current_step - 1
+            ]
         else:
             price_change = 0
 
@@ -338,13 +348,15 @@ class TradingEnvironment:
             if position_change > 0 and self.entry_price == 0:
                 self.entry_price = current_price
 
-            self.trades.append({
-                'step': self.current_step,
-                'action': action,
-                'position_change': position_change,
-                'price': current_price,
-                'cost': cost
-            })
+            self.trades.append(
+                {
+                    "step": self.current_step,
+                    "action": action,
+                    "position_change": position_change,
+                    "price": current_price,
+                    "cost": cost,
+                }
+            )
 
         # Move to next step
         self.current_step += 1
@@ -364,10 +376,10 @@ class TradingEnvironment:
             reward = (self.portfolio_value - self.initial_capital) / self.initial_capital
 
         info = {
-            'portfolio_value': self.portfolio_value,
-            'position': self.position,
-            'cash': self.cash,
-            'trades': len(self.trades)
+            "portfolio_value": self.portfolio_value,
+            "position": self.position,
+            "cash": self.cash,
+            "trades": len(self.trades),
         }
 
         next_state = self._get_state() if not done else np.zeros(self.features.shape[1] + 4)
@@ -390,7 +402,7 @@ class TradingEnvironment:
         directional_reward = self.position * price_change * 100
 
         # Transaction penalty (encourage holding)
-        if len(self.trades) > 0 and self.trades[-1]['step'] == self.current_step - 1:
+        if len(self.trades) > 0 and self.trades[-1]["step"] == self.current_step - 1:
             transaction_penalty = -0.01
         else:
             transaction_penalty = 0
@@ -409,16 +421,11 @@ class RLTradingOptimizer:
     Main RL optimizer that trains and uses DQN agent.
     """
 
-    def __init__(
-        self,
-        state_dim: int = 20,
-        learning_rate: float = 0.001,
-        gamma: float = 0.99
-    ):
+    def __init__(self, state_dim: int = 20, learning_rate: float = 0.001, gamma: float = 0.99):
         self.agent = DQNAgent(
             state_dim=state_dim + 4,  # Features + position info
             learning_rate=learning_rate,
-            gamma=gamma
+            gamma=gamma,
         )
         self.trained = False
         self.training_history = []
@@ -428,7 +435,7 @@ class RLTradingOptimizer:
         prices: pd.Series,
         features: pd.DataFrame,
         episodes: int = 100,
-        initial_capital: float = 10000
+        initial_capital: float = 10000,
     ) -> Dict[str, List]:
         """
         Train the RL agent.
@@ -445,7 +452,7 @@ class RLTradingOptimizer:
         logger.info(f"Training RL agent for {episodes} episodes...")
 
         env = TradingEnvironment(prices, features, initial_capital)
-        history = {'episode': [], 'reward': [], 'portfolio_value': [], 'trades': []}
+        history = {"episode": [], "reward": [], "portfolio_value": [], "trades": []}
 
         for episode in range(episodes):
             state = env.reset()
@@ -462,16 +469,18 @@ class RLTradingOptimizer:
                 state = next_state
                 total_reward += reward
 
-            history['episode'].append(episode)
-            history['reward'].append(total_reward)
-            history['portfolio_value'].append(info['portfolio_value'])
-            history['trades'].append(info['trades'])
+            history["episode"].append(episode)
+            history["reward"].append(total_reward)
+            history["portfolio_value"].append(info["portfolio_value"])
+            history["trades"].append(info["trades"])
 
             if (episode + 1) % 10 == 0:
-                avg_reward = np.mean(history['reward'][-10:])
-                avg_pv = np.mean(history['portfolio_value'][-10:])
-                logger.info(f"Episode {episode + 1}: Avg Reward={avg_reward:.2f}, "
-                          f"Avg PV=${avg_pv:.2f}, Epsilon={self.agent.epsilon:.3f}")
+                avg_reward = np.mean(history["reward"][-10:])
+                avg_pv = np.mean(history["portfolio_value"][-10:])
+                logger.info(
+                    f"Episode {episode + 1}: Avg Reward={avg_reward:.2f}, "
+                    f"Avg PV=${avg_pv:.2f}, Epsilon={self.agent.epsilon:.3f}"
+                )
 
         self.trained = True
         self.training_history = history
@@ -497,10 +506,7 @@ class RLTradingOptimizer:
         return action_name, position_delta, confidence
 
     def evaluate(
-        self,
-        prices: pd.Series,
-        features: pd.DataFrame,
-        initial_capital: float = 10000
+        self, prices: pd.Series, features: pd.DataFrame, initial_capital: float = 10000
     ) -> Dict[str, Any]:
         """
         Evaluate trained agent on test data.
@@ -519,19 +525,19 @@ class RLTradingOptimizer:
             next_state, _, done, info = env.step(action)
             state = next_state
 
-        final_value = info['portfolio_value']
+        final_value = info["portfolio_value"]
         total_return = (final_value - initial_capital) / initial_capital
 
         # Calculate metrics
         buy_hold_return = (prices.iloc[-1] - prices.iloc[0]) / prices.iloc[0]
 
         return {
-            'final_portfolio_value': final_value,
-            'total_return': total_return,
-            'buy_hold_return': buy_hold_return,
-            'outperformance': total_return - buy_hold_return,
-            'num_trades': info['trades'],
-            'action_distribution': dict(pd.Series(actions_taken).value_counts())
+            "final_portfolio_value": final_value,
+            "total_return": total_return,
+            "buy_hold_return": buy_hold_return,
+            "outperformance": total_return - buy_hold_return,
+            "num_trades": info["trades"],
+            "action_distribution": dict(pd.Series(actions_taken).value_counts()),
         }
 
 

@@ -162,8 +162,7 @@ class TestHistogram:
         samples = h._collect()
         # Each label set gets full bucket + sum + count
         api_count = next(
-            s for s in samples
-            if "_count" in s.name and s.labels.get("endpoint") == "/api"
+            s for s in samples if "_count" in s.name and s.labels.get("endpoint") == "/api"
         )
         assert api_count.value == 2
 
@@ -301,10 +300,7 @@ class TestTradingMetrics:
         trade_pnl.set(100.50, symbol="ETH/USDT")
         samples = trade_pnl._collect()
 
-        eth_sample = next(
-            (s for s in samples if s.labels.get("symbol") == "ETH/USDT"),
-            None
-        )
+        eth_sample = next((s for s in samples if s.labels.get("symbol") == "ETH/USDT"), None)
         assert eth_sample is not None
         assert eth_sample.value == 100.50
 

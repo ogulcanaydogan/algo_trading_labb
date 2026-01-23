@@ -118,7 +118,7 @@ class TrailingStopManager:
         self.stops[symbol] = state
         logger.info(
             f"Trailing stop added: {symbol} entry=${entry_price:.2f}, "
-            f"stop=${initial_stop:.2f} ({self.config.initial_stop_pct*100:.1f}%)"
+            f"stop=${initial_stop:.2f} ({self.config.initial_stop_pct * 100:.1f}%)"
         )
 
         return state
@@ -191,21 +191,20 @@ class TrailingStopManager:
             else:
                 new_stop = state.entry_price * (1 - self.config.breakeven_buffer_pct)
 
-            if (side == "long" and new_stop > state.current_stop) or \
-               (side == "short" and new_stop < state.current_stop):
+            if (side == "long" and new_stop > state.current_stop) or (
+                side == "short" and new_stop < state.current_stop
+            ):
                 state.current_stop = new_stop
                 state.is_at_breakeven = True
                 result["action"] = "moved_to_breakeven"
                 result["new_stop"] = new_stop
-                logger.info(
-                    f"Moved to breakeven: {symbol} stop=${new_stop:.2f}"
-                )
+                logger.info(f"Moved to breakeven: {symbol} stop=${new_stop:.2f}")
 
         # Trailing stop activation check
         if not state.is_activated and profit_pct >= self.config.activation_profit_pct:
             state.is_activated = True
             result["trailing_activated"] = True
-            logger.info(f"Trailing stop activated: {symbol} at {profit_pct*100:.1f}% profit")
+            logger.info(f"Trailing stop activated: {symbol} at {profit_pct * 100:.1f}% profit")
 
         # Trail the stop if activated
         if state.is_activated:
@@ -215,8 +214,10 @@ class TrailingStopManager:
                 # Apply step trailing if enabled
                 if self.config.use_step_trailing:
                     step = state.entry_price * self.config.step_size_pct
-                    new_trail_stop = state.current_stop + \
-                        int((new_trail_stop - state.current_stop) / step) * step
+                    new_trail_stop = (
+                        state.current_stop
+                        + int((new_trail_stop - state.current_stop) / step) * step
+                    )
 
                 if new_trail_stop > state.current_stop:
                     old_stop = state.current_stop
@@ -225,16 +226,17 @@ class TrailingStopManager:
                     result["old_stop"] = old_stop
                     result["new_stop"] = new_trail_stop
                     logger.info(
-                        f"Trailing stop raised: {symbol} "
-                        f"${old_stop:.2f} -> ${new_trail_stop:.2f}"
+                        f"Trailing stop raised: {symbol} ${old_stop:.2f} -> ${new_trail_stop:.2f}"
                     )
             else:
                 new_trail_stop = state.highest_price * (1 + self.config.trailing_pct)
 
                 if self.config.use_step_trailing:
                     step = state.entry_price * self.config.step_size_pct
-                    new_trail_stop = state.current_stop - \
-                        int((state.current_stop - new_trail_stop) / step) * step
+                    new_trail_stop = (
+                        state.current_stop
+                        - int((state.current_stop - new_trail_stop) / step) * step
+                    )
 
                 if new_trail_stop < state.current_stop:
                     old_stop = state.current_stop
@@ -264,16 +266,12 @@ class TrailingStopManager:
 
     def get_all_stops(self) -> Dict[str, Dict[str, Any]]:
         """Get all trailing stop states."""
-        return {
-            symbol: state.to_dict()
-            for symbol, state in self.stops.items()
-        }
+        return {symbol: state.to_dict() for symbol, state in self.stops.items()}
 
     def load_state(self, state_dict: Dict[str, Dict[str, Any]]) -> None:
         """Load trailing stop states from dict."""
         self.stops = {
-            symbol: TrailingStopState.from_dict(data)
-            for symbol, data in state_dict.items()
+            symbol: TrailingStopState.from_dict(data) for symbol, data in state_dict.items()
         }
         logger.info(f"Loaded {len(self.stops)} trailing stop states")
 

@@ -18,11 +18,13 @@ logger = logging.getLogger(__name__)
 
 class ValidationError(Exception):
     """Raised when order validation fails."""
+
     pass
 
 
 class ValidationResult(Enum):
     """Result of order validation."""
+
     VALID = "valid"
     INVALID_QUANTITY = "invalid_quantity"
     INVALID_PRICE = "invalid_price"
@@ -36,6 +38,7 @@ class ValidationResult(Enum):
 @dataclass
 class OrderValidation:
     """Container for order validation result."""
+
     is_valid: bool
     result: ValidationResult
     message: str
@@ -50,6 +53,7 @@ class OrderValidation:
 @dataclass
 class OrderLimits:
     """Limits for order validation."""
+
     min_quantity: float = 0.0001
     max_quantity: float = 1_000_000
     min_price: float = 0.0001
@@ -193,9 +197,7 @@ class OrderValidator:
 
         # Check position limit
         if order_value > self.limits.max_position_value:
-            warnings.append(
-                f"Large order: ${order_value:,.2f} exceeds typical position size"
-            )
+            warnings.append(f"Large order: ${order_value:,.2f} exceeds typical position size")
 
         # Check single order percentage of portfolio
         if portfolio_value > 0:
@@ -259,17 +261,19 @@ class OrderValidator:
         """Track order for duplicate detection."""
         from datetime import datetime
 
-        self._recent_orders.append({
-            "symbol": symbol,
-            "action": action,
-            "quantity": quantity,
-            "price": price,
-            "timestamp": datetime.now(),
-        })
+        self._recent_orders.append(
+            {
+                "symbol": symbol,
+                "action": action,
+                "quantity": quantity,
+                "price": price,
+                "timestamp": datetime.now(),
+            }
+        )
 
         # Keep only recent orders
         if len(self._recent_orders) > self._max_recent:
-            self._recent_orders = self._recent_orders[-self._max_recent:]
+            self._recent_orders = self._recent_orders[-self._max_recent :]
 
     def validate_batch(
         self,

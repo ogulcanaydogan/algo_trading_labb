@@ -24,6 +24,7 @@ try:
     import torch.nn as nn
     import torch.optim as optim
     import torch.nn.functional as F
+
     HAS_TORCH = True
 except ImportError:
     HAS_TORCH = False
@@ -37,6 +38,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class A2CConfig:
     """Configuration for A2C training."""
+
     # Learning parameters
     learning_rate: float = 7e-4
     gamma: float = 0.99  # Discount factor
@@ -47,7 +49,7 @@ class A2CConfig:
 
     # Training schedule
     n_steps: int = 5  # Steps per update (A2C uses smaller values than PPO)
-    n_envs: int = 1   # Number of parallel environments
+    n_envs: int = 1  # Number of parallel environments
     total_timesteps: int = 100000
 
     # Optimization
@@ -66,6 +68,7 @@ class A2CConfig:
 @dataclass
 class A2CResults:
     """Results from A2C training."""
+
     episode_rewards: List[float] = field(default_factory=list)
     episode_lengths: List[int] = field(default_factory=list)
     policy_losses: List[float] = field(default_factory=list)
@@ -113,7 +116,7 @@ class A2CTrainer:
         policy: TradingPolicyNetwork,
         env: TradingEnvironment,
         config: Optional[A2CConfig] = None,
-        save_dir: str = "data/a2c_training"
+        save_dir: str = "data/a2c_training",
     ):
         """
         Initialize A2C trainer.
@@ -137,13 +140,10 @@ class A2CTrainer:
                     policy.parameters(),
                     lr=self.config.learning_rate,
                     alpha=self.config.rms_alpha,
-                    eps=self.config.rms_epsilon
+                    eps=self.config.rms_epsilon,
                 )
             else:
-                self.optimizer = optim.Adam(
-                    policy.parameters(),
-                    lr=self.config.learning_rate
-                )
+                self.optimizer = optim.Adam(policy.parameters(), lr=self.config.learning_rate)
         else:
             self.optimizer = None
 
@@ -165,6 +165,7 @@ class A2CTrainer:
             A2CResults with training metrics
         """
         import time
+
         start_time = time.time()
 
         total_timesteps = total_timesteps or self.config.total_timesteps
@@ -183,15 +184,13 @@ class A2CTrainer:
                 frac = 1.0 - update / n_updates
                 lr = self.config.learning_rate * frac
                 for param_group in self.optimizer.param_groups:
-                    param_group['lr'] = lr
+                    param_group["lr"] = lr
 
             # Collect n_steps of experience
             states, actions, rewards, dones, values, log_probs, state = self._collect_rollout(state)
 
             # Compute returns and advantages
-            returns, advantages = self._compute_returns(
-                rewards, values, dones, state
-            )
+            returns, advantages = self._compute_returns(rewards, values, dones, state)
 
             # Update policy
             policy_loss, value_loss, entropy_loss = self._update(
@@ -227,8 +226,7 @@ class A2CTrainer:
         return self.results
 
     def _collect_rollout(
-        self,
-        state: np.ndarray
+        self, state: np.ndarray
     ) -> Tuple[List, List, List, List, List, List, np.ndarray]:
         """
         Collect n_steps of experience.
@@ -280,11 +278,7 @@ class A2CTrainer:
         return states, actions, rewards, dones, values, log_probs, state
 
     def _compute_returns(
-        self,
-        rewards: List[float],
-        values: List[float],
-        dones: List[bool],
-        last_state: np.ndarray
+        self, rewards: List[float], values: List[float], dones: List[bool], last_state: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Compute returns and GAE advantages.
@@ -324,7 +318,9 @@ class A2CTrainer:
                 next_non_terminal = 1.0 - dones[t]
 
             delta = rewards[t] + self.config.gamma * next_value * next_non_terminal - values[t]
-            advantages[t] = last_gae = delta + self.config.gamma * self.config.gae_lambda * next_non_terminal * last_gae
+            advantages[t] = last_gae = (
+                delta + self.config.gamma * self.config.gae_lambda * next_non_terminal * last_gae
+            )
 
         returns = advantages + values
 
@@ -336,7 +332,7 @@ class A2CTrainer:
         actions: List[int],
         returns: np.ndarray,
         advantages: np.ndarray,
-        old_log_probs: List[float]
+        old_log_probs: List[float],
     ) -> Tuple[float, float, float]:
         """
         Update policy with collected experience.
@@ -370,9 +366,9 @@ class A2CTrainer:
 
         # Total loss
         loss = (
-            policy_loss +
-            self.config.value_loss_coef * value_loss +
-            self.config.entropy_coef * entropy_loss
+            policy_loss
+            + self.config.value_loss_coef * value_loss
+            + self.config.entropy_coef * entropy_loss
         )
 
         # Optimize
@@ -381,10 +377,7 @@ class A2CTrainer:
 
         # Gradient clipping
         if self.config.max_grad_norm > 0:
-            nn.utils.clip_grad_norm_(
-                self.policy.parameters(),
-                self.config.max_grad_norm
-            )
+            nn.utils.clip_grad_norm_(self.policy.parameters(), self.config.max_grad_norm)
 
         self.optimizer.step()
 
@@ -440,7 +433,7 @@ class MultiEnvA2CTrainer:
         env_fn: callable,
         n_envs: int = 4,
         config: Optional[A2CConfig] = None,
-        save_dir: str = "data/a2c_multi_training"
+        save_dir: str = "data/a2c_multi_training",
     ):
         """
         Initialize multi-env A2C trainer.
@@ -469,13 +462,10 @@ class MultiEnvA2CTrainer:
                     policy.parameters(),
                     lr=self.config.learning_rate,
                     alpha=self.config.rms_alpha,
-                    eps=self.config.rms_epsilon
+                    eps=self.config.rms_epsilon,
                 )
             else:
-                self.optimizer = optim.Adam(
-                    policy.parameters(),
-                    lr=self.config.learning_rate
-                )
+                self.optimizer = optim.Adam(policy.parameters(), lr=self.config.learning_rate)
         else:
             self.optimizer = None
 
@@ -484,14 +474,14 @@ class MultiEnvA2CTrainer:
     def train(self, total_timesteps: Optional[int] = None) -> A2CResults:
         """Train with multiple environments."""
         import time
+
         start_time = time.time()
 
         total_timesteps = total_timesteps or self.config.total_timesteps
         n_updates = total_timesteps // (self.config.n_steps * self.n_envs)
 
         logger.info(
-            f"Starting multi-env A2C training: "
-            f"{total_timesteps} timesteps, {self.n_envs} envs"
+            f"Starting multi-env A2C training: {total_timesteps} timesteps, {self.n_envs} envs"
         )
 
         # Initialize states
@@ -505,7 +495,7 @@ class MultiEnvA2CTrainer:
                 frac = 1.0 - update / n_updates
                 lr = self.config.learning_rate * frac
                 for param_group in self.optimizer.param_groups:
-                    param_group['lr'] = lr
+                    param_group["lr"] = lr
 
             # Collect rollout from all envs
             all_states = []
@@ -585,7 +575,11 @@ class MultiEnvA2CTrainer:
 
             # Log progress
             if (update + 1) % 100 == 0:
-                avg_reward = np.mean(self.results.episode_rewards[-100:]) if self.results.episode_rewards else 0
+                avg_reward = (
+                    np.mean(self.results.episode_rewards[-100:])
+                    if self.results.episode_rewards
+                    else 0
+                )
                 logger.info(
                     f"Update {update + 1}/{n_updates}: "
                     f"Avg Reward={avg_reward:.2f}, "
@@ -603,7 +597,7 @@ class MultiEnvA2CTrainer:
         all_rewards: List[List[float]],
         all_values: List[List[float]],
         all_dones: List[List[bool]],
-        last_states: List[np.ndarray]
+        last_states: List[np.ndarray],
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Compute returns for all environments."""
         all_rewards = np.array(all_rewards)  # (n_steps, n_envs)
@@ -636,24 +630,20 @@ class MultiEnvA2CTrainer:
                     next_non_terminal = 1.0 - all_dones[t, env_idx]
 
                 delta = (
-                    all_rewards[t, env_idx] +
-                    self.config.gamma * next_value * next_non_terminal -
-                    all_values[t, env_idx]
+                    all_rewards[t, env_idx]
+                    + self.config.gamma * next_value * next_non_terminal
+                    - all_values[t, env_idx]
                 )
                 advantages[t, env_idx] = last_gae = (
-                    delta +
-                    self.config.gamma * self.config.gae_lambda * next_non_terminal * last_gae
+                    delta
+                    + self.config.gamma * self.config.gae_lambda * next_non_terminal * last_gae
                 )
 
         returns = advantages + all_values
         return returns, advantages
 
     def _update(
-        self,
-        states: np.ndarray,
-        actions: np.ndarray,
-        returns: np.ndarray,
-        advantages: np.ndarray
+        self, states: np.ndarray, actions: np.ndarray, returns: np.ndarray, advantages: np.ndarray
     ) -> Tuple[float, float, float]:
         """Update policy."""
         if not HAS_TORCH:
@@ -676,19 +666,16 @@ class MultiEnvA2CTrainer:
         entropy_loss = -entropy.mean()
 
         loss = (
-            policy_loss +
-            self.config.value_loss_coef * value_loss +
-            self.config.entropy_coef * entropy_loss
+            policy_loss
+            + self.config.value_loss_coef * value_loss
+            + self.config.entropy_coef * entropy_loss
         )
 
         self.optimizer.zero_grad()
         loss.backward()
 
         if self.config.max_grad_norm > 0:
-            nn.utils.clip_grad_norm_(
-                self.policy.parameters(),
-                self.config.max_grad_norm
-            )
+            nn.utils.clip_grad_norm_(self.policy.parameters(), self.config.max_grad_norm)
 
         self.optimizer.step()
 

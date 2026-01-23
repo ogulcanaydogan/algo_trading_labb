@@ -27,6 +27,7 @@ from urllib.error import URLError
 
 class AlertLevel(Enum):
     """Alert severity levels."""
+
     INFO = "info"
     WARNING = "warning"
     ALERT = "alert"
@@ -35,6 +36,7 @@ class AlertLevel(Enum):
 
 class AlertType(Enum):
     """Types of trading alerts."""
+
     SYSTEM = "system"
     TRADE_OPENED = "trade_opened"
     TRADE_CLOSED = "trade_closed"
@@ -54,6 +56,7 @@ class AlertType(Enum):
 @dataclass
 class Alert:
     """A trading alert."""
+
     alert_type: AlertType
     level: AlertLevel
     title: str
@@ -134,10 +137,12 @@ class TelegramChannel(NotificationChannel):
             # Strip markdown markers
             message = message.replace("**", "").replace("_", "")
 
-            data = json.dumps({
-                "chat_id": self.chat_id,
-                "text": message,
-            }).encode("utf-8")
+            data = json.dumps(
+                {
+                    "chat_id": self.chat_id,
+                    "text": message,
+                }
+            ).encode("utf-8")
 
             req = Request(url, data=data, headers={"Content-Type": "application/json"})
             with urlopen(req, timeout=10) as response:
@@ -164,10 +169,10 @@ class DiscordChannel(NotificationChannel):
         try:
             # Discord embed colors
             color_map = {
-                AlertLevel.INFO: 3447003,      # Blue
+                AlertLevel.INFO: 3447003,  # Blue
                 AlertLevel.WARNING: 16776960,  # Yellow
-                AlertLevel.ALERT: 15105570,    # Orange
-                AlertLevel.CRITICAL: 15158332, # Red
+                AlertLevel.ALERT: 15105570,  # Orange
+                AlertLevel.CRITICAL: 15158332,  # Red
             }
 
             embed = {
@@ -185,11 +190,7 @@ class DiscordChannel(NotificationChannel):
                 ]
 
             data = json.dumps({"embeds": [embed]}).encode("utf-8")
-            req = Request(
-                self.webhook_url,
-                data=data,
-                headers={"Content-Type": "application/json"}
-            )
+            req = Request(self.webhook_url, data=data, headers={"Content-Type": "application/json"})
 
             with urlopen(req, timeout=10) as response:
                 return response.status in [200, 204]
@@ -220,13 +221,15 @@ class EmailChannel(NotificationChannel):
         self.to_emails = to_emails or [e.strip() for e in to_env.split(",") if e.strip()]
 
     def is_configured(self) -> bool:
-        return all([
-            self.smtp_server,
-            self.smtp_user,
-            self.smtp_password,
-            self.from_email,
-            self.to_emails,
-        ])
+        return all(
+            [
+                self.smtp_server,
+                self.smtp_user,
+                self.smtp_password,
+                self.from_email,
+                self.to_emails,
+            ]
+        )
 
     def send(self, alert: Alert) -> bool:
         if not self.is_configured():
@@ -286,9 +289,9 @@ class EmailChannel(NotificationChannel):
             </div>
             <div style="border: 1px solid #ddd; border-top: none; padding: 20px; border-radius: 0 0 5px 5px;">
                 <p>{alert.message}</p>
-                {f'<table style="width: 100%; border-collapse: collapse; margin-top: 15px;">{data_rows}</table>' if data_rows else ''}
+                {f'<table style="width: 100%; border-collapse: collapse; margin-top: 15px;">{data_rows}</table>' if data_rows else ""}
                 <p style="color: #888; font-size: 12px; margin-top: 20px;">
-                    {alert.timestamp.strftime('%Y-%m-%d %H:%M:%S')}
+                    {alert.timestamp.strftime("%Y-%m-%d %H:%M:%S")}
                 </p>
             </div>
         </body>
@@ -311,11 +314,7 @@ class WebhookChannel(NotificationChannel):
 
         try:
             data = json.dumps(alert.to_dict()).encode("utf-8")
-            req = Request(
-                self.webhook_url,
-                data=data,
-                headers={"Content-Type": "application/json"}
-            )
+            req = Request(self.webhook_url, data=data, headers={"Content-Type": "application/json"})
 
             with urlopen(req, timeout=10) as response:
                 return response.status in [200, 201, 204]

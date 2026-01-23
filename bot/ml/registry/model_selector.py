@@ -30,32 +30,38 @@ class ModelPriority:
     """Priority configuration for model selection by regime."""
 
     # Regime -> ordered list of preferred model types
-    CRYPTO_PRIORITIES: Dict[str, List[str]] = field(default_factory=lambda: {
-        "volatile": ["transformer", "lstm", "xgboost"],
-        "strong_bull": ["xgboost", "random_forest", "lstm"],
-        "bull": ["xgboost", "random_forest", "lstm"],
-        "sideways": ["lstm", "xgboost", "transformer"],
-        "bear": ["lstm", "xgboost", "transformer"],
-        "strong_bear": ["transformer", "lstm", "xgboost"],
-    })
+    CRYPTO_PRIORITIES: Dict[str, List[str]] = field(
+        default_factory=lambda: {
+            "volatile": ["transformer", "lstm", "xgboost"],
+            "strong_bull": ["xgboost", "random_forest", "lstm"],
+            "bull": ["xgboost", "random_forest", "lstm"],
+            "sideways": ["lstm", "xgboost", "transformer"],
+            "bear": ["lstm", "xgboost", "transformer"],
+            "strong_bear": ["transformer", "lstm", "xgboost"],
+        }
+    )
 
-    COMMODITY_PRIORITIES: Dict[str, List[str]] = field(default_factory=lambda: {
-        "volatile": ["lstm", "xgboost", "transformer"],
-        "strong_bull": ["random_forest", "xgboost", "lstm"],
-        "bull": ["random_forest", "xgboost", "lstm"],
-        "sideways": ["xgboost", "lstm", "random_forest"],
-        "bear": ["lstm", "xgboost", "random_forest"],
-        "strong_bear": ["lstm", "xgboost", "transformer"],
-    })
+    COMMODITY_PRIORITIES: Dict[str, List[str]] = field(
+        default_factory=lambda: {
+            "volatile": ["lstm", "xgboost", "transformer"],
+            "strong_bull": ["random_forest", "xgboost", "lstm"],
+            "bull": ["random_forest", "xgboost", "lstm"],
+            "sideways": ["xgboost", "lstm", "random_forest"],
+            "bear": ["lstm", "xgboost", "random_forest"],
+            "strong_bear": ["lstm", "xgboost", "transformer"],
+        }
+    )
 
-    STOCK_PRIORITIES: Dict[str, List[str]] = field(default_factory=lambda: {
-        "volatile": ["transformer", "lstm", "xgboost"],
-        "strong_bull": ["xgboost", "transformer", "random_forest"],
-        "bull": ["xgboost", "random_forest", "lstm"],
-        "sideways": ["random_forest", "xgboost", "lstm"],
-        "bear": ["lstm", "transformer", "xgboost"],
-        "strong_bear": ["transformer", "lstm", "xgboost"],
-    })
+    STOCK_PRIORITIES: Dict[str, List[str]] = field(
+        default_factory=lambda: {
+            "volatile": ["transformer", "lstm", "xgboost"],
+            "strong_bull": ["xgboost", "transformer", "random_forest"],
+            "bull": ["xgboost", "random_forest", "lstm"],
+            "sideways": ["random_forest", "xgboost", "lstm"],
+            "bear": ["lstm", "transformer", "xgboost"],
+            "strong_bear": ["transformer", "lstm", "xgboost"],
+        }
+    )
 
     def get_priorities(self, market_type: str, regime: str) -> List[str]:
         """Get model priorities for given market and regime."""
@@ -351,15 +357,15 @@ class ModelSelector:
         if total_weight == 0:
             total_weight = 1
 
-        avg_prob_long = sum(
-            p.probability_long * w for p, w in zip(predictions, model_weights)
-        ) / total_weight
-        avg_prob_short = sum(
-            p.probability_short * w for p, w in zip(predictions, model_weights)
-        ) / total_weight
-        avg_prob_flat = sum(
-            p.probability_flat * w for p, w in zip(predictions, model_weights)
-        ) / total_weight
+        avg_prob_long = (
+            sum(p.probability_long * w for p, w in zip(predictions, model_weights)) / total_weight
+        )
+        avg_prob_short = (
+            sum(p.probability_short * w for p, w in zip(predictions, model_weights)) / total_weight
+        )
+        avg_prob_flat = (
+            sum(p.probability_flat * w for p, w in zip(predictions, model_weights)) / total_weight
+        )
 
         # Normalize
         total_prob = avg_prob_long + avg_prob_short + avg_prob_flat

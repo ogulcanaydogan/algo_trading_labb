@@ -20,9 +20,10 @@ logger = logging.getLogger(__name__)
 
 class TimeframeWeight(Enum):
     """Weights for different timeframes."""
-    SHORT = 0.2   # 15m, 1h - fast signals
+
+    SHORT = 0.2  # 15m, 1h - fast signals
     MEDIUM = 0.3  # 4h - primary
-    LONG = 0.5    # 1d - trend confirmation
+    LONG = 0.5  # 1d - trend confirmation
 
 
 @dataclass
@@ -33,11 +34,13 @@ class MultiTimeframeConfig:
     timeframes: List[str] = field(default_factory=lambda: ["1h", "4h", "1d"])
 
     # Weights for each timeframe (must sum to 1.0)
-    weights: Dict[str, float] = field(default_factory=lambda: {
-        "1h": 0.2,
-        "4h": 0.3,
-        "1d": 0.5,
-    })
+    weights: Dict[str, float] = field(
+        default_factory=lambda: {
+            "1h": 0.2,
+            "4h": 0.3,
+            "1d": 0.5,
+        }
+    )
 
     # Minimum agreement threshold (0-1)
     min_agreement: float = 0.6
@@ -46,11 +49,13 @@ class MultiTimeframeConfig:
     require_long_term_confirmation: bool = True
 
     # Cache duration for each timeframe (seconds)
-    cache_duration: Dict[str, int] = field(default_factory=lambda: {
-        "1h": 300,    # 5 minutes
-        "4h": 900,    # 15 minutes
-        "1d": 3600,   # 1 hour
-    })
+    cache_duration: Dict[str, int] = field(
+        default_factory=lambda: {
+            "1h": 300,  # 5 minutes
+            "4h": 900,  # 15 minutes
+            "1d": 3600,  # 1 hour
+        }
+    )
 
 
 @dataclass
@@ -104,8 +109,7 @@ class MultiTimeframeDetector:
 
         # Create detector for each timeframe
         self.detectors: Dict[str, RegimeDetector] = {
-            tf: RegimeDetector(self.regime_config)
-            for tf in self.config.timeframes
+            tf: RegimeDetector(self.regime_config) for tf in self.config.timeframes
         }
 
         # Cache for timeframe results
@@ -163,9 +167,7 @@ class MultiTimeframeDetector:
             )
 
         # Calculate weighted regime scores
-        regime_scores = self._calculate_regime_scores(
-            timeframe_regimes, timeframe_confidences
-        )
+        regime_scores = self._calculate_regime_scores(timeframe_regimes, timeframe_confidences)
 
         # Determine final regime
         final_regime, final_confidence = self._determine_regime(
@@ -173,14 +175,12 @@ class MultiTimeframeDetector:
         )
 
         # Calculate agreement score
-        agreement_score = self._calculate_agreement(
-            timeframe_regimes, final_regime
-        )
+        agreement_score = self._calculate_agreement(timeframe_regimes, final_regime)
 
         # Find dominant timeframe
         dominant_tf = max(
             timeframe_confidences.keys(),
-            key=lambda tf: timeframe_confidences[tf] * self.config.weights.get(tf, 0.1)
+            key=lambda tf: timeframe_confidences[tf] * self.config.weights.get(tf, 0.1),
         )
 
         # Create state
@@ -322,14 +322,14 @@ class MultiTimeframeDetector:
         return {
             "current_state": self._current_state.to_dict(),
             "detector_stats": {
-                tf: detector.get_regime_stats()
-                for tf, detector in self.detectors.items()
+                tf: detector.get_regime_stats() for tf, detector in self.detectors.items()
             },
             "cache_status": {
                 tf: {
                     "cached": tf in self._cache,
                     "age_seconds": (datetime.now() - self._cache[tf][1]).total_seconds()
-                    if tf in self._cache else None,
+                    if tf in self._cache
+                    else None,
                 }
                 for tf in self.config.timeframes
             },

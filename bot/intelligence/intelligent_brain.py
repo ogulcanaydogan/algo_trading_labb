@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class BrainConfig:
     """Configuration for the Intelligent Trading Brain."""
+
     # LLM settings
     daily_budget: float = 5.0
     enable_claude: bool = True
@@ -70,6 +71,7 @@ class BrainConfig:
 @dataclass
 class EnrichedSignal:
     """A trading signal enriched with AI intelligence."""
+
     # Original signal
     symbol: str
     action: str
@@ -232,11 +234,15 @@ class IntelligentTradingBrain:
         )
         news_adjustment = 1.0 + (news_context.overall_sentiment * 0.15)
         news_adjustment = max(0.85, min(1.15, news_adjustment))
-        adjustments.append(f"News sentiment: {news_context.sentiment_label} ({news_context.overall_sentiment:+.2f})")
+        adjustments.append(
+            f"News sentiment: {news_context.sentiment_label} ({news_context.overall_sentiment:+.2f})"
+        )
 
         # 4. Apply regime-based threshold
         regime_threshold = regime_strategy.confidence_threshold
-        adjustments.append(f"Regime ({regime_state.regime.value}): threshold={regime_threshold:.0%}")
+        adjustments.append(
+            f"Regime ({regime_state.regime.value}): threshold={regime_threshold:.0%}"
+        )
 
         # 5. Calculate final confidence
         adjusted_confidence = confidence * pattern_adjustment * news_adjustment
@@ -247,9 +253,13 @@ class IntelligentTradingBrain:
 
         # Build reasoning
         if should_trade:
-            trade_reasoning = f"Signal approved: {adjusted_confidence:.0%} >= {regime_threshold:.0%} threshold"
+            trade_reasoning = (
+                f"Signal approved: {adjusted_confidence:.0%} >= {regime_threshold:.0%} threshold"
+            )
         else:
-            trade_reasoning = f"Signal rejected: {adjusted_confidence:.0%} < {regime_threshold:.0%} threshold"
+            trade_reasoning = (
+                f"Signal rejected: {adjusted_confidence:.0%} < {regime_threshold:.0%} threshold"
+            )
 
         # Check for regime-based reduction
         reduce_exposure, reduce_reason = self.regime_adapter.should_reduce_exposure()
@@ -448,9 +458,13 @@ class IntelligentTradingBrain:
 
         logger.info("=== Intelligent Trading Brain Status ===")
         logger.info(f"Current Regime: {regime.regime.value if regime else 'unknown'}")
-        logger.info(f"Pattern Memory: {summary['health']['pattern_memory']['total_patterns']} patterns")
+        logger.info(
+            f"Pattern Memory: {summary['health']['pattern_memory']['total_patterns']} patterns"
+        )
         logger.info(f"Recent Win Rate: {summary['recent_performance'].get('win_rate', 0):.1%}")
-        logger.info(f"LLM Router: Claude={summary['health']['llm_router']['claude_available']}, Ollama={summary['health']['llm_router']['ollama_available']}")
+        logger.info(
+            f"LLM Router: Claude={summary['health']['llm_router']['claude_available']}, Ollama={summary['health']['llm_router']['ollama_available']}"
+        )
         logger.info("=" * 40)
 
 

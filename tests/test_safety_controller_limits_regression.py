@@ -31,8 +31,7 @@ class TestSafetyControllerLimitsRegression:
         """CRITICAL: Default max position must be 5%, not 20%."""
         limits = SafetyLimits()
         assert limits.max_position_size_pct == 0.05, (
-            "REGRESSION: Position limit reverted to unsafe value! "
-            "Must be 5% (0.05) not 20% (0.20)"
+            "REGRESSION: Position limit reverted to unsafe value! Must be 5% (0.05) not 20% (0.20)"
         )
 
     def test_default_daily_loss_limit_is_2_percent(self):
@@ -102,8 +101,9 @@ class TestSafetyControllerLimitsRegression:
             symbol = "BTC/USDT"
             pnl = -150.0
             realized_pnl = -150.0
+
         controller.post_trade_check(MockResult())
-        
+
         order = MockOrder(quantity=0.001, price=50000)
         allowed, reason = controller.pre_trade_check(order)
         assert allowed, f"$150 loss (1.5%) should still allow trades: {reason}"
@@ -112,7 +112,7 @@ class TestSafetyControllerLimitsRegression:
         MockResult.pnl = -60.0
         MockResult.realized_pnl = -60.0
         controller.post_trade_check(MockResult())
-        
+
         allowed, reason = controller.pre_trade_check(order)
         assert not allowed, "$210 loss (2.1%) should block trading"
         assert "daily loss" in reason.lower()
@@ -135,6 +135,7 @@ class TestSafetyControllerLimitsRegression:
             symbol = "BTC/USDT"
             pnl = -2000.0
             realized_pnl = -2000.0
+
         controller.post_trade_check(MockResult())
         controller.update_balance(8000.0)
 
@@ -198,8 +199,9 @@ class TestSafetyControllerLimitsRegression:
             symbol = "BTC/USDT"
             pnl = -15.0
             realized_pnl = -15.0
+
         controller.post_trade_check(MockResult())
-        
+
         order_small = MockOrder(quantity=0.0001, price=50000)
         allowed, reason = controller.pre_trade_check(order_small)
         assert not allowed, "$15 loss should hit $10 daily loss cap"

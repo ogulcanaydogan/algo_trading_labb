@@ -1,4 +1,5 @@
 """Shared pytest fixtures for all tests."""
+
 from __future__ import annotations
 
 import json
@@ -61,13 +62,15 @@ def sample_ohlcv_df() -> pd.DataFrame:
     returns = np.random.randn(n_rows) * 0.01
     prices = base_price * np.exp(np.cumsum(returns))
 
-    data = pd.DataFrame({
-        "open": prices * (1 + np.random.randn(n_rows) * 0.001),
-        "high": prices * (1 + np.abs(np.random.randn(n_rows)) * 0.005),
-        "low": prices * (1 - np.abs(np.random.randn(n_rows)) * 0.005),
-        "close": prices,
-        "volume": np.random.randint(1000, 10000, n_rows),
-    })
+    data = pd.DataFrame(
+        {
+            "open": prices * (1 + np.random.randn(n_rows) * 0.001),
+            "high": prices * (1 + np.abs(np.random.randn(n_rows)) * 0.005),
+            "low": prices * (1 - np.abs(np.random.randn(n_rows)) * 0.005),
+            "close": prices,
+            "volume": np.random.randint(1000, 10000, n_rows),
+        }
+    )
 
     data.index = pd.date_range(start="2024-01-01", periods=n_rows, freq="1min", tz="UTC")
     return data
@@ -210,22 +213,28 @@ def mock_exchange():
     from unittest.mock import MagicMock, AsyncMock
 
     exchange = MagicMock()
-    exchange.create_order = AsyncMock(return_value={
-        "id": "mock_order_123",
-        "status": "filled",
-        "filled": 0.1,
-        "average": 50000.0,
-    })
+    exchange.create_order = AsyncMock(
+        return_value={
+            "id": "mock_order_123",
+            "status": "filled",
+            "filled": 0.1,
+            "average": 50000.0,
+        }
+    )
     exchange.cancel_order = AsyncMock(return_value={"status": "cancelled"})
-    exchange.fetch_balance = AsyncMock(return_value={
-        "USDT": {"free": 10000.0, "used": 0.0, "total": 10000.0},
-    })
-    exchange.fetch_ticker = AsyncMock(return_value={
-        "symbol": "BTC/USDT",
-        "last": 50000.0,
-        "bid": 49990.0,
-        "ask": 50010.0,
-    })
+    exchange.fetch_balance = AsyncMock(
+        return_value={
+            "USDT": {"free": 10000.0, "used": 0.0, "total": 10000.0},
+        }
+    )
+    exchange.fetch_ticker = AsyncMock(
+        return_value={
+            "symbol": "BTC/USDT",
+            "last": 50000.0,
+            "bid": 49990.0,
+            "ask": 50010.0,
+        }
+    )
 
     return exchange
 

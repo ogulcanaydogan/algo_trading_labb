@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional
 
 class MarketType(Enum):
     """Market type classification."""
+
     CRYPTO = "crypto"
     STOCK = "stock"
     COMMODITY = "commodity"
@@ -21,6 +22,7 @@ class MarketType(Enum):
 
 class DataSource(Enum):
     """Data provider source."""
+
     CCXT = "ccxt"
     POLYGON = "polygon"
     YAHOO = "yahoo"
@@ -38,14 +40,15 @@ class NormalizedOHLCV:
     This is the standard format used throughout the trading platform
     regardless of the original data source.
     """
-    symbol: str                    # Standard symbol format (e.g., "BTC/USDT", "AAPL", "XAU/USD")
+
+    symbol: str  # Standard symbol format (e.g., "BTC/USDT", "AAPL", "XAU/USD")
     timestamp: datetime
     open: float
     high: float
     low: float
     close: float
     volume: float
-    timeframe: str                 # "1m", "5m", "15m", "1h", "4h", "1d"
+    timeframe: str  # "1m", "5m", "15m", "1h", "4h", "1d"
     market_type: MarketType
     data_source: DataSource
     exchange: Optional[str] = None
@@ -53,7 +56,7 @@ class NormalizedOHLCV:
     adjusted_close: Optional[float] = None  # For stocks (split/dividend adjusted)
     vwap: Optional[float] = None
     trade_count: Optional[int] = None
-    latency_ms: Optional[float] = None      # Data latency for monitoring
+    latency_ms: Optional[float] = None  # Data latency for monitoring
     raw_data: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
@@ -82,15 +85,21 @@ class NormalizedOHLCV:
         """Create from dictionary."""
         return cls(
             symbol=data["symbol"],
-            timestamp=datetime.fromisoformat(data["timestamp"]) if isinstance(data["timestamp"], str) else data["timestamp"],
+            timestamp=datetime.fromisoformat(data["timestamp"])
+            if isinstance(data["timestamp"], str)
+            else data["timestamp"],
             open=float(data["open"]),
             high=float(data["high"]),
             low=float(data["low"]),
             close=float(data["close"]),
             volume=float(data["volume"]),
             timeframe=data["timeframe"],
-            market_type=MarketType(data["market_type"]) if isinstance(data["market_type"], str) else data["market_type"],
-            data_source=DataSource(data["data_source"]) if isinstance(data["data_source"], str) else data["data_source"],
+            market_type=MarketType(data["market_type"])
+            if isinstance(data["market_type"], str)
+            else data["market_type"],
+            data_source=DataSource(data["data_source"])
+            if isinstance(data["data_source"], str)
+            else data["data_source"],
             exchange=data.get("exchange"),
             currency=data.get("currency", "USD"),
             adjusted_close=data.get("adjusted_close"),
@@ -107,6 +116,7 @@ class NormalizedQuote:
 
     Used for current price snapshots and streaming updates.
     """
+
     symbol: str
     timestamp: datetime
     bid: float
@@ -163,12 +173,15 @@ class SymbolInfo:
     Maps standard symbols to provider-specific formats and stores
     trading metadata like hours, tick sizes, etc.
     """
-    standard_symbol: str              # Our internal format (e.g., "BTC/USDT", "AAPL", "XAU/USD")
+
+    standard_symbol: str  # Our internal format (e.g., "BTC/USDT", "AAPL", "XAU/USD")
     market_type: MarketType
-    exchange: str                     # "binance", "nyse", "nasdaq", "lse", "cme"
+    exchange: str  # "binance", "nyse", "nasdaq", "lse", "cme"
     currency: str
-    provider_mappings: Dict[str, str] # {provider_name: provider_symbol}
-    trading_hours: Optional[Dict[str, str]] = None  # {"open": "09:30", "close": "16:00", "timezone": "US/Eastern"}
+    provider_mappings: Dict[str, str]  # {provider_name: provider_symbol}
+    trading_hours: Optional[Dict[str, str]] = (
+        None  # {"open": "09:30", "close": "16:00", "timezone": "US/Eastern"}
+    )
     min_tick_size: Optional[float] = None
     lot_size: Optional[float] = None
     margin_requirement: Optional[float] = None
@@ -221,8 +234,12 @@ class SymbolInfo:
             close_hour, close_min = map(int, close_str.split(":"))
 
             # Create time objects for comparison
-            market_open = local_time.replace(hour=open_hour, minute=open_min, second=0, microsecond=0)
-            market_close = local_time.replace(hour=close_hour, minute=close_min, second=0, microsecond=0)
+            market_open = local_time.replace(
+                hour=open_hour, minute=open_min, second=0, microsecond=0
+            )
+            market_close = local_time.replace(
+                hour=close_hour, minute=close_min, second=0, microsecond=0
+            )
 
             return market_open <= local_time <= market_close
 
@@ -445,7 +462,4 @@ def get_symbol_info(symbol: str) -> Optional[SymbolInfo]:
 
 def get_symbols_by_market(market_type: MarketType) -> Dict[str, SymbolInfo]:
     """Get all symbols for a market type."""
-    return {
-        k: v for k, v in ALL_SYMBOLS.items()
-        if v.market_type == market_type
-    }
+    return {k: v for k, v in ALL_SYMBOLS.items() if v.market_type == market_type}

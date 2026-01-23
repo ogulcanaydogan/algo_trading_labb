@@ -135,6 +135,7 @@ class TestAutoRecovery:
 
     def test_register_custom_handler(self, recovery):
         """Test registering a custom handler."""
+
         async def custom_handler(component, context):
             return True
 
@@ -195,6 +196,7 @@ class TestAutoRecoveryAsync:
     @pytest.mark.asyncio
     async def test_recover_success(self, recovery):
         """Test successful recovery."""
+
         async def success_handler(component, context):
             return True
 
@@ -211,6 +213,7 @@ class TestAutoRecoveryAsync:
     @pytest.mark.asyncio
     async def test_recover_failure(self, recovery):
         """Test failed recovery."""
+
         async def fail_handler(component, context):
             raise Exception("Test failure")
 
@@ -257,6 +260,7 @@ class TestAutoRecoveryAsync:
 
         # Set last recovery time
         import time
+
         recovery.last_recovery["test"] = time.time()
 
         async def handler(component, context):
@@ -342,10 +346,31 @@ class TestRecoveryStatistics:
 
         # Add some history
         recovery.recovery_history = [
-            RecoveryAttempt(component="a", action=RecoveryAction.RESTART_PROCESS, result=RecoveryResult.SUCCESS, duration_ms=100),
-            RecoveryAttempt(component="a", action=RecoveryAction.RESTART_PROCESS, result=RecoveryResult.SUCCESS, duration_ms=150),
-            RecoveryAttempt(component="b", action=RecoveryAction.RECONNECT, result=RecoveryResult.FAILED, duration_ms=200, error="Error"),
-            RecoveryAttempt(component="b", action=RecoveryAction.RECONNECT, result=RecoveryResult.SUCCESS, duration_ms=180),
+            RecoveryAttempt(
+                component="a",
+                action=RecoveryAction.RESTART_PROCESS,
+                result=RecoveryResult.SUCCESS,
+                duration_ms=100,
+            ),
+            RecoveryAttempt(
+                component="a",
+                action=RecoveryAction.RESTART_PROCESS,
+                result=RecoveryResult.SUCCESS,
+                duration_ms=150,
+            ),
+            RecoveryAttempt(
+                component="b",
+                action=RecoveryAction.RECONNECT,
+                result=RecoveryResult.FAILED,
+                duration_ms=200,
+                error="Error",
+            ),
+            RecoveryAttempt(
+                component="b",
+                action=RecoveryAction.RECONNECT,
+                result=RecoveryResult.SUCCESS,
+                duration_ms=180,
+            ),
         ]
 
         return recovery

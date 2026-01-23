@@ -193,6 +193,7 @@ class TestHealthMonitor:
 
     def test_register_component(self, monitor):
         """Test registering a component."""
+
         def check():
             return HealthCheckResult(healthy=True, latency_ms=10.0)
 
@@ -203,6 +204,7 @@ class TestHealthMonitor:
 
     def test_register_critical_component(self, monitor):
         """Test registering a critical component."""
+
         def check():
             return HealthCheckResult(healthy=True, latency_ms=10.0)
 
@@ -212,6 +214,7 @@ class TestHealthMonitor:
 
     def test_unregister_component(self, monitor):
         """Test unregistering a component."""
+
         def check():
             return HealthCheckResult(healthy=True, latency_ms=10.0)
 
@@ -224,6 +227,7 @@ class TestHealthMonitor:
     @pytest.mark.asyncio
     async def test_check_component_healthy(self, monitor):
         """Test checking a healthy component."""
+
         def check():
             return HealthCheckResult(healthy=True, latency_ms=25.0, message="OK")
 
@@ -238,6 +242,7 @@ class TestHealthMonitor:
     @pytest.mark.asyncio
     async def test_check_component_unhealthy(self, monitor):
         """Test checking an unhealthy component."""
+
         def check():
             return HealthCheckResult(healthy=False, latency_ms=0, message="Connection failed")
 
@@ -258,6 +263,7 @@ class TestHealthMonitor:
     @pytest.mark.asyncio
     async def test_check_all_components(self, monitor):
         """Test checking all components."""
+
         def check1():
             return HealthCheckResult(healthy=True, latency_ms=10.0)
 
@@ -281,6 +287,7 @@ class TestHealthMonitor:
 
     def test_get_component(self, monitor):
         """Test getting a specific component."""
+
         def check():
             return HealthCheckResult(healthy=True, latency_ms=10.0)
 
@@ -328,6 +335,7 @@ class TestPrebuiltHealthChecks:
             assert "age_seconds" in result.details
         finally:
             import os
+
             os.unlink(temp_path)
 
     def test_file_freshness_check_not_found(self):
@@ -347,6 +355,7 @@ class TestPrebuiltHealthChecks:
         try:
             import os
             import time
+
             # Set modification time to 10 minutes ago
             old_time = time.time() - 600
             os.utime(temp_path, (old_time, old_time))

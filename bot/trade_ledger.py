@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 class TradeOutcome(Enum):
     """Trade outcome classification"""
+
     WIN = "win"
     LOSS = "loss"
     BREAKEVEN = "breakeven"
@@ -35,6 +36,7 @@ class TradeOutcome(Enum):
 
 class TradeType(Enum):
     """Trade type classification"""
+
     ENTRY = "entry"
     EXIT = "exit"
     INCREASE = "increase"
@@ -46,6 +48,7 @@ class TradeType(Enum):
 
 class RiskEventType(Enum):
     """Risk event types"""
+
     KILL_SWITCH_ACTIVATED = "kill_switch_activated"
     DAILY_LOSS_LIMIT = "daily_loss_limit"
     DRAWDOWN_LIMIT = "drawdown_limit"
@@ -59,6 +62,7 @@ class RiskEventType(Enum):
 @dataclass
 class TradeRecord:
     """Complete trade record for ledger"""
+
     # Identifiers
     trade_id: str
     order_id: str
@@ -116,6 +120,7 @@ class TradeRecord:
 @dataclass
 class RiskEventRecord:
     """Risk event record for audit"""
+
     event_id: str
     event_type: str
     timestamp: datetime
@@ -148,7 +153,7 @@ class TradeLedger:
         self,
         db_path: str = "data/trade_ledger.db",
         retention_days: int = 365,
-        auto_vacuum: bool = True
+        auto_vacuum: bool = True,
     ):
         self.db_path = Path(db_path)
         self.retention_days = retention_days
@@ -169,9 +174,7 @@ class TradeLedger:
         """Get thread-local database connection"""
         if not hasattr(self._local, "connection"):
             self._local.connection = sqlite3.connect(
-                str(self.db_path),
-                check_same_thread=False,
-                timeout=30.0
+                str(self.db_path), check_same_thread=False, timeout=30.0
             )
             self._local.connection.row_factory = sqlite3.Row
             # Enable WAL mode for better concurrency
@@ -336,18 +339,27 @@ class TradeLedger:
             # Create indexes
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_trades_symbol ON trades(symbol)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_trades_entry_time ON trades(entry_time)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_trades_strategy ON trades(strategy_name)")
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_trades_strategy ON trades(strategy_name)"
+            )
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_trades_outcome ON trades(outcome)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_trades_mode ON trades(execution_mode)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_risk_events_type ON risk_events(event_type)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_risk_events_time ON risk_events(timestamp)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_ai_learning_trade ON ai_learning_data(trade_id)")
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_risk_events_type ON risk_events(event_type)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_risk_events_time ON risk_events(timestamp)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_ai_learning_trade ON ai_learning_data(trade_id)"
+            )
 
     def record_trade(self, trade: TradeRecord) -> bool:
         """Record a trade to the ledger"""
         try:
             with self._cursor() as cursor:
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO trades (
                         trade_id, order_id, symbol,
                         side, trade_type, quantity, entry_price, exit_price, leverage,
@@ -359,23 +371,43 @@ class TradeLedger:
                         execution_mode, outcome, max_favorable_excursion, max_adverse_excursion,
                         tags, metadata
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    trade.trade_id, trade.order_id, trade.symbol,
-                    trade.side, trade.trade_type, trade.quantity,
-                    trade.entry_price, trade.exit_price, trade.leverage,
-                    trade.realized_pnl, trade.realized_pnl_pct,
-                    trade.fees_paid, trade.slippage_cost,
-                    trade.entry_time.isoformat(), trade.exit_time.isoformat() if trade.exit_time else None,
-                    trade.holding_duration_seconds,
-                    trade.regime, trade.volatility, trade.volume_24h,
-                    trade.strategy_name, trade.strategy_version,
-                    trade.signal_strength, trade.confidence,
-                    1 if trade.ai_recommended else 0, trade.ai_confidence,
-                    trade.rl_action, trade.meta_allocation_pct,
-                    trade.execution_mode, trade.outcome,
-                    trade.max_favorable_excursion, trade.max_adverse_excursion,
-                    trade.tags, trade.metadata
-                ))
+                """,
+                    (
+                        trade.trade_id,
+                        trade.order_id,
+                        trade.symbol,
+                        trade.side,
+                        trade.trade_type,
+                        trade.quantity,
+                        trade.entry_price,
+                        trade.exit_price,
+                        trade.leverage,
+                        trade.realized_pnl,
+                        trade.realized_pnl_pct,
+                        trade.fees_paid,
+                        trade.slippage_cost,
+                        trade.entry_time.isoformat(),
+                        trade.exit_time.isoformat() if trade.exit_time else None,
+                        trade.holding_duration_seconds,
+                        trade.regime,
+                        trade.volatility,
+                        trade.volume_24h,
+                        trade.strategy_name,
+                        trade.strategy_version,
+                        trade.signal_strength,
+                        trade.confidence,
+                        1 if trade.ai_recommended else 0,
+                        trade.ai_confidence,
+                        trade.rl_action,
+                        trade.meta_allocation_pct,
+                        trade.execution_mode,
+                        trade.outcome,
+                        trade.max_favorable_excursion,
+                        trade.max_adverse_excursion,
+                        trade.tags,
+                        trade.metadata,
+                    ),
+                )
             logger.debug(f"Trade recorded: {trade.trade_id}")
             return True
         except sqlite3.IntegrityError:
@@ -389,21 +421,31 @@ class TradeLedger:
         """Record a risk event"""
         try:
             with self._cursor() as cursor:
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO risk_events (
                         event_id, event_type, timestamp, severity,
                         equity_before, equity_after, drawdown_pct, daily_pnl_pct,
                         message, triggered_by, action_taken,
                         related_trade_ids, metadata
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    event.event_id, event.event_type,
-                    event.timestamp.isoformat(), event.severity,
-                    event.equity_before, event.equity_after,
-                    event.drawdown_pct, event.daily_pnl_pct,
-                    event.message, event.triggered_by, event.action_taken,
-                    event.related_trade_ids, event.metadata
-                ))
+                """,
+                    (
+                        event.event_id,
+                        event.event_type,
+                        event.timestamp.isoformat(),
+                        event.severity,
+                        event.equity_before,
+                        event.equity_after,
+                        event.drawdown_pct,
+                        event.daily_pnl_pct,
+                        event.message,
+                        event.triggered_by,
+                        event.action_taken,
+                        event.related_trade_ids,
+                        event.metadata,
+                    ),
+                )
             logger.info(f"Risk event recorded: {event.event_type}")
             return True
         except Exception as e:
@@ -418,22 +460,29 @@ class TradeLedger:
         reward: float,
         next_state_features: Optional[Dict[str, float]] = None,
         is_terminal: bool = False,
-        episode_id: Optional[str] = None
+        episode_id: Optional[str] = None,
     ) -> bool:
         """Record AI learning experience"""
         try:
             with self._cursor() as cursor:
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO ai_learning_data (
                         trade_id, timestamp, state_features, action_taken,
                         reward, next_state_features, is_terminal, episode_id
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    trade_id, datetime.now().isoformat(),
-                    json.dumps(state_features), action_taken, reward,
-                    json.dumps(next_state_features) if next_state_features else None,
-                    1 if is_terminal else 0, episode_id
-                ))
+                """,
+                    (
+                        trade_id,
+                        datetime.now().isoformat(),
+                        json.dumps(state_features),
+                        action_taken,
+                        reward,
+                        json.dumps(next_state_features) if next_state_features else None,
+                        1 if is_terminal else 0,
+                        episode_id,
+                    ),
+                )
             return True
         except Exception as e:
             logger.error(f"Failed to record AI learning data: {e}")
@@ -448,16 +497,13 @@ class TradeLedger:
         realized_pnl_pct: float,
         outcome: str,
         max_favorable: float = 0.0,
-        max_adverse: float = 0.0
+        max_adverse: float = 0.0,
     ) -> bool:
         """Update trade with exit information"""
         try:
             with self._cursor() as cursor:
                 # Get entry time for duration calculation
-                cursor.execute(
-                    "SELECT entry_time FROM trades WHERE trade_id = ?",
-                    (trade_id,)
-                )
+                cursor.execute("SELECT entry_time FROM trades WHERE trade_id = ?", (trade_id,))
                 row = cursor.fetchone()
                 if not row:
                     return False
@@ -465,7 +511,8 @@ class TradeLedger:
                 entry_time = datetime.fromisoformat(row["entry_time"])
                 duration = int((exit_time - entry_time).total_seconds())
 
-                cursor.execute("""
+                cursor.execute(
+                    """
                     UPDATE trades SET
                         exit_price = ?,
                         exit_time = ?,
@@ -476,11 +523,19 @@ class TradeLedger:
                         max_favorable_excursion = ?,
                         max_adverse_excursion = ?
                     WHERE trade_id = ?
-                """, (
-                    exit_price, exit_time.isoformat(), duration,
-                    realized_pnl, realized_pnl_pct, outcome,
-                    max_favorable, max_adverse, trade_id
-                ))
+                """,
+                    (
+                        exit_price,
+                        exit_time.isoformat(),
+                        duration,
+                        realized_pnl,
+                        realized_pnl_pct,
+                        outcome,
+                        max_favorable,
+                        max_adverse,
+                        trade_id,
+                    ),
+                )
             return True
         except Exception as e:
             logger.error(f"Failed to update trade exit: {e}")
@@ -502,7 +557,7 @@ class TradeLedger:
         execution_mode: Optional[str] = None,
         outcome: Optional[str] = None,
         limit: int = 1000,
-        offset: int = 0
+        offset: int = 0,
     ) -> List[Dict[str, Any]]:
         """Query trades with filters"""
         query = "SELECT * FROM trades WHERE 1=1"
@@ -538,7 +593,7 @@ class TradeLedger:
         self,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
-        execution_mode: Optional[str] = None
+        execution_mode: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Get performance summary"""
         query = """
@@ -582,22 +637,22 @@ class TradeLedger:
             # Calculate derived metrics
             result["win_rate"] = (
                 result["winning_trades"] / result["total_trades"] * 100
-                if result["total_trades"] > 0 else 0
+                if result["total_trades"] > 0
+                else 0
             )
             result["profit_factor"] = (
                 result["gross_profit"] / result["gross_loss"]
-                if result["gross_loss"] > 0 else float("inf")
+                if result["gross_loss"] > 0
+                else float("inf")
             )
             result["avg_duration_hours"] = (
-                result["avg_duration"] / 3600
-                if result["avg_duration"] else 0
+                result["avg_duration"] / 3600 if result["avg_duration"] else 0
             )
 
             return result
 
     def get_performance_by_regime(
-        self,
-        execution_mode: Optional[str] = None
+        self, execution_mode: Optional[str] = None
     ) -> Dict[str, Dict[str, Any]]:
         """Get performance breakdown by regime"""
         query = """
@@ -626,15 +681,16 @@ class TradeLedger:
                 result[regime] = {
                     "total_trades": row["total_trades"],
                     "wins": row["wins"],
-                    "win_rate": row["wins"] / row["total_trades"] * 100 if row["total_trades"] > 0 else 0,
+                    "win_rate": row["wins"] / row["total_trades"] * 100
+                    if row["total_trades"] > 0
+                    else 0,
                     "total_pnl": row["total_pnl"],
-                    "avg_pnl_pct": row["avg_pnl_pct"]
+                    "avg_pnl_pct": row["avg_pnl_pct"],
                 }
             return result
 
     def get_performance_by_leverage(
-        self,
-        execution_mode: Optional[str] = None
+        self, execution_mode: Optional[str] = None
     ) -> Dict[str, Dict[str, Any]]:
         """Get performance breakdown by leverage level"""
         query = """
@@ -663,15 +719,16 @@ class TradeLedger:
                 result[level] = {
                     "total_trades": row["total_trades"],
                     "wins": row["wins"],
-                    "win_rate": row["wins"] / row["total_trades"] * 100 if row["total_trades"] > 0 else 0,
+                    "win_rate": row["wins"] / row["total_trades"] * 100
+                    if row["total_trades"] > 0
+                    else 0,
                     "total_pnl": row["total_pnl"],
-                    "avg_pnl_pct": row["avg_pnl_pct"]
+                    "avg_pnl_pct": row["avg_pnl_pct"],
                 }
             return result
 
     def get_performance_by_strategy(
-        self,
-        execution_mode: Optional[str] = None
+        self, execution_mode: Optional[str] = None
     ) -> Dict[str, Dict[str, Any]]:
         """Get performance breakdown by strategy"""
         query = """
@@ -701,10 +758,12 @@ class TradeLedger:
                 result[strategy] = {
                     "total_trades": row["total_trades"],
                     "wins": row["wins"],
-                    "win_rate": row["wins"] / row["total_trades"] * 100 if row["total_trades"] > 0 else 0,
+                    "win_rate": row["wins"] / row["total_trades"] * 100
+                    if row["total_trades"] > 0
+                    else 0,
                     "total_pnl": row["total_pnl"],
                     "avg_pnl_pct": row["avg_pnl_pct"],
-                    "avg_leverage": row["avg_leverage"]
+                    "avg_leverage": row["avg_leverage"],
                 }
             return result
 
@@ -713,7 +772,7 @@ class TradeLedger:
         event_type: Optional[str] = None,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
-        limit: int = 100
+        limit: int = 100,
     ) -> List[Dict[str, Any]]:
         """Query risk events"""
         query = "SELECT * FROM risk_events WHERE 1=1"
@@ -737,9 +796,7 @@ class TradeLedger:
             return [dict(row) for row in cursor.fetchall()]
 
     def get_ai_learning_data(
-        self,
-        limit: int = 10000,
-        episode_id: Optional[str] = None
+        self, limit: int = 10000, episode_id: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """Get AI learning data for training"""
         query = """
@@ -769,17 +826,11 @@ class TradeLedger:
             return result
 
     def export_for_training(
-        self,
-        output_path: str,
-        execution_mode: Optional[str] = None,
-        min_trades: int = 100
+        self, output_path: str, execution_mode: Optional[str] = None, min_trades: int = 100
     ) -> bool:
         """Export trades data for AI training"""
         try:
-            trades = self.get_trades(
-                execution_mode=execution_mode,
-                limit=100000
-            )
+            trades = self.get_trades(execution_mode=execution_mode, limit=100000)
 
             if len(trades) < min_trades:
                 logger.warning(f"Not enough trades for training: {len(trades)} < {min_trades}")
@@ -791,21 +842,23 @@ class TradeLedger:
                 if trade["exit_time"] is None:
                     continue
 
-                training_data.append({
-                    "symbol": trade["symbol"],
-                    "side": trade["side"],
-                    "leverage": trade["leverage"],
-                    "regime": trade["regime"],
-                    "volatility": trade["volatility"],
-                    "signal_strength": trade["signal_strength"],
-                    "confidence": trade["confidence"],
-                    "holding_duration": trade["holding_duration_seconds"],
-                    "pnl_pct": trade["realized_pnl_pct"],
-                    "outcome": trade["outcome"],
-                    "max_favorable": trade["max_favorable_excursion"],
-                    "max_adverse": trade["max_adverse_excursion"],
-                    "strategy": trade["strategy_name"]
-                })
+                training_data.append(
+                    {
+                        "symbol": trade["symbol"],
+                        "side": trade["side"],
+                        "leverage": trade["leverage"],
+                        "regime": trade["regime"],
+                        "volatility": trade["volatility"],
+                        "signal_strength": trade["signal_strength"],
+                        "confidence": trade["confidence"],
+                        "holding_duration": trade["holding_duration_seconds"],
+                        "pnl_pct": trade["realized_pnl_pct"],
+                        "outcome": trade["outcome"],
+                        "max_favorable": trade["max_favorable_excursion"],
+                        "max_adverse": trade["max_adverse_excursion"],
+                        "strategy": trade["strategy_name"],
+                    }
+                )
 
             # Save to file
             output_file = Path(output_path)
@@ -822,11 +875,7 @@ class TradeLedger:
             return False
 
     def save_daily_snapshot(
-        self,
-        date: datetime,
-        execution_mode: str,
-        equity_start: float,
-        equity_end: float
+        self, date: datetime, execution_mode: str, equity_start: float, equity_end: float
     ) -> bool:
         """Save daily performance snapshot"""
         try:
@@ -835,9 +884,7 @@ class TradeLedger:
             end = start + timedelta(days=1)
 
             summary = self.get_performance_summary(
-                start_date=start,
-                end_date=end,
-                execution_mode=execution_mode
+                start_date=start, end_date=end, execution_mode=execution_mode
             )
 
             by_regime = self.get_performance_by_regime(execution_mode)
@@ -845,7 +892,8 @@ class TradeLedger:
             by_leverage = self.get_performance_by_leverage(execution_mode)
 
             with self._cursor() as cursor:
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT OR REPLACE INTO performance_snapshots (
                         date, execution_mode,
                         starting_equity, ending_equity,
@@ -857,27 +905,31 @@ class TradeLedger:
                         avg_trade_duration_seconds,
                         by_regime, by_strategy, by_leverage
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    date.date().isoformat(), execution_mode,
-                    equity_start, equity_end,
-                    summary.get("total_pnl", 0),
-                    (equity_end - equity_start) / equity_start * 100 if equity_start > 0 else 0,
-                    summary.get("total_trades", 0),
-                    summary.get("winning_trades", 0),
-                    summary.get("losing_trades", 0),
-                    summary.get("win_rate", 0),
-                    summary.get("gross_profit", 0),
-                    summary.get("gross_loss", 0),
-                    summary.get("profit_factor", 0),
-                    summary.get("avg_leverage", 1),
-                    summary.get("total_fees", 0),
-                    summary.get("best_trade", 0),
-                    summary.get("worst_trade", 0),
-                    summary.get("avg_duration", 0),
-                    json.dumps(by_regime),
-                    json.dumps(by_strategy),
-                    json.dumps(by_leverage)
-                ))
+                """,
+                    (
+                        date.date().isoformat(),
+                        execution_mode,
+                        equity_start,
+                        equity_end,
+                        summary.get("total_pnl", 0),
+                        (equity_end - equity_start) / equity_start * 100 if equity_start > 0 else 0,
+                        summary.get("total_trades", 0),
+                        summary.get("winning_trades", 0),
+                        summary.get("losing_trades", 0),
+                        summary.get("win_rate", 0),
+                        summary.get("gross_profit", 0),
+                        summary.get("gross_loss", 0),
+                        summary.get("profit_factor", 0),
+                        summary.get("avg_leverage", 1),
+                        summary.get("total_fees", 0),
+                        summary.get("best_trade", 0),
+                        summary.get("worst_trade", 0),
+                        summary.get("avg_duration", 0),
+                        json.dumps(by_regime),
+                        json.dumps(by_strategy),
+                        json.dumps(by_leverage),
+                    ),
+                )
             return True
         except Exception as e:
             logger.error(f"Failed to save daily snapshot: {e}")
@@ -888,21 +940,14 @@ class TradeLedger:
         cutoff = datetime.now() - timedelta(days=self.retention_days)
 
         with self._cursor() as cursor:
-            cursor.execute(
-                "DELETE FROM trades WHERE entry_time < ?",
-                (cutoff.isoformat(),)
-            )
+            cursor.execute("DELETE FROM trades WHERE entry_time < ?", (cutoff.isoformat(),))
             trades_deleted = cursor.rowcount
 
-            cursor.execute(
-                "DELETE FROM risk_events WHERE timestamp < ?",
-                (cutoff.isoformat(),)
-            )
+            cursor.execute("DELETE FROM risk_events WHERE timestamp < ?", (cutoff.isoformat(),))
             events_deleted = cursor.rowcount
 
             cursor.execute(
-                "DELETE FROM ai_learning_data WHERE timestamp < ?",
-                (cutoff.isoformat(),)
+                "DELETE FROM ai_learning_data WHERE timestamp < ?", (cutoff.isoformat(),)
             )
             learning_deleted = cursor.rowcount
 
@@ -910,7 +955,9 @@ class TradeLedger:
                 cursor.execute("VACUUM")
 
         total = trades_deleted + events_deleted + learning_deleted
-        logger.info(f"Cleaned up {total} old records (trades: {trades_deleted}, events: {events_deleted}, learning: {learning_deleted})")
+        logger.info(
+            f"Cleaned up {total} old records (trades: {trades_deleted}, events: {events_deleted}, learning: {learning_deleted})"
+        )
         return total
 
     def get_statistics(self) -> Dict[str, Any]:
@@ -928,7 +975,9 @@ class TradeLedger:
             cursor.execute("SELECT COUNT(*) as count FROM performance_snapshots")
             snapshots_count = cursor.fetchone()["count"]
 
-            cursor.execute("SELECT MIN(entry_time) as oldest, MAX(entry_time) as newest FROM trades")
+            cursor.execute(
+                "SELECT MIN(entry_time) as oldest, MAX(entry_time) as newest FROM trades"
+            )
             row = cursor.fetchone()
             oldest = row["oldest"]
             newest = row["newest"]
@@ -944,7 +993,7 @@ class TradeLedger:
             "oldest_trade": oldest,
             "newest_trade": newest,
             "database_size_mb": round(file_size_mb, 2),
-            "retention_days": self.retention_days
+            "retention_days": self.retention_days,
         }
 
 

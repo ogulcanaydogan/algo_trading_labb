@@ -39,13 +39,16 @@ def sample_ohlcv():
 
     dates = pd.date_range(start="2024-01-01", periods=n_samples, freq="1h")
 
-    df = pd.DataFrame({
-        "open": prices * (1 + np.random.uniform(-0.005, 0.005, n_samples)),
-        "high": prices * (1 + np.random.uniform(0, 0.02, n_samples)),
-        "low": prices * (1 - np.random.uniform(0, 0.02, n_samples)),
-        "close": prices,
-        "volume": np.random.uniform(1000, 10000, n_samples),
-    }, index=dates)
+    df = pd.DataFrame(
+        {
+            "open": prices * (1 + np.random.uniform(-0.005, 0.005, n_samples)),
+            "high": prices * (1 + np.random.uniform(0, 0.02, n_samples)),
+            "low": prices * (1 - np.random.uniform(0, 0.02, n_samples)),
+            "close": prices,
+            "volume": np.random.uniform(1000, 10000, n_samples),
+        },
+        index=dates,
+    )
 
     return df
 

@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class PositionManagementState:
     """Persistent state for position management features."""
+
     # Trailing stop state
     peak_price: Optional[float] = None
     trailing_active: bool = False
@@ -65,6 +66,7 @@ class PositionManagementState:
 @dataclass
 class OrderResult:
     """Order result"""
+
     success: bool
     order_id: Optional[str] = None
     price: float = 0.0
@@ -77,6 +79,7 @@ class OrderResult:
 @dataclass
 class TrailingStopConfig:
     """Configuration for trailing stop"""
+
     enabled: bool = True
     activation_pct: float = 1.0  # Start trailing after 1% profit
     trail_pct: float = 0.5  # Trail by 0.5% from peak
@@ -87,6 +90,7 @@ class TrailingStopConfig:
 @dataclass
 class BreakEvenConfig:
     """Configuration for break-even stop management"""
+
     enabled: bool = True
     activation_pct: float = 0.5  # Move to break-even after 0.5% profit
     buffer_pct: float = 0.05  # Add small buffer above/below entry (0.05%)
@@ -95,13 +99,14 @@ class BreakEvenConfig:
 @dataclass
 class PartialProfitConfig:
     """Configuration for scaling out of positions"""
+
     enabled: bool = True
     # Take profit levels as multiples of risk (R)
     # Default: Take 25% at 1R, 25% at 2R, 25% at 3R, let 25% run
     levels: tuple = (
-        (1.0, 0.25),   # At 1R profit, close 25%
-        (2.0, 0.25),   # At 2R profit, close another 25%
-        (3.0, 0.25),   # At 3R profit, close another 25%
+        (1.0, 0.25),  # At 1R profit, close 25%
+        (2.0, 0.25),  # At 2R profit, close another 25%
+        (3.0, 0.25),  # At 3R profit, close another 25%
         # Remaining 25% runs with trailing stop
     )
 
@@ -109,6 +114,7 @@ class PartialProfitConfig:
 @dataclass
 class AdvancedPositionConfig:
     """Combined configuration for advanced position management"""
+
     trailing_stop: TrailingStopConfig = None
     break_even: BreakEvenConfig = None
     partial_profit: PartialProfitConfig = None
@@ -135,8 +141,8 @@ class TradingManager:
         exchange_client,
         symbol: str = "BTC/USDT",
         max_position_size: float = 0.1,  # Maximum position size (BTC)
-        min_order_size: float = 0.001,   # Minimum order size
-        dry_run: bool = True,            # True = only log, don't send real orders
+        min_order_size: float = 0.001,  # Minimum order size
+        dry_run: bool = True,  # True = only log, don't send real orders
         trailing_stop_config: Optional[TrailingStopConfig] = None,
         break_even_config: Optional[BreakEvenConfig] = None,
         partial_profit_config: Optional[PartialProfitConfig] = None,
@@ -288,10 +294,7 @@ class TradingManager:
         # Check existing position
         if self.current_position:
             logger.warning("Already have an open position!")
-            return OrderResult(
-                success=False,
-                error="Existing position already open"
-            )
+            return OrderResult(success=False, error="Existing position already open")
 
         # Check position size
         if size > self.max_position_size:
@@ -300,10 +303,7 @@ class TradingManager:
 
         if size < self.min_order_size:
             logger.warning(f"Position too small: {size} < {self.min_order_size}")
-            return OrderResult(
-                success=False,
-                error=f"Position size too small: {size}"
-            )
+            return OrderResult(success=False, error=f"Position size too small: {size}")
 
         # Get market price
         try:
@@ -317,9 +317,7 @@ class TradingManager:
         side = "BUY" if direction == "LONG" else "SELL"
 
         if self.dry_run:
-            logger.info(
-                f"[DRY RUN] {side} order: {size} {self.symbol} @ ${current_price:.2f}"
-            )
+            logger.info(f"[DRY RUN] {side} order: {size} {self.symbol} @ ${current_price:.2f}")
             logger.info(f"[DRY RUN] Stop Loss: ${stop_loss:.2f} | Take Profit: ${take_profit:.2f}")
 
             # Calculate initial risk (1R) for partial profit targets
@@ -348,20 +346,28 @@ class TradingManager:
                     entry_price=current_price,
                     position_size=size,
                     last_signal=direction,
-                    last_signal_reason=signal_info.get("reason") if isinstance(signal_info, dict) else "Simulated DRY RUN",
-                    confidence=signal_info.get("confidence") if isinstance(signal_info, dict) else None,
+                    last_signal_reason=signal_info.get("reason")
+                    if isinstance(signal_info, dict)
+                    else "Simulated DRY RUN",
+                    confidence=signal_info.get("confidence")
+                    if isinstance(signal_info, dict)
+                    else None,
                 )
                 # record a signal event for history
                 evt = SignalEvent(
                     timestamp=datetime.now(timezone.utc),
                     symbol=self.symbol,
                     decision=direction,
-                    confidence=float(signal_info.get("confidence", 0.0)) if isinstance(signal_info, dict) else 0.0,
-                    reason=signal_info.get("reason", "Simulated DRY RUN") if isinstance(signal_info, dict) else "Simulated DRY RUN",
+                    confidence=float(signal_info.get("confidence", 0.0))
+                    if isinstance(signal_info, dict)
+                    else 0.0,
+                    reason=signal_info.get("reason", "Simulated DRY RUN")
+                    if isinstance(signal_info, dict)
+                    else "Simulated DRY RUN",
                 )
                 store.record_signal(evt)
-            except Exception:
-                logger.exception("Failed to persist DRY RUN execution to StateStore")
+            except (IOError, ValueError, KeyError) as e:
+                logger.exception(f"Failed to persist DRY RUN execution to StateStore: {e}")
 
             # Persist position management state
             self._sync_state_to_pm()
@@ -485,8 +491,8 @@ class TradingManager:
                     reason=reason,
                 )
                 store.record_signal(evt)
-            except Exception:
-                logger.exception("Failed to persist DRY RUN close to StateStore")
+            except (IOError, ValueError, KeyError) as e:
+                logger.exception(f"Failed to persist DRY RUN close to StateStore: {e}")
 
             # Reset and persist position management state
             self._reset_position_state()

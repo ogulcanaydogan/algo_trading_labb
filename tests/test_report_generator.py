@@ -257,9 +257,24 @@ class TestReportGenerator:
             regime_analysis={
                 "current_regime": "bull",
                 "regime_distribution": {
-                    "bull": {"frequency_pct": 40, "avg_duration_hours": 24, "avg_return_pct": 1.5, "color": "#4CAF50"},
-                    "bear": {"frequency_pct": 30, "avg_duration_hours": 12, "avg_return_pct": -1.2, "color": "#F44336"},
-                    "sideways": {"frequency_pct": 30, "avg_duration_hours": 18, "avg_return_pct": 0.2, "color": "#FFC107"},
+                    "bull": {
+                        "frequency_pct": 40,
+                        "avg_duration_hours": 24,
+                        "avg_return_pct": 1.5,
+                        "color": "#4CAF50",
+                    },
+                    "bear": {
+                        "frequency_pct": 30,
+                        "avg_duration_hours": 12,
+                        "avg_return_pct": -1.2,
+                        "color": "#F44336",
+                    },
+                    "sideways": {
+                        "frequency_pct": 30,
+                        "avg_duration_hours": 18,
+                        "avg_return_pct": 0.2,
+                        "color": "#FFC107",
+                    },
                 },
             },
         )
@@ -277,8 +292,20 @@ class TestReportGenerator:
             factor_analysis={
                 "summary": {"alpha": 0.05, "r_squared": 0.65},
                 "factors": [
-                    {"name": "Market", "beta": 1.2, "contribution": 60.0, "t_stat": 2.5, "is_significant": True},
-                    {"name": "Momentum", "beta": 0.3, "contribution": 15.0, "t_stat": 1.8, "is_significant": False},
+                    {
+                        "name": "Market",
+                        "beta": 1.2,
+                        "contribution": 60.0,
+                        "t_stat": 2.5,
+                        "is_significant": True,
+                    },
+                    {
+                        "name": "Momentum",
+                        "beta": 0.3,
+                        "contribution": 15.0,
+                        "t_stat": 1.8,
+                        "is_significant": False,
+                    },
                 ],
             },
         )

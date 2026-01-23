@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 class TradeStatus(Enum):
     """Trade status enum."""
+
     OPEN = "open"
     CLOSED = "closed"
     CANCELLED = "cancelled"
@@ -30,6 +31,7 @@ class TradeStatus(Enum):
 
 class SignalType(Enum):
     """Signal type enum."""
+
     LONG = "LONG"
     SHORT = "SHORT"
     FLAT = "FLAT"
@@ -38,6 +40,7 @@ class SignalType(Enum):
 @dataclass
 class TradeRecord:
     """Trade record for database storage."""
+
     id: Optional[int] = None
     symbol: str = ""
     direction: str = ""  # LONG or SHORT
@@ -70,6 +73,7 @@ class TradeRecord:
 @dataclass
 class SignalRecord:
     """Signal record for database storage."""
+
     id: Optional[int] = None
     timestamp: Optional[datetime] = None
     symbol: str = ""
@@ -86,6 +90,7 @@ class SignalRecord:
 @dataclass
 class EquityRecord:
     """Equity point for database storage."""
+
     id: Optional[int] = None
     timestamp: Optional[datetime] = None
     market_type: str = ""  # crypto, stock, commodity, forex
@@ -235,21 +240,36 @@ class TradeDatabase:
         """Insert a new trade record."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO trades (
                     symbol, direction, entry_time, exit_time, entry_price,
                     exit_price, quantity, pnl, pnl_pct, status, strategy,
                     regime, stop_loss, take_profit, exit_reason, confidence,
                     fees, metadata
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                trade.symbol, trade.direction, trade.entry_time, trade.exit_time,
-                trade.entry_price, trade.exit_price, trade.quantity, trade.pnl,
-                trade.pnl_pct, trade.status, trade.strategy, trade.regime,
-                trade.stop_loss, trade.take_profit, trade.exit_reason,
-                trade.confidence, trade.fees,
-                json.dumps(trade.metadata) if trade.metadata else None
-            ))
+            """,
+                (
+                    trade.symbol,
+                    trade.direction,
+                    trade.entry_time,
+                    trade.exit_time,
+                    trade.entry_price,
+                    trade.exit_price,
+                    trade.quantity,
+                    trade.pnl,
+                    trade.pnl_pct,
+                    trade.status,
+                    trade.strategy,
+                    trade.regime,
+                    trade.stop_loss,
+                    trade.take_profit,
+                    trade.exit_reason,
+                    trade.confidence,
+                    trade.fees,
+                    json.dumps(trade.metadata) if trade.metadata else None,
+                ),
+            )
             return cursor.lastrowid
 
     def update_trade(self, trade_id: int, **kwargs) -> bool:
@@ -267,10 +287,7 @@ class TradeDatabase:
 
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                f"UPDATE trades SET {set_clause} WHERE id = ?",
-                values
-            )
+            cursor.execute(f"UPDATE trades SET {set_clause} WHERE id = ?", values)
             return cursor.rowcount > 0
 
     def close_trade(
@@ -349,7 +366,7 @@ class TradeDatabase:
             cursor.execute(
                 f"""SELECT * FROM trades WHERE {where_clause}
                    ORDER BY entry_time DESC LIMIT ? OFFSET ?""",
-                params + [limit, offset]
+                params + [limit, offset],
             )
             return [self._row_to_trade(row) for row in cursor.fetchall()]
 
@@ -387,18 +404,26 @@ class TradeDatabase:
         """Insert a new signal record."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO signals (
                     timestamp, symbol, signal_type, confidence, strategy,
                     regime, price, indicators, reason, executed
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                signal.timestamp, signal.symbol, signal.signal_type,
-                signal.confidence, signal.strategy, signal.regime,
-                signal.price,
-                json.dumps(signal.indicators) if signal.indicators else None,
-                signal.reason, 1 if signal.executed else 0
-            ))
+            """,
+                (
+                    signal.timestamp,
+                    signal.symbol,
+                    signal.signal_type,
+                    signal.confidence,
+                    signal.strategy,
+                    signal.regime,
+                    signal.price,
+                    json.dumps(signal.indicators) if signal.indicators else None,
+                    signal.reason,
+                    1 if signal.executed else 0,
+                ),
+            )
             return cursor.lastrowid
 
     def get_signals(
@@ -433,7 +458,7 @@ class TradeDatabase:
             cursor.execute(
                 f"""SELECT * FROM signals WHERE {where_clause}
                    ORDER BY timestamp DESC LIMIT ?""",
-                params + [limit]
+                params + [limit],
             )
             return [self._row_to_signal(row) for row in cursor.fetchall()]
 
@@ -459,16 +484,24 @@ class TradeDatabase:
         """Insert an equity record."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO equity (
                     timestamp, market_type, total_value, cash_balance,
                     positions_value, unrealized_pnl, realized_pnl, drawdown
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                equity.timestamp, equity.market_type, equity.total_value,
-                equity.cash_balance, equity.positions_value,
-                equity.unrealized_pnl, equity.realized_pnl, equity.drawdown
-            ))
+            """,
+                (
+                    equity.timestamp,
+                    equity.market_type,
+                    equity.total_value,
+                    equity.cash_balance,
+                    equity.positions_value,
+                    equity.unrealized_pnl,
+                    equity.realized_pnl,
+                    equity.drawdown,
+                ),
+            )
             return cursor.lastrowid
 
     def get_equity_curve(
@@ -499,7 +532,7 @@ class TradeDatabase:
             cursor.execute(
                 f"""SELECT * FROM equity WHERE {where_clause}
                    ORDER BY timestamp ASC LIMIT ?""",
-                params + [limit]
+                params + [limit],
             )
             return [self._row_to_equity(row) for row in cursor.fetchall()]
 
@@ -558,7 +591,7 @@ class TradeDatabase:
                     MIN(pnl) as worst_trade,
                     SUM(fees) as total_fees
                 FROM trades WHERE {where_clause}""",
-                params
+                params,
             )
             row = cursor.fetchone()
 
@@ -573,7 +606,11 @@ class TradeDatabase:
             avg_loss = abs(row["avg_loss"]) if row["avg_loss"] else 0
 
             win_rate = winning / total_trades if total_trades > 0 else 0
-            profit_factor = (avg_win * winning) / (avg_loss * losing) if losing > 0 and avg_loss > 0 else float("inf")
+            profit_factor = (
+                (avg_win * winning) / (avg_loss * losing)
+                if losing > 0 and avg_loss > 0
+                else float("inf")
+            )
 
             return {
                 "total_trades": total_trades,
@@ -586,7 +623,9 @@ class TradeDatabase:
                 "avg_loss": round(avg_loss, 2),
                 "best_trade": round(row["best_trade"] or 0, 2),
                 "worst_trade": round(row["worst_trade"] or 0, 2),
-                "profit_factor": round(profit_factor, 2) if profit_factor != float("inf") else "inf",
+                "profit_factor": round(profit_factor, 2)
+                if profit_factor != float("inf")
+                else "inf",
                 "total_fees": round(row["total_fees"] or 0, 2),
             }
 

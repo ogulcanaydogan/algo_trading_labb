@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 class ValidationResult(Enum):
     """Overall validation result"""
+
     PASSED = "passed"
     FAILED = "failed"
     MARGINAL = "marginal"  # Passed but close to thresholds
@@ -33,6 +34,7 @@ class ValidationResult(Enum):
 @dataclass
 class ValidationThresholds:
     """Thresholds for passing validation"""
+
     min_sharpe: float = 0.5
     min_win_rate: float = 0.4
     max_drawdown: float = 20.0  # %
@@ -46,6 +48,7 @@ class ValidationThresholds:
 @dataclass
 class WalkForwardConfig:
     """Configuration for walk-forward validation"""
+
     train_window_days: int = 90  # Training window size
     test_window_days: int = 30  # Out-of-sample test window
     step_days: int = 30  # How much to roll forward
@@ -56,6 +59,7 @@ class WalkForwardConfig:
 @dataclass
 class StressTestConfig:
     """Configuration for stress tests"""
+
     flash_crash_pct: float = -10.0  # Sudden drop percentage
     gap_up_pct: float = 5.0  # Gap up percentage
     gap_down_pct: float = -5.0  # Gap down percentage
@@ -67,6 +71,7 @@ class StressTestConfig:
 @dataclass
 class ValidationMetrics:
     """Metrics collected during validation"""
+
     # Basic stats
     total_trades: int = 0
     winning_trades: int = 0
@@ -147,6 +152,7 @@ class ValidationMetrics:
 @dataclass
 class StressTestResult:
     """Result of a single stress test"""
+
     test_name: str
     passed: bool
     pnl_impact_pct: float
@@ -170,6 +176,7 @@ class StressTestResult:
 @dataclass
 class WalkForwardWindow:
     """Single walk-forward window result"""
+
     window_id: int
     train_start: datetime
     train_end: datetime
@@ -214,6 +221,7 @@ class WalkForwardWindow:
 @dataclass
 class ValidationReport:
     """Complete validation report"""
+
     strategy_name: str
     strategy_version: str
     validation_date: datetime = field(default_factory=datetime.now)
@@ -267,13 +275,17 @@ class ValidationReport:
 
         # Walk-forward stability (15 points)
         if self.walk_forward_windows:
-            avg_decay = np.mean([w.sharpe_decay for w in self.walk_forward_windows if w.sharpe_decay > 0])
+            avg_decay = np.mean(
+                [w.sharpe_decay for w in self.walk_forward_windows if w.sharpe_decay > 0]
+            )
             stability_score = min(15, avg_decay * 15) if avg_decay else 0
             score += stability_score
 
         # Stress test survival (15 points)
         if self.stress_test_results:
-            survival_rate = sum(1 for r in self.stress_test_results if r.survived) / len(self.stress_test_results)
+            survival_rate = sum(1 for r in self.stress_test_results if r.survived) / len(
+                self.stress_test_results
+            )
             stress_score = survival_rate * 15
             score += stress_score
 
@@ -298,13 +310,17 @@ class ValidationReport:
 
         # Stress test check
         if self.stress_test_results:
-            survival_rate = sum(1 for r in self.stress_test_results if r.survived) / len(self.stress_test_results)
+            survival_rate = sum(1 for r in self.stress_test_results if r.survived) / len(
+                self.stress_test_results
+            )
             self.stress_tests_passed = survival_rate >= 0.8
         else:
             self.stress_tests_passed = True  # No stress tests = pass by default
 
         # Aggregate result
-        core_passed = passes_sharpe and passes_win_rate and passes_drawdown and passes_pf and passes_trades
+        core_passed = (
+            passes_sharpe and passes_win_rate and passes_drawdown and passes_pf and passes_trades
+        )
 
         if core_passed and self.walk_forward_passed and self.stress_tests_passed:
             self.result = ValidationResult.PASSED
@@ -321,21 +337,29 @@ class ValidationReport:
 
         # Add warnings and recommendations
         if not passes_sharpe:
-            self.warnings.append(f"Sharpe ratio {self.metrics.sharpe_ratio:.2f} below threshold {thresholds.min_sharpe}")
+            self.warnings.append(
+                f"Sharpe ratio {self.metrics.sharpe_ratio:.2f} below threshold {thresholds.min_sharpe}"
+            )
         if not passes_drawdown:
-            self.warnings.append(f"Max drawdown {self.metrics.max_drawdown_pct:.1f}% exceeds limit {thresholds.max_drawdown}%")
+            self.warnings.append(
+                f"Max drawdown {self.metrics.max_drawdown_pct:.1f}% exceeds limit {thresholds.max_drawdown}%"
+            )
         if not self.walk_forward_passed:
             self.warnings.append("Walk-forward validation shows significant out-of-sample decay")
         if not self.stress_tests_passed:
             self.warnings.append("Strategy failed multiple stress tests")
 
         if self.result == ValidationResult.MARGINAL:
-            self.recommendations.append("Run in shadow mode for at least 30 days before live deployment")
+            self.recommendations.append(
+                "Run in shadow mode for at least 30 days before live deployment"
+            )
             self.recommendations.append("Consider tightening stop losses")
         elif self.result == ValidationResult.PASSED:
             self.recommendations.append("Strategy ready for shadow mode testing")
             if self.ready_for_live:
-                self.recommendations.append("Strategy ready for live deployment with reduced position size")
+                self.recommendations.append(
+                    "Strategy ready for live deployment with reduced position size"
+                )
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -367,7 +391,7 @@ class WalkForwardValidator:
         self,
         config: Optional[WalkForwardConfig] = None,
         thresholds: Optional[ValidationThresholds] = None,
-        stress_config: Optional[StressTestConfig] = None
+        stress_config: Optional[StressTestConfig] = None,
     ):
         self.config = config or WalkForwardConfig()
         self.thresholds = thresholds or ValidationThresholds()
@@ -410,7 +434,9 @@ class WalkForwardValidator:
 
         # 2. Aggregate metrics from all windows
         logger.info("Calculating aggregate metrics...")
-        report.metrics = self._calculate_aggregate_metrics(wf_results, run_backtest, strategy, historical_data)
+        report.metrics = self._calculate_aggregate_metrics(
+            wf_results, run_backtest, strategy, historical_data
+        )
 
         # 3. Stress tests
         logger.info("Running stress tests...")
@@ -437,7 +463,7 @@ class WalkForwardValidator:
         strategy: Any,
         data: List[Dict],
         run_backtest: Callable,
-        optimize_params: Optional[Callable]
+        optimize_params: Optional[Callable],
     ) -> List[WalkForwardWindow]:
         """Run walk-forward optimization"""
         windows = []
@@ -453,8 +479,7 @@ class WalkForwardValidator:
         # Calculate number of windows
         window_size = self.config.train_window_days + self.config.test_window_days
         num_windows = max(
-            self.config.min_windows,
-            (total_days - window_size) // self.config.step_days + 1
+            self.config.min_windows, (total_days - window_size) // self.config.step_days + 1
         )
 
         current_start = start_date
@@ -522,7 +547,9 @@ class WalkForwardValidator:
             window.calculate_decay()
             windows.append(window)
 
-            logger.debug(f"Window {i}: IS Sharpe={window.in_sample_sharpe:.2f}, OOS Sharpe={window.out_sample_sharpe:.2f}")
+            logger.debug(
+                f"Window {i}: IS Sharpe={window.in_sample_sharpe:.2f}, OOS Sharpe={window.out_sample_sharpe:.2f}"
+            )
 
             # Move forward
             current_start += timedelta(days=self.config.step_days)
@@ -534,7 +561,7 @@ class WalkForwardValidator:
         windows: List[WalkForwardWindow],
         run_backtest: Callable,
         strategy: Any,
-        data: List[Dict]
+        data: List[Dict],
     ) -> ValidationMetrics:
         """Calculate aggregate metrics from walk-forward results"""
         metrics = ValidationMetrics()
@@ -588,9 +615,7 @@ class WalkForwardValidator:
             metrics.losing_trades = metrics.total_trades - metrics.winning_trades
 
         # Estimate annualized return
-        total_days = sum(
-            (w.test_end - w.test_start).days for w in windows
-        )
+        total_days = sum((w.test_end - w.test_start).days for w in windows)
         if total_days > 0:
             metrics.annualized_return_pct = metrics.total_return_pct * (365 / total_days)
 
@@ -598,10 +623,7 @@ class WalkForwardValidator:
         return metrics
 
     def _run_stress_tests(
-        self,
-        strategy: Any,
-        data: List[Dict],
-        run_backtest: Callable
+        self, strategy: Any, data: List[Dict], run_backtest: Callable
     ) -> List[StressTestResult]:
         """Run stress tests on strategy"""
         results = []
@@ -630,10 +652,7 @@ class WalkForwardValidator:
         return results
 
     def _stress_test_flash_crash(
-        self,
-        strategy: Any,
-        data: List[Dict],
-        run_backtest: Callable
+        self, strategy: Any, data: List[Dict], run_backtest: Callable
     ) -> StressTestResult:
         """Simulate flash crash scenario"""
         # Create modified data with sudden drop
@@ -676,7 +695,7 @@ class WalkForwardValidator:
                 max_drawdown_pct=max_dd,
                 survived=survived,
                 recovery_bars=5 if survived else 0,
-                notes=f"Flash crash of {self.stress_config.flash_crash_pct}%"
+                notes=f"Flash crash of {self.stress_config.flash_crash_pct}%",
             )
         except Exception as e:
             return StressTestResult(
@@ -686,30 +705,27 @@ class WalkForwardValidator:
                 max_drawdown_pct=100,
                 survived=False,
                 recovery_bars=0,
-                notes=f"Test failed: {e}"
+                notes=f"Test failed: {e}",
             )
 
     def _stress_test_gap(
-        self,
-        strategy: Any,
-        data: List[Dict],
-        run_backtest: Callable,
-        direction: str
+        self, strategy: Any, data: List[Dict], run_backtest: Callable, direction: str
     ) -> StressTestResult:
         """Simulate gap up/down scenario"""
         stress_data = [d.copy() for d in data]
 
         gap_idx = len(stress_data) // 2
         gap_pct = (
-            self.stress_config.gap_up_pct if direction == "up"
-            else self.stress_config.gap_down_pct
+            self.stress_config.gap_up_pct if direction == "up" else self.stress_config.gap_down_pct
         ) / 100
 
         base_price = stress_data[gap_idx - 1]["close"]
 
         # Apply gap
         for i in range(gap_idx, len(stress_data)):
-            stress_data[i]["open"] = stress_data[i]["open"] * (1 + gap_pct) if i == gap_idx else stress_data[i]["open"]
+            stress_data[i]["open"] = (
+                stress_data[i]["open"] * (1 + gap_pct) if i == gap_idx else stress_data[i]["open"]
+            )
             stress_data[i]["high"] = stress_data[i]["high"] * (1 + gap_pct * 0.8)
             stress_data[i]["low"] = stress_data[i]["low"] * (1 + gap_pct * 0.8)
             stress_data[i]["close"] = stress_data[i]["close"] * (1 + gap_pct * 0.6)
@@ -727,7 +743,7 @@ class WalkForwardValidator:
                 max_drawdown_pct=max_dd,
                 survived=survived,
                 recovery_bars=10 if survived else 0,
-                notes=f"Gap {direction} of {gap_pct*100:.1f}%"
+                notes=f"Gap {direction} of {gap_pct * 100:.1f}%",
             )
         except Exception as e:
             return StressTestResult(
@@ -737,14 +753,11 @@ class WalkForwardValidator:
                 max_drawdown_pct=50,
                 survived=False,
                 recovery_bars=0,
-                notes=f"Test failed: {e}"
+                notes=f"Test failed: {e}",
             )
 
     def _stress_test_volatility_spike(
-        self,
-        strategy: Any,
-        data: List[Dict],
-        run_backtest: Callable
+        self, strategy: Any, data: List[Dict], run_backtest: Callable
     ) -> StressTestResult:
         """Simulate volatility spike scenario"""
         stress_data = [d.copy() for d in data]
@@ -774,7 +787,7 @@ class WalkForwardValidator:
                 max_drawdown_pct=max_dd,
                 survived=survived,
                 recovery_bars=20 if survived else 0,
-                notes=f"Volatility multiplied by {vol_mult}x"
+                notes=f"Volatility multiplied by {vol_mult}x",
             )
         except Exception as e:
             return StressTestResult(
@@ -784,14 +797,11 @@ class WalkForwardValidator:
                 max_drawdown_pct=30,
                 survived=False,
                 recovery_bars=0,
-                notes=f"Test failed: {e}"
+                notes=f"Test failed: {e}",
             )
 
     def _stress_test_liquidity_crisis(
-        self,
-        strategy: Any,
-        data: List[Dict],
-        run_backtest: Callable
+        self, strategy: Any, data: List[Dict], run_backtest: Callable
     ) -> StressTestResult:
         """Simulate liquidity crisis (low volume, wide spreads)"""
         stress_data = [d.copy() for d in data]
@@ -805,7 +815,7 @@ class WalkForwardValidator:
 
             # Also add some price instability
             if random.random() > 0.5:
-                stress_data[i]["close"] *= (1 + random.uniform(-0.02, 0.02))
+                stress_data[i]["close"] *= 1 + random.uniform(-0.02, 0.02)
 
         try:
             result = run_backtest(strategy, stress_data)
@@ -820,7 +830,7 @@ class WalkForwardValidator:
                 max_drawdown_pct=max_dd,
                 survived=survived,
                 recovery_bars=30 if survived else 0,
-                notes=f"Volume dropped by {self.stress_config.liquidity_drop_pct}%"
+                notes=f"Volume dropped by {self.stress_config.liquidity_drop_pct}%",
             )
         except Exception as e:
             return StressTestResult(
@@ -830,14 +840,11 @@ class WalkForwardValidator:
                 max_drawdown_pct=20,
                 survived=False,
                 recovery_bars=0,
-                notes=f"Test failed: {e}"
+                notes=f"Test failed: {e}",
             )
 
     def _stress_test_whipsaw(
-        self,
-        strategy: Any,
-        data: List[Dict],
-        run_backtest: Callable
+        self, strategy: Any, data: List[Dict], run_backtest: Callable
     ) -> StressTestResult:
         """Simulate whipsaw (multiple rapid reversals)"""
         stress_data = [d.copy() for d in data]
@@ -874,7 +881,7 @@ class WalkForwardValidator:
                 max_drawdown_pct=max_dd,
                 survived=survived,
                 recovery_bars=40 if survived else 0,
-                notes="Multiple rapid reversals"
+                notes="Multiple rapid reversals",
             )
         except Exception as e:
             return StressTestResult(
@@ -884,15 +891,11 @@ class WalkForwardValidator:
                 max_drawdown_pct=25,
                 survived=False,
                 recovery_bars=0,
-                notes=f"Test failed: {e}"
+                notes=f"Test failed: {e}",
             )
 
     def _analyze_parameter_sensitivity(
-        self,
-        strategy: Any,
-        data: List[Dict],
-        run_backtest: Callable,
-        num_variations: int = 5
+        self, strategy: Any, data: List[Dict], run_backtest: Callable, num_variations: int = 5
     ) -> float:
         """
         Analyze how sensitive strategy is to parameter changes.
@@ -925,7 +928,9 @@ class WalkForwardValidator:
                 try:
                     result = run_backtest(strategy, data)
                     varied_sharpe = result.get("sharpe_ratio", 0)
-                    sharpe_variations.append(abs(varied_sharpe - base_sharpe) / base_sharpe if base_sharpe else 0)
+                    sharpe_variations.append(
+                        abs(varied_sharpe - base_sharpe) / base_sharpe if base_sharpe else 0
+                    )
                 except Exception:
                     sharpe_variations.append(1.0)
                 finally:
@@ -951,6 +956,7 @@ class WalkForwardValidator:
 # ============================================================
 # Monte Carlo Simulation
 # ============================================================
+
 
 class MonteCarloSimulator:
     """
@@ -1003,7 +1009,7 @@ class MonteCarloSimulator:
             max_dd = 0
 
             for ret in sampled_returns:
-                equity *= (1 + ret / 100)
+                equity *= 1 + ret / 100
                 peak = max(peak, equity)
                 dd = (peak - equity) / peak * 100
                 max_dd = max(max_dd, dd)
@@ -1038,7 +1044,9 @@ class MonteCarloSimulator:
             },
             "probability_of_profit": float(np.mean(final_equities > initial_capital)),
             "probability_of_20pct_loss": float(np.mean(final_equities < initial_capital * 0.8)),
-            "expected_return_pct": float((np.mean(final_equities) - initial_capital) / initial_capital * 100),
+            "expected_return_pct": float(
+                (np.mean(final_equities) - initial_capital) / initial_capital * 100
+            ),
         }
 
 

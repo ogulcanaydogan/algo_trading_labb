@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class WalkForwardResult:
     """Results from a single walk-forward fold."""
+
     fold: int
     train_start: datetime
     train_end: datetime
@@ -43,6 +44,7 @@ class WalkForwardResult:
 @dataclass
 class WalkForwardSummary:
     """Summary of walk-forward optimization."""
+
     symbol: str
     model_type: str
     n_folds: int
@@ -74,7 +76,7 @@ class WalkForwardOptimizer:
         test_size: int = 500,
         step_size: int = 250,
         anchored: bool = False,
-        purge_gap: int = 24
+        purge_gap: int = 24,
     ):
         """
         Initialize walk-forward optimizer.
@@ -124,7 +126,7 @@ class WalkForwardOptimizer:
         X: pd.DataFrame,
         y: pd.Series,
         model: BaseEstimator,
-        prices: Optional[pd.Series] = None
+        prices: Optional[pd.Series] = None,
     ) -> WalkForwardSummary:
         """
         Run walk-forward optimization.
@@ -141,8 +143,10 @@ class WalkForwardOptimizer:
         folds = self.generate_folds(len(X))
 
         if not folds:
-            raise ValueError(f"Not enough data for walk-forward. Need at least "
-                           f"{self.train_size + self.purge_gap + self.test_size} samples, got {len(X)}")
+            raise ValueError(
+                f"Not enough data for walk-forward. Need at least "
+                f"{self.train_size + self.purge_gap + self.test_size} samples, got {len(X)}"
+            )
 
         logger.info(f"Running walk-forward with {len(folds)} folds")
 
@@ -172,20 +176,24 @@ class WalkForwardOptimizer:
 
             # Get probabilities if available
             probas = None
-            if hasattr(fold_model, 'predict_proba'):
+            if hasattr(fold_model, "predict_proba"):
                 probas = fold_model.predict_proba(X_test_scaled)
 
             # Calculate metrics
             accuracy = accuracy_score(y_test, y_pred)
-            precision = precision_score(y_test, y_pred, average='weighted', zero_division=0)
-            recall = recall_score(y_test, y_pred, average='weighted', zero_division=0)
-            f1 = f1_score(y_test, y_pred, average='weighted', zero_division=0)
+            precision = precision_score(y_test, y_pred, average="weighted", zero_division=0)
+            recall = recall_score(y_test, y_pred, average="weighted", zero_division=0)
+            f1 = f1_score(y_test, y_pred, average="weighted", zero_division=0)
 
             # Get timestamps if available
-            train_start = X.index[train_idx[0]] if hasattr(X.index[0], 'isoformat') else train_idx[0]
-            train_end = X.index[train_idx[-1]] if hasattr(X.index[0], 'isoformat') else train_idx[-1]
-            test_start = X.index[test_idx[0]] if hasattr(X.index[0], 'isoformat') else test_idx[0]
-            test_end = X.index[test_idx[-1]] if hasattr(X.index[0], 'isoformat') else test_idx[-1]
+            train_start = (
+                X.index[train_idx[0]] if hasattr(X.index[0], "isoformat") else train_idx[0]
+            )
+            train_end = (
+                X.index[train_idx[-1]] if hasattr(X.index[0], "isoformat") else train_idx[-1]
+            )
+            test_start = X.index[test_idx[0]] if hasattr(X.index[0], "isoformat") else test_idx[0]
+            test_end = X.index[test_idx[-1]] if hasattr(X.index[0], "isoformat") else test_idx[-1]
 
             result = WalkForwardResult(
                 fold=i + 1,
@@ -201,7 +209,7 @@ class WalkForwardOptimizer:
                 f1=f1,
                 predictions=y_pred,
                 actuals=y_test.values,
-                probabilities=probas
+                probabilities=probas,
             )
             results.append(result)
 
@@ -211,7 +219,7 @@ class WalkForwardOptimizer:
             if prices is not None:
                 all_prices.extend(prices.iloc[test_idx].values)
 
-            logger.info(f"  Fold {i+1}: Accuracy={accuracy:.2%}, F1={f1:.2%}")
+            logger.info(f"  Fold {i + 1}: Accuracy={accuracy:.2%}, F1={f1:.2%}")
 
         # Calculate summary statistics
         accuracies = [r.accuracy for r in results]
@@ -223,7 +231,7 @@ class WalkForwardOptimizer:
         sharpe, max_dd, win_rate, profit_factor = self._calculate_trading_metrics(
             np.array(all_predictions),
             np.array(all_actuals),
-            np.array(all_prices) if prices is not None else None
+            np.array(all_prices) if prices is not None else None,
         )
 
         summary = WalkForwardSummary(
@@ -241,16 +249,13 @@ class WalkForwardOptimizer:
             max_drawdown=max_dd,
             win_rate=win_rate,
             profit_factor=profit_factor,
-            results=results
+            results=results,
         )
 
         return summary
 
     def _calculate_trading_metrics(
-        self,
-        predictions: np.ndarray,
-        actuals: np.ndarray,
-        prices: Optional[np.ndarray] = None
+        self, predictions: np.ndarray, actuals: np.ndarray, prices: Optional[np.ndarray] = None
     ) -> Tuple[float, float, float, float]:
         """Calculate trading-specific metrics."""
 
@@ -283,7 +288,7 @@ class WalkForwardOptimizer:
         # Profit factor
         gross_profit = returns[returns > 0].sum()
         gross_loss = abs(returns[returns < 0].sum())
-        profit_factor = gross_profit / gross_loss if gross_loss > 0 else float('inf')
+        profit_factor = gross_profit / gross_loss if gross_loss > 0 else float("inf")
 
         return sharpe, max_drawdown, win_rate, profit_factor
 
@@ -299,7 +304,7 @@ class AdaptiveWalkForward(WalkForwardOptimizer):
         min_train_size: int = 2000,
         max_train_size: int = 10000,
         test_size: int = 500,
-        volatility_lookback: int = 100
+        volatility_lookback: int = 100,
     ):
         super().__init__(train_size=min_train_size, test_size=test_size)
         self.min_train_size = min_train_size
@@ -307,11 +312,7 @@ class AdaptiveWalkForward(WalkForwardOptimizer):
         self.volatility_lookback = volatility_lookback
 
     def run_adaptive(
-        self,
-        X: pd.DataFrame,
-        y: pd.Series,
-        model: BaseEstimator,
-        returns: pd.Series
+        self, X: pd.DataFrame, y: pd.Series, model: BaseEstimator, returns: pd.Series
     ) -> WalkForwardSummary:
         """
         Run adaptive walk-forward with dynamic window sizing.
@@ -329,7 +330,9 @@ class AdaptiveWalkForward(WalkForwardOptimizer):
 
         while position + self.test_size < len(X):
             # Get current volatility regime
-            current_vol_pct = vol_percentile.iloc[position] if position < len(vol_percentile) else 0.5
+            current_vol_pct = (
+                vol_percentile.iloc[position] if position < len(vol_percentile) else 0.5
+            )
 
             # Adjust window size based on volatility
             # High vol (>75th percentile): use min window
@@ -369,10 +372,12 @@ class AdaptiveWalkForward(WalkForwardOptimizer):
             y_pred = fold_model.predict(X_test_scaled)
 
             accuracy = accuracy_score(y_test, y_pred)
-            f1 = f1_score(y_test, y_pred, average='weighted', zero_division=0)
+            f1 = f1_score(y_test, y_pred, average="weighted", zero_division=0)
 
-            logger.debug(f"Position {position}: train_size={len(train_idx)}, "
-                        f"vol_pct={current_vol_pct:.2f}, accuracy={accuracy:.2%}")
+            logger.debug(
+                f"Position {position}: train_size={len(train_idx)}, "
+                f"vol_pct={current_vol_pct:.2f}, accuracy={accuracy:.2%}"
+            )
 
             result = WalkForwardResult(
                 fold=len(results) + 1,
@@ -383,11 +388,11 @@ class AdaptiveWalkForward(WalkForwardOptimizer):
                 train_samples=len(train_idx),
                 test_samples=len(test_idx),
                 accuracy=accuracy,
-                precision=precision_score(y_test, y_pred, average='weighted', zero_division=0),
-                recall=recall_score(y_test, y_pred, average='weighted', zero_division=0),
+                precision=precision_score(y_test, y_pred, average="weighted", zero_division=0),
+                recall=recall_score(y_test, y_pred, average="weighted", zero_division=0),
                 f1=f1,
                 predictions=y_pred,
-                actuals=y_test.values
+                actuals=y_test.values,
             )
             results.append(result)
 
@@ -413,7 +418,7 @@ class AdaptiveWalkForward(WalkForwardOptimizer):
             max_drawdown=0.0,
             win_rate=np.mean(accuracies),
             profit_factor=1.0,
-            results=results
+            results=results,
         )
 
 
@@ -424,7 +429,7 @@ def run_walk_forward_analysis(
     model: BaseEstimator,
     prices: Optional[pd.Series] = None,
     train_size: int = 5000,
-    test_size: int = 500
+    test_size: int = 500,
 ) -> WalkForwardSummary:
     """
     Convenience function to run walk-forward analysis.
@@ -442,18 +447,15 @@ def run_walk_forward_analysis(
         WalkForwardSummary with results
     """
     optimizer = WalkForwardOptimizer(
-        train_size=train_size,
-        test_size=test_size,
-        step_size=test_size,
-        anchored=False
+        train_size=train_size, test_size=test_size, step_size=test_size, anchored=False
     )
 
     summary = optimizer.run(X, y, model, prices)
     summary.symbol = symbol
 
-    logger.info(f"\n{'='*50}")
+    logger.info(f"\n{'=' * 50}")
     logger.info(f"Walk-Forward Results for {symbol}")
-    logger.info(f"{'='*50}")
+    logger.info(f"{'=' * 50}")
     logger.info(f"Folds: {summary.n_folds}")
     logger.info(f"Mean Accuracy: {summary.mean_accuracy:.2%} (+/- {summary.std_accuracy:.2%})")
     logger.info(f"Mean F1: {summary.mean_f1:.2%}")

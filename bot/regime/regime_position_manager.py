@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 class PositionAction(Enum):
     """Actions the position manager can recommend."""
+
     HOLD = "hold"
     INCREASE = "increase"
     DECREASE = "decrease"
@@ -37,24 +38,28 @@ class PositionSizingConfig:
     """Configuration for regime-based position sizing."""
 
     # Target allocation per regime (as fraction of capital)
-    regime_allocations: Dict[MarketRegime, float] = field(default_factory=lambda: {
-        MarketRegime.BULL: 1.0,      # 100% invested
-        MarketRegime.SIDEWAYS: 0.8,  # 80% invested
-        MarketRegime.BEAR: 0.4,      # 40% invested
-        MarketRegime.HIGH_VOL: 0.5,  # 50% invested
-        MarketRegime.CRASH: 0.1,     # 10% invested (mostly cash)
-        MarketRegime.UNKNOWN: 0.3,   # 30% when uncertain
-    })
+    regime_allocations: Dict[MarketRegime, float] = field(
+        default_factory=lambda: {
+            MarketRegime.BULL: 1.0,  # 100% invested
+            MarketRegime.SIDEWAYS: 0.8,  # 80% invested
+            MarketRegime.BEAR: 0.4,  # 40% invested
+            MarketRegime.HIGH_VOL: 0.5,  # 50% invested
+            MarketRegime.CRASH: 0.1,  # 10% invested (mostly cash)
+            MarketRegime.UNKNOWN: 0.3,  # 30% when uncertain
+        }
+    )
 
     # Leverage settings per regime
-    regime_leverage: Dict[MarketRegime, float] = field(default_factory=lambda: {
-        MarketRegime.BULL: 1.5,      # Can use 1.5x in bull
-        MarketRegime.SIDEWAYS: 1.0,  # No leverage in sideways
-        MarketRegime.BEAR: 1.0,      # No leverage in bear
-        MarketRegime.HIGH_VOL: 0.8,  # Reduce exposure in high vol
-        MarketRegime.CRASH: 0.5,     # Minimum exposure in crash
-        MarketRegime.UNKNOWN: 0.5,   # Conservative when uncertain
-    })
+    regime_leverage: Dict[MarketRegime, float] = field(
+        default_factory=lambda: {
+            MarketRegime.BULL: 1.5,  # Can use 1.5x in bull
+            MarketRegime.SIDEWAYS: 1.0,  # No leverage in sideways
+            MarketRegime.BEAR: 1.0,  # No leverage in bear
+            MarketRegime.HIGH_VOL: 0.8,  # Reduce exposure in high vol
+            MarketRegime.CRASH: 0.5,  # Minimum exposure in crash
+            MarketRegime.UNKNOWN: 0.5,  # Conservative when uncertain
+        }
+    )
 
     # Transition settings
     max_position_change_per_hour: float = 0.10  # Max 10% change per hour
@@ -165,16 +170,12 @@ class RegimePositionManager:
 
         # Get target allocation for this regime
         base_allocation = self.config.regime_allocations.get(
-            regime_state.regime,
-            self.config.regime_allocations[MarketRegime.UNKNOWN]
+            regime_state.regime, self.config.regime_allocations[MarketRegime.UNKNOWN]
         )
 
         # Apply leverage if enabled
         if self.config.enable_leverage:
-            leverage = self.config.regime_leverage.get(
-                regime_state.regime,
-                1.0
-            )
+            leverage = self.config.regime_leverage.get(regime_state.regime, 1.0)
         else:
             leverage = 1.0
 
@@ -184,12 +185,12 @@ class RegimePositionManager:
         # Apply confidence weighting (lower confidence = more conservative)
         if regime_state.confidence < 0.5:
             # Reduce target when uncertain
-            target_allocation *= (0.5 + regime_state.confidence)
+            target_allocation *= 0.5 + regime_state.confidence
 
         # Clamp to limits
         target_allocation = max(
             self.config.min_total_allocation,
-            min(target_allocation, self.config.max_total_allocation)
+            min(target_allocation, self.config.max_total_allocation),
         )
 
         # Check if regime changed for this symbol (per-symbol tracking to prevent oscillation)
@@ -213,7 +214,7 @@ class RegimePositionManager:
         if abs(change_needed) < self.config.min_position_change:
             action = PositionAction.HOLD
             should_execute = False
-            reason = f"Change too small ({abs(change_needed)*100:.1f}% < {self.config.min_position_change*100:.1f}%)"
+            reason = f"Change too small ({abs(change_needed) * 100:.1f}% < {self.config.min_position_change * 100:.1f}%)"
         elif target_allocation < 0.05:
             action = PositionAction.CLOSE_ALL
             should_execute = True
@@ -232,13 +233,17 @@ class RegimePositionManager:
             time_since_rebalance = (datetime.now() - self._last_rebalance).total_seconds()
             if time_since_rebalance < self.config.min_time_between_rebalances:
                 # Apply rate limiting
-                max_change = self.config.max_position_change_per_hour * (time_since_rebalance / 3600)
+                max_change = self.config.max_position_change_per_hour * (
+                    time_since_rebalance / 3600
+                )
                 if abs(change_needed) > max_change:
                     # Limit the change
                     old_change = change_needed
                     change_needed = max_change if change_needed > 0 else -max_change
                     target_allocation = current_allocation + change_needed
-                    reason += f" (rate limited: {old_change*100:.1f}% -> {change_needed*100:.1f}%)"
+                    reason += (
+                        f" (rate limited: {old_change * 100:.1f}% -> {change_needed * 100:.1f}%)"
+                    )
 
         # Update target
         self._target_allocation = target_allocation
@@ -259,7 +264,7 @@ class RegimePositionManager:
         if should_execute:
             logger.info(
                 f"Position recommendation: {action.value} | "
-                f"Current: {current_allocation*100:.1f}% -> Target: {target_allocation*100:.1f}% | "
+                f"Current: {current_allocation * 100:.1f}% -> Target: {target_allocation * 100:.1f}% | "
                 f"Regime: {regime_state.regime.value} | {reason}"
             )
 
@@ -296,12 +301,14 @@ class RegimePositionManager:
         self._last_rebalance = datetime.now()
         self._current_allocation = recommendation.target_allocation
 
-        self._allocation_history.append({
-            "timestamp": datetime.now().isoformat(),
-            "regime": recommendation.regime.value,
-            "allocation": recommendation.target_allocation,
-            "action": recommendation.action.value,
-        })
+        self._allocation_history.append(
+            {
+                "timestamp": datetime.now().isoformat(),
+                "regime": recommendation.regime.value,
+                "allocation": recommendation.target_allocation,
+                "action": recommendation.action.value,
+            }
+        )
 
         # Keep last 1000 entries
         if len(self._allocation_history) > 1000:
@@ -315,7 +322,9 @@ class RegimePositionManager:
             "current_regime": self._current_regime.value if self._current_regime else None,
             "last_rebalance": self._last_rebalance.isoformat() if self._last_rebalance else None,
             "config": {
-                "regime_allocations": {k.value: v for k, v in self.config.regime_allocations.items()},
+                "regime_allocations": {
+                    k.value: v for k, v in self.config.regime_allocations.items()
+                },
                 "leverage_enabled": self.config.enable_leverage,
                 "max_change_per_hour": self.config.max_position_change_per_hour,
             },
@@ -364,7 +373,7 @@ class MultiAssetPositionManager(RegimePositionManager):
         # Normalize weights
         total = sum(weights.values())
         if total > 0:
-            self.asset_weights = {k: v/total for k, v in weights.items()}
+            self.asset_weights = {k: v / total for k, v in weights.items()}
         else:
             self.asset_weights = weights
 

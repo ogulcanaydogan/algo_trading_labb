@@ -31,6 +31,7 @@ DB_PATH = DATA_DIR / "ai_learning.db"
 @dataclass
 class TradeRecord:
     """A single trade record for learning."""
+
     id: Optional[int]
     timestamp: str
     symbol: str
@@ -48,13 +49,14 @@ class TradeRecord:
 
     def to_dict(self) -> Dict[str, Any]:
         d = asdict(self)
-        d['indicators'] = json.dumps(d['indicators'])
+        d["indicators"] = json.dumps(d["indicators"])
         return d
 
 
 @dataclass
 class StrategyPerformance:
     """Performance metrics for a strategy."""
+
     strategy_id: str
     total_trades: int
     win_rate: float
@@ -69,6 +71,7 @@ class StrategyPerformance:
 @dataclass
 class OptimizationResult:
     """Result of parameter optimization."""
+
     id: Optional[int]
     timestamp: str
     symbol: str
@@ -85,6 +88,7 @@ class OptimizationResult:
 @dataclass
 class EvolvedStrategy:
     """A strategy discovered by genetic evolution."""
+
     id: Optional[int]
     generation: int
     fitness: float  # Sharpe ratio or other metric
@@ -231,18 +235,30 @@ class LearningDatabase:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO trades (
                 timestamp, symbol, action, entry_price, exit_price,
                 quantity, pnl, pnl_pct, hold_duration_mins, regime,
                 strategy_id, indicators, outcome
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            trade.timestamp, trade.symbol, trade.action, trade.entry_price,
-            trade.exit_price, trade.quantity, trade.pnl, trade.pnl_pct,
-            trade.hold_duration_mins, trade.regime, trade.strategy_id,
-            json.dumps(trade.indicators), trade.outcome
-        ))
+        """,
+            (
+                trade.timestamp,
+                trade.symbol,
+                trade.action,
+                trade.entry_price,
+                trade.exit_price,
+                trade.quantity,
+                trade.pnl,
+                trade.pnl_pct,
+                trade.hold_duration_mins,
+                trade.regime,
+                trade.strategy_id,
+                json.dumps(trade.indicators),
+                trade.outcome,
+            ),
+        )
 
         trade_id = cursor.lastrowid
         conn.commit()
@@ -255,7 +271,7 @@ class LearningDatabase:
         regime: Optional[str] = None,
         strategy_id: Optional[str] = None,
         limit: int = 1000,
-        outcome: Optional[str] = None
+        outcome: Optional[str] = None,
     ) -> List[TradeRecord]:
         """Get trade records with optional filters."""
         conn = sqlite3.connect(self.db_path)
@@ -285,29 +301,29 @@ class LearningDatabase:
 
         trades = []
         for row in rows:
-            trades.append(TradeRecord(
-                id=row[0],
-                timestamp=row[1],
-                symbol=row[2],
-                action=row[3],
-                entry_price=row[4],
-                exit_price=row[5],
-                quantity=row[6],
-                pnl=row[7],
-                pnl_pct=row[8],
-                hold_duration_mins=row[9],
-                regime=row[10],
-                strategy_id=row[11],
-                indicators=json.loads(row[12]) if row[12] else {},
-                outcome=row[13]
-            ))
+            trades.append(
+                TradeRecord(
+                    id=row[0],
+                    timestamp=row[1],
+                    symbol=row[2],
+                    action=row[3],
+                    entry_price=row[4],
+                    exit_price=row[5],
+                    quantity=row[6],
+                    pnl=row[7],
+                    pnl_pct=row[8],
+                    hold_duration_mins=row[9],
+                    regime=row[10],
+                    strategy_id=row[11],
+                    indicators=json.loads(row[12]) if row[12] else {},
+                    outcome=row[13],
+                )
+            )
 
         return trades
 
     def get_trade_statistics(
-        self,
-        strategy_id: Optional[str] = None,
-        regime: Optional[str] = None
+        self, strategy_id: Optional[str] = None, regime: Optional[str] = None
     ) -> Dict[str, Any]:
         """Get aggregate statistics for trades."""
         conn = sqlite3.connect(self.db_path)
@@ -362,25 +378,31 @@ class LearningDatabase:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT OR REPLACE INTO strategy_performance (
                 strategy_id, regime, total_trades, win_rate, avg_pnl_pct,
                 sharpe_ratio, max_drawdown, profit_factor, last_updated
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            perf.strategy_id, perf.regime, perf.total_trades, perf.win_rate,
-            perf.avg_pnl_pct, perf.sharpe_ratio, perf.max_drawdown,
-            perf.profit_factor, perf.last_updated
-        ))
+        """,
+            (
+                perf.strategy_id,
+                perf.regime,
+                perf.total_trades,
+                perf.win_rate,
+                perf.avg_pnl_pct,
+                perf.sharpe_ratio,
+                perf.max_drawdown,
+                perf.profit_factor,
+                perf.last_updated,
+            ),
+        )
 
         conn.commit()
         conn.close()
 
     def get_best_strategies(
-        self,
-        regime: Optional[str] = None,
-        metric: str = "sharpe_ratio",
-        limit: int = 10
+        self, regime: Optional[str] = None, metric: str = "sharpe_ratio", limit: int = 10
     ) -> List[StrategyPerformance]:
         """Get best performing strategies."""
         conn = sqlite3.connect(self.db_path)
@@ -412,7 +434,7 @@ class LearningDatabase:
                 sharpe_ratio=row[6],
                 max_drawdown=row[7],
                 profit_factor=row[8],
-                last_updated=row[9]
+                last_updated=row[9],
             )
             for row in rows
         ]
@@ -424,38 +446,46 @@ class LearningDatabase:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO optimization_results (
                 timestamp, symbol, regime, parameters, sharpe_ratio,
                 win_rate, total_return, max_drawdown, num_trades,
                 backtest_period_days
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            result.timestamp, result.symbol, result.regime,
-            json.dumps(result.parameters), result.sharpe_ratio,
-            result.win_rate, result.total_return, result.max_drawdown,
-            result.num_trades, result.backtest_period_days
-        ))
+        """,
+            (
+                result.timestamp,
+                result.symbol,
+                result.regime,
+                json.dumps(result.parameters),
+                result.sharpe_ratio,
+                result.win_rate,
+                result.total_return,
+                result.max_drawdown,
+                result.num_trades,
+                result.backtest_period_days,
+            ),
+        )
 
         result_id = cursor.lastrowid
         conn.commit()
         conn.close()
         return result_id
 
-    def get_best_parameters(
-        self,
-        symbol: str,
-        regime: str
-    ) -> Optional[Dict[str, Any]]:
+    def get_best_parameters(self, symbol: str, regime: str) -> Optional[Dict[str, Any]]:
         """Get best parameters for a symbol/regime combination."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT parameters, sharpe_ratio FROM optimization_results
             WHERE symbol = ? AND regime = ?
             ORDER BY sharpe_ratio DESC LIMIT 1
-        """, (symbol, regime))
+        """,
+            (symbol, regime),
+        )
 
         row = cursor.fetchone()
         conn.close()
@@ -471,17 +501,23 @@ class LearningDatabase:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO evolved_strategies (
                 generation, fitness, genes, created_at, regime,
                 is_active, performance_live
             ) VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (
-            strategy.generation, strategy.fitness,
-            json.dumps(strategy.genes), strategy.created_at,
-            strategy.regime, strategy.is_active,
-            strategy.performance_live
-        ))
+        """,
+            (
+                strategy.generation,
+                strategy.fitness,
+                json.dumps(strategy.genes),
+                strategy.created_at,
+                strategy.regime,
+                strategy.is_active,
+                strategy.performance_live,
+            ),
+        )
 
         strategy_id = cursor.lastrowid
         conn.commit()
@@ -489,10 +525,7 @@ class LearningDatabase:
         return strategy_id
 
     def get_top_evolved_strategies(
-        self,
-        regime: Optional[str] = None,
-        limit: int = 10,
-        active_only: bool = True
+        self, regime: Optional[str] = None, limit: int = 10, active_only: bool = True
     ) -> List[EvolvedStrategy]:
         """Get top evolved strategies by fitness."""
         conn = sqlite3.connect(self.db_path)
@@ -522,7 +555,7 @@ class LearningDatabase:
                 created_at=row[4],
                 regime=row[5],
                 is_active=bool(row[6]),
-                performance_live=row[7]
+                performance_live=row[7],
             )
             for row in rows
         ]
@@ -536,33 +569,34 @@ class LearningDatabase:
         reward: float,
         next_state: List[float],
         done: bool,
-        symbol: str
+        symbol: str,
     ):
         """Save RL experience for replay buffer."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO rl_experiences (
                 timestamp, state, action, reward, next_state, done, symbol
             ) VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (
-            datetime.now(timezone.utc).isoformat(),
-            json.dumps(state),
-            action,
-            reward,
-            json.dumps(next_state),
-            int(done),
-            symbol
-        ))
+        """,
+            (
+                datetime.now(timezone.utc).isoformat(),
+                json.dumps(state),
+                action,
+                reward,
+                json.dumps(next_state),
+                int(done),
+                symbol,
+            ),
+        )
 
         conn.commit()
         conn.close()
 
     def get_rl_experiences(
-        self,
-        symbol: Optional[str] = None,
-        limit: int = 10000
+        self, symbol: Optional[str] = None, limit: int = 10000
     ) -> List[Tuple[List[float], int, float, List[float], bool]]:
         """Get RL experiences for training."""
         conn = sqlite3.connect(self.db_path)
@@ -582,8 +616,7 @@ class LearningDatabase:
         conn.close()
 
         return [
-            (json.loads(row[0]), row[1], row[2], json.loads(row[3]), bool(row[4]))
-            for row in rows
+            (json.loads(row[0]), row[1], row[2], json.loads(row[3]), bool(row[4])) for row in rows
         ]
 
     # ==================== Regime Transitions ====================
@@ -594,39 +627,45 @@ class LearningDatabase:
         from_regime: str,
         to_regime: str,
         indicators: Dict[str, float],
-        outcome_after_24h: Optional[float] = None
+        outcome_after_24h: Optional[float] = None,
     ):
         """Record a regime transition for pattern learning."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO regime_transitions (
                 timestamp, symbol, from_regime, to_regime,
                 indicators_at_transition, outcome_after_24h
             ) VALUES (?, ?, ?, ?, ?, ?)
-        """, (
-            datetime.now(timezone.utc).isoformat(),
-            symbol, from_regime, to_regime,
-            json.dumps(indicators), outcome_after_24h
-        ))
+        """,
+            (
+                datetime.now(timezone.utc).isoformat(),
+                symbol,
+                from_regime,
+                to_regime,
+                json.dumps(indicators),
+                outcome_after_24h,
+            ),
+        )
 
         conn.commit()
         conn.close()
 
-    def get_regime_transition_patterns(
-        self,
-        to_regime: str
-    ) -> List[Dict[str, Any]]:
+    def get_regime_transition_patterns(self, to_regime: str) -> List[Dict[str, Any]]:
         """Get historical patterns leading to a regime."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT from_regime, indicators_at_transition, outcome_after_24h
             FROM regime_transitions
             WHERE to_regime = ? AND outcome_after_24h IS NOT NULL
-        """, (to_regime,))
+        """,
+            (to_regime,),
+        )
 
         rows = cursor.fetchall()
         conn.close()
@@ -635,7 +674,7 @@ class LearningDatabase:
             {
                 "from_regime": row[0],
                 "indicators": json.loads(row[1]) if row[1] else {},
-                "outcome_after_24h": row[2]
+                "outcome_after_24h": row[2],
             }
             for row in rows
         ]
@@ -649,8 +688,12 @@ class LearningDatabase:
 
         # Count records in each table
         tables = [
-            'trades', 'strategy_performance', 'optimization_results',
-            'evolved_strategies', 'rl_experiences', 'regime_transitions'
+            "trades",
+            "strategy_performance",
+            "optimization_results",
+            "evolved_strategies",
+            "rl_experiences",
+            "regime_transitions",
         ]
 
         counts = {}
@@ -661,12 +704,12 @@ class LearningDatabase:
         conn.close()
 
         return {
-            "total_trades": counts['trades'],
-            "strategies_tracked": counts['strategy_performance'],
-            "optimizations_run": counts['optimization_results'],
-            "evolved_strategies": counts['evolved_strategies'],
-            "rl_experiences": counts['rl_experiences'],
-            "regime_transitions": counts['regime_transitions'],
+            "total_trades": counts["trades"],
+            "strategies_tracked": counts["strategy_performance"],
+            "optimizations_run": counts["optimization_results"],
+            "evolved_strategies": counts["evolved_strategies"],
+            "rl_experiences": counts["rl_experiences"],
+            "regime_transitions": counts["regime_transitions"],
             "database_path": str(self.db_path),
         }
 

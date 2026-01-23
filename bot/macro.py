@@ -189,10 +189,10 @@ class MacroSentimentEngine:
         ]
         events_payload = [event.as_dict() for event in sorted_events[:6]]
 
-        bias_text = "bullish" if bias_score > 0.05 else "bearish" if bias_score < -0.05 else "balanced"
-        summary = (
-            f"Macro bias is {bias_text} ({bias_score:+.2f}) based on {len(relevant)} tracked catalysts."
+        bias_text = (
+            "bullish" if bias_score > 0.05 else "bearish" if bias_score < -0.05 else "balanced"
         )
+        summary = f"Macro bias is {bias_text} ({bias_score:+.2f}) based on {len(relevant)} tracked catalysts."
 
         if political_notes:
             political_section = "; ".join(political_notes[:2])

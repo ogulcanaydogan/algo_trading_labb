@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 class FlagType(Enum):
     """Feature flag types."""
+
     BOOLEAN = "boolean"
     PERCENTAGE = "percentage"  # Gradual rollout
     VARIANT = "variant"  # Multiple variants
@@ -32,6 +33,7 @@ class FlagType(Enum):
 
 class RolloutStrategy(Enum):
     """Rollout strategy for gradual deployment."""
+
     ALL = "all"
     NONE = "none"
     PERCENTAGE = "percentage"
@@ -42,6 +44,7 @@ class RolloutStrategy(Enum):
 @dataclass
 class TargetingRule:
     """Rule for targeting specific users/entities."""
+
     attribute: str  # e.g., "user_id", "environment", "symbol"
     operator: str  # "eq", "neq", "in", "not_in", "contains", "gt", "lt"
     value: Any
@@ -84,6 +87,7 @@ class TargetingRule:
 @dataclass
 class FeatureFlag:
     """A feature flag definition."""
+
     key: str
     name: str
     description: str = ""
@@ -134,9 +138,7 @@ class FeatureFlag:
     @classmethod
     def from_dict(cls, data: Dict) -> "FeatureFlag":
         """Create flag from dictionary."""
-        rules = [
-            TargetingRule(**r) for r in data.get("targeting_rules", [])
-        ]
+        rules = [TargetingRule(**r) for r in data.get("targeting_rules", [])]
 
         return cls(
             key=data["key"],
@@ -160,6 +162,7 @@ class FeatureFlag:
 @dataclass
 class EvaluationResult:
     """Result of flag evaluation."""
+
     flag_key: str
     enabled: bool
     value: Any
@@ -190,11 +193,7 @@ class FeatureFlagManager:
     - Thread-safe operations
     """
 
-    def __init__(
-        self,
-        storage_path: Optional[str] = None,
-        environment: str = "development"
-    ):
+    def __init__(self, storage_path: Optional[str] = None, environment: str = "development"):
         self._flags: Dict[str, FeatureFlag] = {}
         self._storage_path = storage_path
         self._environment = environment
@@ -248,7 +247,7 @@ class FeatureFlagManager:
         flag_type: FlagType = FlagType.BOOLEAN,
         default_value: Any = False,
         enabled: bool = False,
-        **kwargs
+        **kwargs,
     ) -> FeatureFlag:
         """Create a new feature flag."""
         with self._lock:
@@ -262,7 +261,7 @@ class FeatureFlagManager:
                 flag_type=flag_type,
                 default_value=default_value,
                 enabled=enabled,
-                **kwargs
+                **kwargs,
             )
             self._flags[key] = flag
             self._save_to_file()
@@ -305,9 +304,7 @@ class FeatureFlagManager:
         return self._flags.get(key)
 
     def list_flags(
-        self,
-        tag: Optional[str] = None,
-        enabled_only: bool = False
+        self, tag: Optional[str] = None, enabled_only: bool = False
     ) -> List[FeatureFlag]:
         """List all flags, optionally filtered."""
         flags = list(self._flags.values())
@@ -321,10 +318,7 @@ class FeatureFlagManager:
         return flags
 
     def is_enabled(
-        self,
-        key: str,
-        context: Optional[Dict[str, Any]] = None,
-        default: bool = False
+        self, key: str, context: Optional[Dict[str, Any]] = None, default: bool = False
     ) -> bool:
         """
         Check if a feature flag is enabled.
@@ -343,9 +337,7 @@ class FeatureFlagManager:
         return result.enabled
 
     def evaluate(
-        self,
-        key: str,
-        context: Optional[Dict[str, Any]] = None
+        self, key: str, context: Optional[Dict[str, Any]] = None
     ) -> Optional[EvaluationResult]:
         """
         Evaluate a feature flag with full context.
@@ -383,8 +375,10 @@ class FeatureFlagManager:
             reason = "flag_disabled"
         else:
             # Check environment
-            if flag.allowed_environments and \
-               context.get("environment") not in flag.allowed_environments:
+            if (
+                flag.allowed_environments
+                and context.get("environment") not in flag.allowed_environments
+            ):
                 reason = "environment_not_allowed"
             # Check user allowlist
             elif flag.rollout_strategy == RolloutStrategy.USER_LIST:
@@ -435,12 +429,7 @@ class FeatureFlagManager:
 
         return result
 
-    def _check_percentage(
-        self,
-        key: str,
-        context: Dict[str, Any],
-        percentage: float
-    ) -> bool:
+    def _check_percentage(self, key: str, context: Dict[str, Any], percentage: float) -> bool:
         """Check if entity falls within percentage rollout."""
         # Use user_id or generate from context
         entity_id = context.get("user_id") or json.dumps(context, sort_keys=True)
@@ -450,12 +439,7 @@ class FeatureFlagManager:
 
         return bucket < percentage
 
-    def _select_variant(
-        self,
-        key: str,
-        context: Dict[str, Any],
-        flag: FeatureFlag
-    ) -> str:
+    def _select_variant(self, key: str, context: Dict[str, Any], flag: FeatureFlag) -> str:
         """Select a variant based on weights."""
         if not flag.variants:
             return ""
@@ -490,8 +474,7 @@ class FeatureFlagManager:
         """Clear evaluation cache."""
         if key:
             self._evaluation_cache = {
-                k: v for k, v in self._evaluation_cache.items()
-                if not k.startswith(f"{key}:")
+                k: v for k, v in self._evaluation_cache.items() if not k.startswith(f"{key}:")
             }
         else:
             self._evaluation_cache.clear()
@@ -519,9 +502,7 @@ class FeatureFlagManager:
     def set_percentage(self, key: str, percentage: float):
         """Set rollout percentage."""
         self.update_flag(
-            key,
-            rollout_strategy=RolloutStrategy.PERCENTAGE,
-            rollout_percentage=percentage
+            key, rollout_strategy=RolloutStrategy.PERCENTAGE, rollout_percentage=percentage
         )
 
     def add_to_allowlist(self, key: str, user_id: str):
@@ -586,7 +567,7 @@ class TradingFeatureFlags:
                         name=name,
                         description=desc,
                         enabled=enabled,
-                        tags=["trading", "core"]
+                        tags=["trading", "core"],
                     )
                 except ValueError:
                     pass  # Flag already exists
@@ -604,16 +585,13 @@ class TradingFeatureFlags:
 
 
 def create_feature_flag_manager(
-    storage_path: Optional[str] = None,
-    environment: Optional[str] = None
+    storage_path: Optional[str] = None, environment: Optional[str] = None
 ) -> FeatureFlagManager:
     """Factory function to create feature flag manager."""
     env = environment or os.getenv("ENVIRONMENT", "development")
     return FeatureFlagManager(storage_path=storage_path, environment=env)
 
 
-def create_trading_flags(
-    manager: Optional[FeatureFlagManager] = None
-) -> TradingFeatureFlags:
+def create_trading_flags(manager: Optional[FeatureFlagManager] = None) -> TradingFeatureFlags:
     """Factory function to create trading feature flags."""
     return TradingFeatureFlags(manager)

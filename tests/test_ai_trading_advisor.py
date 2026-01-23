@@ -223,9 +223,9 @@ class TestAITradingAdvisor:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.raise_for_status = MagicMock()
-        mock_response.json = MagicMock(return_value={
-            "message": {"content": json.dumps(ai_response)}
-        })
+        mock_response.json = MagicMock(
+            return_value={"message": {"content": json.dumps(ai_response)}}
+        )
 
         with patch.object(advisor, "_get_client") as mock_get_client:
             mock_client = AsyncMock()
@@ -356,6 +356,7 @@ class TestGlobalFunctions:
         """Test get_advisor returns singleton instance."""
         # Reset global state
         import bot.ai_trading_advisor as module
+
         module._advisor = None
 
         advisor1 = get_advisor()
@@ -367,6 +368,7 @@ class TestGlobalFunctions:
     async def test_get_ai_advice_convenience(self) -> None:
         """Test get_ai_advice convenience function."""
         import bot.ai_trading_advisor as module
+
         module._advisor = None
 
         with patch.object(AITradingAdvisor, "get_advice") as mock_get_advice:

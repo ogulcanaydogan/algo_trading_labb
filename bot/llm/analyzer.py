@@ -19,6 +19,7 @@ from .prompts import PERFORMANCE_ANALYZER_PROMPT
 @dataclass
 class AnalysisReport:
     """Comprehensive performance analysis report."""
+
     summary: str
     key_metrics: Dict[str, float]
     strengths: List[str]
@@ -45,7 +46,7 @@ class AnalysisReport:
     def to_markdown(self) -> str:
         """Generate markdown report."""
         md = f"""# Performance Analysis Report
-Generated: {self.generated_at.strftime('%Y-%m-%d %H:%M')}
+Generated: {self.generated_at.strftime("%Y-%m-%d %H:%M")}
 
 ## Summary
 {self.summary}
@@ -176,7 +177,7 @@ class PerformanceAnalyzer:
         avg_trade = np.mean(pnls) if pnls else 0
 
         # Risk metrics
-        profit_factor = sum(wins) / sum(losses) if losses else float('inf')
+        profit_factor = sum(wins) / sum(losses) if losses else float("inf")
         expectancy = (win_rate * avg_win) - ((1 - win_rate) * avg_loss)
 
         # Sharpe ratio (simplified)
@@ -273,7 +274,9 @@ class PerformanceAnalyzer:
             strengths.append(f"Good profit factor ({metrics['profit_factor']:.2f})")
 
         if metrics["sharpe_ratio"] > 1.0:
-            strengths.append(f"Excellent risk-adjusted returns (Sharpe: {metrics['sharpe_ratio']:.2f})")
+            strengths.append(
+                f"Excellent risk-adjusted returns (Sharpe: {metrics['sharpe_ratio']:.2f})"
+            )
 
         if metrics["max_drawdown_pct"] < 10:
             strengths.append(f"Low drawdown ({metrics['max_drawdown_pct']:.1f}%)")
@@ -298,7 +301,9 @@ class PerformanceAnalyzer:
         weaknesses = []
 
         if metrics["win_rate"] < 0.45:
-            weaknesses.append(f"Low win rate ({metrics['win_rate']:.1%}) - entry signals need refinement")
+            weaknesses.append(
+                f"Low win rate ({metrics['win_rate']:.1%}) - entry signals need refinement"
+            )
 
         if metrics["profit_factor"] < 1.0:
             weaknesses.append(f"Unprofitable (profit factor: {metrics['profit_factor']:.2f})")
@@ -307,7 +312,9 @@ class PerformanceAnalyzer:
             weaknesses.append(f"Poor risk-adjusted returns (Sharpe: {metrics['sharpe_ratio']:.2f})")
 
         if metrics["max_drawdown_pct"] > 20:
-            weaknesses.append(f"High drawdown ({metrics['max_drawdown_pct']:.1f}%) - risk management needs improvement")
+            weaknesses.append(
+                f"High drawdown ({metrics['max_drawdown_pct']:.1f}%) - risk management needs improvement"
+            )
 
         if metrics["max_loss_streak"] > 5:
             weaknesses.append(f"Extended losing streaks (max: {metrics['max_loss_streak']})")
@@ -327,39 +334,25 @@ class PerformanceAnalyzer:
 
         # Win rate improvements
         if metrics["win_rate"] < 0.5:
-            recommendations.append(
-                "Increase entry confidence threshold to filter weak signals"
-            )
-            recommendations.append(
-                "Add trend filter to avoid counter-trend trades"
-            )
+            recommendations.append("Increase entry confidence threshold to filter weak signals")
+            recommendations.append("Add trend filter to avoid counter-trend trades")
 
         # Risk management
         if metrics["max_drawdown_pct"] > 15:
             recommendations.append(
                 f"Reduce position size by {min(50, metrics['max_drawdown_pct'])}%"
             )
-            recommendations.append(
-                "Implement maximum daily loss limit"
-            )
+            recommendations.append("Implement maximum daily loss limit")
 
         # Profit optimization
         if metrics["avg_win"] < metrics["avg_loss"]:
-            recommendations.append(
-                "Widen take-profit targets to improve reward/risk ratio"
-            )
-            recommendations.append(
-                "Consider trailing stops to lock in profits"
-            )
+            recommendations.append("Widen take-profit targets to improve reward/risk ratio")
+            recommendations.append("Consider trailing stops to lock in profits")
 
         # Consistency
         if metrics["sharpe_ratio"] < 0.5:
-            recommendations.append(
-                "Focus on higher probability setups only"
-            )
-            recommendations.append(
-                "Consider market regime filter to avoid unfavorable conditions"
-            )
+            recommendations.append("Focus on higher probability setups only")
+            recommendations.append("Consider market regime filter to avoid unfavorable conditions")
 
         if not recommendations:
             recommendations.append("Continue current approach with regular monitoring")
@@ -421,8 +414,12 @@ class PerformanceAnalyzer:
         efficiency_score = min(100, metrics["expectancy"] * 500 + 50)
 
         # Overall score
-        overall = (profit_score * 0.3 + consistency_score * 0.25 +
-                   risk_score * 0.25 + efficiency_score * 0.2)
+        overall = (
+            profit_score * 0.3
+            + consistency_score * 0.25
+            + risk_score * 0.25
+            + efficiency_score * 0.2
+        )
 
         return {
             "profitability": round(profit_score, 1),
@@ -468,7 +465,13 @@ class PerformanceAnalyzer:
     ) -> str:
         """Generate executive summary."""
         profitability = "profitable" if metrics["profit_factor"] > 1 else "unprofitable"
-        win_rate_quality = "high" if metrics["win_rate"] > 0.55 else "moderate" if metrics["win_rate"] > 0.45 else "low"
+        win_rate_quality = (
+            "high"
+            if metrics["win_rate"] > 0.55
+            else "moderate"
+            if metrics["win_rate"] > 0.45
+            else "low"
+        )
 
         return (
             f"The {strategy_name} strategy is {profitability} with a {win_rate_quality} win rate "

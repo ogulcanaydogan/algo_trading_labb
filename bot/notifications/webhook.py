@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 class WebhookEventType(Enum):
     """Types of webhook events."""
+
     TRADE_SIGNAL = "trade_signal"
     TRADE_EXECUTED = "trade_executed"
     POSITION_OPENED = "position_opened"
@@ -40,6 +41,7 @@ class WebhookEventType(Enum):
 @dataclass
 class WebhookEndpoint:
     """Webhook endpoint configuration."""
+
     endpoint_id: str
     name: str
     url: str
@@ -64,6 +66,7 @@ class WebhookEndpoint:
 @dataclass
 class WebhookDelivery:
     """Record of a webhook delivery attempt."""
+
     delivery_id: str
     endpoint_id: str
     event_type: WebhookEventType
@@ -93,6 +96,7 @@ class WebhookDelivery:
 @dataclass
 class WebhookConfig:
     """Webhook system configuration."""
+
     # Delivery settings
     default_retry_count: int = 3
     retry_delay_seconds: float = 1.0
@@ -300,7 +304,7 @@ class WebhookManager:
         # Store delivery record
         self._delivery_history.append(delivery)
         if len(self._delivery_history) > self.config.max_delivery_history:
-            self._delivery_history = self._delivery_history[-self.config.max_delivery_history:]
+            self._delivery_history = self._delivery_history[-self.config.max_delivery_history :]
 
         return delivery
 

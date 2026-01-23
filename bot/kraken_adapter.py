@@ -65,14 +65,16 @@ class KrakenAdapter:
     def connect(self) -> bool:
         """Connect to Kraken exchange."""
         try:
-            self._exchange = ccxt.kraken({
-                "apiKey": self.config.api_key,
-                "secret": self.config.api_secret,
-                "enableRateLimit": self.config.rate_limit,
-                "options": {
-                    "defaultType": "spot",
-                },
-            })
+            self._exchange = ccxt.kraken(
+                {
+                    "apiKey": self.config.api_key,
+                    "secret": self.config.api_secret,
+                    "enableRateLimit": self.config.rate_limit,
+                    "options": {
+                        "defaultType": "spot",
+                    },
+                }
+            )
 
             # Test connection
             self._exchange.fetch_time()
@@ -237,12 +239,14 @@ class KrakenAdapter:
                 symbol = f"{currency}/USDT"
                 price = self.get_current_price(symbol)
                 if price:
-                    positions.append({
-                        "symbol": symbol,
-                        "quantity": amount,
-                        "current_price": price,
-                        "value": amount * price,
-                    })
+                    positions.append(
+                        {
+                            "symbol": symbol,
+                            "quantity": amount,
+                            "current_price": price,
+                            "value": amount * price,
+                        }
+                    )
 
         return positions
 
@@ -395,9 +399,7 @@ class KrakenAdapter:
 
         try:
             kraken_symbol = self._map_symbol(symbol)
-            trades = self._exchange.fetch_my_trades(
-                kraken_symbol, since=since, limit=limit
-            )
+            trades = self._exchange.fetch_my_trades(kraken_symbol, since=since, limit=limit)
 
             return [
                 {

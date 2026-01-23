@@ -20,14 +20,16 @@ logger = logging.getLogger(__name__)
 
 class RequestPriority(Enum):
     """Priority levels for LLM requests."""
-    CRITICAL = "critical"     # Breaking news, large position, regime change
-    HIGH = "high"             # Trade decisions, risk assessment
-    NORMAL = "normal"         # Routine explanations
-    LOW = "low"               # Background analysis
+
+    CRITICAL = "critical"  # Breaking news, large position, regime change
+    HIGH = "high"  # Trade decisions, risk assessment
+    NORMAL = "normal"  # Routine explanations
+    LOW = "low"  # Background analysis
 
 
 class LLMBackend(Enum):
     """Available LLM backends."""
+
     CLAUDE_SONNET = "claude_sonnet"
     CLAUDE_HAIKU = "claude_haiku"
     OLLAMA = "ollama"
@@ -37,6 +39,7 @@ class LLMBackend(Enum):
 @dataclass
 class LLMRequest:
     """Request to be routed to an LLM."""
+
     prompt: str
     system_prompt: Optional[str] = None
     priority: RequestPriority = RequestPriority.NORMAL
@@ -50,6 +53,7 @@ class LLMRequest:
 @dataclass
 class LLMResponse:
     """Response from an LLM."""
+
     content: str
     backend: LLMBackend
     success: bool
@@ -92,11 +96,11 @@ class LLMRouter:
 
     # Thresholds for using Claude
     CLAUDE_TRIGGERS = {
-        "portfolio_value_usd": 10000,      # Portfolio > $10k
-        "trade_size_pct": 5.0,              # Trade > 5% of portfolio
-        "daily_loss_pct_threshold": -1.5,   # Down > 1.5% today
-        "news_urgency_score": 0.8,          # High urgency news
-        "regime_change_confidence": 0.7,    # High confidence regime change
+        "portfolio_value_usd": 10000,  # Portfolio > $10k
+        "trade_size_pct": 5.0,  # Trade > 5% of portfolio
+        "daily_loss_pct_threshold": -1.5,  # Down > 1.5% today
+        "news_urgency_score": 0.8,  # High urgency news
+        "regime_change_confidence": 0.7,  # High confidence regime change
     }
 
     def __init__(
@@ -134,7 +138,9 @@ class LLMRouter:
             "total_cost": 0.0,
         }
 
-        logger.info(f"LLM Router initialized: budget=${daily_budget}/day, ollama={enable_ollama}, claude={enable_claude}")
+        logger.info(
+            f"LLM Router initialized: budget=${daily_budget}/day, ollama={enable_ollama}, claude={enable_claude}"
+        )
 
     @property
     def claude_client(self):
@@ -142,6 +148,7 @@ class LLMRouter:
         if self._claude_client is None and self.enable_claude:
             try:
                 from bot.llm.claude.client import ClaudeClient
+
                 self._claude_client = ClaudeClient(daily_budget=self.daily_budget)
                 logger.info("Claude client initialized")
             except Exception as e:
@@ -155,6 +162,7 @@ class LLMRouter:
         if self._ollama_advisor is None and self.enable_ollama:
             try:
                 from bot.llm.advisor import LLMAdvisor
+
                 self._ollama_advisor = LLMAdvisor(model=self.default_ollama_model)
                 self._ollama_available = self._ollama_advisor.is_available()
                 if self._ollama_available:
@@ -178,6 +186,7 @@ class LLMRouter:
             LLM response
         """
         import time
+
         start_time = time.time()
         self._stats["total_requests"] += 1
 
@@ -196,7 +205,10 @@ class LLMRouter:
         response.latency_ms = (time.time() - start_time) * 1000
 
         # Track stats
-        if response.backend == LLMBackend.CLAUDE_SONNET or response.backend == LLMBackend.CLAUDE_HAIKU:
+        if (
+            response.backend == LLMBackend.CLAUDE_SONNET
+            or response.backend == LLMBackend.CLAUDE_HAIKU
+        ):
             self._stats["claude_requests"] += 1
             self._stats["total_cost"] += response.cost
         elif response.backend == LLMBackend.OLLAMA:
@@ -257,7 +269,10 @@ class LLMRouter:
 
         # Regime change check
         if context.get("regime_change", False):
-            if context.get("regime_confidence", 0) > self.CLAUDE_TRIGGERS["regime_change_confidence"]:
+            if (
+                context.get("regime_confidence", 0)
+                > self.CLAUDE_TRIGGERS["regime_change_confidence"]
+            ):
                 return True
 
         return False
@@ -375,7 +390,9 @@ class LLMRouter:
             try:
                 if backend == LLMBackend.CLAUDE_HAIKU and self.claude_client:
                     return self._execute_claude(request, model="haiku")
-                elif backend == LLMBackend.OLLAMA and self.ollama_advisor and self._ollama_available:
+                elif (
+                    backend == LLMBackend.OLLAMA and self.ollama_advisor and self._ollama_available
+                ):
                     return self._execute_ollama(request)
                 elif backend == LLMBackend.RULE_BASED:
                     return self._execute_rule_based(request)

@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class LearningResult:
     """Result of learning from a trade."""
+
     pattern_id: int
     was_profitable: bool
     pnl_pct: float
@@ -54,6 +55,7 @@ class LearningResult:
 @dataclass
 class TradeOutcome:
     """Outcome of a completed trade for learning."""
+
     symbol: str
     action: str
     entry_price: float
@@ -134,7 +136,9 @@ class RealTimeLearner:
         Returns:
             LearningResult with insights and adjustments
         """
-        logger.info(f"Learning from trade: {outcome.symbol} {outcome.action} {outcome.pnl_pct:+.2f}%")
+        logger.info(
+            f"Learning from trade: {outcome.symbol} {outcome.action} {outcome.pnl_pct:+.2f}%"
+        )
 
         # 1. Create and store pattern
         pattern = self._create_pattern(outcome)
@@ -143,7 +147,7 @@ class RealTimeLearner:
         # 2. Track in recent trades
         self._recent_trades.append(outcome)
         if len(self._recent_trades) > self._max_recent:
-            self._recent_trades = self._recent_trades[-self._max_recent:]
+            self._recent_trades = self._recent_trades[-self._max_recent :]
 
         # 3. Get updated statistics
         stats = self.pattern_memory.get_pattern_stats(
@@ -179,7 +183,9 @@ class RealTimeLearner:
             recommendations=recommendations,
         )
 
-        logger.info(f"Learned pattern #{pattern_id}: win_rate={stats.win_rate:.1%}, adjustment={confidence_adjustment:.3f}")
+        logger.info(
+            f"Learned pattern #{pattern_id}: win_rate={stats.win_rate:.1%}, adjustment={confidence_adjustment:.3f}"
+        )
 
         return result
 
@@ -352,7 +358,9 @@ class RealTimeLearner:
 
         # Win rate based recommendations
         if stats.win_rate < 0.4:
-            recommendations.append(f"Consider reducing position size for {outcome.action} in {outcome.regime} regime")
+            recommendations.append(
+                f"Consider reducing position size for {outcome.action} in {outcome.regime} regime"
+            )
 
         if stats.win_rate > 0.6:
             recommendations.append(f"Pattern performing well - maintain or increase confidence")

@@ -27,8 +27,10 @@ logger = logging.getLogger(__name__)
 # CANDLESTICK PATTERNS
 # ============================================================================
 
+
 class CandlePattern(Enum):
     """Recognized candlestick patterns"""
+
     # Bullish patterns
     HAMMER = "hammer"
     INVERTED_HAMMER = "inverted_hammer"
@@ -57,6 +59,7 @@ class CandlePattern(Enum):
 @dataclass
 class PatternResult:
     """Result of pattern detection"""
+
     pattern: CandlePattern
     direction: str  # "bullish", "bearish", "neutral"
     strength: float  # 0-1
@@ -119,7 +122,10 @@ class CandlestickAnalyzer:
         is_bullish = c > o
 
         return {
-            "open": o, "high": h, "low": l, "close": c,
+            "open": o,
+            "high": h,
+            "low": l,
+            "close": c,
             "body": body,
             "range": range_hl,
             "body_pct": body / range_hl,
@@ -140,93 +146,115 @@ class CandlestickAnalyzer:
         # Doji
         if m["is_doji"]:
             if m["lower_wick_pct"] > 0.6:
-                patterns.append(PatternResult(
-                    pattern=CandlePattern.DRAGONFLY_DOJI,
+                patterns.append(
+                    PatternResult(
+                        pattern=CandlePattern.DRAGONFLY_DOJI,
+                        direction="bullish",
+                        strength=0.6,
+                        bar_index=idx,
+                        description="Dragonfly doji - potential bullish reversal",
+                    )
+                )
+            elif m["upper_wick_pct"] > 0.6:
+                patterns.append(
+                    PatternResult(
+                        pattern=CandlePattern.GRAVESTONE_DOJI,
+                        direction="bearish",
+                        strength=0.6,
+                        bar_index=idx,
+                        description="Gravestone doji - potential bearish reversal",
+                    )
+                )
+            else:
+                patterns.append(
+                    PatternResult(
+                        pattern=CandlePattern.DOJI,
+                        direction="neutral",
+                        strength=0.4,
+                        bar_index=idx,
+                        description="Doji - indecision",
+                    )
+                )
+
+        # Hammer (bullish) - small body at top, long lower wick
+        elif (
+            m["is_bullish"]
+            and m["lower_wick_pct"] > 0.6
+            and m["upper_wick_pct"] < 0.1
+            and m["body_pct"] < 0.3
+        ):
+            patterns.append(
+                PatternResult(
+                    pattern=CandlePattern.HAMMER,
+                    direction="bullish",
+                    strength=0.7,
+                    bar_index=idx,
+                    description="Hammer - potential bullish reversal",
+                )
+            )
+
+        # Inverted Hammer (bullish) - small body at bottom, long upper wick
+        elif (
+            m["is_bullish"]
+            and m["upper_wick_pct"] > 0.6
+            and m["lower_wick_pct"] < 0.1
+            and m["body_pct"] < 0.3
+        ):
+            patterns.append(
+                PatternResult(
+                    pattern=CandlePattern.INVERTED_HAMMER,
                     direction="bullish",
                     strength=0.6,
                     bar_index=idx,
-                    description="Dragonfly doji - potential bullish reversal"
-                ))
-            elif m["upper_wick_pct"] > 0.6:
-                patterns.append(PatternResult(
-                    pattern=CandlePattern.GRAVESTONE_DOJI,
+                    description="Inverted hammer - potential bullish reversal",
+                )
+            )
+
+        # Shooting Star (bearish) - small body at bottom, long upper wick
+        elif (
+            m["is_bearish"]
+            and m["upper_wick_pct"] > 0.6
+            and m["lower_wick_pct"] < 0.1
+            and m["body_pct"] < 0.3
+        ):
+            patterns.append(
+                PatternResult(
+                    pattern=CandlePattern.SHOOTING_STAR,
+                    direction="bearish",
+                    strength=0.7,
+                    bar_index=idx,
+                    description="Shooting star - potential bearish reversal",
+                )
+            )
+
+        # Hanging Man (bearish) - small body at top, long lower wick (in uptrend)
+        elif (
+            m["is_bearish"]
+            and m["lower_wick_pct"] > 0.6
+            and m["upper_wick_pct"] < 0.1
+            and m["body_pct"] < 0.3
+        ):
+            patterns.append(
+                PatternResult(
+                    pattern=CandlePattern.HANGING_MAN,
                     direction="bearish",
                     strength=0.6,
                     bar_index=idx,
-                    description="Gravestone doji - potential bearish reversal"
-                ))
-            else:
-                patterns.append(PatternResult(
-                    pattern=CandlePattern.DOJI,
-                    direction="neutral",
-                    strength=0.4,
-                    bar_index=idx,
-                    description="Doji - indecision"
-                ))
-
-        # Hammer (bullish) - small body at top, long lower wick
-        elif (m["is_bullish"] and
-              m["lower_wick_pct"] > 0.6 and
-              m["upper_wick_pct"] < 0.1 and
-              m["body_pct"] < 0.3):
-            patterns.append(PatternResult(
-                pattern=CandlePattern.HAMMER,
-                direction="bullish",
-                strength=0.7,
-                bar_index=idx,
-                description="Hammer - potential bullish reversal"
-            ))
-
-        # Inverted Hammer (bullish) - small body at bottom, long upper wick
-        elif (m["is_bullish"] and
-              m["upper_wick_pct"] > 0.6 and
-              m["lower_wick_pct"] < 0.1 and
-              m["body_pct"] < 0.3):
-            patterns.append(PatternResult(
-                pattern=CandlePattern.INVERTED_HAMMER,
-                direction="bullish",
-                strength=0.6,
-                bar_index=idx,
-                description="Inverted hammer - potential bullish reversal"
-            ))
-
-        # Shooting Star (bearish) - small body at bottom, long upper wick
-        elif (m["is_bearish"] and
-              m["upper_wick_pct"] > 0.6 and
-              m["lower_wick_pct"] < 0.1 and
-              m["body_pct"] < 0.3):
-            patterns.append(PatternResult(
-                pattern=CandlePattern.SHOOTING_STAR,
-                direction="bearish",
-                strength=0.7,
-                bar_index=idx,
-                description="Shooting star - potential bearish reversal"
-            ))
-
-        # Hanging Man (bearish) - small body at top, long lower wick (in uptrend)
-        elif (m["is_bearish"] and
-              m["lower_wick_pct"] > 0.6 and
-              m["upper_wick_pct"] < 0.1 and
-              m["body_pct"] < 0.3):
-            patterns.append(PatternResult(
-                pattern=CandlePattern.HANGING_MAN,
-                direction="bearish",
-                strength=0.6,
-                bar_index=idx,
-                description="Hanging man - potential bearish reversal"
-            ))
+                    description="Hanging man - potential bearish reversal",
+                )
+            )
 
         # Spinning Top
-        elif (m["body_pct"] < 0.3 and
-              m["upper_wick_pct"] > 0.25 and
-              m["lower_wick_pct"] > 0.25):
-            patterns.append(PatternResult(
-                pattern=CandlePattern.SPINNING_TOP,
-                direction="neutral",
-                strength=0.3,
-                bar_index=idx,
-                description="Spinning top - indecision"
-            ))
+        elif m["body_pct"] < 0.3 and m["upper_wick_pct"] > 0.25 and m["lower_wick_pct"] > 0.25:
+            patterns.append(
+                PatternResult(
+                    pattern=CandlePattern.SPINNING_TOP,
+                    direction="neutral",
+                    strength=0.3,
+                    bar_index=idx,
+                    description="Spinning top - indecision",
+                )
+            )
 
         return patterns
 
@@ -235,79 +263,113 @@ class CandlestickAnalyzer:
         patterns = []
 
         m1 = self._get_candle_metrics(ohlcv, idx - 1)  # Previous candle
-        m2 = self._get_candle_metrics(ohlcv, idx)      # Current candle
+        m2 = self._get_candle_metrics(ohlcv, idx)  # Current candle
 
         # Bullish Engulfing
-        if (m1["is_bearish"] and m2["is_bullish"] and
-            m2["open"] < m1["close"] and m2["close"] > m1["open"] and
-            m2["body"] > m1["body"] * 1.1):
-            patterns.append(PatternResult(
-                pattern=CandlePattern.BULLISH_ENGULFING,
-                direction="bullish",
-                strength=0.8,
-                bar_index=idx,
-                description="Bullish engulfing - strong bullish reversal signal"
-            ))
+        if (
+            m1["is_bearish"]
+            and m2["is_bullish"]
+            and m2["open"] < m1["close"]
+            and m2["close"] > m1["open"]
+            and m2["body"] > m1["body"] * 1.1
+        ):
+            patterns.append(
+                PatternResult(
+                    pattern=CandlePattern.BULLISH_ENGULFING,
+                    direction="bullish",
+                    strength=0.8,
+                    bar_index=idx,
+                    description="Bullish engulfing - strong bullish reversal signal",
+                )
+            )
 
         # Bearish Engulfing
-        elif (m1["is_bullish"] and m2["is_bearish"] and
-              m2["open"] > m1["close"] and m2["close"] < m1["open"] and
-              m2["body"] > m1["body"] * 1.1):
-            patterns.append(PatternResult(
-                pattern=CandlePattern.BEARISH_ENGULFING,
-                direction="bearish",
-                strength=0.8,
-                bar_index=idx,
-                description="Bearish engulfing - strong bearish reversal signal"
-            ))
+        elif (
+            m1["is_bullish"]
+            and m2["is_bearish"]
+            and m2["open"] > m1["close"]
+            and m2["close"] < m1["open"]
+            and m2["body"] > m1["body"] * 1.1
+        ):
+            patterns.append(
+                PatternResult(
+                    pattern=CandlePattern.BEARISH_ENGULFING,
+                    direction="bearish",
+                    strength=0.8,
+                    bar_index=idx,
+                    description="Bearish engulfing - strong bearish reversal signal",
+                )
+            )
 
         # Bullish Harami
-        elif (m1["is_bearish"] and m2["is_bullish"] and
-              m2["open"] > m1["close"] and m2["close"] < m1["open"] and
-              m2["body"] < m1["body"] * 0.5):
-            patterns.append(PatternResult(
-                pattern=CandlePattern.BULLISH_HARAMI,
-                direction="bullish",
-                strength=0.6,
-                bar_index=idx,
-                description="Bullish harami - potential bullish reversal"
-            ))
+        elif (
+            m1["is_bearish"]
+            and m2["is_bullish"]
+            and m2["open"] > m1["close"]
+            and m2["close"] < m1["open"]
+            and m2["body"] < m1["body"] * 0.5
+        ):
+            patterns.append(
+                PatternResult(
+                    pattern=CandlePattern.BULLISH_HARAMI,
+                    direction="bullish",
+                    strength=0.6,
+                    bar_index=idx,
+                    description="Bullish harami - potential bullish reversal",
+                )
+            )
 
         # Bearish Harami
-        elif (m1["is_bullish"] and m2["is_bearish"] and
-              m2["open"] < m1["close"] and m2["close"] > m1["open"] and
-              m2["body"] < m1["body"] * 0.5):
-            patterns.append(PatternResult(
-                pattern=CandlePattern.BEARISH_HARAMI,
-                direction="bearish",
-                strength=0.6,
-                bar_index=idx,
-                description="Bearish harami - potential bearish reversal"
-            ))
+        elif (
+            m1["is_bullish"]
+            and m2["is_bearish"]
+            and m2["open"] < m1["close"]
+            and m2["close"] > m1["open"]
+            and m2["body"] < m1["body"] * 0.5
+        ):
+            patterns.append(
+                PatternResult(
+                    pattern=CandlePattern.BEARISH_HARAMI,
+                    direction="bearish",
+                    strength=0.6,
+                    bar_index=idx,
+                    description="Bearish harami - potential bearish reversal",
+                )
+            )
 
         # Piercing Line
-        elif (m1["is_bearish"] and m2["is_bullish"] and
-              m2["open"] < m1["low"] and
-              m2["close"] > (m1["open"] + m1["close"]) / 2):
-            patterns.append(PatternResult(
-                pattern=CandlePattern.PIERCING_LINE,
-                direction="bullish",
-                strength=0.7,
-                bar_index=idx,
-                description="Piercing line - bullish reversal signal"
-            ))
+        elif (
+            m1["is_bearish"]
+            and m2["is_bullish"]
+            and m2["open"] < m1["low"]
+            and m2["close"] > (m1["open"] + m1["close"]) / 2
+        ):
+            patterns.append(
+                PatternResult(
+                    pattern=CandlePattern.PIERCING_LINE,
+                    direction="bullish",
+                    strength=0.7,
+                    bar_index=idx,
+                    description="Piercing line - bullish reversal signal",
+                )
+            )
 
         # Dark Cloud Cover
-        elif (m1["is_bullish"] and m2["is_bearish"] and
-              m2["open"] > m1["high"] and
-              m2["close"] < (m1["open"] + m1["close"]) / 2):
-            patterns.append(PatternResult(
-                pattern=CandlePattern.DARK_CLOUD_COVER,
-                direction="bearish",
-                strength=0.7,
-                bar_index=idx,
-                description="Dark cloud cover - bearish reversal signal"
-            ))
+        elif (
+            m1["is_bullish"]
+            and m2["is_bearish"]
+            and m2["open"] > m1["high"]
+            and m2["close"] < (m1["open"] + m1["close"]) / 2
+        ):
+            patterns.append(
+                PatternResult(
+                    pattern=CandlePattern.DARK_CLOUD_COVER,
+                    direction="bearish",
+                    strength=0.7,
+                    bar_index=idx,
+                    description="Dark cloud cover - bearish reversal signal",
+                )
+            )
 
         return patterns
 
@@ -320,54 +382,84 @@ class CandlestickAnalyzer:
         m3 = self._get_candle_metrics(ohlcv, idx)
 
         # Morning Star
-        if (m1["is_bearish"] and m1["body_pct"] > 0.5 and
-            m2["body_pct"] < 0.3 and  # Small body (star)
-            m3["is_bullish"] and m3["body_pct"] > 0.5 and
-            m3["close"] > (m1["open"] + m1["close"]) / 2):
-            patterns.append(PatternResult(
-                pattern=CandlePattern.MORNING_STAR,
-                direction="bullish",
-                strength=0.85,
-                bar_index=idx,
-                description="Morning star - strong bullish reversal"
-            ))
+        if (
+            m1["is_bearish"]
+            and m1["body_pct"] > 0.5
+            and m2["body_pct"] < 0.3  # Small body (star)
+            and m3["is_bullish"]
+            and m3["body_pct"] > 0.5
+            and m3["close"] > (m1["open"] + m1["close"]) / 2
+        ):
+            patterns.append(
+                PatternResult(
+                    pattern=CandlePattern.MORNING_STAR,
+                    direction="bullish",
+                    strength=0.85,
+                    bar_index=idx,
+                    description="Morning star - strong bullish reversal",
+                )
+            )
 
         # Evening Star
-        elif (m1["is_bullish"] and m1["body_pct"] > 0.5 and
-              m2["body_pct"] < 0.3 and  # Small body (star)
-              m3["is_bearish"] and m3["body_pct"] > 0.5 and
-              m3["close"] < (m1["open"] + m1["close"]) / 2):
-            patterns.append(PatternResult(
-                pattern=CandlePattern.EVENING_STAR,
-                direction="bearish",
-                strength=0.85,
-                bar_index=idx,
-                description="Evening star - strong bearish reversal"
-            ))
+        elif (
+            m1["is_bullish"]
+            and m1["body_pct"] > 0.5
+            and m2["body_pct"] < 0.3  # Small body (star)
+            and m3["is_bearish"]
+            and m3["body_pct"] > 0.5
+            and m3["close"] < (m1["open"] + m1["close"]) / 2
+        ):
+            patterns.append(
+                PatternResult(
+                    pattern=CandlePattern.EVENING_STAR,
+                    direction="bearish",
+                    strength=0.85,
+                    bar_index=idx,
+                    description="Evening star - strong bearish reversal",
+                )
+            )
 
         # Three White Soldiers
-        elif (m1["is_bullish"] and m2["is_bullish"] and m3["is_bullish"] and
-              m2["close"] > m1["close"] and m3["close"] > m2["close"] and
-              m1["body_pct"] > 0.5 and m2["body_pct"] > 0.5 and m3["body_pct"] > 0.5):
-            patterns.append(PatternResult(
-                pattern=CandlePattern.THREE_WHITE_SOLDIERS,
-                direction="bullish",
-                strength=0.9,
-                bar_index=idx,
-                description="Three white soldiers - strong bullish continuation"
-            ))
+        elif (
+            m1["is_bullish"]
+            and m2["is_bullish"]
+            and m3["is_bullish"]
+            and m2["close"] > m1["close"]
+            and m3["close"] > m2["close"]
+            and m1["body_pct"] > 0.5
+            and m2["body_pct"] > 0.5
+            and m3["body_pct"] > 0.5
+        ):
+            patterns.append(
+                PatternResult(
+                    pattern=CandlePattern.THREE_WHITE_SOLDIERS,
+                    direction="bullish",
+                    strength=0.9,
+                    bar_index=idx,
+                    description="Three white soldiers - strong bullish continuation",
+                )
+            )
 
         # Three Black Crows
-        elif (m1["is_bearish"] and m2["is_bearish"] and m3["is_bearish"] and
-              m2["close"] < m1["close"] and m3["close"] < m2["close"] and
-              m1["body_pct"] > 0.5 and m2["body_pct"] > 0.5 and m3["body_pct"] > 0.5):
-            patterns.append(PatternResult(
-                pattern=CandlePattern.THREE_BLACK_CROWS,
-                direction="bearish",
-                strength=0.9,
-                bar_index=idx,
-                description="Three black crows - strong bearish continuation"
-            ))
+        elif (
+            m1["is_bearish"]
+            and m2["is_bearish"]
+            and m3["is_bearish"]
+            and m2["close"] < m1["close"]
+            and m3["close"] < m2["close"]
+            and m1["body_pct"] > 0.5
+            and m2["body_pct"] > 0.5
+            and m3["body_pct"] > 0.5
+        ):
+            patterns.append(
+                PatternResult(
+                    pattern=CandlePattern.THREE_BLACK_CROWS,
+                    direction="bearish",
+                    strength=0.9,
+                    bar_index=idx,
+                    description="Three black crows - strong bearish continuation",
+                )
+            )
 
         return patterns
 
@@ -376,17 +468,20 @@ class CandlestickAnalyzer:
 # DIVERGENCE DETECTION
 # ============================================================================
 
+
 class DivergenceType(Enum):
     """Types of divergence"""
-    REGULAR_BULLISH = "regular_bullish"    # Price lower low, indicator higher low
-    REGULAR_BEARISH = "regular_bearish"    # Price higher high, indicator lower high
-    HIDDEN_BULLISH = "hidden_bullish"      # Price higher low, indicator lower low
-    HIDDEN_BEARISH = "hidden_bearish"      # Price lower high, indicator higher high
+
+    REGULAR_BULLISH = "regular_bullish"  # Price lower low, indicator higher low
+    REGULAR_BEARISH = "regular_bearish"  # Price higher high, indicator lower high
+    HIDDEN_BULLISH = "hidden_bullish"  # Price higher low, indicator lower low
+    HIDDEN_BEARISH = "hidden_bearish"  # Price lower high, indicator higher high
 
 
 @dataclass
 class DivergenceResult:
     """Result of divergence detection"""
+
     divergence_type: DivergenceType
     indicator: str  # "rsi", "macd", "stochastic"
     strength: float  # 0-1
@@ -430,16 +525,13 @@ class DivergenceDetector:
             close=df["close"],
             window_fast=self.macd_fast,
             window_slow=self.macd_slow,
-            window_sign=self.macd_signal
+            window_sign=self.macd_signal,
         )
         df["macd"] = macd.macd()
         df["macd_hist"] = macd.macd_diff()
 
         stoch = StochasticOscillator(
-            high=df["high"],
-            low=df["low"],
-            close=df["close"],
-            window=self.stoch_period
+            high=df["high"], low=df["low"], close=df["close"], window=self.stoch_period
         )
         df["stoch_k"] = stoch.stoch()
 
@@ -487,13 +579,21 @@ class DivergenceDetector:
         # Look for local maxima/minima
         for i in range(2, n - 2):
             # Swing high
-            if (close[i] > close[i-1] and close[i] > close[i-2] and
-                close[i] > close[i+1] and close[i] > close[i+2]):
+            if (
+                close[i] > close[i - 1]
+                and close[i] > close[i - 2]
+                and close[i] > close[i + 1]
+                and close[i] > close[i + 2]
+            ):
                 highs.append(i)
 
             # Swing low
-            if (close[i] < close[i-1] and close[i] < close[i-2] and
-                close[i] < close[i+1] and close[i] < close[i+2]):
+            if (
+                close[i] < close[i - 1]
+                and close[i] < close[i - 2]
+                and close[i] < close[i + 1]
+                and close[i] < close[i + 2]
+            ):
                 lows.append(i)
 
         # Keep only recent swings
@@ -533,7 +633,7 @@ class DivergenceDetector:
             price_point2=(l2, close[l2]),
             indicator_point1=(l1, ind[l1]),
             indicator_point2=(l2, ind[l2]),
-            description=f"Regular bullish divergence: Price made lower low but {indicator} made higher low"
+            description=f"Regular bullish divergence: Price made lower low but {indicator} made higher low",
         )
 
     def _check_bearish_divergence(
@@ -566,7 +666,7 @@ class DivergenceDetector:
             price_point2=(h2, close[h2]),
             indicator_point1=(h1, ind[h1]),
             indicator_point2=(h2, ind[h2]),
-            description=f"Regular bearish divergence: Price made higher high but {indicator} made lower high"
+            description=f"Regular bearish divergence: Price made higher high but {indicator} made lower high",
         )
 
     def _check_hidden_bullish(
@@ -599,7 +699,7 @@ class DivergenceDetector:
             price_point2=(l2, close[l2]),
             indicator_point1=(l1, ind[l1]),
             indicator_point2=(l2, ind[l2]),
-            description=f"Hidden bullish divergence: Price made higher low but {indicator} made lower low (trend continuation)"
+            description=f"Hidden bullish divergence: Price made higher low but {indicator} made lower low (trend continuation)",
         )
 
     def _check_hidden_bearish(
@@ -632,7 +732,7 @@ class DivergenceDetector:
             price_point2=(h2, close[h2]),
             indicator_point1=(h1, ind[h1]),
             indicator_point2=(h2, ind[h2]),
-            description=f"Hidden bearish divergence: Price made lower high but {indicator} made higher high (trend continuation)"
+            description=f"Hidden bearish divergence: Price made lower high but {indicator} made higher high (trend continuation)",
         )
 
 
@@ -640,9 +740,11 @@ class DivergenceDetector:
 # CONFLUENCE ZONE DETECTION
 # ============================================================================
 
+
 @dataclass
 class SupportResistanceLevel:
     """A support or resistance level"""
+
     price: float
     level_type: str  # "support" or "resistance"
     strength: int  # Number of touches/confirmations
@@ -652,6 +754,7 @@ class SupportResistanceLevel:
 @dataclass
 class ConfluenceZone:
     """A zone where multiple S/R levels converge"""
+
     price_low: float
     price_high: float
     center: float
@@ -708,12 +811,14 @@ class ConfluenceDetector:
                 ema_value = ema.iloc[-1]
                 if not pd.isna(ema_value):
                     level_type = "support" if ema_value < current_price else "resistance"
-                    levels.append(SupportResistanceLevel(
-                        price=ema_value,
-                        level_type=level_type,
-                        strength=2 if period >= 100 else 1,
-                        sources=[f"EMA{period}"]
-                    ))
+                    levels.append(
+                        SupportResistanceLevel(
+                            price=ema_value,
+                            level_type=level_type,
+                            strength=2 if period >= 100 else 1,
+                            sources=[f"EMA{period}"],
+                        )
+                    )
 
         # Add SMA levels
         for period in self.sma_periods:
@@ -722,12 +827,14 @@ class ConfluenceDetector:
                 sma_value = sma.iloc[-1]
                 if not pd.isna(sma_value):
                     level_type = "support" if sma_value < current_price else "resistance"
-                    levels.append(SupportResistanceLevel(
-                        price=sma_value,
-                        level_type=level_type,
-                        strength=2 if period >= 100 else 1,
-                        sources=[f"SMA{period}"]
-                    ))
+                    levels.append(
+                        SupportResistanceLevel(
+                            price=sma_value,
+                            level_type=level_type,
+                            strength=2 if period >= 100 else 1,
+                            sources=[f"SMA{period}"],
+                        )
+                    )
 
         # Add pivot points (swing highs/lows)
         pivots = self._find_pivots(ohlcv)
@@ -767,26 +874,32 @@ class ConfluenceDetector:
         # Find swing highs and lows in lookback period
         for i in range(n - self.pivot_lookback, n - 2):
             # Swing high
-            if (high[i] > high[i-1] and high[i] > high[i-2] and
-                high[i] > high[i+1] and high[i] > high[i+2]):
+            if (
+                high[i] > high[i - 1]
+                and high[i] > high[i - 2]
+                and high[i] > high[i + 1]
+                and high[i] > high[i + 2]
+            ):
                 level_type = "support" if high[i] < current_price else "resistance"
-                levels.append(SupportResistanceLevel(
-                    price=high[i],
-                    level_type=level_type,
-                    strength=1,
-                    sources=["SwingHigh"]
-                ))
+                levels.append(
+                    SupportResistanceLevel(
+                        price=high[i], level_type=level_type, strength=1, sources=["SwingHigh"]
+                    )
+                )
 
             # Swing low
-            if (low[i] < low[i-1] and low[i] < low[i-2] and
-                low[i] < low[i+1] and low[i] < low[i+2]):
+            if (
+                low[i] < low[i - 1]
+                and low[i] < low[i - 2]
+                and low[i] < low[i + 1]
+                and low[i] < low[i + 2]
+            ):
                 level_type = "support" if low[i] < current_price else "resistance"
-                levels.append(SupportResistanceLevel(
-                    price=low[i],
-                    level_type=level_type,
-                    strength=1,
-                    sources=["SwingLow"]
-                ))
+                levels.append(
+                    SupportResistanceLevel(
+                        price=low[i], level_type=level_type, strength=1, sources=["SwingLow"]
+                    )
+                )
 
         return levels
 
@@ -813,12 +926,14 @@ class ConfluenceDetector:
                 if abs(price - current_price) / current_price < 0.05:  # Within 5%
                     level_type = "support" if price < current_price else "resistance"
                     strength = 2 if inc == increments[-1] else 1  # Higher for bigger round numbers
-                    levels.append(SupportResistanceLevel(
-                        price=price,
-                        level_type=level_type,
-                        strength=strength,
-                        sources=[f"Round_{int(inc)}"]
-                    ))
+                    levels.append(
+                        SupportResistanceLevel(
+                            price=price,
+                            level_type=level_type,
+                            strength=strength,
+                            sources=[f"Round_{int(inc)}"],
+                        )
+                    )
 
         return levels
 
@@ -844,12 +959,14 @@ class ConfluenceDetector:
             # Retracement from high
             price = swing_high - (diff * ratio)
             level_type = "support" if price < current_price else "resistance"
-            levels.append(SupportResistanceLevel(
-                price=price,
-                level_type=level_type,
-                strength=2 if ratio in [0.5, 0.618] else 1,
-                sources=[f"Fib_{ratio}"]
-            ))
+            levels.append(
+                SupportResistanceLevel(
+                    price=price,
+                    level_type=level_type,
+                    strength=2 if ratio in [0.5, 0.618] else 1,
+                    sources=[f"Fib_{ratio}"],
+                )
+            )
 
         return levels
 
@@ -905,15 +1022,17 @@ class ConfluenceDetector:
                 for l in zone_levels:
                     sources.extend(l.sources)
 
-                zones.append(ConfluenceZone(
-                    price_low=min(prices),
-                    price_high=max(prices),
-                    center=center,
-                    zone_type=zone_type,
-                    strength=strength,
-                    levels=zone_levels,
-                    description=f"{zone_type.title()} confluence zone at ${center:.2f} ({len(zone_levels)} levels: {', '.join(set(sources))})"
-                ))
+                zones.append(
+                    ConfluenceZone(
+                        price_low=min(prices),
+                        price_high=max(prices),
+                        center=center,
+                        zone_type=zone_type,
+                        strength=strength,
+                        levels=zone_levels,
+                        description=f"{zone_type.title()} confluence zone at ${center:.2f} ({len(zone_levels)} levels: {', '.join(set(sources))})",
+                    )
+                )
 
         return zones
 
@@ -922,9 +1041,11 @@ class ConfluenceDetector:
 # COMBINED TECHNICAL ANALYZER
 # ============================================================================
 
+
 @dataclass
 class TechnicalAnalysisResult:
     """Combined result of all technical analysis"""
+
     candlestick_patterns: List[PatternResult]
     divergences: List[DivergenceResult]
     confluence_zones: List[ConfluenceZone]
@@ -962,7 +1083,9 @@ class TechnicalAnalyzer:
 
         # Find nearest support/resistance
         support_zones = [z for z in zones if z.zone_type == "support" and z.center < current_price]
-        resistance_zones = [z for z in zones if z.zone_type == "resistance" and z.center > current_price]
+        resistance_zones = [
+            z for z in zones if z.zone_type == "resistance" and z.center > current_price
+        ]
 
         nearest_support = support_zones[0] if support_zones else None
         nearest_resistance = resistance_zones[0] if resistance_zones else None

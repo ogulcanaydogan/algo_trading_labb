@@ -26,6 +26,7 @@ from ta.volume import OnBalanceVolumeIndicator, VolumeWeightedAveragePrice
 @dataclass
 class FeatureConfig:
     """Configuration for feature extraction."""
+
     ema_periods: List[int] = None
     rsi_period: int = 14
     macd_fast: int = 12
@@ -120,7 +121,7 @@ class FeatureEngineer:
         # Clip extreme values to prevent overflow
         # Use 99th percentile as clip threshold for each column
         for col in numeric_cols:
-            if col not in ['open', 'high', 'low', 'close', 'volume']:
+            if col not in ["open", "high", "low", "close", "volume"]:
                 try:
                     col_data = df[col].dropna()
                     if len(col_data) > 0:
@@ -128,14 +129,15 @@ class FeatureEngineer:
                         lower = col_data.quantile(0.001)
                         upper = col_data.quantile(0.999)
                         # Ensure we have valid numeric values for comparison
-                        if (pd.notna(lower) and pd.notna(upper) and
-                            isinstance(lower, (int, float)) and
-                            isinstance(upper, (int, float)) and
-                            float(lower) < float(upper)):
+                        if (
+                            pd.notna(lower)
+                            and pd.notna(upper)
+                            and isinstance(lower, (int, float))
+                            and isinstance(upper, (int, float))
+                            and float(lower) < float(upper)
+                        ):
                             df[col] = (
-                                df[col]
-                                .astype(float)
-                                .clip(lower=float(lower), upper=float(upper))
+                                df[col].astype(float).clip(lower=float(lower), upper=float(upper))
                             )
                 except (TypeError, ValueError):
                     # Skip columns that can't be processed
@@ -193,11 +195,7 @@ class FeatureEngineer:
 
         # Stochastic
         stoch = StochasticOscillator(
-            high=df["high"],
-            low=df["low"],
-            close=df["close"],
-            window=14,
-            smooth_window=3
+            high=df["high"], low=df["low"], close=df["close"], window=14, smooth_window=3
         )
         df["stoch_k"] = stoch.stoch()
         df["stoch_d"] = stoch.stoch_signal()
@@ -208,7 +206,7 @@ class FeatureEngineer:
             close=df["close"],
             window_slow=self.config.macd_slow,
             window_fast=self.config.macd_fast,
-            window_sign=self.config.macd_signal
+            window_sign=self.config.macd_signal,
         )
         df["macd"] = macd.macd()
         df["macd_signal"] = macd.macd_signal()
@@ -217,10 +215,7 @@ class FeatureEngineer:
 
         # ADX (trend strength)
         adx = ADXIndicator(
-            high=df["high"],
-            low=df["low"],
-            close=df["close"],
-            window=self.config.adx_period
+            high=df["high"], low=df["low"], close=df["close"], window=self.config.adx_period
         )
         df["adx"] = adx.adx()
         df["adx_pos"] = adx.adx_pos()
@@ -233,9 +228,7 @@ class FeatureEngineer:
         """Add volatility indicators."""
         # Bollinger Bands
         bb = BollingerBands(
-            close=df["close"],
-            window=self.config.bb_period,
-            window_dev=self.config.bb_std
+            close=df["close"], window=self.config.bb_period, window_dev=self.config.bb_std
         )
         df["bb_high"] = bb.bollinger_hband()
         df["bb_low"] = bb.bollinger_lband()
@@ -245,17 +238,16 @@ class FeatureEngineer:
 
         # ATR
         atr = AverageTrueRange(
-            high=df["high"],
-            low=df["low"],
-            close=df["close"],
-            window=self.config.atr_period
+            high=df["high"], low=df["low"], close=df["close"], window=self.config.atr_period
         )
         df["atr"] = atr.average_true_range()
         df["atr_normalized"] = df["atr"] / df["close"]
 
         # Historical volatility
         for period in [5, 10, 20]:
-            df[f"volatility_{period}"] = df["close"].pct_change().rolling(period).std() * np.sqrt(252)
+            df[f"volatility_{period}"] = df["close"].pct_change().rolling(period).std() * np.sqrt(
+                252
+            )
 
         return df
 
@@ -277,10 +269,7 @@ class FeatureEngineer:
         # VWAP (if we have enough data)
         try:
             vwap = VolumeWeightedAveragePrice(
-                high=df["high"],
-                low=df["low"],
-                close=df["close"],
-                volume=df["volume"]
+                high=df["high"], low=df["low"], close=df["close"], volume=df["volume"]
             )
             df["vwap"] = vwap.volume_weighted_average_price()
             df["vwap_dist"] = (df["close"] - df["vwap"]) / df["close"]
@@ -312,7 +301,13 @@ class FeatureEngineer:
 
     def _add_lagged_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """Add lagged features for sequence modeling."""
-        lag_features = ["return_1", "rsi_normalized", "macd_normalized", "bb_position", "volume_change"]
+        lag_features = [
+            "return_1",
+            "rsi_normalized",
+            "macd_normalized",
+            "bb_position",
+            "volume_change",
+        ]
 
         for feature in lag_features:
             if feature in df.columns:
@@ -360,9 +355,11 @@ class FeatureEngineer:
             df["day_of_month"] = day / 31  # Normalized
 
             # Month-end effect (last 5 days)
-            days_in_month = df.index.to_series().apply(
-                lambda x: pd.Timestamp(x.year, x.month, 1) + pd.offsets.MonthEnd(0)
-            ).dt.day
+            days_in_month = (
+                df.index.to_series()
+                .apply(lambda x: pd.Timestamp(x.year, x.month, 1) + pd.offsets.MonthEnd(0))
+                .dt.day
+            )
             df["is_month_end"] = ((days_in_month - day) <= 5).astype(int)
 
             # Month-start effect (first 5 days)
@@ -398,7 +395,7 @@ class FeatureEngineer:
             df["bars_since_session_open"] = df["bars_since_session_open"].clip(upper=50) / 50
 
             # === Minute of Hour (for intraday data) ===
-            if hasattr(df.index, 'minute'):
+            if hasattr(df.index, "minute"):
                 minute = df.index.minute
                 df["minute_sin"] = np.sin(2 * np.pi * minute / 60)
                 df["minute_cos"] = np.cos(2 * np.pi * minute / 60)
@@ -462,8 +459,9 @@ class FeatureEngineer:
 
         # Multi-class target (LONG=2, FLAT=1, SHORT=0)
         df["target_class"] = np.where(
-            df["target_return"] > dynamic_threshold, 2,  # LONG
-            np.where(df["target_return"] < -dynamic_threshold, 0, 1)  # SHORT or FLAT
+            df["target_return"] > dynamic_threshold,
+            2,  # LONG
+            np.where(df["target_return"] < -dynamic_threshold, 0, 1),  # SHORT or FLAT
         )
 
         # Trend continuation target (does trend continue for multiple bars?)
@@ -473,11 +471,13 @@ class FeatureEngineer:
 
         # Strong trend: positive returns at multiple horizons
         df["target_strong_trend"] = np.where(
-            (future_3 > dynamic_threshold) & (future_5 > dynamic_threshold * 1.5), 2,  # Strong bullish
+            (future_3 > dynamic_threshold) & (future_5 > dynamic_threshold * 1.5),
+            2,  # Strong bullish
             np.where(
-                (future_3 < -dynamic_threshold) & (future_5 < -dynamic_threshold * 1.5), 0,  # Strong bearish
-                1  # No strong trend
-            )
+                (future_3 < -dynamic_threshold) & (future_5 < -dynamic_threshold * 1.5),
+                0,  # Strong bearish
+                1,  # No strong trend
+            ),
         )
 
         # Risk-adjusted target (Sharpe-like for each bar)
@@ -573,8 +573,16 @@ class FeatureEngineer:
 
     def get_feature_names(self) -> List[str]:
         """Get list of feature column names (excluding targets)."""
-        exclude = ["target_return", "target_direction", "target_class",
-                   "open", "high", "low", "close", "volume"]
+        exclude = [
+            "target_return",
+            "target_direction",
+            "target_class",
+            "open",
+            "high",
+            "low",
+            "close",
+            "volume",
+        ]
         return [col for col in self.feature_columns if col not in exclude]
 
     @property
@@ -582,33 +590,85 @@ class FeatureEngineer:
         """List of all feature columns."""
         return [
             # Price features
-            "return_1", "return_3", "return_5", "return_10", "return_20",
-            "log_return_1", "log_return_3", "log_return_5",
-            "price_position", "gap", "intraday_range", "body_size",
-            "upper_shadow", "lower_shadow",
+            "return_1",
+            "return_3",
+            "return_5",
+            "return_10",
+            "return_20",
+            "log_return_1",
+            "log_return_3",
+            "log_return_5",
+            "price_position",
+            "gap",
+            "intraday_range",
+            "body_size",
+            "upper_shadow",
+            "lower_shadow",
             # EMA features
-            "ema_5_dist", "ema_10_dist", "ema_20_dist", "ema_50_dist",
-            "ema_cross", "ema_cross_signal",
+            "ema_5_dist",
+            "ema_10_dist",
+            "ema_20_dist",
+            "ema_50_dist",
+            "ema_cross",
+            "ema_cross_signal",
             # Momentum
-            "rsi", "rsi_normalized", "stoch_k", "stoch_d", "stoch_cross",
-            "macd", "macd_signal", "macd_diff", "macd_normalized",
-            "adx", "adx_pos", "adx_neg", "adx_trend",
+            "rsi",
+            "rsi_normalized",
+            "stoch_k",
+            "stoch_d",
+            "stoch_cross",
+            "macd",
+            "macd_signal",
+            "macd_diff",
+            "macd_normalized",
+            "adx",
+            "adx_pos",
+            "adx_neg",
+            "adx_trend",
             # Volatility
-            "bb_width", "bb_position", "atr_normalized",
-            "volatility_5", "volatility_10", "volatility_20",
+            "bb_width",
+            "bb_position",
+            "atr_normalized",
+            "volatility_5",
+            "volatility_10",
+            "volatility_20",
             # Volume
-            "volume_change", "volume_ratio_5", "volume_ratio_10",
-            "obv_change", "vwap_dist",
+            "volume_change",
+            "volume_ratio_5",
+            "volume_ratio_10",
+            "obv_change",
+            "vwap_dist",
             # Statistical
-            "mean_10", "std_10", "skew_10", "kurt_10", "zscore_10",
-            "mean_20", "std_20", "skew_20", "kurt_20", "zscore_20",
+            "mean_10",
+            "std_10",
+            "skew_10",
+            "kurt_10",
+            "zscore_10",
+            "mean_20",
+            "std_20",
+            "skew_20",
+            "kurt_20",
+            "zscore_20",
             # Time-based features
-            "hour_sin", "hour_cos", "dow_sin", "dow_cos",
-            "month_sin", "month_cos", "day_of_month",
-            "is_month_end", "is_month_start",
-            "is_asian_session", "is_european_session", "is_us_session",
-            "is_overlap", "is_weekend", "is_low_liquidity",
+            "hour_sin",
+            "hour_cos",
+            "dow_sin",
+            "dow_cos",
+            "month_sin",
+            "month_cos",
+            "day_of_month",
+            "is_month_end",
+            "is_month_start",
+            "is_asian_session",
+            "is_european_session",
+            "is_us_session",
+            "is_overlap",
+            "is_weekend",
+            "is_low_liquidity",
             "bars_since_session_open",
-            "is_q1", "is_q4", "is_first_of_month",
-            "is_monday", "is_friday",
+            "is_q1",
+            "is_q4",
+            "is_first_of_month",
+            "is_monday",
+            "is_friday",
         ]

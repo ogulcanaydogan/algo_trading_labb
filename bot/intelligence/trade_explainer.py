@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TradeExplanation:
     """A human-readable trade explanation."""
+
     # Trade info
     action: str  # BUY, SELL, HOLD
     symbol: str
@@ -180,7 +181,9 @@ Always structure your response as a clear trade explanation."""
             "signal_reason": signal.get("reason", "ML signal"),
             "regime": regime,
             "portfolio_value": portfolio_context.get("total_value", 0),
-            "trade_size_pct": (price * quantity) / portfolio_context.get("total_value", 1) * 100 if portfolio_context.get("total_value") else 0,
+            "trade_size_pct": (price * quantity) / portfolio_context.get("total_value", 1) * 100
+            if portfolio_context.get("total_value")
+            else 0,
             "daily_pnl_pct": portfolio_context.get("daily_pnl_pct", 0),
             "news_summary": news_summary,
             "pattern_win_rate": pattern_stats.get("win_rate", 0),
@@ -304,7 +307,9 @@ Always structure your response as a clear trade explanation."""
             symbol=context.get("symbol", "UNKNOWN"),
             price=context.get("price", 0),
             quantity=context.get("quantity", 0),
-            position_value=context.get("position_value", context.get("price", 0) * context.get("quantity", 0)),
+            position_value=context.get(
+                "position_value", context.get("price", 0) * context.get("quantity", 0)
+            ),
             signal_reason=context.get("signal_reason", ""),
             regime_context=f"Market regime: {context.get('regime', 'unknown')}",
             news_context=context.get("news_summary", ""),
@@ -317,11 +322,17 @@ Always structure your response as a clear trade explanation."""
         # Set formatted explanations
         if response.success:
             explanation.formatted_explanation = response.content
-            explanation.short_explanation = self._create_short_explanation(context, explanation_type)
+            explanation.short_explanation = self._create_short_explanation(
+                context, explanation_type
+            )
         else:
             # Use rule-based
-            explanation.formatted_explanation = self._rule_based_explanation(context, explanation_type)
-            explanation.short_explanation = self._create_short_explanation(context, explanation_type)
+            explanation.formatted_explanation = self._rule_based_explanation(
+                context, explanation_type
+            )
+            explanation.short_explanation = self._create_short_explanation(
+                context, explanation_type
+            )
 
         return explanation
 
@@ -330,27 +341,27 @@ Always structure your response as a clear trade explanation."""
         return f"""Explain this trade entry decision:
 
 TRADE DETAILS:
-- Action: {context.get('action')} {context.get('symbol')}
-- Price: ${context.get('price', 0):,.2f}
-- Quantity: {context.get('quantity', 0):.4f}
-- Position Value: ${context.get('position_value', 0):,.2f}
+- Action: {context.get("action")} {context.get("symbol")}
+- Price: ${context.get("price", 0):,.2f}
+- Quantity: {context.get("quantity", 0):.4f}
+- Position Value: ${context.get("position_value", 0):,.2f}
 
 SIGNAL ANALYSIS:
-- Confidence: {context.get('confidence', 0):.1%}
-- Signal Reason: {context.get('signal_reason', 'ML signal')}
-- Market Regime: {context.get('regime', 'unknown')}
+- Confidence: {context.get("confidence", 0):.1%}
+- Signal Reason: {context.get("signal_reason", "ML signal")}
+- Market Regime: {context.get("regime", "unknown")}
 
 PORTFOLIO CONTEXT:
-- Portfolio Value: ${context.get('portfolio_value', 0):,.2f}
-- Trade Size: {context.get('trade_size_pct', 0):.1f}% of portfolio
-- Today's P&L: {context.get('daily_pnl_pct', 0):+.2f}%
+- Portfolio Value: ${context.get("portfolio_value", 0):,.2f}
+- Trade Size: {context.get("trade_size_pct", 0):.1f}% of portfolio
+- Today's P&L: {context.get("daily_pnl_pct", 0):+.2f}%
 
 PATTERN HISTORY:
-- Similar patterns: {context.get('pattern_count', 0)}
-- Historical win rate: {context.get('pattern_win_rate', 0):.1%}
+- Similar patterns: {context.get("pattern_count", 0)}
+- Historical win rate: {context.get("pattern_win_rate", 0):.1%}
 
 NEWS CONTEXT:
-{context.get('news_summary', 'No significant news')}
+{context.get("news_summary", "No significant news")}
 
 Provide a clear, concise explanation (2-3 sentences) of why this trade is being taken and the key risk factors."""
 
@@ -359,14 +370,14 @@ Provide a clear, concise explanation (2-3 sentences) of why this trade is being 
         return f"""Explain this trade exit:
 
 TRADE DETAILS:
-- Symbol: {context.get('symbol')}
-- Entry Price: ${context.get('entry_price', 0):,.2f}
-- Exit Price: ${context.get('price', 0):,.2f}
-- P&L: ${context.get('pnl', 0):+,.2f} ({context.get('pnl_pct', 0):+.2f}%)
+- Symbol: {context.get("symbol")}
+- Entry Price: ${context.get("entry_price", 0):,.2f}
+- Exit Price: ${context.get("price", 0):,.2f}
+- P&L: ${context.get("pnl", 0):+,.2f} ({context.get("pnl_pct", 0):+.2f}%)
 
-EXIT REASON: {context.get('exit_reason', 'Signal change')}
-HOLD DURATION: {context.get('hold_duration', 0)} minutes
-MARKET REGIME: {context.get('regime', 'unknown')}
+EXIT REASON: {context.get("exit_reason", "Signal change")}
+HOLD DURATION: {context.get("hold_duration", 0)} minutes
+MARKET REGIME: {context.get("regime", "unknown")}
 
 Provide a brief explanation (1-2 sentences) of the exit and any lessons learned."""
 
@@ -386,7 +397,7 @@ WHY: {reason}
 Regime: {regime}
 Confidence: {confidence:.0%}
 
-Position: ${context.get('position_value', 0):,.2f} ({context.get('trade_size_pct', 0):.1f}% of portfolio)"""
+Position: ${context.get("position_value", 0):,.2f} ({context.get("trade_size_pct", 0):.1f}% of portfolio)"""
 
         else:  # exit
             symbol = context.get("symbol", "")
@@ -416,20 +427,20 @@ Held: {hold} min"""
             return f"""
 TRADE ENTRY ANALYSIS
 
-{context.get('action')} {context.get('symbol')} @ ${context.get('price', 0):,.2f}
+{context.get("action")} {context.get("symbol")} @ ${context.get("price", 0):,.2f}
 
 Signal Details:
-- Confidence: {context.get('confidence', 0):.1%}
-- Trigger: {context.get('signal_reason', 'ML signal')}
-- Market Regime: {context.get('regime', 'unknown')}
+- Confidence: {context.get("confidence", 0):.1%}
+- Trigger: {context.get("signal_reason", "ML signal")}
+- Market Regime: {context.get("regime", "unknown")}
 
 Risk Assessment:
-- Position Size: {context.get('trade_size_pct', 0):.1f}% of portfolio
-- Portfolio P&L Today: {context.get('daily_pnl_pct', 0):+.2f}%
+- Position Size: {context.get("trade_size_pct", 0):.1f}% of portfolio
+- Portfolio P&L Today: {context.get("daily_pnl_pct", 0):+.2f}%
 
 Historical Context:
-- Similar patterns in memory: {context.get('pattern_count', 0)}
-- Historical win rate: {context.get('pattern_win_rate', 0):.1%}
+- Similar patterns in memory: {context.get("pattern_count", 0)}
+- Historical win rate: {context.get("pattern_win_rate", 0):.1%}
 
 [Rule-based analysis - LLM unavailable]
 """.strip()
@@ -439,15 +450,15 @@ Historical Context:
             return f"""
 TRADE EXIT ANALYSIS
 
-{context.get('symbol')} Position Closed
+{context.get("symbol")} Position Closed
 
-Entry: ${context.get('entry_price', 0):,.2f}
-Exit: ${context.get('price', 0):,.2f}
-Result: {result} ${abs(context.get('pnl', 0)):,.2f} ({context.get('pnl_pct', 0):+.2f}%)
+Entry: ${context.get("entry_price", 0):,.2f}
+Exit: ${context.get("price", 0):,.2f}
+Result: {result} ${abs(context.get("pnl", 0)):,.2f} ({context.get("pnl_pct", 0):+.2f}%)
 
-Exit Reason: {context.get('exit_reason', 'Signal change')}
-Hold Duration: {context.get('hold_duration', 0)} minutes
-Market Regime: {context.get('regime', 'unknown')}
+Exit Reason: {context.get("exit_reason", "Signal change")}
+Hold Duration: {context.get("hold_duration", 0)} minutes
+Market Regime: {context.get("regime", "unknown")}
 
 [Rule-based analysis - LLM unavailable]
 """.strip()

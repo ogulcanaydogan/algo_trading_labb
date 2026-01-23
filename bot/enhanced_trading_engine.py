@@ -11,7 +11,6 @@ Integrates:
 from __future__ import annotations
 
 import asyncio
-import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -50,7 +49,16 @@ from .risk import (
     CircuitBreakerState,
 )
 
-logger = logging.getLogger(__name__)
+# Core utilities
+from .core import (
+    get_logger,
+    metrics,
+    AsyncTaskManager,
+    safe_timeout,
+    validate_ohlcv,
+)
+
+logger = get_logger(__name__)
 
 
 class ExecutionAdapter(Protocol):
@@ -60,7 +68,9 @@ class ExecutionAdapter(Protocol):
     async def get_positions(self) -> Dict[str, Dict]: ...
     async def get_price(self, symbol: str) -> float: ...
     async def get_ohlcv(self, symbol: str, timeframe: str, limit: int) -> pd.DataFrame: ...
-    async def place_order(self, symbol: str, side: str, quantity: float, order_type: str = "market") -> Dict: ...
+    async def place_order(
+        self, symbol: str, side: str, quantity: float, order_type: str = "market"
+    ) -> Dict: ...
     async def get_market_data(self, symbol: str) -> Dict[str, Any]: ...
 
 
@@ -185,8 +195,7 @@ class EnhancedTradingEngine:
 
         # Regime detector (per symbol)
         self.regime_detectors: Dict[str, RegimeDetector] = {
-            symbol: RegimeDetector()
-            for symbol in self.config.symbols
+            symbol: RegimeDetector() for symbol in self.config.symbols
         }
 
         # Strategy selector
@@ -443,8 +452,8 @@ class EnhancedTradingEngine:
                     result = self.stress_engine.run_scenario(scenario_name)
                     if result.portfolio_pnl_pct < worst_loss:
                         worst_loss = result.portfolio_pnl_pct
-                except Exception:
-                    pass
+                except (KeyError, ValueError, AttributeError) as e:
+                    logger.debug(f"Stress scenario {scenario_name} skipped: {e}")
 
             self.state.last_stress_test_result = {
                 "symbol": symbol,
@@ -486,7 +495,8 @@ class EnhancedTradingEngine:
         market_data = {}
         try:
             market_data = await self.execution.get_market_data(symbol)
-        except Exception:
+        except (ConnectionError, TimeoutError, KeyError) as e:
+            logger.debug(f"Using default market data for {symbol}: {e}")
             market_data = {
                 "mid_price": price,
                 "last_price": price,
@@ -511,7 +521,7 @@ class EnhancedTradingEngine:
         async def market_data_provider(sym: str):
             try:
                 return await self.execution.get_market_data(sym)
-            except Exception:
+            except (ConnectionError, TimeoutError, KeyError):
                 return market_data
 
         # Create execution algorithm
@@ -553,15 +563,17 @@ class EnhancedTradingEngine:
 
             # Callback
             if self._on_trade:
-                self._on_trade({
-                    "symbol": symbol,
-                    "side": side,
-                    "quantity": execution_result.filled_quantity,
-                    "price": execution_result.average_price,
-                    "regime": regime.value,
-                    "slippage_bps": execution_result.slippage_bps,
-                    "algorithm": self.config.default_execution_algo,
-                })
+                self._on_trade(
+                    {
+                        "symbol": symbol,
+                        "side": side,
+                        "quantity": execution_result.filled_quantity,
+                        "price": execution_result.average_price,
+                        "regime": regime.value,
+                        "slippage_bps": execution_result.slippage_bps,
+                        "algorithm": self.config.default_execution_algo,
+                    }
+                )
 
         except Exception as e:
             logger.error(f"Execution failed: {e}")
@@ -594,9 +606,7 @@ class EnhancedTradingEngine:
 
 
 def create_enhanced_trading_engine(
-    symbols: List[str],
-    execution_adapter: Optional[ExecutionAdapter] = None,
-    **kwargs
+    symbols: List[str], execution_adapter: Optional[ExecutionAdapter] = None, **kwargs
 ) -> EnhancedTradingEngine:
     """
     Factory function to create enhanced trading engine.

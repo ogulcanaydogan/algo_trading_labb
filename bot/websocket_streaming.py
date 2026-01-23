@@ -29,21 +29,23 @@ logger = logging.getLogger(__name__)
 
 class StreamTopic(Enum):
     """Topics that clients can subscribe to."""
-    PORTFOLIO = "portfolio"           # Portfolio state updates
-    POSITIONS = "positions"           # Position changes
-    TRADES = "trades"                 # Trade executions
-    ORDERS = "orders"                 # Order status changes
-    RISK = "risk"                     # Risk metrics and alerts
-    SIGNALS = "signals"               # Strategy signals
-    REGIME = "regime"                 # Market regime changes
-    ALERTS = "alerts"                 # System alerts
-    PERFORMANCE = "performance"       # Performance metrics
-    HEARTBEAT = "heartbeat"           # Connection keepalive
-    SYSTEM = "system"                 # System status
+
+    PORTFOLIO = "portfolio"  # Portfolio state updates
+    POSITIONS = "positions"  # Position changes
+    TRADES = "trades"  # Trade executions
+    ORDERS = "orders"  # Order status changes
+    RISK = "risk"  # Risk metrics and alerts
+    SIGNALS = "signals"  # Strategy signals
+    REGIME = "regime"  # Market regime changes
+    ALERTS = "alerts"  # System alerts
+    PERFORMANCE = "performance"  # Performance metrics
+    HEARTBEAT = "heartbeat"  # Connection keepalive
+    SYSTEM = "system"  # System status
 
 
 class AlertLevel(Enum):
     """Alert severity levels."""
+
     INFO = "info"
     WARNING = "warning"
     CRITICAL = "critical"
@@ -53,6 +55,7 @@ class AlertLevel(Enum):
 @dataclass
 class StreamMessage:
     """A message to be streamed to clients."""
+
     topic: StreamTopic
     data: Dict[str, Any]
     timestamp: datetime = field(default_factory=datetime.now)
@@ -60,17 +63,20 @@ class StreamMessage:
 
     def to_json(self) -> str:
         """Convert to JSON string for transmission."""
-        return json.dumps({
-            "topic": self.topic.value,
-            "data": self.data,
-            "timestamp": self.timestamp.isoformat(),
-            "message_id": self.message_id
-        })
+        return json.dumps(
+            {
+                "topic": self.topic.value,
+                "data": self.data,
+                "timestamp": self.timestamp.isoformat(),
+                "message_id": self.message_id,
+            }
+        )
 
 
 @dataclass
 class ClientConnection:
     """Represents a connected WebSocket client."""
+
     client_id: str
     websocket: Any  # WebSocket connection object
     subscriptions: Set[StreamTopic] = field(default_factory=set)
@@ -103,7 +109,7 @@ class WebSocketHub:
         heartbeat_interval: float = 30.0,
         max_clients: int = 100,
         message_rate_limit: float = 10.0,  # messages per second per topic
-        connection_timeout: float = 120.0
+        connection_timeout: float = 120.0,
     ):
         """
         Initialize the WebSocket hub.
@@ -136,7 +142,7 @@ class WebSocketHub:
             "total_connections": 0,
             "total_messages_sent": 0,
             "total_messages_dropped": 0,
-            "current_connections": 0
+            "current_connections": 0,
         }
 
         # Callbacks
@@ -193,7 +199,7 @@ class WebSocketHub:
         websocket: Any,
         client_id: Optional[str] = None,
         user_id: Optional[str] = None,
-        initial_subscriptions: Optional[List[StreamTopic]] = None
+        initial_subscriptions: Optional[List[StreamTopic]] = None,
     ) -> Optional[str]:
         """
         Register a new client connection.
@@ -217,7 +223,7 @@ class WebSocketHub:
             client_id=client_id,
             websocket=websocket,
             user_id=user_id,
-            is_authenticated=user_id is not None
+            is_authenticated=user_id is not None,
         )
 
         # Add initial subscriptions
@@ -241,15 +247,18 @@ class WebSocketHub:
                 logger.error(f"Connect callback error: {e}")
 
         # Send welcome message
-        await self._send_to_client(client_id, StreamMessage(
-            topic=StreamTopic.SYSTEM,
-            data={
-                "type": "connected",
-                "client_id": client_id,
-                "subscriptions": [t.value for t in connection.subscriptions],
-                "server_time": datetime.now().isoformat()
-            }
-        ))
+        await self._send_to_client(
+            client_id,
+            StreamMessage(
+                topic=StreamTopic.SYSTEM,
+                data={
+                    "type": "connected",
+                    "client_id": client_id,
+                    "subscriptions": [t.value for t in connection.subscriptions],
+                    "server_time": datetime.now().isoformat(),
+                },
+            ),
+        )
 
         # Send recent history for subscribed topics
         await self._send_topic_history(client_id)
@@ -280,7 +289,7 @@ class WebSocketHub:
 
         # Try to send disconnect message
         try:
-            if hasattr(connection.websocket, 'close'):
+            if hasattr(connection.websocket, "close"):
                 await connection.websocket.close()
         except Exception:
             pass
@@ -356,15 +365,11 @@ class WebSocketHub:
 
         # Find subscribed clients
         subscribed_clients = [
-            client_id for client_id, conn in self.clients.items()
-            if topic in conn.subscriptions
+            client_id for client_id, conn in self.clients.items() if topic in conn.subscriptions
         ]
 
         # Send to all subscribed clients
-        tasks = [
-            self._send_to_client(client_id, message)
-            for client_id in subscribed_clients
-        ]
+        tasks = [self._send_to_client(client_id, message) for client_id in subscribed_clients]
 
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
@@ -391,9 +396,9 @@ class WebSocketHub:
         connection = self.clients[client_id]
 
         try:
-            if hasattr(connection.websocket, 'send'):
+            if hasattr(connection.websocket, "send"):
                 await connection.websocket.send(message.to_json())
-            elif hasattr(connection.websocket, 'send_text'):
+            elif hasattr(connection.websocket, "send_text"):
                 await connection.websocket.send_text(message.to_json())
             else:
                 logger.warning(f"Unknown websocket type for client {client_id}")
@@ -436,8 +441,8 @@ class WebSocketHub:
                     topic=StreamTopic.HEARTBEAT,
                     data={
                         "server_time": datetime.now().isoformat(),
-                        "connections": len(self.clients)
-                    }
+                        "connections": len(self.clients),
+                    },
                 )
 
                 await self.broadcast(message)
@@ -485,10 +490,7 @@ class WebSocketHub:
         """Get hub statistics."""
         return {
             **self.stats,
-            "topics": {
-                topic.value: len(history)
-                for topic, history in self.topic_history.items()
-            }
+            "topics": {topic.value: len(history) for topic, history in self.topic_history.items()},
         }
 
 
@@ -521,7 +523,7 @@ class TradingDataStreamer:
         pnl: float,
         pnl_percent: float,
         drawdown: float,
-        risk_level: str = "normal"
+        risk_level: str = "normal",
     ):
         """Stream portfolio state update."""
         data = {
@@ -531,16 +533,13 @@ class TradingDataStreamer:
             "pnl": pnl,
             "pnl_percent": pnl_percent,
             "drawdown": drawdown,
-            "risk_level": risk_level
+            "risk_level": risk_level,
         }
 
         # Only send if changed
         if data != self._last_portfolio_state:
             self._last_portfolio_state = data
-            await self.hub.broadcast(StreamMessage(
-                topic=StreamTopic.PORTFOLIO,
-                data=data
-            ))
+            await self.hub.broadcast(StreamMessage(topic=StreamTopic.PORTFOLIO, data=data))
 
     async def stream_position_update(
         self,
@@ -550,7 +549,7 @@ class TradingDataStreamer:
         current_price: float,
         pnl: float,
         pnl_percent: float,
-        side: str = "long"
+        side: str = "long",
     ):
         """Stream position update."""
         data = {
@@ -560,16 +559,13 @@ class TradingDataStreamer:
             "current_price": current_price,
             "pnl": pnl,
             "pnl_percent": pnl_percent,
-            "side": side
+            "side": side,
         }
 
         # Only send if changed
         if self._last_positions.get(symbol) != data:
             self._last_positions[symbol] = data
-            await self.hub.broadcast(StreamMessage(
-                topic=StreamTopic.POSITIONS,
-                data=data
-            ))
+            await self.hub.broadcast(StreamMessage(topic=StreamTopic.POSITIONS, data=data))
 
     async def stream_trade_execution(
         self,
@@ -579,22 +575,24 @@ class TradingDataStreamer:
         quantity: float,
         price: float,
         strategy: str,
-        pnl: Optional[float] = None
+        pnl: Optional[float] = None,
     ):
         """Stream trade execution notification."""
-        await self.hub.broadcast(StreamMessage(
-            topic=StreamTopic.TRADES,
-            data={
-                "trade_id": trade_id,
-                "symbol": symbol,
-                "side": side,
-                "quantity": quantity,
-                "price": price,
-                "strategy": strategy,
-                "pnl": pnl,
-                "executed_at": datetime.now().isoformat()
-            }
-        ))
+        await self.hub.broadcast(
+            StreamMessage(
+                topic=StreamTopic.TRADES,
+                data={
+                    "trade_id": trade_id,
+                    "symbol": symbol,
+                    "side": side,
+                    "quantity": quantity,
+                    "price": price,
+                    "strategy": strategy,
+                    "pnl": pnl,
+                    "executed_at": datetime.now().isoformat(),
+                },
+            )
+        )
 
     async def stream_order_update(
         self,
@@ -604,22 +602,24 @@ class TradingDataStreamer:
         quantity: float,
         price: float,
         status: str,
-        fill_quantity: float = 0.0
+        fill_quantity: float = 0.0,
     ):
         """Stream order status update."""
-        await self.hub.broadcast(StreamMessage(
-            topic=StreamTopic.ORDERS,
-            data={
-                "order_id": order_id,
-                "symbol": symbol,
-                "side": side,
-                "quantity": quantity,
-                "price": price,
-                "status": status,
-                "fill_quantity": fill_quantity,
-                "updated_at": datetime.now().isoformat()
-            }
-        ))
+        await self.hub.broadcast(
+            StreamMessage(
+                topic=StreamTopic.ORDERS,
+                data={
+                    "order_id": order_id,
+                    "symbol": symbol,
+                    "side": side,
+                    "quantity": quantity,
+                    "price": price,
+                    "status": status,
+                    "fill_quantity": fill_quantity,
+                    "updated_at": datetime.now().isoformat(),
+                },
+            )
+        )
 
     async def stream_risk_alert(
         self,
@@ -627,19 +627,21 @@ class TradingDataStreamer:
         level: AlertLevel,
         message: str,
         metrics: Optional[Dict[str, float]] = None,
-        action_taken: Optional[str] = None
+        action_taken: Optional[str] = None,
     ):
         """Stream risk alert."""
-        await self.hub.broadcast(StreamMessage(
-            topic=StreamTopic.RISK,
-            data={
-                "alert_type": alert_type,
-                "level": level.value,
-                "message": message,
-                "metrics": metrics or {},
-                "action_taken": action_taken
-            }
-        ))
+        await self.hub.broadcast(
+            StreamMessage(
+                topic=StreamTopic.RISK,
+                data={
+                    "alert_type": alert_type,
+                    "level": level.value,
+                    "message": message,
+                    "metrics": metrics or {},
+                    "action_taken": action_taken,
+                },
+            )
+        )
 
     async def stream_strategy_signal(
         self,
@@ -648,39 +650,43 @@ class TradingDataStreamer:
         signal: str,
         strength: float,
         confidence: float,
-        reasons: Optional[List[str]] = None
+        reasons: Optional[List[str]] = None,
     ):
         """Stream strategy signal."""
-        await self.hub.broadcast(StreamMessage(
-            topic=StreamTopic.SIGNALS,
-            data={
-                "strategy": strategy_name,
-                "symbol": symbol,
-                "signal": signal,
-                "strength": strength,
-                "confidence": confidence,
-                "reasons": reasons or []
-            }
-        ))
+        await self.hub.broadcast(
+            StreamMessage(
+                topic=StreamTopic.SIGNALS,
+                data={
+                    "strategy": strategy_name,
+                    "symbol": symbol,
+                    "signal": signal,
+                    "strength": strength,
+                    "confidence": confidence,
+                    "reasons": reasons or [],
+                },
+            )
+        )
 
     async def stream_regime_change(
         self,
         previous_regime: str,
         new_regime: str,
         confidence: float,
-        indicators: Optional[Dict[str, float]] = None
+        indicators: Optional[Dict[str, float]] = None,
     ):
         """Stream market regime change."""
-        await self.hub.broadcast(StreamMessage(
-            topic=StreamTopic.REGIME,
-            data={
-                "previous_regime": previous_regime,
-                "new_regime": new_regime,
-                "confidence": confidence,
-                "indicators": indicators or {},
-                "changed_at": datetime.now().isoformat()
-            }
-        ))
+        await self.hub.broadcast(
+            StreamMessage(
+                topic=StreamTopic.REGIME,
+                data={
+                    "previous_regime": previous_regime,
+                    "new_regime": new_regime,
+                    "confidence": confidence,
+                    "indicators": indicators or {},
+                    "changed_at": datetime.now().isoformat(),
+                },
+            )
+        )
 
     async def stream_alert(
         self,
@@ -689,20 +695,22 @@ class TradingDataStreamer:
         level: AlertLevel,
         category: str = "general",
         action_required: bool = False,
-        dismiss_after: Optional[int] = None
+        dismiss_after: Optional[int] = None,
     ):
         """Stream general alert."""
-        await self.hub.broadcast(StreamMessage(
-            topic=StreamTopic.ALERTS,
-            data={
-                "title": title,
-                "message": message,
-                "level": level.value,
-                "category": category,
-                "action_required": action_required,
-                "dismiss_after": dismiss_after
-            }
-        ))
+        await self.hub.broadcast(
+            StreamMessage(
+                topic=StreamTopic.ALERTS,
+                data={
+                    "title": title,
+                    "message": message,
+                    "level": level.value,
+                    "category": category,
+                    "action_required": action_required,
+                    "dismiss_after": dismiss_after,
+                },
+            )
+        )
 
     async def stream_performance_update(
         self,
@@ -712,21 +720,23 @@ class TradingDataStreamer:
         win_rate: float,
         profit_factor: float,
         trade_count: int,
-        period: str = "all_time"
+        period: str = "all_time",
     ):
         """Stream performance metrics update."""
-        await self.hub.broadcast(StreamMessage(
-            topic=StreamTopic.PERFORMANCE,
-            data={
-                "total_return": total_return,
-                "sharpe_ratio": sharpe_ratio,
-                "max_drawdown": max_drawdown,
-                "win_rate": win_rate,
-                "profit_factor": profit_factor,
-                "trade_count": trade_count,
-                "period": period
-            }
-        ))
+        await self.hub.broadcast(
+            StreamMessage(
+                topic=StreamTopic.PERFORMANCE,
+                data={
+                    "total_return": total_return,
+                    "sharpe_ratio": sharpe_ratio,
+                    "max_drawdown": max_drawdown,
+                    "win_rate": win_rate,
+                    "profit_factor": profit_factor,
+                    "trade_count": trade_count,
+                    "period": period,
+                },
+            )
+        )
 
     async def stream_system_status(
         self,
@@ -734,20 +744,22 @@ class TradingDataStreamer:
         trading_enabled: bool,
         connected_exchanges: List[str],
         active_strategies: List[str],
-        warnings: Optional[List[str]] = None
+        warnings: Optional[List[str]] = None,
     ):
         """Stream system status update."""
-        await self.hub.broadcast(StreamMessage(
-            topic=StreamTopic.SYSTEM,
-            data={
-                "status": status,
-                "trading_enabled": trading_enabled,
-                "connected_exchanges": connected_exchanges,
-                "active_strategies": active_strategies,
-                "warnings": warnings or [],
-                "uptime_seconds": self._get_uptime()
-            }
-        ))
+        await self.hub.broadcast(
+            StreamMessage(
+                topic=StreamTopic.SYSTEM,
+                data={
+                    "status": status,
+                    "trading_enabled": trading_enabled,
+                    "connected_exchanges": connected_exchanges,
+                    "active_strategies": active_strategies,
+                    "warnings": warnings or [],
+                    "uptime_seconds": self._get_uptime(),
+                },
+            )
+        )
 
     def _get_uptime(self) -> float:
         """Get system uptime (placeholder)."""
@@ -781,7 +793,7 @@ class WebSocketMessageHandler:
             "get_positions": self._handle_get_positions,
             "get_performance": self._handle_get_performance,
             "kill_switch": self._handle_kill_switch,
-            "adjust_risk": self._handle_adjust_risk
+            "adjust_risk": self._handle_adjust_risk,
         }
 
         # External handlers for trading operations
@@ -840,17 +852,20 @@ class WebSocketMessageHandler:
 
     async def _send_error(self, client_id: str, error: str):
         """Send error message to client."""
-        await self.hub.send_to_client(client_id, StreamMessage(
-            topic=StreamTopic.SYSTEM,
-            data={"type": "error", "error": error}
-        ))
+        await self.hub.send_to_client(
+            client_id,
+            StreamMessage(topic=StreamTopic.SYSTEM, data={"type": "error", "error": error}),
+        )
 
     async def _send_response(self, client_id: str, command: str, data: Dict):
         """Send command response to client."""
-        await self.hub.send_to_client(client_id, StreamMessage(
-            topic=StreamTopic.SYSTEM,
-            data={"type": "response", "command": command, "data": data}
-        ))
+        await self.hub.send_to_client(
+            client_id,
+            StreamMessage(
+                topic=StreamTopic.SYSTEM,
+                data={"type": "response", "command": command, "data": data},
+            ),
+        )
 
     async def _handle_subscribe(self, client_id: str, message: Dict):
         """Handle subscribe command."""
@@ -865,9 +880,9 @@ class WebSocketMessageHandler:
 
         if topics:
             self.hub.subscribe(client_id, topics)
-            await self._send_response(client_id, "subscribe", {
-                "subscribed": [t.value for t in topics]
-            })
+            await self._send_response(
+                client_id, "subscribe", {"subscribed": [t.value for t in topics]}
+            )
 
     async def _handle_unsubscribe(self, client_id: str, message: Dict):
         """Handle unsubscribe command."""
@@ -882,15 +897,13 @@ class WebSocketMessageHandler:
 
         if topics:
             self.hub.unsubscribe(client_id, topics)
-            await self._send_response(client_id, "unsubscribe", {
-                "unsubscribed": [t.value for t in topics]
-            })
+            await self._send_response(
+                client_id, "unsubscribe", {"unsubscribed": [t.value for t in topics]}
+            )
 
     async def _handle_ping(self, client_id: str, message: Dict):
         """Handle ping command."""
-        await self._send_response(client_id, "pong", {
-            "server_time": datetime.now().isoformat()
-        })
+        await self._send_response(client_id, "pong", {"server_time": datetime.now().isoformat()})
 
     async def _handle_get_portfolio(self, client_id: str, message: Dict):
         """Handle get_portfolio command."""
@@ -912,10 +925,7 @@ class WebSocketMessageHandler:
         """Handle get_performance command."""
         period = message.get("period", "all_time")
         # This would be connected to actual performance tracking
-        await self._send_response(client_id, "get_performance", {
-            "period": period,
-            "data": {}
-        })
+        await self._send_response(client_id, "get_performance", {"period": period, "data": {}})
 
     async def _handle_kill_switch(self, client_id: str, message: Dict):
         """Handle kill switch command (emergency stop)."""
@@ -935,11 +945,11 @@ class WebSocketMessageHandler:
 
         try:
             result = await self._kill_switch_handler(action, reason)
-            await self._send_response(client_id, "kill_switch", {
-                "action": action,
-                "success": result,
-                "message": f"Kill switch {action} executed"
-            })
+            await self._send_response(
+                client_id,
+                "kill_switch",
+                {"action": action, "success": result, "message": f"Kill switch {action} executed"},
+            )
 
             # Broadcast alert to all clients
             await self.streamer.stream_alert(
@@ -947,7 +957,7 @@ class WebSocketMessageHandler:
                 message=reason,
                 level=AlertLevel.CRITICAL if action == "stop" else AlertLevel.WARNING,
                 category="kill_switch",
-                action_required=False
+                action_required=False,
             )
 
         except Exception as e:
@@ -975,21 +985,18 @@ class WebSocketMessageHandler:
 
         try:
             result = await self._risk_adjust_handler(adjustment_type, new_value)
-            await self._send_response(client_id, "adjust_risk", {
-                "type": adjustment_type,
-                "value": new_value,
-                "success": result
-            })
+            await self._send_response(
+                client_id,
+                "adjust_risk",
+                {"type": adjustment_type, "value": new_value, "success": result},
+            )
 
         except Exception as e:
             await self._send_error(client_id, f"Risk adjustment failed: {e}")
 
 
 # FastAPI/Starlette WebSocket integration helper
-def create_websocket_endpoint(
-    hub: WebSocketHub,
-    handler: WebSocketMessageHandler
-):
+def create_websocket_endpoint(hub: WebSocketHub, handler: WebSocketMessageHandler):
     """
     Create a WebSocket endpoint handler for FastAPI/Starlette.
 
@@ -1003,6 +1010,7 @@ def create_websocket_endpoint(
             await websocket.accept()
             await handle_websocket(websocket, hub, handler)
     """
+
     async def handle_websocket(websocket):
         """Handle a WebSocket connection."""
         # Accept connection
@@ -1011,8 +1019,8 @@ def create_websocket_endpoint(
             initial_subscriptions=[
                 StreamTopic.PORTFOLIO,
                 StreamTopic.POSITIONS,
-                StreamTopic.ALERTS
-            ]
+                StreamTopic.ALERTS,
+            ],
         )
 
         if not client_id:
@@ -1021,9 +1029,9 @@ def create_websocket_endpoint(
         try:
             while True:
                 # Receive messages
-                if hasattr(websocket, 'receive_text'):
+                if hasattr(websocket, "receive_text"):
                     message = await websocket.receive_text()
-                elif hasattr(websocket, 'recv'):
+                elif hasattr(websocket, "recv"):
                     message = await websocket.recv()
                 else:
                     break
@@ -1041,14 +1049,12 @@ def create_websocket_endpoint(
 if __name__ == "__main__":
     # Demo usage
     import asyncio
+
     logging.basicConfig(level=logging.INFO)
 
     async def demo():
         # Create hub and streamer
-        hub = WebSocketHub(
-            heartbeat_interval=10.0,
-            max_clients=50
-        )
+        hub = WebSocketHub(heartbeat_interval=10.0, max_clients=50)
         streamer = TradingDataStreamer(hub)
         handler = WebSocketMessageHandler(hub, streamer)
 
@@ -1064,7 +1070,7 @@ if __name__ == "__main__":
             positions_value=50000,
             pnl=1500,
             pnl_percent=1.5,
-            drawdown=0.02
+            drawdown=0.02,
         )
 
         await streamer.stream_trade_execution(
@@ -1073,21 +1079,21 @@ if __name__ == "__main__":
             side="buy",
             quantity=0.1,
             price=45000,
-            strategy="momentum"
+            strategy="momentum",
         )
 
         await streamer.stream_risk_alert(
             alert_type="drawdown_warning",
             level=AlertLevel.WARNING,
             message="Drawdown approaching 5% threshold",
-            metrics={"current_drawdown": 0.045, "threshold": 0.05}
+            metrics={"current_drawdown": 0.045, "threshold": 0.05},
         )
 
         await streamer.stream_regime_change(
             previous_regime="trending_bullish",
             new_regime="mean_reverting",
             confidence=0.85,
-            indicators={"volatility": 0.02, "trend_strength": 0.3}
+            indicators={"volatility": 0.02, "trend_strength": 0.3},
         )
 
         print(f"\nMessages in history:")

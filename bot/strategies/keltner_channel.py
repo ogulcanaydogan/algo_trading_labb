@@ -24,6 +24,7 @@ from .base import BaseStrategy, StrategyConfig, StrategySignal
 @dataclass
 class KeltnerChannelConfig(StrategyConfig):
     """Configuration for Keltner Channel strategy."""
+
     ema_period: int = 20
     atr_period: int = 10
     atr_multiplier: float = 2.0

@@ -29,6 +29,7 @@ from scipy import stats
 
 class RiskLevel(Enum):
     """Risk level classifications."""
+
     LOW = "low"
     NORMAL = "normal"
     ELEVATED = "elevated"
@@ -38,6 +39,7 @@ class RiskLevel(Enum):
 
 class TradingStatus(Enum):
     """Trading permission status."""
+
     ALLOWED = "allowed"
     REDUCED = "reduced"  # Only reduced size trades allowed
     HEDGING_ONLY = "hedging_only"  # Only risk-reducing trades
@@ -46,28 +48,31 @@ class TradingStatus(Enum):
 
 class MarketRegime(Enum):
     """Market regime classifications."""
-    LOW_VOL_TRENDING = "low_vol_trending"      # Best for trend following
-    LOW_VOL_RANGING = "low_vol_ranging"        # Good for mean reversion
-    HIGH_VOL_TRENDING = "high_vol_trending"    # Reduce size, wider stops
-    HIGH_VOL_RANGING = "high_vol_ranging"      # Difficult, reduce activity
-    CRISIS = "crisis"                          # Extreme vol, minimal activity
+
+    LOW_VOL_TRENDING = "low_vol_trending"  # Best for trend following
+    LOW_VOL_RANGING = "low_vol_ranging"  # Good for mean reversion
+    HIGH_VOL_TRENDING = "high_vol_trending"  # Reduce size, wider stops
+    HIGH_VOL_RANGING = "high_vol_ranging"  # Difficult, reduce activity
+    CRISIS = "crisis"  # Extreme vol, minimal activity
 
 
 class RecoveryPhase(Enum):
     """Drawdown recovery phases."""
-    NORMAL = "normal"           # No drawdown
-    IN_DRAWDOWN = "in_drawdown" # Currently in drawdown
-    RECOVERING = "recovering"   # Recovering from drawdown
-    RECOVERED = "recovered"     # Just recovered, still cautious
+
+    NORMAL = "normal"  # No drawdown
+    IN_DRAWDOWN = "in_drawdown"  # Currently in drawdown
+    RECOVERING = "recovering"  # Recovering from drawdown
+    RECOVERED = "recovered"  # Just recovered, still cautious
 
 
 @dataclass
 class CorrelationConfig:
     """Configuration for correlation-based risk management."""
+
     enabled: bool = True
     max_correlated_exposure_pct: float = 40.0  # Max 40% in correlated assets
-    correlation_threshold: float = 0.7         # Consider correlated if > 0.7
-    lookback_days: int = 60                    # Correlation calculation window
+    correlation_threshold: float = 0.7  # Consider correlated if > 0.7
+    lookback_days: int = 60  # Correlation calculation window
     correlation_groups: Dict[str, List[str]] = field(default_factory=dict)
     # Default correlation groups (can be overridden)
     # e.g., {"crypto": ["BTC", "ETH", "SOL"], "commodities": ["GOLD", "SILVER"]}
@@ -76,13 +81,14 @@ class CorrelationConfig:
 @dataclass
 class RegimeConfig:
     """Configuration for regime detection and adjustment."""
+
     enabled: bool = True
-    volatility_lookback: int = 20              # Days for volatility calculation
-    trend_lookback: int = 50                   # Days for trend detection
-    low_vol_threshold: float = 15.0            # Below 15% annual vol = low vol
-    high_vol_threshold: float = 30.0           # Above 30% annual vol = high vol
-    crisis_vol_threshold: float = 50.0         # Above 50% = crisis
-    trend_threshold: float = 0.6               # ADX > 25 or R² > 0.6 = trending
+    volatility_lookback: int = 20  # Days for volatility calculation
+    trend_lookback: int = 50  # Days for trend detection
+    low_vol_threshold: float = 15.0  # Below 15% annual vol = low vol
+    high_vol_threshold: float = 30.0  # Above 30% annual vol = high vol
+    crisis_vol_threshold: float = 50.0  # Above 50% = crisis
+    trend_threshold: float = 0.6  # ADX > 25 or R² > 0.6 = trending
     regime_size_multipliers: Dict[MarketRegime, float] = field(default_factory=dict)
 
     def __post_init__(self):
@@ -99,30 +105,33 @@ class RegimeConfig:
 @dataclass
 class VaRConfig:
     """Configuration for Value-at-Risk monitoring."""
+
     enabled: bool = True
-    confidence_level: float = 0.95             # 95% VaR
-    lookback_days: int = 252                   # 1 year of data
-    max_var_pct: float = 5.0                   # Max 5% daily VaR
-    max_cvar_pct: float = 7.0                  # Max 7% CVaR (tail risk)
-    use_parametric: bool = True                # Parametric VaR
-    use_historical: bool = True                # Historical VaR
+    confidence_level: float = 0.95  # 95% VaR
+    lookback_days: int = 252  # 1 year of data
+    max_var_pct: float = 5.0  # Max 5% daily VaR
+    max_cvar_pct: float = 7.0  # Max 7% CVaR (tail risk)
+    use_parametric: bool = True  # Parametric VaR
+    use_historical: bool = True  # Historical VaR
 
 
 @dataclass
 class RecoveryConfig:
     """Configuration for drawdown recovery mode."""
+
     enabled: bool = True
-    recovery_threshold_pct: float = 50.0       # 50% of drawdown recovered
+    recovery_threshold_pct: float = 50.0  # 50% of drawdown recovered
     full_recovery_threshold_pct: float = 90.0  # 90% = fully recovered
-    initial_size_multiplier: float = 0.5       # Start at 50% size
-    recovery_increment: float = 0.1            # Increase 10% per win
-    max_recovery_multiplier: float = 1.0       # Don't exceed normal size
-    min_winning_trades: int = 3                # Need 3 wins to increase
+    initial_size_multiplier: float = 0.5  # Start at 50% size
+    recovery_increment: float = 0.1  # Increase 10% per win
+    max_recovery_multiplier: float = 1.0  # Don't exceed normal size
+    min_winning_trades: int = 3  # Need 3 wins to increase
 
 
 @dataclass
 class RiskConfig:
     """Risk management configuration."""
+
     # Daily limits
     max_daily_loss_pct: float = 3.0  # Max 3% daily loss
     max_daily_trades: int = 20
@@ -168,6 +177,7 @@ class RiskConfig:
 @dataclass
 class DailyStats:
     """Daily trading statistics."""
+
     date: date
     starting_balance: float
     current_balance: float
@@ -208,12 +218,13 @@ class DailyStats:
 @dataclass
 class VaRMetrics:
     """Value-at-Risk metrics."""
-    var_95: float = 0.0           # 95% VaR (parametric)
-    var_99: float = 0.0           # 99% VaR
-    cvar_95: float = 0.0          # Conditional VaR (Expected Shortfall)
-    historical_var_95: float = 0.0 # Historical VaR
-    max_loss_pct: float = 0.0     # Largest historical loss
-    var_breach: bool = False       # Is current VaR above limit?
+
+    var_95: float = 0.0  # 95% VaR (parametric)
+    var_99: float = 0.0  # 99% VaR
+    cvar_95: float = 0.0  # Conditional VaR (Expected Shortfall)
+    historical_var_95: float = 0.0  # Historical VaR
+    max_loss_pct: float = 0.0  # Largest historical loss
+    var_breach: bool = False  # Is current VaR above limit?
 
     def to_dict(self) -> Dict:
         return {
@@ -229,6 +240,7 @@ class VaRMetrics:
 @dataclass
 class RiskAssessment:
     """Result of risk assessment."""
+
     status: TradingStatus
     risk_level: RiskLevel
     allowed_risk_pct: float
@@ -369,7 +381,9 @@ class RiskManager:
             risk_level = RiskLevel.CRITICAL
 
         elif self._daily_stats.daily_pnl_pct <= -self.config.max_daily_loss_pct * 0.7:
-            warnings.append(f"Approaching daily loss limit ({self._daily_stats.daily_pnl_pct:.1f}%)")
+            warnings.append(
+                f"Approaching daily loss limit ({self._daily_stats.daily_pnl_pct:.1f}%)"
+            )
             status = TradingStatus.REDUCED
             risk_level = RiskLevel.HIGH
             size_multiplier *= 0.5
@@ -405,7 +419,9 @@ class RiskManager:
 
         # Check exposure limits
         total_exposure = sum(abs(v) for v in current_positions.values())
-        exposure_pct = (total_exposure / self.current_balance) * 100 if self.current_balance > 0 else 0
+        exposure_pct = (
+            (total_exposure / self.current_balance) * 100 if self.current_balance > 0 else 0
+        )
 
         if exposure_pct >= self.config.max_total_exposure_pct:
             reasons.append(f"Max exposure reached ({exposure_pct:.1f}%)")
@@ -431,7 +447,10 @@ class RiskManager:
                 if status == TradingStatus.ALLOWED:
                     status = TradingStatus.REDUCED
                 size_multiplier *= 0.5
-            elif correlated_exposure >= self.config.correlation_config.max_correlated_exposure_pct * 0.8:
+            elif (
+                correlated_exposure
+                >= self.config.correlation_config.max_correlated_exposure_pct * 0.8
+            ):
                 warnings.append(f"High correlated exposure ({correlated_exposure:.1f}%)")
 
         # === REGIME-AWARE ADJUSTMENT ===
@@ -453,7 +472,7 @@ class RiskManager:
         if self.config.var_config.enabled and len(self._portfolio_returns) > 20:
             self._update_var_metrics()
             if self._var_metrics.var_breach:
-                warnings.append(f"VaR limit breached: {self._var_metrics.var_95*100:.2f}%")
+                warnings.append(f"VaR limit breached: {self._var_metrics.var_95 * 100:.2f}%")
                 size_multiplier *= 0.5
                 if status == TradingStatus.ALLOWED:
                     status = TradingStatus.REDUCED
@@ -463,13 +482,15 @@ class RiskManager:
             self._update_recovery_phase()
             if self._recovery_phase in [RecoveryPhase.RECOVERING, RecoveryPhase.RECOVERED]:
                 size_multiplier *= self._recovery_multiplier
-                warnings.append(f"Recovery mode: {self._recovery_multiplier*100:.0f}% sizing")
+                warnings.append(f"Recovery mode: {self._recovery_multiplier * 100:.0f}% sizing")
 
         # Calculate allowed risk percentage
         base_risk = self.config.base_risk_per_trade_pct
         allowed_risk = base_risk * size_multiplier
-        allowed_risk = max(self.config.min_risk_per_trade_pct,
-                         min(self.config.max_risk_per_trade_pct, allowed_risk))
+        allowed_risk = max(
+            self.config.min_risk_per_trade_pct,
+            min(self.config.max_risk_per_trade_pct, allowed_risk),
+        )
 
         # Consecutive wins bonus (only if not in recovery)
         if self._daily_stats.consecutive_wins >= self.config.increase_after_wins:
@@ -582,7 +603,9 @@ class RiskManager:
         self._daily_stats.max_drawdown = max(self._daily_stats.max_drawdown, current_dd)
 
         # Check for circuit breaker
-        trade_pnl_pct = (pnl / (self.current_balance - pnl)) * 100 if self.current_balance != pnl else 0
+        trade_pnl_pct = (
+            (pnl / (self.current_balance - pnl)) * 100 if self.current_balance != pnl else 0
+        )
         if trade_pnl_pct <= -self.config.circuit_breaker_loss_pct:
             self._trigger_circuit_breaker(f"Large loss: {trade_pnl_pct:.1f}%")
 
@@ -672,7 +695,9 @@ class RiskManager:
         state = {
             "current_balance": self.current_balance,
             "peak_balance": self.peak_balance,
-            "circuit_breaker_until": self._circuit_breaker_until.isoformat() if self._circuit_breaker_until else None,
+            "circuit_breaker_until": self._circuit_breaker_until.isoformat()
+            if self._circuit_breaker_until
+            else None,
             "blocked_reason": self._blocked_reason,
             "daily_stats": self._daily_stats.to_dict() if self._daily_stats else None,
             "updated_at": datetime.now().isoformat(),
@@ -714,7 +739,7 @@ class RiskManager:
             symbol: Trading symbol
             returns: List of recent returns
         """
-        self._returns_history[symbol] = returns[-self.config.correlation_config.lookback_days:]
+        self._returns_history[symbol] = returns[-self.config.correlation_config.lookback_days :]
         self._update_correlation_matrix()
 
     def _update_correlation_matrix(self):
@@ -831,7 +856,7 @@ class RiskManager:
 
         # Linear regression
         slope, intercept, r_value, p_value, std_err = stats.linregress(x, prices)
-        r_squared = r_value ** 2
+        r_squared = r_value**2
 
         is_trending = r_squared >= self.config.regime_config.trend_threshold
 
@@ -910,8 +935,8 @@ class RiskManager:
 
         # Check if VaR exceeds limits
         self._var_metrics.var_breach = (
-            self._var_metrics.var_95 * 100 > self.config.var_config.max_var_pct or
-            self._var_metrics.cvar_95 * 100 > self.config.var_config.max_cvar_pct
+            self._var_metrics.var_95 * 100 > self.config.var_config.max_var_pct
+            or self._var_metrics.cvar_95 * 100 > self.config.var_config.max_cvar_pct
         )
 
     def get_var_metrics(self) -> VaRMetrics:
@@ -1019,14 +1044,14 @@ class RiskManager:
             self._recovery_phase = RecoveryPhase.RECOVERED
             self._recovery_multiplier = min(
                 config.max_recovery_multiplier,
-                config.initial_size_multiplier + self._recovery_wins * config.recovery_increment
+                config.initial_size_multiplier + self._recovery_wins * config.recovery_increment,
             )
 
         elif recovery_pct >= config.recovery_threshold_pct:
             self._recovery_phase = RecoveryPhase.RECOVERING
             self._recovery_multiplier = min(
                 config.max_recovery_multiplier * 0.8,
-                config.initial_size_multiplier + self._recovery_wins * config.recovery_increment
+                config.initial_size_multiplier + self._recovery_wins * config.recovery_increment,
             )
 
         else:
@@ -1050,14 +1075,14 @@ class RiskManager:
             if self._recovery_wins >= config.min_winning_trades:
                 self._recovery_multiplier = min(
                     config.max_recovery_multiplier,
-                    self._recovery_multiplier + config.recovery_increment
+                    self._recovery_multiplier + config.recovery_increment,
                 )
         else:
             # Reset on loss during recovery
             self._recovery_wins = max(0, self._recovery_wins - 2)
             self._recovery_multiplier = max(
                 config.initial_size_multiplier,
-                self._recovery_multiplier - config.recovery_increment
+                self._recovery_multiplier - config.recovery_increment,
             )
 
     def get_recovery_status(self) -> Dict:
@@ -1089,29 +1114,23 @@ class RiskManager:
             "daily_pnl_pct": round(self._daily_stats.daily_pnl_pct, 2),
             "trades_today": self._daily_stats.trades_count,
             "win_rate_today": round(self._daily_stats.win_rate * 100, 1),
-
             # Status
             "trading_status": assessment.status.value,
             "risk_level": assessment.risk_level.value,
             "allowed_risk_pct": round(assessment.allowed_risk_pct, 2),
             "position_size_multiplier": round(assessment.position_size_multiplier, 2),
-
             # Regime
             "market_regime": self._current_regime.value,
-
             # Recovery
             "recovery_phase": self._recovery_phase.value,
             "recovery_multiplier": round(self._recovery_multiplier, 2),
-
             # VaR
             "var_95": round(self._var_metrics.var_95 * 100, 2) if self._var_metrics else None,
             "cvar_95": round(self._var_metrics.cvar_95 * 100, 2) if self._var_metrics else None,
             "var_breach": self._var_metrics.var_breach if self._var_metrics else False,
-
             # Alerts
             "warnings": assessment.warnings,
             "reasons": assessment.reasons,
-
             # Circuit breaker
             "circuit_breaker_active": self._circuit_breaker_until is not None,
         }

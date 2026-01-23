@@ -155,12 +155,14 @@ class TestModelRecord:
 
         # Add some metrics
         for i in range(10):
-            record.production_metrics.append(ModelMetrics(
-                timestamp=datetime.now(),
-                model_id="test",
-                accuracy=0.55 + i * 0.01,
-                win_rate=0.5,
-            ))
+            record.production_metrics.append(
+                ModelMetrics(
+                    timestamp=datetime.now(),
+                    model_id="test",
+                    accuracy=0.55 + i * 0.01,
+                    win_rate=0.5,
+                )
+            )
 
         result = record.get_recent_performance(days=7)
 
@@ -235,12 +237,14 @@ class TestPerformanceMonitor:
     def test_check_degradation_accuracy_drop(self, monitor):
         """Test detecting accuracy degradation."""
         # Set high baseline
-        monitor.set_baseline(ModelMetrics(
-            timestamp=datetime.now(),
-            model_id="baseline",
-            accuracy=0.70,
-            precision=0.65,
-        ))
+        monitor.set_baseline(
+            ModelMetrics(
+                timestamp=datetime.now(),
+                model_id="baseline",
+                accuracy=0.70,
+                precision=0.65,
+            )
+        )
 
         # Record poor predictions
         for i in range(50):
@@ -257,12 +261,14 @@ class TestPerformanceMonitor:
     def test_check_no_degradation(self, monitor):
         """Test when no degradation detected."""
         # Set baseline
-        monitor.set_baseline(ModelMetrics(
-            timestamp=datetime.now(),
-            model_id="baseline",
-            accuracy=0.55,
-            precision=0.50,
-        ))
+        monitor.set_baseline(
+            ModelMetrics(
+                timestamp=datetime.now(),
+                model_id="baseline",
+                accuracy=0.55,
+                precision=0.50,
+            )
+        )
 
         # Record good predictions
         for i in range(50):
@@ -550,6 +556,7 @@ class TestAutoRetrainingManagerAsync:
 
         # Validate and promote
         import pandas as pd
+
         val_data = pd.DataFrame({"x": [1, 2, 3]})
 
         success = await manager.validate_and_promote(

@@ -543,7 +543,7 @@ class TestObjectiveEdgeCases:
             win_rate=0.0,
             profit_factor=0.0,
             max_drawdown_pct=0.0,
-            sharpe_ratio=float('nan'),
+            sharpe_ratio=float("nan"),
             total_trades=10,
             trades=[],
         )

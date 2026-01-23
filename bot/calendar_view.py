@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class DayPerformance:
     """Performance metrics for a single day."""
+
     date: str
     pnl: float
     pnl_percent: float
@@ -36,6 +37,7 @@ class DayPerformance:
 @dataclass
 class MonthPerformance:
     """Performance metrics for a month."""
+
     year: int
     month: int
     total_pnl: float
@@ -51,6 +53,7 @@ class MonthPerformance:
 @dataclass
 class CalendarData:
     """Complete calendar data for visualization."""
+
     days: List[DayPerformance]
     months: List[MonthPerformance]
     yearly_summary: Dict[int, Dict[str, float]]
@@ -191,9 +194,7 @@ class CalendarViewGenerator:
             statistics=statistics,
         )
 
-    def _calculate_monthly_summaries(
-        self, days: List[DayPerformance]
-    ) -> List[MonthPerformance]:
+    def _calculate_monthly_summaries(self, days: List[DayPerformance]) -> List[MonthPerformance]:
         """Calculate monthly performance summaries."""
         monthly_data: Dict[str, List[DayPerformance]] = {}
 
@@ -212,18 +213,20 @@ class CalendarViewGenerator:
             winning_days = len([d for d in month_days if d.pnl > 0])
             losing_days = len([d for d in month_days if d.pnl < 0])
 
-            months.append(MonthPerformance(
-                year=year,
-                month=month,
-                total_pnl=sum(pnls),
-                total_pnl_percent=sum(pnl_pcts),
-                trading_days=len(month_days),
-                winning_days=winning_days,
-                losing_days=losing_days,
-                best_day=max(pnls) if pnls else 0,
-                worst_day=min(pnls) if pnls else 0,
-                avg_daily_pnl=np.mean(pnls) if pnls else 0,
-            ))
+            months.append(
+                MonthPerformance(
+                    year=year,
+                    month=month,
+                    total_pnl=sum(pnls),
+                    total_pnl_percent=sum(pnl_pcts),
+                    trading_days=len(month_days),
+                    winning_days=winning_days,
+                    losing_days=losing_days,
+                    best_day=max(pnls) if pnls else 0,
+                    worst_day=min(pnls) if pnls else 0,
+                    avg_daily_pnl=np.mean(pnls) if pnls else 0,
+                )
+            )
 
         return months
 
@@ -281,19 +284,21 @@ class CalendarViewGenerator:
             # Parse date
             dt = datetime.strptime(day.date, "%Y-%m-%d")
 
-            heatmap.append({
-                "date": day.date,
-                "year": dt.year,
-                "month": dt.month,
-                "day": dt.day,
-                "weekday": dt.weekday(),  # 0 = Monday
-                "week": dt.isocalendar()[1],
-                "pnl": round(day.pnl, 2),
-                "pnl_percent": round(day.pnl_percent, 2),
-                "trades": day.trades,
-                "intensity": round(intensity, 3),
-                "color": self._get_color(intensity),
-            })
+            heatmap.append(
+                {
+                    "date": day.date,
+                    "year": dt.year,
+                    "month": dt.month,
+                    "day": dt.day,
+                    "weekday": dt.weekday(),  # 0 = Monday
+                    "week": dt.isocalendar()[1],
+                    "pnl": round(day.pnl, 2),
+                    "pnl_percent": round(day.pnl_percent, 2),
+                    "trades": day.trades,
+                    "intensity": round(intensity, 3),
+                    "color": self._get_color(intensity),
+                }
+            )
 
         return heatmap
 
@@ -345,14 +350,19 @@ class CalendarViewGenerator:
             dt = datetime.strptime(day.date, "%Y-%m-%d")
             weekday_pnl[dt.weekday()].append(day.pnl)
 
-        weekday_avg = {
-            k: np.mean(v) if v else 0
-            for k, v in weekday_pnl.items()
-        }
+        weekday_avg = {k: np.mean(v) if v else 0 for k, v in weekday_pnl.items()}
         best_weekday = max(weekday_avg, key=weekday_avg.get)
         worst_weekday = min(weekday_avg, key=weekday_avg.get)
 
-        weekday_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        weekday_names = [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday",
+        ]
 
         return {
             "total_days": len(days),
@@ -376,10 +386,7 @@ class CalendarViewGenerator:
             "worst_streak": worst_streak,
             "best_weekday": weekday_names[best_weekday],
             "worst_weekday": weekday_names[worst_weekday],
-            "weekday_performance": {
-                weekday_names[k]: round(v, 2)
-                for k, v in weekday_avg.items()
-            },
+            "weekday_performance": {weekday_names[k]: round(v, 2) for k, v in weekday_avg.items()},
             "volatility": round(np.std(pnl_pcts), 2) if len(pnl_pcts) > 1 else 0,
         }
 
@@ -426,24 +433,30 @@ class CalendarViewGenerator:
                     week_data.append(None)
                 elif date_str in self._daily_data:
                     perf = self._daily_data[date_str]
-                    week_data.append({
-                        "day": day.day,
-                        "date": date_str,
-                        "pnl": round(perf.pnl, 2),
-                        "pnl_percent": round(perf.pnl_percent, 2),
-                        "trades": perf.trades,
-                        "color": self._get_color(perf.pnl_percent / 5) if perf.pnl_percent != 0 else "#9E9E9E",
-                    })
+                    week_data.append(
+                        {
+                            "day": day.day,
+                            "date": date_str,
+                            "pnl": round(perf.pnl, 2),
+                            "pnl_percent": round(perf.pnl_percent, 2),
+                            "trades": perf.trades,
+                            "color": self._get_color(perf.pnl_percent / 5)
+                            if perf.pnl_percent != 0
+                            else "#9E9E9E",
+                        }
+                    )
                 else:
                     # No trading on this day
-                    week_data.append({
-                        "day": day.day,
-                        "date": date_str,
-                        "pnl": None,
-                        "pnl_percent": None,
-                        "trades": 0,
-                        "color": "#424242",  # Dark gray for no trading
-                    })
+                    week_data.append(
+                        {
+                            "day": day.day,
+                            "date": date_str,
+                            "pnl": None,
+                            "pnl_percent": None,
+                            "trades": 0,
+                            "color": "#424242",  # Dark gray for no trading
+                        }
+                    )
 
             grid.append(week_data)
 
@@ -463,7 +476,9 @@ class CalendarViewGenerator:
                     "trading_days": m.trading_days,
                     "winning_days": m.winning_days,
                     "losing_days": m.losing_days,
-                    "win_rate": round(m.winning_days / m.trading_days * 100, 1) if m.trading_days > 0 else 0,
+                    "win_rate": round(m.winning_days / m.trading_days * 100, 1)
+                    if m.trading_days > 0
+                    else 0,
                     "avg_daily_pnl": round(m.avg_daily_pnl, 2),
                 }
                 for m in calendar_data.months

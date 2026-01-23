@@ -69,7 +69,7 @@ class PositionalEncoding(nn.Module):
         Args:
             x: Tensor of shape (batch, seq_len, d_model)
         """
-        x = x + self.pe[:, :x.size(1), :]
+        x = x + self.pe[:, : x.size(1), :]
         return self.dropout(x)
 
 
@@ -195,7 +195,9 @@ class TransformerModel(BaseMLModel):
         model_dir: str = "data/models",
     ):
         if not HAS_TORCH:
-            raise ImportError("PyTorch is required for Transformer. Install with: pip install torch")
+            raise ImportError(
+                "PyTorch is required for Transformer. Install with: pip install torch"
+            )
 
         if config is None:
             config = TransformerConfig()

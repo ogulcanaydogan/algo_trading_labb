@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from threading import Lock
+from threading import RLock
 from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
@@ -104,7 +104,7 @@ class SafetyController:
         self.limits = limits or SafetyLimits()
         self.state_path = state_path or Path("data/safety_state.json")
 
-        self._lock = Lock()
+        self._lock = RLock()  # Re-entrant lock for thread-safe nested calls
         self._status = SafetyStatus.OK
         self._emergency_stop_active = False
         self._emergency_stop_reason: Optional[str] = None
@@ -167,11 +167,12 @@ class SafetyController:
             logger.error(f"Failed to save safety state: {e}")
 
     def _reset_daily_stats_if_needed(self) -> None:
-        """Reset daily stats if it's a new day."""
-        if self._daily_stats.date != self._today():
-            logger.info("New day detected, resetting daily stats")
-            self._daily_stats = DailyStats(date=self._today())
-            self._save_state()
+        """Reset daily stats if it's a new day. Thread-safe with RLock."""
+        with self._lock:
+            if self._daily_stats.date != self._today():
+                logger.info("New day detected, resetting daily stats")
+                self._daily_stats = DailyStats(date=self._today())
+                self._save_state()
 
     def update_balance(self, balance: float) -> None:
         """Update current balance and peak tracking."""
@@ -180,7 +181,7 @@ class SafetyController:
             if balance > self._peak_balance:
                 self._peak_balance = balance
                 self._save_state()
-            
+
             # Recalculate dynamic position limits based on current balance
             if self.limits.max_position_size_pct > 0:
                 self.limits.max_position_size_usd = balance * self.limits.max_position_size_pct
@@ -250,9 +251,7 @@ class SafetyController:
                     f"${self.limits.max_position_size_usd:.2f}",
                 )
 
-            position_pct = (
-                order_value / self._current_balance if self._current_balance > 0 else 1
-            )
+            position_pct = order_value / self._current_balance if self._current_balance > 0 else 1
             if position_pct > self.limits.max_position_size_pct:
                 return (
                     False,
@@ -322,10 +321,7 @@ class SafetyController:
                     )
 
             # Consecutive losses check
-            if (
-                self._daily_stats.consecutive_losses
-                >= self.limits.max_consecutive_losses
-            ):
+            if self._daily_stats.consecutive_losses >= self.limits.max_consecutive_losses:
                 return (
                     False,
                     f"Too many consecutive losses: "
@@ -372,13 +368,9 @@ class SafetyController:
                     self.emergency_stop(
                         f"Daily loss limit exceeded: ${self._daily_stats.total_loss:.2f}"
                     )
-                elif (
-                    self._daily_stats.consecutive_losses
-                    >= self.limits.max_consecutive_losses
-                ):
+                elif self._daily_stats.consecutive_losses >= self.limits.max_consecutive_losses:
                     self.emergency_stop(
-                        f"Too many consecutive losses: "
-                        f"{self._daily_stats.consecutive_losses}"
+                        f"Too many consecutive losses: {self._daily_stats.consecutive_losses}"
                     )
 
             self._save_state()
@@ -388,9 +380,7 @@ class SafetyController:
         with self._lock:
             self._daily_stats.api_errors += 1
             if self._daily_stats.api_errors >= self.limits.max_api_errors:
-                self.emergency_stop(
-                    f"Too many API errors: {self._daily_stats.api_errors}"
-                )
+                self.emergency_stop(f"Too many API errors: {self._daily_stats.api_errors}")
             self._save_state()
 
     def clear_api_errors(self) -> None:
@@ -418,8 +408,8 @@ class SafetyController:
 
             notifier = NotificationManager()
             notifier.send_critical(f"EMERGENCY STOP: {reason}")
-        except Exception:
-            pass
+        except (ImportError, ConnectionError, RuntimeError) as e:
+            logger.debug(f"Could not send emergency notification: {e}")
 
     def clear_emergency_stop(self, approver: str = "manual") -> bool:
         """
@@ -476,8 +466,7 @@ class SafetyController:
                     "max_trades_per_day": self.limits.max_trades_per_day,
                     "daily_loss_remaining": self.limits.max_daily_loss_usd
                     - self._daily_stats.total_loss,
-                    "trades_remaining": self.limits.max_trades_per_day
-                    - self._daily_stats.trades,
+                    "trades_remaining": self.limits.max_trades_per_day - self._daily_stats.trades,
                 },
                 "current_balance": self._current_balance,
                 "peak_balance": self._peak_balance,
@@ -503,9 +492,7 @@ class SafetyController:
             }
 
 
-def create_safety_controller_for_mode(
-    mode: str, capital: float = 10000.0
-) -> SafetyController:
+def create_safety_controller_for_mode(mode: str, capital: float = 10000.0) -> SafetyController:
     """
     Create a safety controller with appropriate limits for the trading mode.
     """

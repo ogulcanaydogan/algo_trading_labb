@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 class DiscrepancyType(Enum):
     """Types of discrepancies between paper and backtest."""
+
     SLIPPAGE = "slippage"
     TIMING = "timing"
     SIGNAL_MISMATCH = "signal_mismatch"
@@ -34,6 +35,7 @@ class DiscrepancyType(Enum):
 @dataclass
 class TradeComparison:
     """Comparison of a single trade pair (paper vs backtest)."""
+
     symbol: str
     paper_entry_time: datetime
     backtest_entry_time: datetime
@@ -59,7 +61,9 @@ class TradeComparison:
             "paper_entry_price": round(self.paper_entry_price, 4),
             "backtest_entry_price": round(self.backtest_entry_price, 4),
             "paper_exit_price": round(self.paper_exit_price, 4) if self.paper_exit_price else None,
-            "backtest_exit_price": round(self.backtest_exit_price, 4) if self.backtest_exit_price else None,
+            "backtest_exit_price": round(self.backtest_exit_price, 4)
+            if self.backtest_exit_price
+            else None,
             "paper_pnl": round(self.paper_pnl, 2),
             "backtest_pnl": round(self.backtest_pnl, 2),
             "pnl_difference": round(self.pnl_difference, 2),
@@ -75,6 +79,7 @@ class TradeComparison:
 @dataclass
 class ComparisonMetrics:
     """Aggregate comparison metrics."""
+
     total_paper_pnl: float
     total_backtest_pnl: float
     pnl_difference: float
@@ -112,6 +117,7 @@ class ComparisonMetrics:
 @dataclass
 class DiscrepancyAnalysis:
     """Analysis of discrepancies."""
+
     discrepancy_type: DiscrepancyType
     count: int
     total_pnl_impact: float
@@ -133,6 +139,7 @@ class DiscrepancyAnalysis:
 @dataclass
 class ValidationReport:
     """Complete paper vs backtest validation report."""
+
     period_start: datetime
     period_end: datetime
     paper_trades_count: int
@@ -166,6 +173,7 @@ class ValidationReport:
 @dataclass
 class PaperTrade:
     """Paper trading trade record."""
+
     trade_id: str
     symbol: str
     action: str
@@ -182,6 +190,7 @@ class PaperTrade:
 @dataclass
 class BacktestTrade:
     """Backtest trade record."""
+
     symbol: str
     action: str
     quantity: float
@@ -329,7 +338,7 @@ class PaperBacktestComparator:
 
         for paper in self.paper_trades:
             best_match = None
-            best_score = float('inf')
+            best_score = float("inf")
 
             for i, backtest in enumerate(self.backtest_trades):
                 if i in used_backtest:
@@ -440,11 +449,15 @@ class PaperBacktestComparator:
         backtest_returns = np.array(backtest_pnls)
 
         paper_sharpe = np.mean(paper_returns) / (np.std(paper_returns) + 1e-8) * np.sqrt(252)
-        backtest_sharpe = np.mean(backtest_returns) / (np.std(backtest_returns) + 1e-8) * np.sqrt(252)
+        backtest_sharpe = (
+            np.mean(backtest_returns) / (np.std(backtest_returns) + 1e-8) * np.sqrt(252)
+        )
 
         # Slippage and timing
         avg_slippage = np.mean([abs(c.entry_slippage) for c in comparisons]) if comparisons else 0
-        avg_timing = np.mean([abs(c.timing_difference_seconds) for c in comparisons]) if comparisons else 0
+        avg_timing = (
+            np.mean([abs(c.timing_difference_seconds) for c in comparisons]) if comparisons else 0
+        )
 
         # Correlation
         if len(paper_pnls) > 1:
@@ -589,9 +602,7 @@ class PaperBacktestComparator:
         passed, score = self._calculate_validation_score(metrics, comparisons)
 
         # Generate recommendations
-        recommendations = self._generate_recommendations(
-            metrics, discrepancy_analysis, score
-        )
+        recommendations = self._generate_recommendations(metrics, discrepancy_analysis, score)
 
         # Determine period
         if start_date is None and self.paper_trades:
@@ -658,8 +669,7 @@ class PaperBacktestComparator:
 
         if score < 70:
             recommendations.append(
-                "Validation score below threshold. "
-                "Review all discrepancies before going live."
+                "Validation score below threshold. Review all discrepancies before going live."
             )
 
         return recommendations[:5]

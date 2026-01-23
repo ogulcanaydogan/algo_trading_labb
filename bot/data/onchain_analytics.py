@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class WhaleTransaction:
     """Large wallet transaction."""
+
     tx_hash: str
     asset: str
     amount: float
@@ -58,6 +59,7 @@ class WhaleTransaction:
 @dataclass
 class ExchangeFlow:
     """Exchange inflow/outflow data."""
+
     asset: str
     exchange: str
     inflow: float
@@ -85,6 +87,7 @@ class ExchangeFlow:
 @dataclass
 class OnChainMetrics:
     """Aggregated on-chain metrics."""
+
     asset: str
     active_addresses: int
     transaction_count: int
@@ -116,6 +119,7 @@ class OnChainMetrics:
 @dataclass
 class OnChainSignal:
     """Trading signal from on-chain analysis."""
+
     asset: str
     signal: Literal["BULLISH", "BEARISH", "NEUTRAL"]
     strength: float  # 0 to 1
@@ -141,6 +145,7 @@ class OnChainSignal:
 @dataclass
 class OnChainConfig:
     """On-chain analytics configuration."""
+
     # Whale thresholds
     whale_threshold_btc: float = 100  # BTC
     whale_threshold_eth: float = 1000  # ETH
@@ -397,11 +402,15 @@ class OnChainAnalytics:
             if metrics.exchange_balance_change_24h < -self.config.exchange_flow_threshold:
                 indicators["exchange_balance"] = "bullish"
                 bullish_score += 0.2
-                reasoning.append(f"Exchange balance down {metrics.exchange_balance_change_24h*100:.1f}%")
+                reasoning.append(
+                    f"Exchange balance down {metrics.exchange_balance_change_24h * 100:.1f}%"
+                )
             elif metrics.exchange_balance_change_24h > self.config.exchange_flow_threshold:
                 indicators["exchange_balance"] = "bearish"
                 bearish_score += 0.2
-                reasoning.append(f"Exchange balance up {metrics.exchange_balance_change_24h*100:.1f}%")
+                reasoning.append(
+                    f"Exchange balance up {metrics.exchange_balance_change_24h * 100:.1f}%"
+                )
 
             # MVRV ratio
             if metrics.mvrv_ratio < 1.0:

@@ -39,13 +39,16 @@ def sample_ohlcv():
 
     prices = np.array(prices)
 
-    return pd.DataFrame({
-        "open": prices * (1 + np.random.randn(n) * 0.001),
-        "high": prices * (1 + abs(np.random.randn(n)) * 0.005),
-        "low": prices * (1 - abs(np.random.randn(n)) * 0.005),
-        "close": prices,
-        "volume": np.random.uniform(1000, 10000, n),
-    }, index=dates)
+    return pd.DataFrame(
+        {
+            "open": prices * (1 + np.random.randn(n) * 0.001),
+            "high": prices * (1 + abs(np.random.randn(n)) * 0.005),
+            "low": prices * (1 - abs(np.random.randn(n)) * 0.005),
+            "close": prices,
+            "volume": np.random.uniform(1000, 10000, n),
+        },
+        index=dates,
+    )
 
 
 @pytest.fixture
@@ -56,12 +59,14 @@ def mock_base_adapter():
     adapter.get_positions = AsyncMock(return_value={})
     adapter.get_current_price = AsyncMock(return_value=50000.0)
     adapter.get_ohlcv = AsyncMock()
-    adapter.execute_order = AsyncMock(return_value=MagicMock(
-        success=True,
-        order_id="test_order_1",
-        filled_quantity=1.0,
-        average_price=50000.0,
-    ))
+    adapter.execute_order = AsyncMock(
+        return_value=MagicMock(
+            success=True,
+            order_id="test_order_1",
+            filled_quantity=1.0,
+            average_price=50000.0,
+        )
+    )
     return adapter
 
 
@@ -159,17 +164,21 @@ class TestEnhancedTradingEngineIntegration:
         adapter.get_positions = AsyncMock(return_value={})
         adapter.get_price = AsyncMock(return_value=50000.0)
         adapter.get_ohlcv = AsyncMock(return_value=sample_ohlcv)
-        adapter.get_market_data = AsyncMock(return_value={
-            "mid_price": 50000,
-            "volatility": 0.02,
-            "spread_bps": 10,
-        })
-        adapter.place_order = AsyncMock(return_value={
-            "order_id": "test_order",
-            "status": "filled",
-            "price": 50000,
-            "quantity": 0.1,
-        })
+        adapter.get_market_data = AsyncMock(
+            return_value={
+                "mid_price": 50000,
+                "volatility": 0.02,
+                "spread_bps": 10,
+            }
+        )
+        adapter.place_order = AsyncMock(
+            return_value={
+                "order_id": "test_order",
+                "status": "filled",
+                "price": 50000,
+                "quantity": 0.1,
+            }
+        )
         return adapter
 
     @pytest.fixture
@@ -397,17 +406,21 @@ class TestMultiSymbolSupport:
         adapter.get_positions = AsyncMock(return_value={})
         adapter.get_price = AsyncMock(return_value=50000.0)
         adapter.get_ohlcv = AsyncMock(return_value=sample_ohlcv)
-        adapter.get_market_data = AsyncMock(return_value={
-            "mid_price": 50000,
-            "volatility": 0.02,
-            "spread_bps": 10,
-        })
-        adapter.place_order = AsyncMock(return_value={
-            "order_id": "test_order",
-            "status": "filled",
-            "price": 50000,
-            "quantity": 0.1,
-        })
+        adapter.get_market_data = AsyncMock(
+            return_value={
+                "mid_price": 50000,
+                "volatility": 0.02,
+                "spread_bps": 10,
+            }
+        )
+        adapter.place_order = AsyncMock(
+            return_value={
+                "order_id": "test_order",
+                "status": "filled",
+                "price": 50000,
+                "quantity": 0.1,
+            }
+        )
         return adapter
 
     @pytest.fixture

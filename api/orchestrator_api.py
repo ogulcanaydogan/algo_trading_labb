@@ -21,8 +21,10 @@ router = APIRouter(prefix="/api/v2", tags=["Orchestrator"])
 # Pydantic Models
 # ==============================================================================
 
+
 class SystemStatusResponse(BaseModel):
     """System status response."""
+
     state: str = Field(..., description="Current system state")
     mode: str = Field(..., description="Trading mode (live, paper, shadow)")
     uptime_seconds: float = Field(..., description="System uptime in seconds")
@@ -35,6 +37,7 @@ class SystemStatusResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     """Health check response."""
+
     state: str
     uptime_seconds: float
     risk_guardian_active: bool
@@ -52,12 +55,14 @@ class HealthResponse(BaseModel):
 
 class KillSwitchRequest(BaseModel):
     """Kill switch request."""
+
     action: str = Field(..., description="Action: 'stop', 'resume', or 'close_all'")
     reason: str = Field("Manual", description="Reason for activation")
 
 
 class KillSwitchResponse(BaseModel):
     """Kill switch response."""
+
     success: bool
     action: str
     message: str
@@ -66,12 +71,16 @@ class KillSwitchResponse(BaseModel):
 
 class RiskLimitUpdateRequest(BaseModel):
     """Risk limit update request."""
-    limit_type: str = Field(..., description="Type of limit: max_drawdown, max_position, daily_loss, max_trades")
+
+    limit_type: str = Field(
+        ..., description="Type of limit: max_drawdown, max_position, daily_loss, max_trades"
+    )
     value: float = Field(..., description="New limit value")
 
 
 class RiskLimitResponse(BaseModel):
     """Risk limit response."""
+
     success: bool
     limit_type: str
     old_value: Optional[float]
@@ -81,6 +90,7 @@ class RiskLimitResponse(BaseModel):
 
 class RiskLimitsResponse(BaseModel):
     """Current risk limits response."""
+
     max_drawdown: float = Field(..., description="Maximum allowed drawdown (e.g., 0.10 for 10%)")
     max_position_size: float = Field(..., description="Maximum position size as % of portfolio")
     daily_loss_limit: float = Field(..., description="Maximum daily loss in currency")
@@ -91,6 +101,7 @@ class RiskLimitsResponse(BaseModel):
 
 class StrategyInfo(BaseModel):
     """Strategy information."""
+
     name: str
     enabled: bool
     suitable_regimes: List[str]
@@ -101,6 +112,7 @@ class StrategyInfo(BaseModel):
 
 class StrategiesResponse(BaseModel):
     """List of strategies response."""
+
     strategies: List[StrategyInfo]
     total_count: int
     active_count: int
@@ -108,11 +120,13 @@ class StrategiesResponse(BaseModel):
 
 class StrategyToggleRequest(BaseModel):
     """Request to enable/disable a strategy."""
+
     enabled: bool = Field(..., description="Whether to enable or disable the strategy")
 
 
 class StrategyToggleResponse(BaseModel):
     """Response for strategy toggle."""
+
     strategy_name: str
     enabled: bool
     message: str
@@ -120,6 +134,7 @@ class StrategyToggleResponse(BaseModel):
 
 class NewsFeatureResponse(BaseModel):
     """News features response."""
+
     timestamp: str
     overall_sentiment: float
     sentiment_momentum: float
@@ -142,6 +157,7 @@ class NewsFeatureResponse(BaseModel):
 
 class AddNewsEventRequest(BaseModel):
     """Request to add a news event."""
+
     title: str = Field(..., description="Event/news title")
     timestamp: Optional[str] = Field(None, description="ISO timestamp")
     event_type: str = Field("other", description="Event type")
@@ -153,6 +169,7 @@ class AddNewsEventRequest(BaseModel):
 
 class AddNewsEventResponse(BaseModel):
     """Response for adding news event."""
+
     success: bool
     event_id: str
     message: str
@@ -160,6 +177,7 @@ class AddNewsEventResponse(BaseModel):
 
 class WalkForwardResultResponse(BaseModel):
     """Walk-forward validation result."""
+
     strategy_name: str
     validation_date: str
     result: str  # PASSED, FAILED, MARGINAL
@@ -173,6 +191,7 @@ class WalkForwardResultResponse(BaseModel):
 
 class AllocationResponse(BaseModel):
     """Meta-allocator allocation response."""
+
     strategy_name: str
     weight: float
     capital_allocated: float
@@ -181,6 +200,7 @@ class AllocationResponse(BaseModel):
 
 class MetaAllocatorStatusResponse(BaseModel):
     """Meta-allocator status response."""
+
     method: str
     total_capital: float
     allocations: List[AllocationResponse]
@@ -190,6 +210,7 @@ class MetaAllocatorStatusResponse(BaseModel):
 
 class DecisionResponse(BaseModel):
     """Trading decision response."""
+
     decision_id: str
     timestamp: str
     symbol: str
@@ -205,12 +226,14 @@ class DecisionResponse(BaseModel):
 
 class RegimeUpdateRequest(BaseModel):
     """Request to update market regime."""
+
     regime: str = Field(..., description="New regime name")
     confidence: float = Field(0.8, description="Confidence level 0-1")
 
 
 class RegimeResponse(BaseModel):
     """Regime status response."""
+
     current_regime: str
     confidence: float
     last_change: Optional[str]
@@ -260,7 +283,7 @@ def init_orchestrator_api(
     news_extractor=None,
     walk_forward_validator=None,
     meta_allocator=None,
-    risk_guardian=None
+    risk_guardian=None,
 ):
     """Initialize the orchestrator API with component instances."""
     global _orchestrator, _news_extractor, _walk_forward_validator, _meta_allocator, _risk_guardian
@@ -275,6 +298,7 @@ def init_orchestrator_api(
 # ==============================================================================
 # System Status Endpoints
 # ==============================================================================
+
 
 @router.get("/status", response_model=SystemStatusResponse)
 async def get_system_status():
@@ -311,13 +335,14 @@ async def get_system_health():
         current_drawdown=health.current_drawdown,
         daily_pnl=health.daily_pnl,
         open_positions=health.open_positions,
-        warnings=health.warnings
+        warnings=health.warnings,
     )
 
 
 # ==============================================================================
 # Kill Switch & Control Endpoints
 # ==============================================================================
+
 
 @router.post("/kill-switch", response_model=KillSwitchResponse)
 async def activate_kill_switch(request: KillSwitchRequest):
@@ -340,7 +365,7 @@ async def activate_kill_switch(request: KillSwitchRequest):
         success=True,
         action=request.action,
         message=f"Kill switch {request.action} executed: {request.reason}",
-        timestamp=datetime.now().isoformat()
+        timestamp=datetime.now().isoformat(),
     )
 
 
@@ -364,6 +389,7 @@ async def resume_trading():
 # Risk Control Endpoints
 # ==============================================================================
 
+
 @router.get("/risk/limits", response_model=RiskLimitsResponse)
 async def get_risk_limits():
     """
@@ -373,7 +399,7 @@ async def get_risk_limits():
     """
     risk_guardian = get_risk_guardian()
 
-    if risk_guardian and hasattr(risk_guardian, 'get_limits'):
+    if risk_guardian and hasattr(risk_guardian, "get_limits"):
         limits = risk_guardian.get_limits()
         return RiskLimitsResponse(**limits)
 
@@ -384,7 +410,7 @@ async def get_risk_limits():
         daily_loss_limit=5000.0,
         max_trades_per_day=100,
         max_leverage=1.0,
-        max_correlated_exposure=0.40
+        max_correlated_exposure=0.40,
     )
 
 
@@ -404,8 +430,7 @@ async def update_risk_limit(request: RiskLimitUpdateRequest):
     valid_limits = ["max_drawdown", "max_position", "daily_loss", "max_trades"]
     if request.limit_type not in valid_limits:
         raise HTTPException(
-            status_code=400,
-            detail=f"Invalid limit type. Valid types: {valid_limits}"
+            status_code=400, detail=f"Invalid limit type. Valid types: {valid_limits}"
         )
 
     success = await orchestrator.adjust_risk_limit(request.limit_type, request.value)
@@ -415,7 +440,7 @@ async def update_risk_limit(request: RiskLimitUpdateRequest):
         limit_type=request.limit_type,
         old_value=None,  # Would need to track old value
         new_value=request.value,
-        message="Limit updated successfully" if success else "Failed to update limit"
+        message="Limit updated successfully" if success else "Failed to update limit",
     )
 
 
@@ -428,7 +453,7 @@ async def get_risk_metrics():
     """
     risk_guardian = get_risk_guardian()
 
-    if risk_guardian and hasattr(risk_guardian, 'get_current_metrics'):
+    if risk_guardian and hasattr(risk_guardian, "get_current_metrics"):
         return risk_guardian.get_current_metrics()
 
     return {
@@ -440,13 +465,14 @@ async def get_risk_metrics():
         "daily_trades": 0,
         "daily_pnl": 0.0,
         "var_95": 0.0,
-        "position_count": 0
+        "position_count": 0,
     }
 
 
 # ==============================================================================
 # Strategy Management Endpoints
 # ==============================================================================
+
 
 @router.get("/strategies", response_model=StrategiesResponse)
 async def list_strategies():
@@ -465,14 +491,14 @@ async def list_strategies():
             suitable_regimes=["trending_bullish", "trending_bearish"],  # Would come from strategy
             description=f"Strategy: {name}",
             parameters={},
-            performance=None
+            performance=None,
         )
         strategies.append(strategy_info)
 
     return StrategiesResponse(
         strategies=strategies,
         total_count=len(strategies),
-        active_count=sum(1 for s in strategies if s.enabled)
+        active_count=sum(1 for s in strategies if s.enabled),
     )
 
 
@@ -492,7 +518,7 @@ async def get_strategy(strategy_name: str):
         suitable_regimes=["trending_bullish", "trending_bearish"],
         description=f"Strategy: {strategy_name}",
         parameters={},
-        performance=None
+        performance=None,
     )
 
 
@@ -519,13 +545,14 @@ async def toggle_strategy(strategy_name: str, request: StrategyToggleRequest):
     return StrategyToggleResponse(
         strategy_name=strategy_name,
         enabled=request.enabled,
-        message=f"Strategy {'enabled' if request.enabled else 'disabled'}"
+        message=f"Strategy {'enabled' if request.enabled else 'disabled'}",
     )
 
 
 # ==============================================================================
 # News Features Endpoints
 # ==============================================================================
+
 
 @router.get("/news/features", response_model=NewsFeatureResponse)
 async def get_news_features(regime: Optional[str] = Query(None, description="Filter by regime")):
@@ -559,7 +586,7 @@ async def get_news_features(regime: Optional[str] = Query(None, description="Fil
         hours_to_next_high_impact=features.hours_to_next_high_impact,
         next_event_type=features.next_event_type,
         news_velocity=features.news_velocity,
-        headline_risk_score=features.headline_risk_score
+        headline_risk_score=features.headline_risk_score,
     )
 
 
@@ -580,7 +607,7 @@ async def get_news_feature_vector():
     return {
         "feature_names": features.feature_names(),
         "feature_values": features.to_vector(),
-        "timestamp": features.timestamp.isoformat()
+        "timestamp": features.timestamp.isoformat(),
     }
 
 
@@ -599,7 +626,9 @@ async def add_news_event(request: AddNewsEventRequest):
     try:
         from bot.news_feature_extractor import EconomicCalendarParser, NewsParser
 
-        timestamp = datetime.fromisoformat(request.timestamp) if request.timestamp else datetime.now()
+        timestamp = (
+            datetime.fromisoformat(request.timestamp) if request.timestamp else datetime.now()
+        )
 
         if request.actual is not None or request.expected is not None:
             # Economic event
@@ -610,7 +639,7 @@ async def add_news_event(request: AddNewsEventRequest):
                 actual=request.actual,
                 expected=request.expected,
                 previous=request.previous,
-                source=request.source
+                source=request.source,
             )
             news_extractor.add_economic_event(event)
             event_id = event.event_id
@@ -618,17 +647,13 @@ async def add_news_event(request: AddNewsEventRequest):
             # News item
             parser = NewsParser()
             news = parser.parse_headline(
-                headline=request.title,
-                timestamp=timestamp,
-                source=request.source
+                headline=request.title, timestamp=timestamp, source=request.source
             )
             news_extractor.add_news_item(news)
             event_id = news.news_id
 
         return AddNewsEventResponse(
-            success=True,
-            event_id=event_id,
-            message="Event added successfully"
+            success=True, event_id=event_id, message="Event added successfully"
         )
 
     except Exception as e:
@@ -645,15 +670,17 @@ async def get_upcoming_events():
 
     events = []
     for event in news_extractor.upcoming_events[:20]:
-        events.append({
-            "event_id": event.event_id,
-            "event_type": event.event_type.value,
-            "timestamp": event.timestamp.isoformat(),
-            "title": event.title,
-            "impact": event.impact.value,
-            "expected": event.expected,
-            "previous": event.previous
-        })
+        events.append(
+            {
+                "event_id": event.event_id,
+                "event_type": event.event_type.value,
+                "timestamp": event.timestamp.isoformat(),
+                "title": event.title,
+                "impact": event.impact.value,
+                "expected": event.expected,
+                "previous": event.previous,
+            }
+        )
 
     return {"upcoming_events": events}
 
@@ -662,9 +689,10 @@ async def get_upcoming_events():
 # Walk-Forward Validation Endpoints
 # ==============================================================================
 
+
 @router.get("/validation/results")
 async def get_validation_results(
-    strategy_name: Optional[str] = Query(None, description="Filter by strategy")
+    strategy_name: Optional[str] = Query(None, description="Filter by strategy"),
 ):
     """
     Get walk-forward validation results.
@@ -678,30 +706,33 @@ async def get_validation_results(
 
     # Get cached results
     results = []
-    if hasattr(validator, 'get_cached_results'):
+    if hasattr(validator, "get_cached_results"):
         cached = validator.get_cached_results()
         for name, report in cached.items():
             if strategy_name and name != strategy_name:
                 continue
-            results.append({
-                "strategy_name": name,
-                "validation_date": report.validation_date.isoformat() if hasattr(report, 'validation_date') else None,
-                "result": report.result.value if hasattr(report, 'result') else "unknown",
-                "metrics": report.metrics if hasattr(report, 'metrics') else {},
-                "windows_passed": getattr(report, 'windows_passed', 0),
-                "windows_total": getattr(report, 'windows_total', 0),
-                "stress_tests_passed": getattr(report, 'stress_tests_passed', 0),
-                "stress_tests_total": getattr(report, 'stress_tests_total', 0),
-                "recommendation": getattr(report, 'recommendation', "")
-            })
+            results.append(
+                {
+                    "strategy_name": name,
+                    "validation_date": report.validation_date.isoformat()
+                    if hasattr(report, "validation_date")
+                    else None,
+                    "result": report.result.value if hasattr(report, "result") else "unknown",
+                    "metrics": report.metrics if hasattr(report, "metrics") else {},
+                    "windows_passed": getattr(report, "windows_passed", 0),
+                    "windows_total": getattr(report, "windows_total", 0),
+                    "stress_tests_passed": getattr(report, "stress_tests_passed", 0),
+                    "stress_tests_total": getattr(report, "stress_tests_total", 0),
+                    "recommendation": getattr(report, "recommendation", ""),
+                }
+            )
 
     return {"validation_results": results}
 
 
 @router.post("/validation/run/{strategy_name}")
 async def run_validation(
-    strategy_name: str,
-    force: bool = Query(False, description="Force re-validation even if cached")
+    strategy_name: str, force: bool = Query(False, description="Force re-validation even if cached")
 ):
     """
     Run walk-forward validation for a strategy.
@@ -721,13 +752,14 @@ async def run_validation(
     return {
         "message": f"Validation requested for {strategy_name}",
         "status": "queued",
-        "force": force
+        "force": force,
     }
 
 
 # ==============================================================================
 # Meta-Allocator Endpoints
 # ==============================================================================
+
 
 @router.get("/allocator/status", response_model=MetaAllocatorStatusResponse)
 async def get_allocator_status():
@@ -743,21 +775,23 @@ async def get_allocator_status():
 
     # Get current allocations
     allocations = []
-    if hasattr(allocator, 'current_allocations'):
+    if hasattr(allocator, "current_allocations"):
         for name, weight in allocator.current_allocations.items():
-            allocations.append(AllocationResponse(
-                strategy_name=name,
-                weight=weight,
-                capital_allocated=weight * 100000,  # Example total capital
-                reason="Current allocation"
-            ))
+            allocations.append(
+                AllocationResponse(
+                    strategy_name=name,
+                    weight=weight,
+                    capital_allocated=weight * 100000,  # Example total capital
+                    reason="Current allocation",
+                )
+            )
 
     return MetaAllocatorStatusResponse(
-        method=getattr(allocator, 'method', 'equal_weight'),
+        method=getattr(allocator, "method", "equal_weight"),
         total_capital=100000,  # Would come from portfolio
         allocations=allocations,
         last_rebalance=None,
-        next_rebalance=None
+        next_rebalance=None,
     )
 
 
@@ -774,15 +808,13 @@ async def trigger_rebalance():
         raise HTTPException(status_code=503, detail="Meta-allocator not initialized")
 
     # Would trigger rebalance
-    return {
-        "message": "Rebalance requested",
-        "status": "queued"
-    }
+    return {"message": "Rebalance requested", "status": "queued"}
 
 
 # ==============================================================================
 # Regime Endpoints
 # ==============================================================================
+
 
 @router.get("/regime", response_model=RegimeResponse)
 async def get_current_regime():
@@ -793,7 +825,7 @@ async def get_current_regime():
         current_regime=orchestrator.current_regime,
         confidence=0.8,  # Would come from regime detector
         last_change=None,
-        regime_duration_hours=None
+        regime_duration_hours=None,
     )
 
 
@@ -812,7 +844,7 @@ async def update_regime(request: RegimeUpdateRequest):
         current_regime=request.regime,
         confidence=request.confidence,
         last_change=datetime.now().isoformat(),
-        regime_duration_hours=0
+        regime_duration_hours=0,
     )
 
 
@@ -820,10 +852,11 @@ async def update_regime(request: RegimeUpdateRequest):
 # Decisions & Trades Endpoints
 # ==============================================================================
 
+
 @router.get("/decisions/recent")
 async def get_recent_decisions(
     limit: int = Query(50, ge=1, le=500, description="Maximum decisions to return"),
-    executed_only: bool = Query(False, description="Only show executed decisions")
+    executed_only: bool = Query(False, description="Only show executed decisions"),
 ):
     """
     Get recent trading decisions.
@@ -850,11 +883,11 @@ async def get_recent_decisions(
                 "risk_approved": d.risk_approved,
                 "risk_reason": d.risk_reason,
                 "executed": d.executed,
-                "execution_price": d.execution_price
+                "execution_price": d.execution_price,
             }
             for d in decisions
         ],
-        "total": len(decisions)
+        "total": len(decisions),
     }
 
 
@@ -863,7 +896,4 @@ async def get_system_metrics():
     """Get system performance metrics."""
     orchestrator = get_orchestrator()
 
-    return {
-        "metrics": orchestrator.metrics,
-        "timestamp": datetime.now().isoformat()
-    }
+    return {"metrics": orchestrator.metrics, "timestamp": datetime.now().isoformat()}

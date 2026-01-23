@@ -97,17 +97,19 @@ class DataAdapter(ABC):
         if not data:
             return pd.DataFrame(columns=["open", "high", "low", "close", "volume"])
 
-        df = pd.DataFrame([
-            {
-                "timestamp": d.timestamp,
-                "open": d.open,
-                "high": d.high,
-                "low": d.low,
-                "close": d.close,
-                "volume": d.volume,
-            }
-            for d in data
-        ])
+        df = pd.DataFrame(
+            [
+                {
+                    "timestamp": d.timestamp,
+                    "open": d.open,
+                    "high": d.high,
+                    "low": d.low,
+                    "close": d.close,
+                    "volume": d.volume,
+                }
+                for d in data
+            ]
+        )
         df.set_index("timestamp", inplace=True)
         df.sort_index(inplace=True)
         return df

@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class RiskMetrics:
     """Comprehensive risk metrics."""
+
     # Return-based metrics
     total_return: float = 0.0
     annualized_return: float = 0.0
@@ -110,10 +111,7 @@ class RiskMetricsCalculator:
 
         # Calculate returns from equity curve
         if len(equity) > 1:
-            self._returns = [
-                (equity[i] / equity[i - 1]) - 1
-                for i in range(1, len(equity))
-            ]
+            self._returns = [(equity[i] / equity[i - 1]) - 1 for i in range(1, len(equity))]
 
     def calculate(self) -> RiskMetrics:
         """Calculate all risk metrics."""
@@ -155,7 +153,9 @@ class RiskMetricsCalculator:
         tail_ratio = self._calculate_tail_ratio(returns)
 
         # Win/Loss metrics
-        win_rate, profit_factor, payoff_ratio, expectancy = self._calculate_win_loss_metrics(returns)
+        win_rate, profit_factor, payoff_ratio, expectancy = self._calculate_win_loss_metrics(
+            returns
+        )
 
         # Stability
         stability = self._calculate_stability(returns)
@@ -308,11 +308,9 @@ class RiskMetricsCalculator:
 
         slope, intercept, r_value, _, _ = stats.linregress(x, cumulative)
 
-        return float(r_value ** 2)
+        return float(r_value**2)
 
-    def _calculate_benchmark_metrics(
-        self, returns: np.ndarray
-    ) -> Tuple[float, float, float]:
+    def _calculate_benchmark_metrics(self, returns: np.ndarray) -> Tuple[float, float, float]:
         """Calculate beta, alpha, and information ratio vs benchmark."""
         if not self._benchmark_returns or len(self._benchmark_returns) != len(returns):
             return 0.0, 0.0, 0.0
@@ -331,13 +329,15 @@ class RiskMetricsCalculator:
 
         # Information ratio
         tracking_error = np.std(returns - benchmark)
-        info_ratio = np.mean(returns - benchmark) / tracking_error * np.sqrt(252) if tracking_error > 0 else 0
+        info_ratio = (
+            np.mean(returns - benchmark) / tracking_error * np.sqrt(252)
+            if tracking_error > 0
+            else 0
+        )
 
         return float(beta), float(alpha), float(info_ratio)
 
-    def get_rolling_metrics(
-        self, window: int = 30
-    ) -> List[Dict[str, Any]]:
+    def get_rolling_metrics(self, window: int = 30) -> List[Dict[str, Any]]:
         """Calculate rolling risk metrics."""
         if len(self._returns) < window:
             return []
@@ -346,7 +346,7 @@ class RiskMetricsCalculator:
         rolling_metrics = []
 
         for i in range(window, len(returns) + 1):
-            window_returns = returns[i - window:i]
+            window_returns = returns[i - window : i]
             daily_rf = self.risk_free_rate / 252
 
             sharpe = self._calculate_sharpe(window_returns, daily_rf)
@@ -354,14 +354,18 @@ class RiskMetricsCalculator:
             var_95 = self._calculate_var(window_returns, 0.95)
             volatility = float(np.std(window_returns) * np.sqrt(252))
 
-            rolling_metrics.append({
-                "index": i,
-                "date": self._dates[i - 1].isoformat() if self._dates and i - 1 < len(self._dates) else None,
-                "sharpe": round(sharpe, 2),
-                "sortino": round(sortino, 2),
-                "var_95": round(var_95 * 100, 2),
-                "volatility": round(volatility * 100, 2),
-            })
+            rolling_metrics.append(
+                {
+                    "index": i,
+                    "date": self._dates[i - 1].isoformat()
+                    if self._dates and i - 1 < len(self._dates)
+                    else None,
+                    "sharpe": round(sharpe, 2),
+                    "sortino": round(sortino, 2),
+                    "var_95": round(var_95 * 100, 2),
+                    "volatility": round(volatility * 100, 2),
+                }
+            )
 
         return rolling_metrics
 
@@ -371,14 +375,38 @@ class RiskMetricsCalculator:
 
         return {
             "return_metrics": {
-                "total_return": {"value": metrics.total_return, "unit": "%", "label": "Total Return"},
-                "annualized_return": {"value": metrics.annualized_return, "unit": "%", "label": "Annual Return"},
-                "volatility": {"value": metrics.annualized_volatility, "unit": "%", "label": "Volatility"},
+                "total_return": {
+                    "value": metrics.total_return,
+                    "unit": "%",
+                    "label": "Total Return",
+                },
+                "annualized_return": {
+                    "value": metrics.annualized_return,
+                    "unit": "%",
+                    "label": "Annual Return",
+                },
+                "volatility": {
+                    "value": metrics.annualized_volatility,
+                    "unit": "%",
+                    "label": "Volatility",
+                },
             },
             "risk_adjusted": {
-                "sharpe_ratio": {"value": metrics.sharpe_ratio, "unit": "", "label": "Sharpe Ratio"},
-                "sortino_ratio": {"value": metrics.sortino_ratio, "unit": "", "label": "Sortino Ratio"},
-                "calmar_ratio": {"value": metrics.calmar_ratio, "unit": "", "label": "Calmar Ratio"},
+                "sharpe_ratio": {
+                    "value": metrics.sharpe_ratio,
+                    "unit": "",
+                    "label": "Sharpe Ratio",
+                },
+                "sortino_ratio": {
+                    "value": metrics.sortino_ratio,
+                    "unit": "",
+                    "label": "Sortino Ratio",
+                },
+                "calmar_ratio": {
+                    "value": metrics.calmar_ratio,
+                    "unit": "",
+                    "label": "Calmar Ratio",
+                },
                 "omega_ratio": {"value": metrics.omega_ratio, "unit": "", "label": "Omega Ratio"},
             },
             "value_at_risk": {
@@ -388,9 +416,21 @@ class RiskMetricsCalculator:
                 "cvar_99": {"value": metrics.cvar_99, "unit": "%", "label": "CVaR 99%"},
             },
             "drawdown": {
-                "max_drawdown": {"value": metrics.max_drawdown, "unit": "%", "label": "Max Drawdown"},
-                "avg_drawdown": {"value": metrics.avg_drawdown, "unit": "%", "label": "Avg Drawdown"},
-                "max_dd_duration": {"value": metrics.max_drawdown_duration, "unit": "days", "label": "Max DD Duration"},
+                "max_drawdown": {
+                    "value": metrics.max_drawdown,
+                    "unit": "%",
+                    "label": "Max Drawdown",
+                },
+                "avg_drawdown": {
+                    "value": metrics.avg_drawdown,
+                    "unit": "%",
+                    "label": "Avg Drawdown",
+                },
+                "max_dd_duration": {
+                    "value": metrics.max_drawdown_duration,
+                    "unit": "days",
+                    "label": "Max DD Duration",
+                },
             },
             "distribution": {
                 "skewness": {"value": metrics.skewness, "unit": "", "label": "Skewness"},
@@ -399,7 +439,11 @@ class RiskMetricsCalculator:
             },
             "trading": {
                 "win_rate": {"value": metrics.win_rate, "unit": "%", "label": "Win Rate"},
-                "profit_factor": {"value": metrics.profit_factor, "unit": "", "label": "Profit Factor"},
+                "profit_factor": {
+                    "value": metrics.profit_factor,
+                    "unit": "",
+                    "label": "Profit Factor",
+                },
                 "expectancy": {"value": metrics.expectancy, "unit": "%", "label": "Expectancy"},
             },
         }

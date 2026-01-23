@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 class AlgoStatus(Enum):
     """Execution algorithm status."""
+
     PENDING = "pending"
     RUNNING = "running"
     PAUSED = "paused"
@@ -33,6 +34,7 @@ class AlgoStatus(Enum):
 
 class UrgencyLevel(Enum):
     """Order urgency level."""
+
     LOW = "low"  # Minimize impact, longer duration
     MEDIUM = "medium"  # Balanced
     HIGH = "high"  # Faster execution, accept more impact
@@ -42,6 +44,7 @@ class UrgencyLevel(Enum):
 @dataclass
 class AlgoOrder:
     """Order for execution algorithm."""
+
     order_id: str
     symbol: str
     side: Literal["buy", "sell"]
@@ -54,13 +57,45 @@ class AlgoOrder:
     max_participation: float = 0.25  # Max % of volume to take
 
     def __post_init__(self):
+        # Validate order_id
+        if not self.order_id or not isinstance(self.order_id, str):
+            raise ValueError("order_id must be a non-empty string")
+
+        # Validate symbol
+        if not self.symbol or not isinstance(self.symbol, str):
+            raise ValueError("symbol must be a non-empty string")
+
+        # Validate quantity
+        if self.total_quantity <= 0:
+            raise ValueError(f"total_quantity must be positive, got {self.total_quantity}")
+
+        # Validate limit price if provided
+        if self.limit_price is not None and self.limit_price <= 0:
+            raise ValueError(f"limit_price must be positive, got {self.limit_price}")
+
+        # Validate fill rate bounds
+        if not 0 <= self.min_fill_rate <= 1:
+            raise ValueError(f"min_fill_rate must be between 0 and 1, got {self.min_fill_rate}")
+
+        # Validate max participation bounds
+        if not 0 < self.max_participation <= 1:
+            raise ValueError(
+                f"max_participation must be between 0 and 1, got {self.max_participation}"
+            )
+
+        # Set default start time
         if not self.start_time:
             self.start_time = datetime.now()
+
+        # Validate end_time is after start_time
+        if self.end_time and self.start_time and self.end_time <= self.start_time:
+            raise ValueError("end_time must be after start_time")
 
 
 @dataclass
 class AlgoSlice:
     """A slice/child order from execution algorithm."""
+
     slice_id: str
     parent_order_id: str
     symbol: str
@@ -103,6 +138,7 @@ class AlgoSlice:
 @dataclass
 class AlgoExecution:
     """Execution result from algorithm."""
+
     order_id: str
     algorithm: str
     symbol: str
@@ -156,7 +192,7 @@ class ExecutionAlgorithm(ABC):
         self,
         order_executor: Callable,
         market_data_provider: Callable,
-        interval_seconds: float = 1.0
+        interval_seconds: float = 1.0,
     ):
         """
         Args:
@@ -179,9 +215,7 @@ class ExecutionAlgorithm(ABC):
 
     @abstractmethod
     async def generate_schedule(
-        self,
-        order: AlgoOrder,
-        market_data: Dict[str, Any]
+        self, order: AlgoOrder, market_data: Dict[str, Any]
     ) -> List[Tuple[datetime, float]]:
         """
         Generate execution schedule.
@@ -247,9 +281,7 @@ class ExecutionAlgorithm(ABC):
                 current_volume = current_data.get("volume", 0)
 
                 # Adjust quantity based on available liquidity
-                adjusted_qty = self._adjust_quantity(
-                    target_qty, order, current_data
-                )
+                adjusted_qty = self._adjust_quantity(target_qty, order, current_data)
 
                 if adjusted_qty <= 0:
                     continue
@@ -314,15 +346,27 @@ class ExecutionAlgorithm(ABC):
 
             # Slippage vs VWAP
             if order.side == "buy":
-                slippage_bps = (avg_price - vwap_benchmark) / vwap_benchmark * 10000 if vwap_benchmark > 0 else 0
+                slippage_bps = (
+                    (avg_price - vwap_benchmark) / vwap_benchmark * 10000
+                    if vwap_benchmark > 0
+                    else 0
+                )
             else:
-                slippage_bps = (vwap_benchmark - avg_price) / vwap_benchmark * 10000 if vwap_benchmark > 0 else 0
+                slippage_bps = (
+                    (vwap_benchmark - avg_price) / vwap_benchmark * 10000
+                    if vwap_benchmark > 0
+                    else 0
+                )
 
             # Implementation shortfall vs arrival price
             if order.side == "buy":
-                is_bps = (avg_price - arrival_price) / arrival_price * 10000 if arrival_price > 0 else 0
+                is_bps = (
+                    (avg_price - arrival_price) / arrival_price * 10000 if arrival_price > 0 else 0
+                )
             else:
-                is_bps = (arrival_price - avg_price) / arrival_price * 10000 if arrival_price > 0 else 0
+                is_bps = (
+                    (arrival_price - avg_price) / arrival_price * 10000 if arrival_price > 0 else 0
+                )
 
             # Participation rate
             participation = total_filled / volume_traded if volume_traded > 0 else 0
@@ -356,18 +400,13 @@ class ExecutionAlgorithm(ABC):
             self._status = AlgoStatus.FAILED
             raise
 
-    def _adjust_quantity(
-        self,
-        target_qty: float,
-        order: AlgoOrder,
-        market_data: Dict
-    ) -> float:
+    def _adjust_quantity(self, target_qty: float, order: AlgoOrder, market_data: Dict) -> float:
         """Adjust quantity based on market conditions."""
         # Check available liquidity
         if order.side == "buy":
-            available = market_data.get("ask_size", float('inf'))
+            available = market_data.get("ask_size", float("inf"))
         else:
-            available = market_data.get("bid_size", float('inf'))
+            available = market_data.get("bid_size", float("inf"))
 
         # Don't take more than max participation of available
         max_qty = available * order.max_participation
@@ -407,9 +446,7 @@ class TWAPAlgorithm(ExecutionAlgorithm):
         return "TWAP"
 
     async def generate_schedule(
-        self,
-        order: AlgoOrder,
-        market_data: Dict[str, Any]
+        self, order: AlgoOrder, market_data: Dict[str, Any]
     ) -> List[Tuple[datetime, float]]:
         """Generate evenly-spaced execution schedule."""
         start = order.start_time or datetime.now()
@@ -455,13 +492,27 @@ class VWAPAlgorithm(ExecutionAlgorithm):
         order_executor: Callable,
         market_data_provider: Callable,
         volume_profile: Optional[List[float]] = None,
-        interval_seconds: float = 60.0
+        interval_seconds: float = 60.0,
     ):
         super().__init__(order_executor, market_data_provider, interval_seconds)
         # Default hourly volume profile (percentage of daily volume)
         self.volume_profile = volume_profile or [
-            0.08, 0.07, 0.06, 0.05, 0.05, 0.05, 0.05, 0.05,
-            0.06, 0.07, 0.08, 0.08, 0.07, 0.06, 0.06, 0.06
+            0.08,
+            0.07,
+            0.06,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.06,
+            0.07,
+            0.08,
+            0.08,
+            0.07,
+            0.06,
+            0.06,
+            0.06,
         ]
 
     @property
@@ -469,9 +520,7 @@ class VWAPAlgorithm(ExecutionAlgorithm):
         return "VWAP"
 
     async def generate_schedule(
-        self,
-        order: AlgoOrder,
-        market_data: Dict[str, Any]
+        self, order: AlgoOrder, market_data: Dict[str, Any]
     ) -> List[Tuple[datetime, float]]:
         """Generate volume-weighted execution schedule."""
         start = order.start_time or datetime.now()
@@ -534,7 +583,7 @@ class POVAlgorithm(ExecutionAlgorithm):
         order_executor: Callable,
         market_data_provider: Callable,
         target_participation: float = 0.1,
-        interval_seconds: float = 30.0
+        interval_seconds: float = 30.0,
     ):
         super().__init__(order_executor, market_data_provider, interval_seconds)
         self.target_participation = target_participation  # 10% of volume
@@ -544,9 +593,7 @@ class POVAlgorithm(ExecutionAlgorithm):
         return "POV"
 
     async def generate_schedule(
-        self,
-        order: AlgoOrder,
-        market_data: Dict[str, Any]
+        self, order: AlgoOrder, market_data: Dict[str, Any]
     ) -> List[Tuple[datetime, float]]:
         """
         POV doesn't pre-generate schedule - it adapts to real-time volume.
@@ -571,12 +618,7 @@ class POVAlgorithm(ExecutionAlgorithm):
 
         return schedule
 
-    def _adjust_quantity(
-        self,
-        target_qty: float,
-        order: AlgoOrder,
-        market_data: Dict
-    ) -> float:
+    def _adjust_quantity(self, target_qty: float, order: AlgoOrder, market_data: Dict) -> float:
         """Adjust based on actual volume."""
         # Get recent volume
         recent_volume = market_data.get("recent_volume", market_data.get("volume", 0))
@@ -586,7 +628,11 @@ class POVAlgorithm(ExecutionAlgorithm):
 
         # Use volume-based quantity, capped by order limits
         adjusted = min(volume_based_qty, target_qty)
-        adjusted = min(adjusted, market_data.get("bid_size" if order.side == "sell" else "ask_size", float('inf')) * order.max_participation)
+        adjusted = min(
+            adjusted,
+            market_data.get("bid_size" if order.side == "sell" else "ask_size", float("inf"))
+            * order.max_participation,
+        )
 
         # Don't overfill
         remaining = order.total_quantity - sum(s.filled_quantity for s in self._slices)
@@ -617,7 +663,7 @@ class ImplementationShortfallAlgorithm(ExecutionAlgorithm):
         order_executor: Callable,
         market_data_provider: Callable,
         risk_aversion: float = 0.5,
-        interval_seconds: float = 30.0
+        interval_seconds: float = 30.0,
     ):
         super().__init__(order_executor, market_data_provider, interval_seconds)
         self.risk_aversion = risk_aversion  # 0 = minimize impact, 1 = minimize timing risk
@@ -627,9 +673,7 @@ class ImplementationShortfallAlgorithm(ExecutionAlgorithm):
         return "IS"
 
     async def generate_schedule(
-        self,
-        order: AlgoOrder,
-        market_data: Dict[str, Any]
+        self, order: AlgoOrder, market_data: Dict[str, Any]
     ) -> List[Tuple[datetime, float]]:
         """
         Generate schedule that balances impact vs timing risk.
@@ -680,9 +724,13 @@ class ImplementationShortfallAlgorithm(ExecutionAlgorithm):
             progress = i / num_intervals
             weight = (1 - progress) ** (1 - self.risk_aversion)
 
-            slice_qty = order.total_quantity * weight / sum(
-                (1 - j/num_intervals) ** (1 - self.risk_aversion)
-                for j in range(num_intervals)
+            slice_qty = (
+                order.total_quantity
+                * weight
+                / sum(
+                    (1 - j / num_intervals) ** (1 - self.risk_aversion)
+                    for j in range(num_intervals)
+                )
             )
             slice_qty = min(slice_qty, remaining_qty)
 
@@ -710,7 +758,7 @@ class IcebergAlgorithm(ExecutionAlgorithm):
         order_executor: Callable,
         market_data_provider: Callable,
         visible_quantity: float = 0.1,  # 10% visible
-        interval_seconds: float = 5.0
+        interval_seconds: float = 5.0,
     ):
         super().__init__(order_executor, market_data_provider, interval_seconds)
         self.visible_quantity = visible_quantity
@@ -720,9 +768,7 @@ class IcebergAlgorithm(ExecutionAlgorithm):
         return "Iceberg"
 
     async def generate_schedule(
-        self,
-        order: AlgoOrder,
-        market_data: Dict[str, Any]
+        self, order: AlgoOrder, market_data: Dict[str, Any]
     ) -> List[Tuple[datetime, float]]:
         """Generate schedule with fixed visible size."""
         start = order.start_time or datetime.now()
@@ -756,21 +802,23 @@ class AdaptiveAlgorithm(ExecutionAlgorithm):
         self,
         order_executor: Callable,
         market_data_provider: Callable,
-        interval_seconds: float = 30.0
+        interval_seconds: float = 30.0,
     ):
         super().__init__(order_executor, market_data_provider, interval_seconds)
         self._twap = TWAPAlgorithm(order_executor, market_data_provider, interval_seconds)
-        self._vwap = VWAPAlgorithm(order_executor, market_data_provider, interval_seconds=interval_seconds)
-        self._is = ImplementationShortfallAlgorithm(order_executor, market_data_provider, interval_seconds=interval_seconds)
+        self._vwap = VWAPAlgorithm(
+            order_executor, market_data_provider, interval_seconds=interval_seconds
+        )
+        self._is = ImplementationShortfallAlgorithm(
+            order_executor, market_data_provider, interval_seconds=interval_seconds
+        )
 
     @property
     def name(self) -> str:
         return "Adaptive"
 
     async def generate_schedule(
-        self,
-        order: AlgoOrder,
-        market_data: Dict[str, Any]
+        self, order: AlgoOrder, market_data: Dict[str, Any]
     ) -> List[Tuple[datetime, float]]:
         """Generate schedule based on current market conditions."""
         volatility = market_data.get("volatility", 0.02)
@@ -799,10 +847,7 @@ class AlgorithmFactory:
 
     @staticmethod
     def create(
-        algorithm_type: str,
-        order_executor: Callable,
-        market_data_provider: Callable,
-        **kwargs
+        algorithm_type: str, order_executor: Callable, market_data_provider: Callable, **kwargs
     ) -> ExecutionAlgorithm:
         """
         Create an execution algorithm.
@@ -832,12 +877,7 @@ class AlgorithmFactory:
 
 
 def create_execution_algorithm(
-    algorithm_type: str,
-    order_executor: Callable,
-    market_data_provider: Callable,
-    **kwargs
+    algorithm_type: str, order_executor: Callable, market_data_provider: Callable, **kwargs
 ) -> ExecutionAlgorithm:
     """Factory function to create execution algorithm."""
-    return AlgorithmFactory.create(
-        algorithm_type, order_executor, market_data_provider, **kwargs
-    )
+    return AlgorithmFactory.create(algorithm_type, order_executor, market_data_provider, **kwargs)

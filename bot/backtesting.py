@@ -12,12 +12,18 @@ from typing import Dict, List, Optional
 import numpy as np
 import pandas as pd
 
-from bot.strategy import compute_indicators, generate_signal, StrategyConfig, calculate_position_size
+from bot.strategy import (
+    compute_indicators,
+    generate_signal,
+    StrategyConfig,
+    calculate_position_size,
+)
 
 
 @dataclass
 class Trade:
     """Single trade record"""
+
     entry_time: datetime
     exit_time: Optional[datetime] = None
     direction: str = "LONG"  # LONG or SHORT
@@ -49,6 +55,7 @@ class Trade:
 @dataclass
 class BacktestResult:
     """Backtest results"""
+
     initial_balance: float
     final_balance: float
     total_trades: int = 0
@@ -87,9 +94,9 @@ class BacktestResult:
 
     def print_summary(self):
         """Print results"""
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("BACKTEST RESULTS")
-        print("="*60)
+        print("=" * 60)
         print(f"Starting Balance: ${self.initial_balance:,.2f}")
         print(f"Ending Balance: ${self.final_balance:,.2f}")
         print(f"Total P&L: ${self.total_pnl:,.2f} ({self.total_pnl_pct:.2f}%)")
@@ -101,7 +108,7 @@ class BacktestResult:
         print(f"Profit Factor: {self.profit_factor:.2f}")
         print(f"Max Drawdown: ${self.max_drawdown:.2f} ({self.max_drawdown_pct:.2f}%)")
         print(f"Sharpe Ratio: {self.sharpe_ratio:.2f}")
-        print("="*60 + "\n")
+        print("=" * 60 + "\n")
 
 
 class Backtester:
@@ -141,7 +148,7 @@ class Backtester:
             if i < self.config.ema_slow + 5:
                 continue
 
-            current_bar = enriched.iloc[:i+1]
+            current_bar = enriched.iloc[: i + 1]
             current = current_bar.iloc[-1]
 
             # Check existing position
@@ -155,11 +162,13 @@ class Backtester:
                     self._open_position(current, signal)
 
             # Save equity curve
-            self.equity_curve.append({
-                "timestamp": current.name,
-                "balance": self.balance,
-                "price": float(current["close"]),
-            })
+            self.equity_curve.append(
+                {
+                    "timestamp": current.name,
+                    "balance": self.balance,
+                    "price": float(current["close"]),
+                }
+            )
 
         # Close open position if exists
         if self.position:

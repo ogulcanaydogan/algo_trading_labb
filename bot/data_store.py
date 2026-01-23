@@ -260,7 +260,9 @@ class DataStore:
 
         # Only keep one snapshot per hour (to avoid too much data)
         current_hour = datetime.now().strftime("%Y-%m-%d %H:00")
-        snapshots = [s for s in snapshots if not s.get("timestamp", "").startswith(current_hour[:13])]
+        snapshots = [
+            s for s in snapshots if not s.get("timestamp", "").startswith(current_hour[:13])
+        ]
         snapshots.append(snapshot)
 
         # Keep last 30 days of hourly snapshots (720 snapshots)
@@ -515,7 +517,10 @@ class DataStore:
         Returns:
             Path to the export file
         """
-        export_path = export_path or self.storage_dir.parent / f"export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        export_path = (
+            export_path
+            or self.storage_dir.parent / f"export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        )
 
         export_data = {
             "export_timestamp": datetime.now().isoformat(),

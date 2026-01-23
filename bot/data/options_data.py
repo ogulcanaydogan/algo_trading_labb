@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 class OptionType(Enum):
     """Option type."""
+
     CALL = "call"
     PUT = "put"
 
@@ -29,6 +30,7 @@ class OptionType(Enum):
 @dataclass
 class OptionContract:
     """Single options contract."""
+
     symbol: str
     underlying: str
     option_type: OptionType
@@ -85,6 +87,7 @@ class OptionContract:
 @dataclass
 class OptionsChain:
     """Full options chain for an underlying."""
+
     underlying: str
     spot_price: float
     calls: List[OptionContract]
@@ -122,14 +125,8 @@ class OptionsChain:
 
     def get_atm_iv(self) -> float:
         """Get at-the-money implied volatility."""
-        atm_calls = sorted(
-            self.calls,
-            key=lambda c: abs(c.strike - self.spot_price)
-        )
-        atm_puts = sorted(
-            self.puts,
-            key=lambda p: abs(p.strike - self.spot_price)
-        )
+        atm_calls = sorted(self.calls, key=lambda c: abs(c.strike - self.spot_price))
+        atm_puts = sorted(self.puts, key=lambda p: abs(p.strike - self.spot_price))
 
         ivs = []
         if atm_calls:
@@ -172,6 +169,7 @@ class OptionsChain:
 @dataclass
 class OptionsFlow:
     """Large options trade (unusual activity)."""
+
     symbol: str
     underlying: str
     option_type: OptionType
@@ -211,6 +209,7 @@ class OptionsFlow:
 @dataclass
 class VolatilitySurface:
     """Implied volatility surface."""
+
     underlying: str
     spot_price: float
     strikes: List[float]
@@ -254,7 +253,7 @@ class BlackScholes:
         """Calculate d1."""
         if T <= 0 or sigma <= 0:
             return 0.0
-        return (np.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+        return (np.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
 
     @staticmethod
     def d2(S: float, K: float, T: float, r: float, sigma: float) -> float:
@@ -282,7 +281,9 @@ class BlackScholes:
         return K * np.exp(-r * T) * norm.cdf(-d2) - S * norm.cdf(-d1)
 
     @staticmethod
-    def delta(S: float, K: float, T: float, r: float, sigma: float, option_type: OptionType) -> float:
+    def delta(
+        S: float, K: float, T: float, r: float, sigma: float, option_type: OptionType
+    ) -> float:
         """Calculate delta."""
         if T <= 0:
             if option_type == OptionType.CALL:
@@ -304,7 +305,9 @@ class BlackScholes:
         return norm.pdf(d1) / (S * sigma * np.sqrt(T))
 
     @staticmethod
-    def theta(S: float, K: float, T: float, r: float, sigma: float, option_type: OptionType) -> float:
+    def theta(
+        S: float, K: float, T: float, r: float, sigma: float, option_type: OptionType
+    ) -> float:
         """Calculate theta (per day)."""
         if T <= 0:
             return 0.0
@@ -348,7 +351,7 @@ class BlackScholes:
         r: float,
         option_type: OptionType,
         max_iterations: int = 100,
-        tolerance: float = 1e-6
+        tolerance: float = 1e-6,
     ) -> float:
         """Calculate implied volatility using Newton-Raphson."""
         if T <= 0:
@@ -380,6 +383,7 @@ class BlackScholes:
 @dataclass
 class OptionsAnalyticsConfig:
     """Options analytics configuration."""
+
     risk_free_rate: float = 0.05
     min_premium_threshold: float = 50000  # Min premium for unusual activity
     iv_spike_threshold: float = 0.2  # 20% IV change
@@ -412,12 +416,14 @@ class OptionsAnalytics:
         if chain.underlying not in self._iv_history:
             self._iv_history[chain.underlying] = []
 
-        self._iv_history[chain.underlying].append({
-            "timestamp": chain.timestamp,
-            "atm_iv": chain.get_atm_iv(),
-            "skew": chain.get_iv_skew(),
-            "pcr": chain.put_call_ratio,
-        })
+        self._iv_history[chain.underlying].append(
+            {
+                "timestamp": chain.timestamp,
+                "atm_iv": chain.get_atm_iv(),
+                "skew": chain.get_iv_skew(),
+                "pcr": chain.put_call_ratio,
+            }
+        )
 
         # Keep last 1000 data points
         if len(self._iv_history[chain.underlying]) > 1000:
@@ -471,11 +477,23 @@ class OptionsAnalytics:
             iv_percentile = sum(1 for iv in recent_ivs if iv <= atm_iv) / len(recent_ivs)
 
             if iv_percentile > 0.8:
-                iv_signal = {"value": atm_iv, "percentile": iv_percentile, "interpretation": "high_fear"}
+                iv_signal = {
+                    "value": atm_iv,
+                    "percentile": iv_percentile,
+                    "interpretation": "high_fear",
+                }
             elif iv_percentile < 0.2:
-                iv_signal = {"value": atm_iv, "percentile": iv_percentile, "interpretation": "low_fear"}
+                iv_signal = {
+                    "value": atm_iv,
+                    "percentile": iv_percentile,
+                    "interpretation": "low_fear",
+                }
             else:
-                iv_signal = {"value": atm_iv, "percentile": iv_percentile, "interpretation": "normal"}
+                iv_signal = {
+                    "value": atm_iv,
+                    "percentile": iv_percentile,
+                    "interpretation": "normal",
+                }
         else:
             iv_signal = {"value": atm_iv, "interpretation": "insufficient_history"}
 
@@ -489,30 +507,35 @@ class OptionsAnalytics:
 
         # Flow signal (recent unusual activity)
         recent_flows = [
-            f for f in self._flow_history
-            if f.underlying == underlying
-            and (datetime.now() - f.timestamp).total_seconds() < 3600
+            f
+            for f in self._flow_history
+            if f.underlying == underlying and (datetime.now() - f.timestamp).total_seconds() < 3600
         ]
 
-        bullish_premium = sum(
-            f.premium for f in recent_flows if f.sentiment == "bullish"
-        )
-        bearish_premium = sum(
-            f.premium for f in recent_flows if f.sentiment == "bearish"
-        )
+        bullish_premium = sum(f.premium for f in recent_flows if f.sentiment == "bullish")
+        bearish_premium = sum(f.premium for f in recent_flows if f.sentiment == "bearish")
 
         total_premium = bullish_premium + bearish_premium
         if total_premium > 0:
             flow_ratio = (bullish_premium - bearish_premium) / total_premium
             if flow_ratio > 0.3:
-                flow_signal = {"bullish_premium": bullish_premium, "bearish_premium": bearish_premium,
-                              "interpretation": "bullish_flow"}
+                flow_signal = {
+                    "bullish_premium": bullish_premium,
+                    "bearish_premium": bearish_premium,
+                    "interpretation": "bullish_flow",
+                }
             elif flow_ratio < -0.3:
-                flow_signal = {"bullish_premium": bullish_premium, "bearish_premium": bearish_premium,
-                              "interpretation": "bearish_flow"}
+                flow_signal = {
+                    "bullish_premium": bullish_premium,
+                    "bearish_premium": bearish_premium,
+                    "interpretation": "bearish_flow",
+                }
             else:
-                flow_signal = {"bullish_premium": bullish_premium, "bearish_premium": bearish_premium,
-                              "interpretation": "mixed_flow"}
+                flow_signal = {
+                    "bullish_premium": bullish_premium,
+                    "bearish_premium": bearish_premium,
+                    "interpretation": "mixed_flow",
+                }
         else:
             flow_signal = {"interpretation": "no_unusual_activity"}
 
@@ -540,20 +563,23 @@ class OptionsAnalytics:
             "flow_signal": flow_signal,
             "overall_sentiment": {
                 "score": round(overall_score, 3),
-                "interpretation": "bullish" if overall_score > 0.2 else "bearish" if overall_score < -0.2 else "neutral"
-            }
+                "interpretation": "bullish"
+                if overall_score > 0.2
+                else "bearish"
+                if overall_score < -0.2
+                else "neutral",
+            },
         }
 
     def detect_unusual_activity(
-        self,
-        underlying: Optional[str] = None,
-        lookback_hours: int = 24
+        self, underlying: Optional[str] = None, lookback_hours: int = 24
     ) -> List[OptionsFlow]:
         """Detect unusual options activity."""
         cutoff = datetime.now() - timedelta(hours=lookback_hours)
 
         flows = [
-            f for f in self._flow_history
+            f
+            for f in self._flow_history
             if f.timestamp >= cutoff
             and f.premium >= self.config.min_premium_threshold
             and (underlying is None or f.underlying == underlying)
@@ -580,10 +606,7 @@ class OptionsAnalytics:
                     expiry_ivs[contract.expiry] = []
                 expiry_ivs[contract.expiry].append(contract.implied_volatility)
 
-        return {
-            exp.isoformat(): round(np.mean(ivs), 4)
-            for exp, ivs in sorted(expiry_ivs.items())
-        }
+        return {exp.isoformat(): round(np.mean(ivs), 4) for exp, ivs in sorted(expiry_ivs.items())}
 
     def calculate_greeks(
         self,
@@ -592,7 +615,7 @@ class OptionsAnalytics:
         expiry: datetime,
         option_type: OptionType,
         iv: Optional[float] = None,
-        price: Optional[float] = None
+        price: Optional[float] = None,
     ) -> Dict[str, float]:
         """Calculate option Greeks."""
         T = (expiry - datetime.now()).total_seconds() / (365.25 * 24 * 3600)
@@ -628,7 +651,7 @@ class OptionsAnalytics:
         # Get all strikes
         strikes = sorted(set(c.strike for c in chain.all_contracts))
 
-        min_pain = float('inf')
+        min_pain = float("inf")
         max_pain_strike = chain.spot_price
 
         for test_strike in strikes:
@@ -713,8 +736,6 @@ class OptionsAnalytics:
         }
 
 
-def create_options_analytics(
-    config: Optional[OptionsAnalyticsConfig] = None
-) -> OptionsAnalytics:
+def create_options_analytics(config: Optional[OptionsAnalyticsConfig] = None) -> OptionsAnalytics:
     """Factory function to create options analytics."""
     return OptionsAnalytics(config=config)

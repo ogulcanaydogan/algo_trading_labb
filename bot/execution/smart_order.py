@@ -22,16 +22,18 @@ logger = logging.getLogger(__name__)
 
 class ExecutionAlgorithm(Enum):
     """Order execution algorithm types."""
+
     MARKET = "market"  # Single market order
-    TWAP = "twap"      # Time-Weighted Average Price
-    VWAP = "vwap"      # Volume-Weighted Average Price
+    TWAP = "twap"  # Time-Weighted Average Price
+    VWAP = "vwap"  # Volume-Weighted Average Price
     ICEBERG = "iceberg"  # Hidden quantity orders
-    POV = "pov"        # Percentage of Volume
+    POV = "pov"  # Percentage of Volume
 
 
 @dataclass
 class SliceOrder:
     """A single slice of a parent order."""
+
     slice_id: int
     quantity: float
     target_time: datetime
@@ -44,6 +46,7 @@ class SliceOrder:
 @dataclass
 class SmartOrderResult:
     """Result of smart order execution."""
+
     order_id: str
     symbol: str
     side: Literal["buy", "sell"]
@@ -86,24 +89,28 @@ class SmartOrderResult:
             "fill_rate": round(self.fill_rate, 4),
             "duration_seconds": round(self.duration_seconds, 1),
             "market_vwap": round(self.market_vwap, 8) if self.market_vwap else None,
-            "slippage_vs_vwap_bps": round(self.slippage_vs_vwap_bps, 2) if self.slippage_vs_vwap_bps else None,
+            "slippage_vs_vwap_bps": round(self.slippage_vs_vwap_bps, 2)
+            if self.slippage_vs_vwap_bps
+            else None,
         }
 
 
 @dataclass
 class TWAPConfig:
     """Configuration for TWAP execution."""
+
     duration_minutes: int = 30
     num_slices: int = 10
     randomize_timing: bool = True  # Add randomness to avoid detection
-    randomize_size: bool = True    # Vary slice sizes
-    min_slice_pct: float = 0.05    # Minimum slice as % of total
-    max_slice_pct: float = 0.20    # Maximum slice as % of total
+    randomize_size: bool = True  # Vary slice sizes
+    min_slice_pct: float = 0.05  # Minimum slice as % of total
+    max_slice_pct: float = 0.20  # Maximum slice as % of total
 
 
 @dataclass
 class VWAPConfig:
     """Configuration for VWAP execution."""
+
     duration_minutes: int = 60
     volume_profile: Optional[List[float]] = None  # Historical volume distribution
     participation_rate: float = 0.1  # Max % of market volume to capture
@@ -180,11 +187,13 @@ class SmartOrderExecutor:
                 offset = random.uniform(-0.3, 0.3) * interval.total_seconds()
                 target_time += timedelta(seconds=offset)
 
-            slices.append(SliceOrder(
-                slice_id=i,
-                quantity=size,
-                target_time=target_time,
-            ))
+            slices.append(
+                SliceOrder(
+                    slice_id=i,
+                    quantity=size,
+                    target_time=target_time,
+                )
+            )
 
         # Sort by time
         slices.sort(key=lambda x: x.target_time)
@@ -227,11 +236,13 @@ class SmartOrderExecutor:
         interval = timedelta(minutes=config.duration_minutes / num_slices)
 
         for i, pct in enumerate(profile):
-            slices.append(SliceOrder(
-                slice_id=i,
-                quantity=total_quantity * pct,
-                target_time=now + interval * i,
-            ))
+            slices.append(
+                SliceOrder(
+                    slice_id=i,
+                    quantity=total_quantity * pct,
+                    target_time=now + interval * i,
+                )
+            )
 
         return slices
 
@@ -259,8 +270,7 @@ class SmartOrderExecutor:
         config = config or TWAPConfig()
         slices = self.generate_twap_schedule(total_quantity, config)
         return await self._execute_slices(
-            order_id, symbol, side, total_quantity,
-            slices, ExecutionAlgorithm.TWAP
+            order_id, symbol, side, total_quantity, slices, ExecutionAlgorithm.TWAP
         )
 
     async def execute_vwap(
@@ -289,8 +299,7 @@ class SmartOrderExecutor:
         config = config or VWAPConfig()
         slices = self.generate_vwap_schedule(total_quantity, config, volume_profile)
         return await self._execute_slices(
-            order_id, symbol, side, total_quantity,
-            slices, ExecutionAlgorithm.VWAP
+            order_id, symbol, side, total_quantity, slices, ExecutionAlgorithm.VWAP
         )
 
     async def _execute_slices(
@@ -332,10 +341,12 @@ class SmartOrderExecutor:
                     slice_order.executed_quantity = slice_order.quantity
                     slice_order.executed_time = datetime.now()
 
-                    executed_trades.append({
-                        "quantity": slice_order.quantity,
-                        "price": executed_price,
-                    })
+                    executed_trades.append(
+                        {
+                            "quantity": slice_order.quantity,
+                            "price": executed_price,
+                        }
+                    )
 
                     logger.debug(
                         f"Slice {slice_order.slice_id} executed: "

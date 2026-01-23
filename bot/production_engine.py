@@ -148,9 +148,7 @@ class ProductionEngine:
                 return False
 
             # Initialize circuit breakers
-            self.circuit_breaker_manager = CircuitBreakerManager(
-                on_any_trip=self._on_circuit_trip
-            )
+            self.circuit_breaker_manager = CircuitBreakerManager(on_any_trip=self._on_circuit_trip)
 
             self.trading_circuit = self.circuit_breaker_manager.create(
                 "trading",
@@ -437,10 +435,16 @@ class ProductionEngine:
         **kwargs,
     ) -> Any:
         """Execute a function through the appropriate circuit breaker."""
-        circuit = self.circuit_breaker_manager.get(circuit_name) if self.circuit_breaker_manager else None
+        circuit = (
+            self.circuit_breaker_manager.get(circuit_name) if self.circuit_breaker_manager else None
+        )
 
         if not circuit:
-            return await func(*args, **kwargs) if asyncio.iscoroutinefunction(func) else func(*args, **kwargs)
+            return (
+                await func(*args, **kwargs)
+                if asyncio.iscoroutinefunction(func)
+                else func(*args, **kwargs)
+            )
 
         try:
             return await circuit.call(func, *args, **kwargs)
@@ -453,25 +457,27 @@ class ProductionEngine:
         engine_status = self.engine.get_status() if self.engine else {}
 
         circuit_status = (
-            self.circuit_breaker_manager.get_all_status()
-            if self.circuit_breaker_manager
-            else {}
+            self.circuit_breaker_manager.get_all_status() if self.circuit_breaker_manager else {}
         )
 
-        recovery_stats = (
-            self.auto_recovery.get_statistics()
-            if self.auto_recovery
-            else {}
-        )
+        recovery_stats = self.auto_recovery.get_statistics() if self.auto_recovery else {}
 
         health_status = None
         if self._last_health_check:
             components = self._last_health_check.components
             health_status = {
                 "overall": self._last_health_check.status.value,
-                "healthy_count": sum(1 for c in components.values() if c.status == HealthStatus.HEALTHY),
-                "degraded_count": sum(1 for c in components.values() if c.status == HealthStatus.DEGRADED),
-                "unhealthy_count": sum(1 for c in components.values() if c.status in [HealthStatus.UNHEALTHY, HealthStatus.CRITICAL]),
+                "healthy_count": sum(
+                    1 for c in components.values() if c.status == HealthStatus.HEALTHY
+                ),
+                "degraded_count": sum(
+                    1 for c in components.values() if c.status == HealthStatus.DEGRADED
+                ),
+                "unhealthy_count": sum(
+                    1
+                    for c in components.values()
+                    if c.status in [HealthStatus.UNHEALTHY, HealthStatus.CRITICAL]
+                ),
                 "alerts": self._last_health_check.alerts,
             }
 

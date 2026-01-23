@@ -42,6 +42,7 @@ AI_STATE_FILE = DATA_DIR / "ai_orchestrator_state.json"
 
 class AIMode(Enum):
     """AI operation modes."""
+
     LEARNING = "learning"  # Actively learning from trades
     OPTIMIZING = "optimizing"  # Running parameter optimization
     EVOLVING = "evolving"  # Evolving new strategies
@@ -54,6 +55,7 @@ class AIDecision:
     """
     Unified AI decision combining all AI systems.
     """
+
     action: str  # BUY, SELL, HOLD
     confidence: float  # 0.0 - 1.0
     strategy_id: str
@@ -115,7 +117,7 @@ class AIOrchestrator:
         enable_evolution: bool = True,
         enable_online_learning: bool = True,
         enable_llm: bool = True,
-        llm_advisor = None,  # AITradingAdvisor instance
+        llm_advisor=None,  # AITradingAdvisor instance
     ):
         self.db = db or get_learning_db()
 
@@ -155,7 +157,7 @@ class AIOrchestrator:
         """Load orchestrator state from disk."""
         if AI_STATE_FILE.exists():
             try:
-                with open(AI_STATE_FILE, 'r') as f:
+                with open(AI_STATE_FILE, "r") as f:
                     state = json.load(f)
                     self.decisions_made = state.get("decisions_made", 0)
                     self.successful_decisions = state.get("successful_decisions", 0)
@@ -174,7 +176,7 @@ class AIOrchestrator:
                 "current_regime": self.current_regime,
                 "last_updated": datetime.now(timezone.utc).isoformat(),
             }
-            with open(AI_STATE_FILE, 'w') as f:
+            with open(AI_STATE_FILE, "w") as f:
                 json.dump(state, f, indent=2)
         except Exception as e:
             logger.warning(f"Failed to save AI state: {e}")
@@ -674,8 +676,7 @@ class AIOrchestrator:
             "decisions_made": self.decisions_made,
             "successful_decisions": self.successful_decisions,
             "success_rate": (
-                self.successful_decisions / self.decisions_made
-                if self.decisions_made > 0 else 0
+                self.successful_decisions / self.decisions_made if self.decisions_made > 0 else 0
             ),
             "systems": {
                 "rl_enabled": self.enable_rl,
@@ -685,8 +686,7 @@ class AIOrchestrator:
             },
             "rl_stats": self.rl_agent.get_stats() if self.enable_rl else {},
             "online_learning_status": (
-                self.online_learner.get_learning_status()
-                if self.enable_online_learning else {}
+                self.online_learner.get_learning_status() if self.enable_online_learning else {}
             ),
             "meta_allocation": self.meta_allocator.get_allocation_status(),
             "learning_db": self.db.get_learning_summary(),
@@ -706,7 +706,7 @@ def get_ai_orchestrator() -> AIOrchestrator:
 
 
 async def initialize_ai_orchestrator(
-    llm_advisor = None,
+    llm_advisor=None,
     enable_rl: bool = True,
     enable_evolution: bool = True,
     enable_online_learning: bool = True,

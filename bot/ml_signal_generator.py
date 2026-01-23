@@ -21,6 +21,7 @@ from bot.ml_performance_tracker import get_ml_tracker, track_prediction
 # Model monitoring for calibration and drift-aware gating
 try:
     from bot.ml.model_monitor import get_model_monitor
+
     MODEL_MONITOR_AVAILABLE = True
 except ImportError:
     MODEL_MONITOR_AVAILABLE = False
@@ -28,6 +29,7 @@ except ImportError:
 # Intelligent Brain for regime-based strategy adaptation
 try:
     from bot.intelligence import get_intelligent_brain, RegimeAdapter
+
     INTELLIGENT_BRAIN_AVAILABLE = True
 except ImportError:
     INTELLIGENT_BRAIN_AVAILABLE = False
@@ -35,6 +37,7 @@ except ImportError:
 # Ensemble predictor for higher accuracy
 try:
     from bot.ml.ensemble_predictor import EnsemblePredictor, create_ensemble_predictor
+
     ENSEMBLE_AVAILABLE = True
 except ImportError:
     ENSEMBLE_AVAILABLE = False
@@ -70,7 +73,9 @@ class MLSignalGenerator:
         self.ensemble_voting_strategy = ensemble_voting_strategy
 
         self.models: Dict[str, Any] = {}
-        self.ensemble_predictors: Dict[str, EnsemblePredictor] = {}  # Ensemble predictors per symbol
+        self.ensemble_predictors: Dict[
+            str, EnsemblePredictor
+        ] = {}  # Ensemble predictors per symbol
         self._price_cache: Dict[str, pd.DataFrame] = {}
         self._mtf_analyzer = MultiTimeframeAnalyzer()
         self._initialized = False
@@ -101,7 +106,7 @@ class MLSignalGenerator:
 
         for symbol in symbols:
             loaded = False
-            symbol_base = symbol.replace('/', '_')
+            symbol_base = symbol.replace("/", "_")
 
             # Try ensemble predictor first if enabled (for higher accuracy)
             if self.use_ensemble:
@@ -109,11 +114,13 @@ class MLSignalGenerator:
                     ensemble = create_ensemble_predictor(
                         symbol=symbol,
                         model_dir=self.model_dir,
-                        voting_strategy=self.ensemble_voting_strategy
+                        voting_strategy=self.ensemble_voting_strategy,
                     )
                     if ensemble is not None:
                         self.ensemble_predictors[symbol] = ensemble
-                        logger.info(f"Loaded ENSEMBLE predictor for {symbol} (voting: {self.ensemble_voting_strategy})")
+                        logger.info(
+                            f"Loaded ENSEMBLE predictor for {symbol} (voting: {self.ensemble_voting_strategy})"
+                        )
                         loaded = True
                 except Exception as e:
                     logger.debug(f"Ensemble load failed for {symbol}: {e}")
@@ -167,7 +174,9 @@ class MLSignalGenerator:
 
         self._initialized = True
         total_loaded = len(self.ensemble_predictors) + len(self.models)
-        logger.info(f"Signal generator initialized: {len(self.ensemble_predictors)} ensemble, {len(self.models)} single models")
+        logger.info(
+            f"Signal generator initialized: {len(self.ensemble_predictors)} ensemble, {len(self.models)} single models"
+        )
         return total_loaded > 0
 
     def _try_scan_for_model(self, symbol: str, symbol_base: str) -> bool:
@@ -331,7 +340,8 @@ class MLSignalGenerator:
         if (
             self._last_monitor_check
             and self._last_monitor_summary
-            and (now - self._last_monitor_check).total_seconds() < self._monitor_check_interval_seconds
+            and (now - self._last_monitor_check).total_seconds()
+            < self._monitor_check_interval_seconds
         ):
             return self._last_monitor_summary
 
@@ -479,17 +489,17 @@ class MLSignalGenerator:
         symbol_upper = symbol.upper()
 
         # Index patterns
-        if any(idx in symbol_upper for idx in ['SPX500', 'NAS100', 'US30', 'UK100', 'DE30']):
+        if any(idx in symbol_upper for idx in ["SPX500", "NAS100", "US30", "UK100", "DE30"]):
             return "index"
 
         # Commodity patterns
-        if any(comm in symbol_upper for comm in ['XAU', 'XAG', 'WTICO', 'BCO', 'NATGAS', 'XCU']):
+        if any(comm in symbol_upper for comm in ["XAU", "XAG", "WTICO", "BCO", "NATGAS", "XCU"]):
             return "commodity"
 
         # Forex patterns (currency pairs without crypto)
-        forex_currencies = ['EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'NZD']
-        if '/' in symbol and 'USDT' not in symbol_upper:
-            parts = symbol_upper.split('/')
+        forex_currencies = ["EUR", "GBP", "JPY", "AUD", "CAD", "CHF", "NZD"]
+        if "/" in symbol and "USDT" not in symbol_upper:
+            parts = symbol_upper.split("/")
             if len(parts) == 2 and any(curr in parts[0] for curr in forex_currencies):
                 return "forex"
 
@@ -518,33 +528,30 @@ class MLSignalGenerator:
             import os
             import requests
 
-            api_key = os.getenv('OANDA_API_KEY')
-            account_id = os.getenv('OANDA_ACCOUNT_ID')
-            environment = os.getenv('OANDA_ENVIRONMENT', 'live')
+            api_key = os.getenv("OANDA_API_KEY")
+            account_id = os.getenv("OANDA_ACCOUNT_ID")
+            environment = os.getenv("OANDA_ENVIRONMENT", "live")
 
             if not api_key or not account_id:
                 logger.warning(f"OANDA credentials not configured for {symbol}")
                 return self._price_cache.get(symbol)
 
             # Convert symbol format for OANDA (EUR/USD -> EUR_USD)
-            oanda_symbol = symbol.replace('/', '_')
+            oanda_symbol = symbol.replace("/", "_")
 
             # Select API endpoint
-            if environment == 'practice':
+            if environment == "practice":
                 base_url = "https://api-fxpractice.oanda.com"
             else:
                 base_url = "https://api-fxtrade.oanda.com"
 
             # Fetch last 500 hourly candles
             url = f"{base_url}/v3/instruments/{oanda_symbol}/candles"
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            }
+            headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
             params = {
                 "granularity": "H1",
                 "count": 500,
-                "price": "M"  # Mid prices
+                "price": "M",  # Mid prices
             }
 
             response = requests.get(url, headers=headers, params=params, timeout=30)
@@ -554,7 +561,7 @@ class MLSignalGenerator:
                 return self._price_cache.get(symbol)
 
             data = response.json()
-            candles = data.get('candles', [])
+            candles = data.get("candles", [])
 
             if not candles:
                 return self._price_cache.get(symbol)
@@ -562,23 +569,25 @@ class MLSignalGenerator:
             # Convert to DataFrame
             rows = []
             for candle in candles:
-                if candle.get('complete', False):
-                    mid = candle.get('mid', {})
-                    rows.append({
-                        'timestamp': candle['time'],
-                        'open': float(mid.get('o', 0)),
-                        'high': float(mid.get('h', 0)),
-                        'low': float(mid.get('l', 0)),
-                        'close': float(mid.get('c', 0)),
-                        'volume': int(candle.get('volume', 0))
-                    })
+                if candle.get("complete", False):
+                    mid = candle.get("mid", {})
+                    rows.append(
+                        {
+                            "timestamp": candle["time"],
+                            "open": float(mid.get("o", 0)),
+                            "high": float(mid.get("h", 0)),
+                            "low": float(mid.get("l", 0)),
+                            "close": float(mid.get("c", 0)),
+                            "volume": int(candle.get("volume", 0)),
+                        }
+                    )
 
             if not rows:
                 return self._price_cache.get(symbol)
 
             df = pd.DataFrame(rows)
-            df['timestamp'] = pd.to_datetime(df['timestamp'])
-            df = df.set_index('timestamp')
+            df["timestamp"] = pd.to_datetime(df["timestamp"])
+            df = df.set_index("timestamp")
             df = df[["open", "high", "low", "close", "volume"]].copy()
 
             # Cache the data
@@ -617,9 +626,7 @@ class MLSignalGenerator:
             logger.warning(f"YFinance fetch failed for {symbol}: {e}")
             return self._price_cache.get(symbol)
 
-    async def generate_signal(
-        self, symbol: str, current_price: float
-    ) -> Optional[Dict[str, Any]]:
+    async def generate_signal(self, symbol: str, current_price: float) -> Optional[Dict[str, Any]]:
         """
         Generate trading signal for a symbol.
 
@@ -664,7 +671,9 @@ class MLSignalGenerator:
             # Apply regime-based confidence adjustment
             if regime_strategy.get("confidence_adjustment"):
                 original_conf = signal.get("confidence", 0.5)
-                adjusted_conf = min(0.95, max(0.1, original_conf + regime_strategy["confidence_adjustment"]))
+                adjusted_conf = min(
+                    0.95, max(0.1, original_conf + regime_strategy["confidence_adjustment"])
+                )
                 signal["confidence"] = adjusted_conf
                 signal["regime_confidence_adjustment"] = regime_strategy["confidence_adjustment"]
 
@@ -767,11 +776,13 @@ class MLSignalGenerator:
                 return None
 
             regime_info = f" [regime:{self._current_regime}]" if self._current_regime else ""
-            num_models = details.get('num_models', 0)
+            num_models = details.get("num_models", 0)
 
             monitor_features = self._build_monitor_features(df)
             trend = self._classify_trend(monitor_features.get("ema_trend", 0.0))
-            volatility_regime = self._classify_volatility(monitor_features.get("volatility_24", 0.0))
+            volatility_regime = self._classify_volatility(
+                monitor_features.get("volatility_24", 0.0)
+            )
 
             # Track prediction for performance analysis
             try:
@@ -782,7 +793,7 @@ class MLSignalGenerator:
                     confidence=adjusted_confidence,
                     market_condition=self._current_regime or "unknown",
                     volatility=50.0,
-                    predicted_return=None
+                    predicted_return=None,
                 )
             except Exception as track_err:
                 logger.debug(f"Failed to track ensemble prediction: {track_err}")
@@ -854,10 +865,22 @@ class MLSignalGenerator:
                 X = np.array(features).reshape(1, -1)
             else:
                 # Fallback: use all non-target columns
-                exclude_cols = ["target_return", "target_direction", "target_class",
-                               "target_strong_trend", "target_risk_adjusted",
-                               "future_return_1", "future_return_3", "future_return_5", "future_return_10",
-                               "open", "high", "low", "close", "volume"]
+                exclude_cols = [
+                    "target_return",
+                    "target_direction",
+                    "target_class",
+                    "target_strong_trend",
+                    "target_risk_adjusted",
+                    "future_return_1",
+                    "future_return_3",
+                    "future_return_5",
+                    "future_return_10",
+                    "open",
+                    "high",
+                    "low",
+                    "close",
+                    "volume",
+                ]
                 feature_cols = [col for col in df_features.columns if col not in exclude_cols]
                 X = df_features[feature_cols].iloc[-1:].values
 
@@ -921,7 +944,9 @@ class MLSignalGenerator:
 
             monitor_features = self._build_monitor_features(df)
             trend = self._classify_trend(monitor_features.get("ema_trend", 0.0))
-            volatility_regime = self._classify_volatility(monitor_features.get("volatility_24", 0.0))
+            volatility_regime = self._classify_volatility(
+                monitor_features.get("volatility_24", 0.0)
+            )
 
             # Track prediction for performance analysis
             try:
@@ -932,7 +957,7 @@ class MLSignalGenerator:
                     confidence=adjusted_confidence,
                     market_condition=self._current_regime or "unknown",
                     volatility=50.0,  # Default, can be enhanced
-                    predicted_return=None
+                    predicted_return=None,
                 )
             except Exception as track_err:
                 logger.debug(f"Failed to track prediction: {track_err}")
@@ -1108,7 +1133,7 @@ class MLSignalGenerator:
                     confidence=confidence,
                     market_condition=self._current_regime or "unknown",
                     volatility=50.0,
-                    predicted_return=None
+                    predicted_return=None,
                 )
             except Exception as track_err:
                 logger.debug(f"Failed to track TA prediction: {track_err}")
@@ -1116,7 +1141,9 @@ class MLSignalGenerator:
 
             monitor_features = self._build_monitor_features(df)
             trend = self._classify_trend(monitor_features.get("ema_trend", 0.0))
-            volatility_regime = self._classify_volatility(monitor_features.get("volatility_24", 0.0))
+            volatility_regime = self._classify_volatility(
+                monitor_features.get("volatility_24", 0.0)
+            )
 
             return {
                 "action": action,
@@ -1133,11 +1160,14 @@ class MLSignalGenerator:
                     "rsi": latest_rsi,
                     "macd": latest_macd,
                     "macd_signal": latest_signal,
-                    "bb_position": (latest_close - latest_bb_lower) / (latest_bb_upper - latest_bb_lower) if (latest_bb_upper - latest_bb_lower) > 0 else 0.5,
+                    "bb_position": (latest_close - latest_bb_lower)
+                    / (latest_bb_upper - latest_bb_lower)
+                    if (latest_bb_upper - latest_bb_lower) > 0
+                    else 0.5,
                     "momentum": latest_momentum,
                     "buy_score": buy_score,
                     "sell_score": sell_score,
-                }
+                },
             }
 
         except Exception as e:

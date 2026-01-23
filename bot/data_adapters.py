@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class AdapterConfig:
     """Configuration for data adapter."""
+
     api_key: Optional[str] = None
     api_secret: Optional[str] = None
     base_url: Optional[str] = None
@@ -255,21 +256,25 @@ class AlphaVantageAdapter(DataAdapter):
                 break
 
         if not ts_key or ts_key not in data:
-            logger.error(f"Invalid response: {data.get('Note', data.get('Error Message', 'Unknown error'))}")
+            logger.error(
+                f"Invalid response: {data.get('Note', data.get('Error Message', 'Unknown error'))}"
+            )
             return pd.DataFrame()
 
         ts_data = data[ts_key]
         records = []
 
         for timestamp, values in ts_data.items():
-            records.append({
-                "timestamp": pd.Timestamp(timestamp),
-                "open": float(values.get("1. open", 0)),
-                "high": float(values.get("2. high", 0)),
-                "low": float(values.get("3. low", 0)),
-                "close": float(values.get("4. close", 0)),
-                "volume": float(values.get("5. volume", 0)),
-            })
+            records.append(
+                {
+                    "timestamp": pd.Timestamp(timestamp),
+                    "open": float(values.get("1. open", 0)),
+                    "high": float(values.get("2. high", 0)),
+                    "low": float(values.get("3. low", 0)),
+                    "close": float(values.get("4. close", 0)),
+                    "volume": float(values.get("5. volume", 0)),
+                }
+            )
 
         df = pd.DataFrame(records)
         df = df.sort_values("timestamp").reset_index(drop=True)
@@ -285,21 +290,25 @@ class AlphaVantageAdapter(DataAdapter):
                 break
 
         if not ts_key or ts_key not in data:
-            logger.error(f"Invalid response: {data.get('Note', data.get('Error Message', 'Unknown error'))}")
+            logger.error(
+                f"Invalid response: {data.get('Note', data.get('Error Message', 'Unknown error'))}"
+            )
             return pd.DataFrame()
 
         ts_data = data[ts_key]
         records = []
 
         for timestamp, values in ts_data.items():
-            records.append({
-                "timestamp": pd.Timestamp(timestamp),
-                "open": float(values.get("1. open", 0)),
-                "high": float(values.get("2. high", 0)),
-                "low": float(values.get("3. low", 0)),
-                "close": float(values.get("4. close", 0)),
-                "volume": 0,  # Forex doesn't have volume in Alpha Vantage
-            })
+            records.append(
+                {
+                    "timestamp": pd.Timestamp(timestamp),
+                    "open": float(values.get("1. open", 0)),
+                    "high": float(values.get("2. high", 0)),
+                    "low": float(values.get("3. low", 0)),
+                    "close": float(values.get("4. close", 0)),
+                    "volume": 0,  # Forex doesn't have volume in Alpha Vantage
+                }
+            )
 
         df = pd.DataFrame(records)
         df = df.sort_values("timestamp").reset_index(drop=True)
@@ -315,7 +324,9 @@ class AlphaVantageAdapter(DataAdapter):
                 break
 
         if not ts_key or ts_key not in data:
-            logger.error(f"Invalid response: {data.get('Note', data.get('Error Message', 'Unknown error'))}")
+            logger.error(
+                f"Invalid response: {data.get('Note', data.get('Error Message', 'Unknown error'))}"
+            )
             return pd.DataFrame()
 
         ts_data = data[ts_key]
@@ -323,14 +334,16 @@ class AlphaVantageAdapter(DataAdapter):
 
         for timestamp, values in ts_data.items():
             # Crypto has different key format
-            records.append({
-                "timestamp": pd.Timestamp(timestamp),
-                "open": float(values.get("1a. open (USD)", values.get("1. open", 0))),
-                "high": float(values.get("2a. high (USD)", values.get("2. high", 0))),
-                "low": float(values.get("3a. low (USD)", values.get("3. low", 0))),
-                "close": float(values.get("4a. close (USD)", values.get("4. close", 0))),
-                "volume": float(values.get("5. volume", 0)),
-            })
+            records.append(
+                {
+                    "timestamp": pd.Timestamp(timestamp),
+                    "open": float(values.get("1a. open (USD)", values.get("1. open", 0))),
+                    "high": float(values.get("2a. high (USD)", values.get("2. high", 0))),
+                    "low": float(values.get("3a. low (USD)", values.get("3. low", 0))),
+                    "close": float(values.get("4a. close (USD)", values.get("4. close", 0))),
+                    "volume": float(values.get("5. volume", 0)),
+                }
+            )
 
         df = pd.DataFrame(records)
         df = df.sort_values("timestamp").reset_index(drop=True)
@@ -341,11 +354,22 @@ class AlphaVantageAdapter(DataAdapter):
         """Alpha Vantage supports most symbols - return common ones."""
         return [
             # Major stocks
-            "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "TSLA", "META",
+            "AAPL",
+            "MSFT",
+            "GOOGL",
+            "AMZN",
+            "NVDA",
+            "TSLA",
+            "META",
             # Major forex pairs
-            "EUR/USD", "GBP/USD", "USD/JPY", "AUD/USD",
+            "EUR/USD",
+            "GBP/USD",
+            "USD/JPY",
+            "AUD/USD",
             # Major crypto
-            "BTC", "ETH", "SOL",
+            "BTC",
+            "ETH",
+            "SOL",
         ]
 
 
@@ -359,12 +383,15 @@ class BinanceAdapter(DataAdapter):
     def __init__(self, config: Optional[AdapterConfig] = None):
         super().__init__(config)
         import ccxt
-        self.exchange = ccxt.binance({
-            "apiKey": config.api_key if config else os.getenv("BINANCE_API_KEY"),
-            "secret": config.api_secret if config else os.getenv("BINANCE_SECRET_KEY"),
-            "enableRateLimit": True,
-            "options": {"defaultType": "spot"},
-        })
+
+        self.exchange = ccxt.binance(
+            {
+                "apiKey": config.api_key if config else os.getenv("BINANCE_API_KEY"),
+                "secret": config.api_secret if config else os.getenv("BINANCE_SECRET_KEY"),
+                "enableRateLimit": True,
+                "options": {"defaultType": "spot"},
+            }
+        )
         self.config.rate_limit_per_minute = 1200
 
     @property
@@ -389,10 +416,7 @@ class BinanceAdapter(DataAdapter):
         if not ohlcv:
             return pd.DataFrame()
 
-        df = pd.DataFrame(
-            ohlcv,
-            columns=["timestamp", "open", "high", "low", "close", "volume"]
-        )
+        df = pd.DataFrame(ohlcv, columns=["timestamp", "open", "high", "low", "close", "volume"])
         df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
         df.set_index("timestamp", inplace=True)
 
@@ -445,10 +469,18 @@ class YahooFinanceAdapter(DataAdapter):
 
         # Map timeframe
         interval_map = {
-            "1m": "1m", "5m": "5m", "15m": "15m", "30m": "30m",
-            "1h": "1h", "4h": "1h",  # Yahoo doesn't support 4h
-            "1d": "1d", "1w": "1wk", "1M": "1mo",
-            "daily": "1d", "weekly": "1wk", "monthly": "1mo",
+            "1m": "1m",
+            "5m": "5m",
+            "15m": "15m",
+            "30m": "30m",
+            "1h": "1h",
+            "4h": "1h",  # Yahoo doesn't support 4h
+            "1d": "1d",
+            "1w": "1wk",
+            "1M": "1mo",
+            "daily": "1d",
+            "weekly": "1wk",
+            "monthly": "1mo",
         }
         interval = interval_map.get(timeframe, "1h")
 
@@ -486,13 +518,25 @@ class YahooFinanceAdapter(DataAdapter):
         """Return common symbols supported by Yahoo."""
         return [
             # US Stocks
-            "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "TSLA", "META",
+            "AAPL",
+            "MSFT",
+            "GOOGL",
+            "AMZN",
+            "NVDA",
+            "TSLA",
+            "META",
             # ETFs
-            "SPY", "QQQ", "IWM", "DIA",
+            "SPY",
+            "QQQ",
+            "IWM",
+            "DIA",
             # Indices
-            "^GSPC", "^DJI", "^IXIC",
+            "^GSPC",
+            "^DJI",
+            "^IXIC",
             # Crypto
-            "BTC-USD", "ETH-USD",
+            "BTC-USD",
+            "ETH-USD",
         ]
 
 
@@ -591,13 +635,15 @@ class PolygonAdapter(DataAdapter):
             df = pd.DataFrame(results)
 
             df["timestamp"] = pd.to_datetime(df["t"], unit="ms")
-            df = df.rename(columns={
-                "o": "open",
-                "h": "high",
-                "l": "low",
-                "c": "close",
-                "v": "volume",
-            })
+            df = df.rename(
+                columns={
+                    "o": "open",
+                    "h": "high",
+                    "l": "low",
+                    "c": "close",
+                    "v": "volume",
+                }
+            )
             df = df[["timestamp", "open", "high", "low", "close", "volume"]]
             df = df.set_index("timestamp")
 
@@ -689,7 +735,9 @@ class DataAdapterFactory:
             DataAdapter instance
         """
         if adapter_name not in cls._adapters:
-            raise ValueError(f"Unknown adapter: {adapter_name}. Available: {list(cls._adapters.keys())}")
+            raise ValueError(
+                f"Unknown adapter: {adapter_name}. Available: {list(cls._adapters.keys())}"
+            )
 
         return cls._adapters[adapter_name](config)
 
@@ -762,9 +810,7 @@ class MultiSourceDataFetcher:
 
             try:
                 logger.info(f"Fetching {symbol} from {source}")
-                df = self.adapters[source].fetch_ohlcv(
-                    symbol, timeframe, start_date, end_date
-                )
+                df = self.adapters[source].fetch_ohlcv(symbol, timeframe, start_date, end_date)
 
                 if df is not None and not df.empty:
                     if use_cache:

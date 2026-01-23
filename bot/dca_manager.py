@@ -21,12 +21,14 @@ class DCAConfig:
 
     # DCA levels (drawdown percentage -> additional position size multiplier)
     # Example: at 5% drawdown, add 0.5x of original position
-    dca_levels: List[Dict[str, float]] = field(default_factory=lambda: [
-        {"drawdown_pct": 0.03, "size_multiplier": 0.3},  # -3% -> add 30%
-        {"drawdown_pct": 0.05, "size_multiplier": 0.4},  # -5% -> add 40%
-        {"drawdown_pct": 0.08, "size_multiplier": 0.5},  # -8% -> add 50%
-        {"drawdown_pct": 0.12, "size_multiplier": 0.6},  # -12% -> add 60%
-    ])
+    dca_levels: List[Dict[str, float]] = field(
+        default_factory=lambda: [
+            {"drawdown_pct": 0.03, "size_multiplier": 0.3},  # -3% -> add 30%
+            {"drawdown_pct": 0.05, "size_multiplier": 0.4},  # -5% -> add 40%
+            {"drawdown_pct": 0.08, "size_multiplier": 0.5},  # -8% -> add 50%
+            {"drawdown_pct": 0.12, "size_multiplier": 0.6},  # -12% -> add 60%
+        ]
+    )
 
     # Maximum DCA orders per position
     max_dca_orders: int = 4
@@ -88,7 +90,9 @@ class DCAState:
             total_cost=data["total_cost"],
             dca_orders_count=data.get("dca_orders_count", 0),
             dca_history=data.get("dca_history", []),
-            last_dca_time=datetime.fromisoformat(data["last_dca_time"]) if data.get("last_dca_time") else None,
+            last_dca_time=datetime.fromisoformat(data["last_dca_time"])
+            if data.get("last_dca_time")
+            else None,
             created_at=datetime.fromisoformat(data["created_at"]),
         )
 
@@ -136,9 +140,7 @@ class DCAManager:
         )
 
         self.positions[symbol] = state
-        logger.info(
-            f"DCA tracking added: {symbol} qty={quantity:.6f} @ ${entry_price:.2f}"
-        )
+        logger.info(f"DCA tracking added: {symbol} qty={quantity:.6f} @ ${entry_price:.2f}")
 
         return state
 
@@ -189,8 +191,7 @@ class DCAManager:
         for level in self.config.dca_levels:
             # Check if we've already DCA'd at this level
             already_used = any(
-                h.get("level_drawdown") == level["drawdown_pct"]
-                for h in state.dca_history
+                h.get("level_drawdown") == level["drawdown_pct"] for h in state.dca_history
             )
             if already_used:
                 continue
@@ -230,7 +231,8 @@ class DCAManager:
             "size_multiplier": applicable_level["size_multiplier"],
             "current_average": state.average_entry_price,
             "new_average": new_average,
-            "improvement_pct": (state.average_entry_price - new_average) / state.average_entry_price,
+            "improvement_pct": (state.average_entry_price - new_average)
+            / state.average_entry_price,
             "dca_order_number": state.dca_orders_count + 1,
         }
 
@@ -267,15 +269,17 @@ class DCAManager:
         state.last_dca_time = datetime.now()
 
         # Record in history
-        state.dca_history.append({
-            "timestamp": datetime.now().isoformat(),
-            "quantity": quantity,
-            "price": price,
-            "cost": cost,
-            "level_drawdown": level_drawdown,
-            "new_average": state.average_entry_price,
-            "order_number": state.dca_orders_count,
-        })
+        state.dca_history.append(
+            {
+                "timestamp": datetime.now().isoformat(),
+                "quantity": quantity,
+                "price": price,
+                "cost": cost,
+                "level_drawdown": level_drawdown,
+                "new_average": state.average_entry_price,
+                "order_number": state.dca_orders_count,
+            }
+        )
 
         logger.info(
             f"DCA executed: {symbol} +{quantity:.6f} @ ${price:.2f}, "
@@ -307,17 +311,11 @@ class DCAManager:
 
     def get_all_positions(self) -> Dict[str, Dict[str, Any]]:
         """Get all DCA position states."""
-        return {
-            symbol: state.to_dict()
-            for symbol, state in self.positions.items()
-        }
+        return {symbol: state.to_dict() for symbol, state in self.positions.items()}
 
     def load_state(self, state_dict: Dict[str, Dict[str, Any]]) -> None:
         """Load DCA states from dict."""
-        self.positions = {
-            symbol: DCAState.from_dict(data)
-            for symbol, data in state_dict.items()
-        }
+        self.positions = {symbol: DCAState.from_dict(data) for symbol, data in state_dict.items()}
         logger.info(f"Loaded {len(self.positions)} DCA position states")
 
     def get_summary(self, symbol: str, current_price: float) -> Optional[Dict[str, Any]]:
@@ -341,8 +339,10 @@ class DCAManager:
             "unrealized_pnl_pct": unrealized_pnl_pct,
             "dca_orders": state.dca_orders_count,
             "position_multiplier": state.current_size_multiplier,
-            "average_improvement": (state.original_entry_price - state.average_entry_price) / state.original_entry_price
-            if state.dca_orders_count > 0 else 0,
+            "average_improvement": (state.original_entry_price - state.average_entry_price)
+            / state.original_entry_price
+            if state.dca_orders_count > 0
+            else 0,
         }
 
 

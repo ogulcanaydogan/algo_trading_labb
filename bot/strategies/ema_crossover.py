@@ -18,6 +18,7 @@ from .base import BaseStrategy, StrategyConfig, StrategySignal
 
 class EMACrossoverConfig(StrategyConfig):
     """Configuration for EMA Crossover strategy."""
+
     ema_fast: int = 12
     ema_slow: int = 26
     ema_trend: int = 200  # Long-term trend filter

@@ -34,6 +34,13 @@ from .async_utils import (
     run_with_semaphore,
     safe_timeout,
     wait_with_timeout,
+    # Async file I/O
+    async_read_json,
+    async_write_json,
+    async_read_text,
+    async_write_text,
+    async_append_json,
+    async_file_exists,
 )
 
 from .logging_config import (
@@ -111,6 +118,13 @@ __all__ = [
     "run_with_semaphore",
     "safe_timeout",
     "wait_with_timeout",
+    # Async file I/O
+    "async_read_json",
+    "async_write_json",
+    "async_read_text",
+    "async_write_text",
+    "async_append_json",
+    "async_file_exists",
     # Logging
     "MetricsCollector",
     "OperationMetrics",

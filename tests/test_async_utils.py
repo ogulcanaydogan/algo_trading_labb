@@ -186,6 +186,7 @@ class TestAsyncTaskManager:
         results = []
 
         async with AsyncTaskManager("test") as manager:
+
             async def task(value):
                 await asyncio.sleep(0.01)
                 results.append(value)
@@ -201,6 +202,7 @@ class TestAsyncTaskManager:
         cancelled = {"flag": False}
 
         async with AsyncTaskManager("test") as manager:
+
             async def long_task():
                 try:
                     await asyncio.sleep(10)
@@ -218,6 +220,7 @@ class TestAsyncTaskManager:
     @pytest.mark.asyncio
     async def test_logs_task_errors(self, caplog):
         async with AsyncTaskManager("test") as manager:
+
             async def failing_task():
                 raise ValueError("Task failed")
 

@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 class AnomalyType:
     """Types of anomalies."""
+
     PRICE_SPIKE = "price_spike"
     VOLUME_SURGE = "volume_surge"
     VOLATILITY_EXPLOSION = "volatility_explosion"
@@ -35,6 +36,7 @@ class AnomalyType:
 @dataclass
 class Anomaly:
     """Detected anomaly."""
+
     anomaly_id: str
     anomaly_type: str
     symbol: str
@@ -66,6 +68,7 @@ class Anomaly:
 @dataclass
 class MarketState:
     """Current market state assessment."""
+
     symbol: str
     is_normal: bool
     anomaly_count: int
@@ -97,6 +100,7 @@ class MarketState:
 @dataclass
 class AnomalyConfig:
     """Anomaly detection configuration."""
+
     # Detection thresholds (in standard deviations)
     price_spike_threshold: float = 3.0
     volume_surge_threshold: float = 2.5
@@ -268,7 +272,7 @@ class AnomalyDetector:
                 current_value=current_return,
                 expected_value=mean_return,
                 deviation=z_score,
-                description=f"Unusual price spike {direction}: {current_return*100:.2f}% ({z_score:.1f} std devs)",
+                description=f"Unusual price spike {direction}: {current_return * 100:.2f}% ({z_score:.1f} std devs)",
                 recommendation="Consider reducing position size or tightening stops",
             )
 
@@ -339,7 +343,7 @@ class AnomalyDetector:
                 current_value=current_vol,
                 expected_value=mean_vol,
                 deviation=z_score,
-                description=f"Volatility explosion: {current_vol*100:.2f}% range ({z_score:.1f} std devs)",
+                description=f"Volatility explosion: {current_vol * 100:.2f}% range ({z_score:.1f} std devs)",
                 recommendation="Reduce position size, widen stops, or exit",
             )
 
@@ -374,7 +378,7 @@ class AnomalyDetector:
                 current_value=current_spread,
                 expected_value=mean_spread,
                 deviation=z_score,
-                description=f"Spread widening: {current_spread*10000:.1f} bps ({z_score:.1f} std devs)",
+                description=f"Spread widening: {current_spread * 10000:.1f} bps ({z_score:.1f} std devs)",
                 recommendation="Liquidity deteriorating - use limit orders, avoid large trades",
             )
 
@@ -387,7 +391,7 @@ class AnomalyDetector:
         if len(prices) < self.config.flash_crash_minutes:
             return None
 
-        recent_prices = prices[-self.config.flash_crash_minutes:]
+        recent_prices = prices[-self.config.flash_crash_minutes :]
         max_price = max(recent_prices)
         min_price = min(recent_prices)
         current_price = prices[-1]
@@ -407,7 +411,7 @@ class AnomalyDetector:
                     current_value=current_price,
                     expected_value=max_price,
                     deviation=decline / self.config.flash_crash_pct,
-                    description=f"Flash crash detected: {decline*100:.1f}% drop in {self.config.flash_crash_minutes} periods",
+                    description=f"Flash crash detected: {decline * 100:.1f}% drop in {self.config.flash_crash_minutes} periods",
                     recommendation="HALT TRADING - Wait for stability before re-entering",
                 )
 
@@ -436,22 +440,12 @@ class AnomalyDetector:
         anomalies = self.detect_anomalies(symbol)
 
         # Calculate percentiles
-        vol_percentile = self._get_percentile(
-            self._volatility_history.get(symbol, deque())
-        )
-        volume_percentile = self._get_percentile(
-            self._volume_history.get(symbol, deque())
-        )
-        spread_percentile = self._get_percentile(
-            self._spread_history.get(symbol, deque())
-        )
+        vol_percentile = self._get_percentile(self._volatility_history.get(symbol, deque()))
+        volume_percentile = self._get_percentile(self._volume_history.get(symbol, deque()))
+        spread_percentile = self._get_percentile(self._spread_history.get(symbol, deque()))
 
         # Calculate stress index
-        stress_index = (
-            vol_percentile * 0.4 +
-            spread_percentile * 0.3 +
-            (len(anomalies) / 5) * 0.3
-        )
+        stress_index = vol_percentile * 0.4 + spread_percentile * 0.3 + (len(anomalies) / 5) * 0.3
         stress_index = min(1.0, stress_index)
 
         # Determine risk level
@@ -497,10 +491,7 @@ class AnomalyDetector:
 
     def get_all_market_states(self) -> Dict[str, MarketState]:
         """Get market states for all tracked symbols."""
-        return {
-            symbol: self.get_market_state(symbol)
-            for symbol in self._price_history.keys()
-        }
+        return {symbol: self.get_market_state(symbol) for symbol in self._price_history.keys()}
 
     def clear_history(self, symbol: Optional[str] = None):
         """Clear detection history."""

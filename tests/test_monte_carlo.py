@@ -221,9 +221,7 @@ class TestMonteCarloSimulator:
     def test_run_simulation_var_estimates(self, sample_returns):
         """Test that simulation calculates VaR estimates."""
         config = SimulationConfig(
-            num_simulations=50,
-            time_horizon_days=30,
-            confidence_levels=[0.95, 0.99]
+            num_simulations=50, time_horizon_days=30, confidence_levels=[0.95, 0.99]
         )
         simulator = MonteCarloSimulator(config=config)
         simulator.load_returns(sample_returns)
@@ -238,9 +236,7 @@ class TestMonteCarloSimulator:
     def test_run_simulation_confidence_intervals(self, sample_returns):
         """Test that simulation calculates confidence intervals."""
         config = SimulationConfig(
-            num_simulations=50,
-            time_horizon_days=30,
-            confidence_levels=[0.95]
+            num_simulations=50, time_horizon_days=30, confidence_levels=[0.95]
         )
         simulator = MonteCarloSimulator(config=config)
         simulator.load_returns(sample_returns)
@@ -289,9 +285,7 @@ class TestMonteCarloSimulator:
     def test_simple_bootstrap(self, sample_returns):
         """Test simple bootstrap method."""
         config = SimulationConfig(
-            num_simulations=10,
-            time_horizon_days=20,
-            use_block_bootstrap=False
+            num_simulations=10, time_horizon_days=20, use_block_bootstrap=False
         )
         simulator = MonteCarloSimulator(config=config)
         simulator.load_returns(sample_returns)
@@ -302,10 +296,7 @@ class TestMonteCarloSimulator:
     def test_block_bootstrap(self, sample_returns):
         """Test block bootstrap method."""
         config = SimulationConfig(
-            num_simulations=10,
-            time_horizon_days=20,
-            use_block_bootstrap=True,
-            block_size=5
+            num_simulations=10, time_horizon_days=20, use_block_bootstrap=True, block_size=5
         )
         simulator = MonteCarloSimulator(config=config)
         simulator.load_returns(sample_returns)
@@ -315,11 +306,7 @@ class TestMonteCarloSimulator:
 
     def test_simulate_path_metrics(self, sample_returns):
         """Test that simulated path has correct metrics."""
-        config = SimulationConfig(
-            num_simulations=10,
-            time_horizon_days=20,
-            initial_capital=10000
-        )
+        config = SimulationConfig(num_simulations=10, time_horizon_days=20, initial_capital=10000)
         simulator = MonteCarloSimulator(config=config)
         simulator.load_returns(sample_returns)
 
@@ -409,11 +396,7 @@ class TestMonteCarloSimulator:
 
     def test_to_api_response_config_section(self, sample_returns):
         """Test API response config section."""
-        config = SimulationConfig(
-            num_simulations=50,
-            time_horizon_days=30,
-            initial_capital=25000
-        )
+        config = SimulationConfig(num_simulations=50, time_horizon_days=30, initial_capital=25000)
         simulator = MonteCarloSimulator(config=config)
         simulator.load_returns(sample_returns)
 
@@ -501,9 +484,7 @@ class TestVaRCalculations:
         np.random.seed(42)
         returns = list(np.random.normal(0.001, 0.02, 100))
         config = SimulationConfig(
-            num_simulations=200,
-            time_horizon_days=50,
-            confidence_levels=[0.90, 0.95, 0.99]
+            num_simulations=200, time_horizon_days=50, confidence_levels=[0.90, 0.95, 0.99]
         )
         simulator = MonteCarloSimulator(config=config)
         simulator.load_returns(returns)
@@ -519,9 +500,7 @@ class TestVaRCalculations:
         np.random.seed(42)
         returns = list(np.random.normal(0.001, 0.02, 100))
         config = SimulationConfig(
-            num_simulations=50,
-            time_horizon_days=30,
-            confidence_levels=[0.95, 0.99]
+            num_simulations=50, time_horizon_days=30, confidence_levels=[0.95, 0.99]
         )
         simulator = MonteCarloSimulator(config=config)
         simulator.load_returns(returns)
@@ -602,10 +581,7 @@ class TestEdgeCases:
         np.random.seed(42)
         returns = list(np.random.normal(0.001, 0.02, 50))
         config = SimulationConfig(
-            num_simulations=10,
-            time_horizon_days=20,
-            use_block_bootstrap=True,
-            block_size=2
+            num_simulations=10, time_horizon_days=20, use_block_bootstrap=True, block_size=2
         )
         simulator = MonteCarloSimulator(config=config)
         simulator.load_returns(returns)
@@ -618,10 +594,7 @@ class TestEdgeCases:
         np.random.seed(42)
         returns = list(np.random.normal(0.001, 0.02, 100))
         config = SimulationConfig(
-            num_simulations=10,
-            time_horizon_days=20,
-            use_block_bootstrap=True,
-            block_size=10
+            num_simulations=10, time_horizon_days=20, use_block_bootstrap=True, block_size=10
         )
         simulator = MonteCarloSimulator(config=config)
         simulator.load_returns(returns)

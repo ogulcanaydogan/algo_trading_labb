@@ -107,13 +107,15 @@ class TestMarketRegimeClassifier:
         noise = np.random.randn(n) * 2
         close = 100 + trend + noise
 
-        return pd.DataFrame({
-            "open": close - np.random.rand(n) * 0.5,
-            "high": close + np.random.rand(n) * 2,
-            "low": close - np.random.rand(n) * 1,
-            "close": close,
-            "volume": np.random.randint(1000, 10000, n),
-        })
+        return pd.DataFrame(
+            {
+                "open": close - np.random.rand(n) * 0.5,
+                "high": close + np.random.rand(n) * 2,
+                "low": close - np.random.rand(n) * 1,
+                "close": close,
+                "volume": np.random.randint(1000, 10000, n),
+            }
+        )
 
     @pytest.fixture
     def downtrend_data(self):
@@ -125,13 +127,15 @@ class TestMarketRegimeClassifier:
         noise = np.random.randn(n) * 2
         close = 200 + trend + noise
 
-        return pd.DataFrame({
-            "open": close + np.random.rand(n) * 0.5,
-            "high": close + np.random.rand(n) * 1,
-            "low": close - np.random.rand(n) * 2,
-            "close": close,
-            "volume": np.random.randint(1000, 10000, n),
-        })
+        return pd.DataFrame(
+            {
+                "open": close + np.random.rand(n) * 0.5,
+                "high": close + np.random.rand(n) * 1,
+                "low": close - np.random.rand(n) * 2,
+                "close": close,
+                "volume": np.random.randint(1000, 10000, n),
+            }
+        )
 
     @pytest.fixture
     def sideways_data(self):
@@ -141,13 +145,15 @@ class TestMarketRegimeClassifier:
         # Oscillating around 100
         close = 100 + np.sin(np.arange(n) * 0.1) * 5 + np.random.randn(n) * 1
 
-        return pd.DataFrame({
-            "open": close - np.random.rand(n) * 0.3,
-            "high": close + np.random.rand(n) * 1,
-            "low": close - np.random.rand(n) * 1,
-            "close": close,
-            "volume": np.random.randint(1000, 10000, n),
-        })
+        return pd.DataFrame(
+            {
+                "open": close - np.random.rand(n) * 0.3,
+                "high": close + np.random.rand(n) * 1,
+                "low": close - np.random.rand(n) * 1,
+                "close": close,
+                "volume": np.random.randint(1000, 10000, n),
+            }
+        )
 
     @pytest.fixture
     def volatile_data(self):
@@ -157,24 +163,28 @@ class TestMarketRegimeClassifier:
         # High volatility swings
         close = 100 + np.cumsum(np.random.randn(n) * 5)
 
-        return pd.DataFrame({
-            "open": close - np.random.rand(n) * 2,
-            "high": close + np.random.rand(n) * 5,
-            "low": close - np.random.rand(n) * 5,
-            "close": close,
-            "volume": np.random.randint(1000, 10000, n),
-        })
+        return pd.DataFrame(
+            {
+                "open": close - np.random.rand(n) * 2,
+                "high": close + np.random.rand(n) * 5,
+                "low": close - np.random.rand(n) * 5,
+                "close": close,
+                "volume": np.random.randint(1000, 10000, n),
+            }
+        )
 
     @pytest.fixture
     def short_data(self):
         """Create insufficient data."""
-        return pd.DataFrame({
-            "open": [100, 101, 102, 103, 104],
-            "high": [102, 103, 104, 105, 106],
-            "low": [99, 100, 101, 102, 103],
-            "close": [101, 102, 103, 104, 105],
-            "volume": [1000] * 5,
-        })
+        return pd.DataFrame(
+            {
+                "open": [100, 101, 102, 103, 104],
+                "high": [102, 103, 104, 105, 106],
+                "low": [99, 100, 101, 102, 103],
+                "close": [101, 102, 103, 104, 105],
+                "volume": [1000] * 5,
+            }
+        )
 
     def test_classifier_creation(self, classifier):
         """Test classifier is created with defaults."""
@@ -311,13 +321,15 @@ class TestEdgeCases:
         """Test with constant prices."""
         classifier = MarketRegimeClassifier(ema_trend=20)
         n = 50
-        df = pd.DataFrame({
-            "open": [100.0] * n,
-            "high": [100.0] * n,
-            "low": [100.0] * n,
-            "close": [100.0] * n,
-            "volume": [1000] * n,
-        })
+        df = pd.DataFrame(
+            {
+                "open": [100.0] * n,
+                "high": [100.0] * n,
+                "low": [100.0] * n,
+                "close": [100.0] * n,
+                "volume": [1000] * n,
+            }
+        )
         analysis = classifier.classify(df)
         # Should handle gracefully - likely sideways with low ADX
         assert analysis.regime in list(MarketRegime)
@@ -330,12 +342,14 @@ class TestEdgeCases:
         close = np.ones(n) * 100
         close[-1] = 150  # Sudden spike
 
-        df = pd.DataFrame({
-            "open": close - 0.5,
-            "high": close + 1,
-            "low": close - 1,
-            "close": close,
-            "volume": [1000] * n,
-        })
+        df = pd.DataFrame(
+            {
+                "open": close - 0.5,
+                "high": close + 1,
+                "low": close - 1,
+                "close": close,
+                "volume": [1000] * n,
+            }
+        )
         analysis = classifier.classify(df)
         assert analysis.regime in list(MarketRegime)

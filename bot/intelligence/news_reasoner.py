@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class NewsItem:
     """A single news item."""
+
     title: str
     source: str
     url: str = ""
@@ -49,6 +50,7 @@ class NewsItem:
 @dataclass
 class NewsContext:
     """News context for trading decisions."""
+
     overall_sentiment: float  # -1 to 1
     sentiment_label: str  # "very_negative", "negative", "neutral", "positive", "very_positive"
     confidence: float
@@ -119,20 +121,56 @@ class NewsReasoner:
 
     # Keywords for rule-based sentiment
     POSITIVE_KEYWORDS = [
-        "surge", "soar", "rally", "bullish", "breakout", "all-time high",
-        "adoption", "partnership", "approval", "upgrade", "growth",
-        "record", "breakthrough", "milestone", "inflow", "accumulation",
+        "surge",
+        "soar",
+        "rally",
+        "bullish",
+        "breakout",
+        "all-time high",
+        "adoption",
+        "partnership",
+        "approval",
+        "upgrade",
+        "growth",
+        "record",
+        "breakthrough",
+        "milestone",
+        "inflow",
+        "accumulation",
     ]
 
     NEGATIVE_KEYWORDS = [
-        "crash", "plunge", "dump", "bearish", "breakdown", "hack",
-        "ban", "lawsuit", "sec", "investigation", "fraud", "scam",
-        "outflow", "sell-off", "warning", "risk", "fear", "panic",
+        "crash",
+        "plunge",
+        "dump",
+        "bearish",
+        "breakdown",
+        "hack",
+        "ban",
+        "lawsuit",
+        "sec",
+        "investigation",
+        "fraud",
+        "scam",
+        "outflow",
+        "sell-off",
+        "warning",
+        "risk",
+        "fear",
+        "panic",
     ]
 
     URGENT_KEYWORDS = [
-        "breaking", "urgent", "alert", "just in", "now", "flash",
-        "emergency", "crash", "halt", "suspend",
+        "breaking",
+        "urgent",
+        "alert",
+        "just in",
+        "now",
+        "flash",
+        "emergency",
+        "crash",
+        "halt",
+        "suspend",
     ]
 
     # Symbol mappings for relevance
@@ -204,6 +242,7 @@ class NewsReasoner:
 
         try:
             import requests
+
             from_date = (datetime.now() - timedelta(hours=hours_back)).strftime("%Y-%m-%d")
 
             response = requests.get(
@@ -231,7 +270,11 @@ class NewsReasoner:
                     title=article.get("title", ""),
                     source="newsapi:" + article.get("source", {}).get("name", "unknown"),
                     url=article.get("url", ""),
-                    published_at=datetime.fromisoformat(article["publishedAt"].replace("Z", "+00:00")) if article.get("publishedAt") else None,
+                    published_at=datetime.fromisoformat(
+                        article["publishedAt"].replace("Z", "+00:00")
+                    )
+                    if article.get("publishedAt")
+                    else None,
                     summary=article.get("description", ""),
                 )
                 item.sentiment = self._analyze_sentiment_rule_based(item.title)
@@ -272,7 +315,9 @@ class NewsReasoner:
                     title=article.get("headline", ""),
                     source="finnhub:" + article.get("source", "unknown"),
                     url=article.get("url", ""),
-                    published_at=datetime.fromtimestamp(article["datetime"]) if article.get("datetime") else None,
+                    published_at=datetime.fromtimestamp(article["datetime"])
+                    if article.get("datetime")
+                    else None,
                     summary=article.get("summary", ""),
                 )
                 item.sentiment = self._analyze_sentiment_rule_based(item.title)
@@ -318,7 +363,9 @@ class NewsReasoner:
                     title=article.get("title", ""),
                     source="alphavantage:" + ", ".join(article.get("authors", ["unknown"])),
                     url=article.get("url", ""),
-                    published_at=datetime.strptime(article["time_published"], "%Y%m%dT%H%M%S") if article.get("time_published") else None,
+                    published_at=datetime.strptime(article["time_published"], "%Y%m%dT%H%M%S")
+                    if article.get("time_published")
+                    else None,
                     sentiment=sentiment_score,
                     summary=article.get("summary", ""),
                 )
@@ -399,7 +446,9 @@ class NewsReasoner:
         trading_impact = self._determine_trading_impact(overall_sentiment, breaking)
 
         # Generate summary
-        summary = self._generate_summary(overall_sentiment, sentiment_trend, len(all_news), breaking)
+        summary = self._generate_summary(
+            overall_sentiment, sentiment_trend, len(all_news), breaking
+        )
 
         return NewsContext(
             overall_sentiment=overall_sentiment,
@@ -520,7 +569,9 @@ class NewsReasoner:
                     title=item.get("title", ""),
                     source="CryptoPanic",
                     url=item.get("url", ""),
-                    published_at=datetime.fromisoformat(item["published_at"].replace("Z", "+00:00")) if item.get("published_at") else None,
+                    published_at=datetime.fromisoformat(item["published_at"].replace("Z", "+00:00"))
+                    if item.get("published_at")
+                    else None,
                     symbols=[c["code"] for c in item.get("currencies", [])],
                 )
                 news_items.append(news)
@@ -548,7 +599,9 @@ class NewsReasoner:
                             title=item.get("title", ""),
                             source="Yahoo Finance",
                             url=item.get("link", ""),
-                            published_at=datetime.fromtimestamp(item["providerPublishTime"]) if item.get("providerPublishTime") else None,
+                            published_at=datetime.fromtimestamp(item["providerPublishTime"])
+                            if item.get("providerPublishTime")
+                            else None,
                             symbols=[symbol],
                         )
                         news_items.append(news_item)
@@ -656,7 +709,11 @@ class NewsReasoner:
             return "stable"
 
         recent = self._sentiment_history[-3:]
-        older = self._sentiment_history[-6:-3] if len(self._sentiment_history) >= 6 else self._sentiment_history[:3]
+        older = (
+            self._sentiment_history[-6:-3]
+            if len(self._sentiment_history) >= 6
+            else self._sentiment_history[:3]
+        )
 
         recent_avg = sum(recent) / len(recent)
         older_avg = sum(older) / len(older)
@@ -707,7 +764,7 @@ class NewsReasoner:
         if breaking:
             summary += f". {len(breaking)} breaking news items"
             if breaking[0].title:
-                summary += f": \"{breaking[0].title[:50]}...\""
+                summary += f': "{breaking[0].title[:50]}..."'
 
         return summary
 

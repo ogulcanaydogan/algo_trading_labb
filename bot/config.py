@@ -33,6 +33,7 @@ import yaml
 @dataclass
 class GeneralConfig:
     """General application settings."""
+
     log_level: str = "INFO"
     data_dir: str = "./data"
 
@@ -48,6 +49,7 @@ class GeneralConfig:
 @dataclass
 class TradingConfig:
     """Core trading parameters."""
+
     initial_capital: float = 10000.0
     rebalance_threshold: float = 0.05
     loop_interval: int = 60
@@ -77,6 +79,7 @@ class TradingConfig:
 @dataclass
 class AssetClassConfig:
     """Configuration for an asset class (crypto, commodities, stocks)."""
+
     symbols: List[str] = field(default_factory=list)
     enabled: bool = True
     max_weight: float = 0.40
@@ -93,6 +96,7 @@ class AssetClassConfig:
 @dataclass
 class DeepLearningConfig:
     """Deep learning and ML settings."""
+
     enabled: bool = True
     model_selection: str = "regime_based"
     default_model: str = "lstm"
@@ -118,6 +122,7 @@ class DeepLearningConfig:
 @dataclass
 class NotificationsConfig:
     """Notification settings."""
+
     telegram_enabled: bool = True
     ai_explanations: bool = False
     daily_summary: bool = True
@@ -132,6 +137,7 @@ class NotificationsConfig:
 @dataclass
 class APIConfig:
     """API server settings."""
+
     host: str = "0.0.0.0"
     port: int = 8000
     cors_origins: List[str] = field(default_factory=lambda: ["*"])
@@ -148,6 +154,7 @@ class APIConfig:
 @dataclass
 class StrategyConfig:
     """Trading strategy parameters."""
+
     ema_fast: int = 12
     ema_slow: int = 26
     rsi_period: int = 14
@@ -174,6 +181,7 @@ class StrategyConfig:
 @dataclass
 class PortfolioConfig:
     """Portfolio optimization settings."""
+
     optimization_method: str = "risk_parity"
     rebalance_frequency: str = "daily"
     use_correlation_filter: bool = True
@@ -182,8 +190,12 @@ class PortfolioConfig:
     def __post_init__(self):
         # Validate optimization method
         valid_methods = {
-            "equal_weight", "risk_parity", "min_volatility",
-            "max_sharpe", "max_diversification", "inverse_volatility"
+            "equal_weight",
+            "risk_parity",
+            "min_volatility",
+            "max_sharpe",
+            "max_diversification",
+            "inverse_volatility",
         }
         if self.optimization_method not in valid_methods:
             self.optimization_method = "risk_parity"
@@ -201,6 +213,7 @@ class PortfolioConfig:
 @dataclass
 class OrchestratorConfig:
     """Multi-market orchestrator settings."""
+
     health_check_interval: int = 60
     max_restart_attempts: int = 3
     restart_cooldown: int = 300
@@ -218,17 +231,22 @@ class OrchestratorConfig:
 @dataclass
 class AppConfig:
     """Root configuration containing all sections."""
+
     general: GeneralConfig = field(default_factory=GeneralConfig)
     trading: TradingConfig = field(default_factory=TradingConfig)
-    crypto: AssetClassConfig = field(default_factory=lambda: AssetClassConfig(
-        symbols=["BTC/USDT", "ETH/USDT", "SOL/USDT", "AVAX/USDT"]
-    ))
-    commodities: AssetClassConfig = field(default_factory=lambda: AssetClassConfig(
-        symbols=["XAU/USD", "XAG/USD", "USOIL/USD", "NATGAS/USD"]
-    ))
-    stocks: AssetClassConfig = field(default_factory=lambda: AssetClassConfig(
-        symbols=["AAPL", "MSFT", "GOOGL", "NVDA", "AMZN"]
-    ))
+    crypto: AssetClassConfig = field(
+        default_factory=lambda: AssetClassConfig(
+            symbols=["BTC/USDT", "ETH/USDT", "SOL/USDT", "AVAX/USDT"]
+        )
+    )
+    commodities: AssetClassConfig = field(
+        default_factory=lambda: AssetClassConfig(
+            symbols=["XAU/USD", "XAG/USD", "USOIL/USD", "NATGAS/USD"]
+        )
+    )
+    stocks: AssetClassConfig = field(
+        default_factory=lambda: AssetClassConfig(symbols=["AAPL", "MSFT", "GOOGL", "NVDA", "AMZN"])
+    )
     deep_learning: DeepLearningConfig = field(default_factory=DeepLearningConfig)
     notifications: NotificationsConfig = field(default_factory=NotificationsConfig)
     api: APIConfig = field(default_factory=APIConfig)
@@ -331,7 +349,6 @@ ENV_VAR_MAPPING: Dict[str, tuple] = {
     # General
     "LOG_LEVEL": ("general", "log_level", str),
     "DATA_DIR": ("general", "data_dir", str),
-
     # Trading
     "INITIAL_CAPITAL": ("trading", "initial_capital", float),
     "STARTING_BALANCE": ("trading", "initial_capital", float),  # Alias
@@ -341,23 +358,19 @@ ENV_VAR_MAPPING: Dict[str, tuple] = {
     "RISK_PER_TRADE_PCT": ("trading", "risk_per_trade_pct", float),
     "STOP_LOSS_PCT": ("trading", "stop_loss_pct", float),
     "TAKE_PROFIT_PCT": ("trading", "take_profit_pct", float),
-
     # Deep Learning
     "USE_DEEP_LEARNING": ("deep_learning", "enabled", bool),
     "DL_MODEL_SELECTION": ("deep_learning", "model_selection", str),
     "ML_DEFAULT_MODEL": ("deep_learning", "default_model", str),
     "ML_DEVICE": ("deep_learning", "device", str),
-
     # Notifications
     "TELEGRAM_ENABLED": ("notifications", "telegram_enabled", bool),
     "ENABLE_AI_EXPLANATIONS": ("notifications", "ai_explanations", bool),
     "DAILY_SUMMARY_HOUR": ("notifications", "daily_summary_hour", int),
-
     # API
     "API_HOST": ("api", "host", str),
     "API_PORT": ("api", "port", int),
     "BOT_STALE_THRESHOLD_SECONDS": ("api", "stale_threshold", int),
-
     # Strategy
     "EMA_FAST": ("strategy", "ema_fast", int),
     "EMA_SLOW": ("strategy", "ema_slow", int),
@@ -365,7 +378,6 @@ ENV_VAR_MAPPING: Dict[str, tuple] = {
     "RSI_OVERBOUGHT": ("strategy", "rsi_overbought", int),
     "RSI_OVERSOLD": ("strategy", "rsi_oversold", int),
     "TIMEFRAME": ("strategy", "timeframe", str),
-
     # Orchestrator
     "HEALTH_CHECK_INTERVAL": ("orchestrator", "health_check_interval", int),
     "MAX_RESTART_ATTEMPTS": ("orchestrator", "max_restart_attempts", int),
@@ -376,6 +388,7 @@ ENV_VAR_MAPPING: Dict[str, tuple] = {
 # =============================================================================
 # Configuration Loading Functions
 # =============================================================================
+
 
 def _parse_bool(value: Union[str, bool]) -> bool:
     """Parse a string or bool into a boolean value."""
@@ -488,7 +501,9 @@ def _dict_to_config(config_dict: Dict[str, Any]) -> AppConfig:
             min_weight=crypto_dict.get("min_weight", 0.05),
         ),
         commodities=AssetClassConfig(
-            symbols=commodities_dict.get("symbols", ["XAU/USD", "XAG/USD", "USOIL/USD", "NATGAS/USD"]),
+            symbols=commodities_dict.get(
+                "symbols", ["XAU/USD", "XAG/USD", "USOIL/USD", "NATGAS/USD"]
+            ),
             enabled=commodities_dict.get("enabled", True),
             max_weight=commodities_dict.get("max_weight", 0.35),
             min_weight=commodities_dict.get("min_weight", 0.05),

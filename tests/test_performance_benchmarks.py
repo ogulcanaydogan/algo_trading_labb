@@ -26,20 +26,20 @@ class TestSignalGenerationPerformance:
     def test_signal_generation_latency(self):
         """Test signal generation completes within acceptable time."""
         start = time.perf_counter()
-        
+
         signal = {
             "symbol": "BTC/USDT",
             "signal": "LONG",
             "confidence": 0.75,
         }
-        
+
         elapsed = (time.perf_counter() - start) * 1000  # ms
         assert elapsed < 10.0
 
     def test_multiple_signal_generation(self):
         """Test generating signals for multiple instruments."""
         start = time.perf_counter()
-        
+
         signals = []
         for i, symbol in enumerate(["BTC/USDT", "ETH/USDT", "XRP/USDT"]):
             signal = {
@@ -48,7 +48,7 @@ class TestSignalGenerationPerformance:
                 "confidence": 0.7,
             }
             signals.append(signal)
-        
+
         elapsed = (time.perf_counter() - start) * 1000
         assert elapsed < 5.0
 
@@ -60,17 +60,17 @@ class TestOrderExecutionPerformance:
         """Test order validation is fast."""
         controller = SafetyController(limits=SafetyLimits())
         controller.update_balance(10000.0)
-        
+
         start = time.perf_counter()
         allowed, reason = controller.is_trading_allowed()
         elapsed = (time.perf_counter() - start) * 1000
-        
+
         assert elapsed < 1.0
 
     def test_position_update_latency(self):
         """Test updating position tracking is fast."""
         controller = SafetyController()
-        
+
         start = time.perf_counter()
         positions = {
             "BTC/USDT": 420.0,
@@ -78,7 +78,7 @@ class TestOrderExecutionPerformance:
         }
         controller.update_positions(positions)
         elapsed = (time.perf_counter() - start) * 1000
-        
+
         assert elapsed < 1.0
 
 
@@ -90,13 +90,13 @@ class TestStateManagementPerformance:
         start = time.perf_counter()
         state = _create_state()
         elapsed = (time.perf_counter() - start) * 1000
-        
+
         assert elapsed < 1.0
 
     def test_position_addition_latency(self):
         """Test adding positions to state is fast."""
         state = _create_state()
-        
+
         start = time.perf_counter()
         for i in range(10):
             position = PositionState(
@@ -111,7 +111,7 @@ class TestStateManagementPerformance:
             )
             state.positions[f"COIN{i}/USDT"] = position
         elapsed = (time.perf_counter() - start) * 1000
-        
+
         assert elapsed < 5.0
 
 
@@ -122,23 +122,23 @@ class TestSafetyChecksPerformance:
         """Test safety checks are fast enough for trading loop."""
         controller = SafetyController()
         controller.update_balance(10000.0)
-        
+
         start = time.perf_counter()
         for _ in range(100):
             allowed, reason = controller.is_trading_allowed()
         elapsed = (time.perf_counter() - start) * 1000
-        
+
         assert elapsed < 10.0
 
     def test_balance_update_performance(self):
         """Test balance updates don't cause slowdowns."""
         controller = SafetyController()
-        
+
         start = time.perf_counter()
         for i in range(1000):
             controller.update_balance(10000.0 + i)
         elapsed = (time.perf_counter() - start) * 1000
-        
+
         assert elapsed < 10.0
 
 
@@ -150,12 +150,12 @@ class TestDataStructurePerformance:
         positions = {}
         for i in range(100):
             positions[f"COIN{i}/USDT"] = {"quantity": 1.0, "price": 100.0}
-        
+
         start = time.perf_counter()
         for i in range(100):
             _ = positions.get(f"COIN{i % 100}/USDT")
         elapsed = (time.perf_counter() - start) * 1000
-        
+
         assert elapsed < 1.0
 
     def test_position_state_copy_performance(self):
@@ -170,7 +170,7 @@ class TestDataStructurePerformance:
             take_profit=44000.0,
             current_price=42000.0,
         )
-        
+
         start = time.perf_counter()
         for _ in range(1000):
             _ = PositionState(
@@ -184,7 +184,7 @@ class TestDataStructurePerformance:
                 current_price=original.current_price,
             )
         elapsed = (time.perf_counter() - start) * 1000
-        
+
         assert elapsed < 10.0
 
 
@@ -196,31 +196,31 @@ class TestTradingLoopPerformance:
         state = _create_state()
         controller = SafetyController()
         controller.update_balance(10000.0)
-        
+
         start = time.perf_counter()
-        
+
         allowed, _ = controller.is_trading_allowed()
         signal = {"symbol": "BTC/USDT", "signal": "LONG", "confidence": 0.7}
         allowed, _ = controller.is_trading_allowed()
         state.current_balance = 10000.0
-        
+
         elapsed = (time.perf_counter() - start) * 1000
-        
+
         assert elapsed < 5.0
 
     def test_loop_iterations_throughput(self):
         """Test how many loop iterations we can do per second."""
         controller = SafetyController()
-        
+
         start = time.perf_counter()
         iterations = 0
-        
+
         while (time.perf_counter() - start) < 1.0:
             controller.update_balance(10000.0 + iterations)
             allowed, _ = controller.is_trading_allowed()
             iterations += 1
-        
+
         elapsed = time.perf_counter() - start
         throughput = iterations / elapsed
-        
+
         assert throughput > 10000.0

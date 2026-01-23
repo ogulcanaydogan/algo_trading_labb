@@ -74,24 +74,28 @@ class TestFeatureEngineer:
         returns = np.random.randn(n) * 0.02
         close = 100 * np.exp(np.cumsum(returns))
 
-        return pd.DataFrame({
-            "open": close * (1 + np.random.randn(n) * 0.005),
-            "high": close * (1 + np.abs(np.random.randn(n) * 0.01)),
-            "low": close * (1 - np.abs(np.random.randn(n) * 0.01)),
-            "close": close,
-            "volume": np.random.randint(1000, 10000, n),
-        })
+        return pd.DataFrame(
+            {
+                "open": close * (1 + np.random.randn(n) * 0.005),
+                "high": close * (1 + np.abs(np.random.randn(n) * 0.01)),
+                "low": close * (1 - np.abs(np.random.randn(n) * 0.01)),
+                "close": close,
+                "volume": np.random.randint(1000, 10000, n),
+            }
+        )
 
     @pytest.fixture
     def short_ohlcv(self):
         """Create short OHLCV data."""
-        return pd.DataFrame({
-            "open": [100, 101, 102, 103, 104],
-            "high": [102, 103, 104, 105, 106],
-            "low": [99, 100, 101, 102, 103],
-            "close": [101, 102, 103, 104, 105],
-            "volume": [1000, 1100, 1200, 1000, 900],
-        })
+        return pd.DataFrame(
+            {
+                "open": [100, 101, 102, 103, 104],
+                "high": [102, 103, 104, 105, 106],
+                "low": [99, 100, 101, 102, 103],
+                "close": [101, 102, 103, 104, 105],
+                "volume": [1000, 1100, 1200, 1000, 900],
+            }
+        )
 
     def test_engineer_creation(self, engineer):
         """Test engineer is created with default config."""
@@ -185,28 +189,32 @@ class TestFeatureSanitization:
 
     def test_sanitize_handles_infinity(self, engineer):
         """Test sanitization handles infinity values."""
-        df = pd.DataFrame({
-            "open": [100, 101, 102],
-            "high": [102, 103, 104],
-            "low": [99, 100, 101],
-            "close": [101, 102, 103],
-            "volume": [1000, 1100, 1200],
-            "feature": [1.0, np.inf, 2.0],
-        })
+        df = pd.DataFrame(
+            {
+                "open": [100, 101, 102],
+                "high": [102, 103, 104],
+                "low": [99, 100, 101],
+                "close": [101, 102, 103],
+                "volume": [1000, 1100, 1200],
+                "feature": [1.0, np.inf, 2.0],
+            }
+        )
         sanitized = engineer._sanitize_features(df)
         # Infinity should be replaced with NaN
         assert not np.any(np.isinf(sanitized["feature"]))
 
     def test_sanitize_handles_negative_infinity(self, engineer):
         """Test sanitization handles negative infinity."""
-        df = pd.DataFrame({
-            "open": [100, 101, 102],
-            "high": [102, 103, 104],
-            "low": [99, 100, 101],
-            "close": [101, 102, 103],
-            "volume": [1000, 1100, 1200],
-            "feature": [1.0, -np.inf, 2.0],
-        })
+        df = pd.DataFrame(
+            {
+                "open": [100, 101, 102],
+                "high": [102, 103, 104],
+                "low": [99, 100, 101],
+                "close": [101, 102, 103],
+                "volume": [1000, 1100, 1200],
+                "feature": [1.0, -np.inf, 2.0],
+            }
+        )
         sanitized = engineer._sanitize_features(df)
         assert not np.any(np.isinf(sanitized["feature"]))
 
@@ -231,13 +239,15 @@ class TestEdgeCases:
         """Test with constant prices."""
         engineer = FeatureEngineer()
         n = 200
-        df = pd.DataFrame({
-            "open": [100.0] * n,
-            "high": [100.0] * n,
-            "low": [100.0] * n,
-            "close": [100.0] * n,
-            "volume": [1000] * n,
-        })
+        df = pd.DataFrame(
+            {
+                "open": [100.0] * n,
+                "high": [100.0] * n,
+                "low": [100.0] * n,
+                "close": [100.0] * n,
+                "volume": [1000] * n,
+            }
+        )
         features = engineer.extract_features(df)
         # Should handle gracefully
         assert isinstance(features, pd.DataFrame)
@@ -251,13 +261,15 @@ class TestEdgeCases:
         returns = np.random.randn(n) * 0.1  # 10% daily moves
         close = 100 * np.exp(np.cumsum(returns))
 
-        df = pd.DataFrame({
-            "open": close * (1 + np.random.randn(n) * 0.02),
-            "high": close * (1 + np.abs(np.random.randn(n) * 0.05)),
-            "low": close * (1 - np.abs(np.random.randn(n) * 0.05)),
-            "close": close,
-            "volume": np.random.randint(1000, 10000, n),
-        })
+        df = pd.DataFrame(
+            {
+                "open": close * (1 + np.random.randn(n) * 0.02),
+                "high": close * (1 + np.abs(np.random.randn(n) * 0.05)),
+                "low": close * (1 - np.abs(np.random.randn(n) * 0.05)),
+                "close": close,
+                "volume": np.random.randint(1000, 10000, n),
+            }
+        )
         features = engineer.extract_features(df)
         # Should handle high volatility without overflow
         assert not features.isnull().any().any()
@@ -270,13 +282,16 @@ class TestEdgeCases:
         dates = pd.date_range("2024-01-01", periods=n, freq="h")
         close = 100 + np.cumsum(np.random.randn(n) * 0.5)
 
-        df = pd.DataFrame({
-            "open": close - 0.5,
-            "high": close + 1,
-            "low": close - 1,
-            "close": close,
-            "volume": np.random.randint(1000, 10000, n),
-        }, index=dates)
+        df = pd.DataFrame(
+            {
+                "open": close - 0.5,
+                "high": close + 1,
+                "low": close - 1,
+                "close": close,
+                "volume": np.random.randint(1000, 10000, n),
+            },
+            index=dates,
+        )
 
         features = engineer.extract_features(df)
         assert isinstance(features, pd.DataFrame)

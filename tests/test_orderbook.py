@@ -164,9 +164,7 @@ class TestOrderBookAnalyzer:
     def test_process_raw_orderbook(self, analyzer, sample_bids, sample_asks):
         """Test processing raw order book data."""
         snapshot = analyzer.process_raw_orderbook(
-            bids=sample_bids,
-            asks=sample_asks,
-            symbol="BTC/USDT"
+            bids=sample_bids, asks=sample_asks, symbol="BTC/USDT"
         )
 
         assert snapshot.symbol == "BTC/USDT"
@@ -298,7 +296,10 @@ class TestOrderBookAnalyzer:
         metrics = analyzer.calculate_liquidity_metrics(snapshot, trade_size=1.0)
 
         # Weighted bid should be <= best bid (fills deeper)
-        assert metrics.weighted_bid_price <= snapshot.best_bid or metrics.weighted_bid_price == snapshot.best_bid
+        assert (
+            metrics.weighted_bid_price <= snapshot.best_bid
+            or metrics.weighted_bid_price == snapshot.best_bid
+        )
         # Weighted ask should be >= best ask (fills deeper)
         assert metrics.weighted_ask_price >= snapshot.best_ask
 

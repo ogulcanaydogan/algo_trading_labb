@@ -80,13 +80,15 @@ class TestCalendarViewGenerator:
         for i in range(30):
             trade_date = base_date + timedelta(days=i)
             pnl = 50.0 if i % 3 != 0 else -30.0
-            trades.append({
-                "timestamp": trade_date.isoformat(),
-                "pnl": pnl,
-                "pnl_percent": pnl / 1000,  # Assuming $1000 base
-                "quantity": 1.0,
-                "entry_price": 100.0,
-            })
+            trades.append(
+                {
+                    "timestamp": trade_date.isoformat(),
+                    "pnl": pnl,
+                    "pnl_percent": pnl / 1000,  # Assuming $1000 base
+                    "quantity": 1.0,
+                    "entry_price": 100.0,
+                }
+            )
 
         return trades
 
@@ -381,7 +383,7 @@ class TestCalendarViewGenerator:
         """Test statistics calculation."""
         days = [
             DayPerformance(
-                date=f"2024-01-{15+i:02d}",
+                date=f"2024-01-{15 + i:02d}",
                 pnl=100 if i % 2 == 0 else -50,
                 pnl_percent=1.0 if i % 2 == 0 else -0.5,
                 trades=5,
@@ -438,16 +440,37 @@ class TestCalendarViewGenerator:
         """Test streak calculation with neutral (zero pnl) days."""
         days = [
             DayPerformance(
-                date="2024-01-01", pnl=100, pnl_percent=1.0,
-                trades=1, wins=1, losses=0, best_trade=100, worst_trade=0, volume=1000,
+                date="2024-01-01",
+                pnl=100,
+                pnl_percent=1.0,
+                trades=1,
+                wins=1,
+                losses=0,
+                best_trade=100,
+                worst_trade=0,
+                volume=1000,
             ),
             DayPerformance(
-                date="2024-01-02", pnl=0, pnl_percent=0,  # Neutral
-                trades=0, wins=0, losses=0, best_trade=0, worst_trade=0, volume=0,
+                date="2024-01-02",
+                pnl=0,
+                pnl_percent=0,  # Neutral
+                trades=0,
+                wins=0,
+                losses=0,
+                best_trade=0,
+                worst_trade=0,
+                volume=0,
             ),
             DayPerformance(
-                date="2024-01-03", pnl=100, pnl_percent=1.0,
-                trades=1, wins=1, losses=0, best_trade=100, worst_trade=0, volume=1000,
+                date="2024-01-03",
+                pnl=100,
+                pnl_percent=1.0,
+                trades=1,
+                wins=1,
+                losses=0,
+                best_trade=100,
+                worst_trade=0,
+                volume=1000,
             ),
         ]
 

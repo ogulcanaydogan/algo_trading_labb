@@ -16,6 +16,7 @@ router = APIRouter(prefix="/api/portfolio", tags=["portfolio"])
 portfolio_manager: Optional[PortfolioManager] = None
 signal_aggregator: Optional[MultiAssetSignalAggregator] = None
 
+
 def init_portfolio(config_path: str):
     """Initialize portfolio manager from config file."""
     global portfolio_manager, signal_aggregator
@@ -23,46 +24,48 @@ def init_portfolio(config_path: str):
     portfolio_manager = PortfolioManager(portfolio)
     signal_aggregator = MultiAssetSignalAggregator()
 
+
 @router.get("/summary")
 async def get_portfolio_summary():
     """Get current portfolio summary."""
     if not portfolio_manager:
         raise HTTPException(status_code=503, detail="Portfolio not initialized")
-    
+
     return portfolio_manager.get_portfolio_summary()
+
 
 @router.get("/allocations")
 async def get_allocations():
     """Get current asset allocations."""
     if not portfolio_manager:
         raise HTTPException(status_code=503, detail="Portfolio not initialized")
-    
+
     target = {a.symbol: a.allocation_pct for a in portfolio_manager.portfolio.assets}
     current = portfolio_manager.state.allocation_pcts
-    
+
     return {
         "timestamp": datetime.utcnow().isoformat(),
         "target_allocations": target,
         "current_allocations": current,
         "drifts": {
-            symbol: current.get(symbol, 0) - target.get(symbol, 0)
-            for symbol in target.keys()
+            symbol: current.get(symbol, 0) - target.get(symbol, 0) for symbol in target.keys()
         },
     }
+
 
 @router.get("/rebalancing-status")
 async def get_rebalancing_status():
     """Check if portfolio needs rebalancing."""
     if not portfolio_manager:
         raise HTTPException(status_code=503, detail="Portfolio not initialized")
-    
+
     needs_rebalance, assets = portfolio_manager.needs_rebalancing()
-    
+
     if needs_rebalance:
         trades = portfolio_manager.calculate_rebalancing_trades()
     else:
         trades = {}
-    
+
     return {
         "needs_rebalancing": needs_rebalance,
         "reason": f"Strategy: {portfolio_manager.portfolio.rebalance_strategy.value}",
@@ -71,34 +74,36 @@ async def get_rebalancing_status():
         "timestamp": datetime.utcnow().isoformat(),
     }
 
+
 @router.post("/rebalance")
 async def rebalance_portfolio():
     """Trigger portfolio rebalancing."""
     if not portfolio_manager:
         raise HTTPException(status_code=503, detail="Portfolio not initialized")
-    
+
     trades = portfolio_manager.calculate_rebalancing_trades()
     portfolio_manager.record_rebalancing(trades)
-    
+
     return {
         "status": "rebalancing_initiated",
         "trades": trades,
         "timestamp": datetime.utcnow().isoformat(),
     }
 
+
 @router.get("/positions")
 async def get_positions(symbol: Optional[str] = None):
     """Get current positions."""
     if not portfolio_manager:
         raise HTTPException(status_code=503, detail="Portfolio not initialized")
-    
+
     positions = portfolio_manager.state.positions
-    
+
     if symbol:
         if symbol not in positions:
             raise HTTPException(status_code=404, detail=f"Position {symbol} not found")
         positions = {symbol: positions[symbol]}
-    
+
     return {
         "positions": {
             sym: {
@@ -114,35 +119,44 @@ async def get_positions(symbol: Optional[str] = None):
         "timestamp": datetime.utcnow().isoformat(),
     }
 
+
 @router.get("/diversification")
 async def get_diversification():
     """Get portfolio diversification metrics."""
     if not portfolio_manager:
         raise HTTPException(status_code=503, detail="Portfolio not initialized")
-    
+
     hhi = portfolio_manager.get_portfolio_diversification()
-    
+
     return {
         "herfindahl_hirschman_index": hhi,
-        "diversification_level": "excellent" if hhi < 1500 else "good" if hhi < 2500 else "fair" if hhi < 5000 else "poor",
+        "diversification_level": "excellent"
+        if hhi < 1500
+        else "good"
+        if hhi < 2500
+        else "fair"
+        if hhi < 5000
+        else "poor",
         "target_hhi": portfolio_manager.portfolio.diversification_target,
         "timestamp": datetime.utcnow().isoformat(),
     }
+
 
 @router.get("/signals")
 async def get_portfolio_signals():
     """Get portfolio-level signals and sentiment."""
     if not signal_aggregator:
         raise HTTPException(status_code=503, detail="Signal aggregator not initialized")
-    
+
     return signal_aggregator.get_signals_summary()
+
 
 @router.get("/assets")
 async def list_assets():
     """List all assets in portfolio."""
     if not portfolio_manager:
         raise HTTPException(status_code=503, detail="Portfolio not initialized")
-    
+
     return {
         "assets": [
             {
@@ -158,16 +172,17 @@ async def list_assets():
         "total_assets": len(portfolio_manager.portfolio.assets),
     }
 
+
 @router.get("/performance")
 async def get_performance(period_days: int = Query(30, ge=1, le=365)):
     """Get portfolio performance metrics."""
     if not portfolio_manager:
         raise HTTPException(status_code=503, detail="Portfolio not initialized")
-    
+
     state = portfolio_manager.state
     total_pnl = state.total_unrealized_pnl
     total_pnl_pct = (total_pnl / portfolio_manager.portfolio.total_capital) * 100
-    
+
     return {
         "period_days": period_days,
         "total_return_pct": total_pnl_pct,
@@ -178,14 +193,15 @@ async def get_performance(period_days: int = Query(30, ge=1, le=365)):
         "timestamp": datetime.utcnow().isoformat(),
     }
 
+
 @router.post("/update-prices")
 async def update_prices(prices: Dict[str, float]):
     """Update current market prices for all positions."""
     if not portfolio_manager:
         raise HTTPException(status_code=503, detail="Portfolio not initialized")
-    
+
     portfolio_manager.update_prices(prices)
-    
+
     return {
         "status": "prices_updated",
         "count": len(prices),

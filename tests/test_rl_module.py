@@ -22,8 +22,7 @@ PYTHON_314_PLUS = sys.version_info >= (3, 14)
 pytestmark = [
     pytest.mark.pytorch,
     pytest.mark.skipif(
-        PYTHON_314_PLUS,
-        reason="PyTorch MPS backend segfaults on Python 3.14+ (known issue)"
+        PYTHON_314_PLUS, reason="PyTorch MPS backend segfaults on Python 3.14+ (known issue)"
     ),
 ]
 
@@ -58,13 +57,15 @@ class TestTradingEnvironment:
         returns = np.random.randn(n_rows) * 0.01
         prices = base_price * np.exp(np.cumsum(returns))
 
-        data = pd.DataFrame({
-            "open": prices * (1 + np.random.randn(n_rows) * 0.001),
-            "high": prices * (1 + np.abs(np.random.randn(n_rows)) * 0.005),
-            "low": prices * (1 - np.abs(np.random.randn(n_rows)) * 0.005),
-            "close": prices,
-            "volume": np.random.randint(1000, 10000, n_rows),
-        })
+        data = pd.DataFrame(
+            {
+                "open": prices * (1 + np.random.randn(n_rows) * 0.001),
+                "high": prices * (1 + np.abs(np.random.randn(n_rows)) * 0.005),
+                "low": prices * (1 - np.abs(np.random.randn(n_rows)) * 0.005),
+                "close": prices,
+                "volume": np.random.randint(1000, 10000, n_rows),
+            }
+        )
 
         data.index = pd.date_range(start="2024-01-01", periods=n_rows, freq="1min")
         return data
@@ -188,6 +189,7 @@ class TestPolicyNetwork:
         """Test forward pass."""
         try:
             import torch
+
             state = torch.randn(1, 100)
             action_logits, value, hidden = policy.forward(state)
 
@@ -210,10 +212,7 @@ class TestPolicyNetwork:
         state = np.random.randn(100).astype(np.float32)
 
         # Get multiple deterministic actions - should be the same
-        actions = [
-            policy.get_action(state, deterministic=True)[0]
-            for _ in range(5)
-        ]
+        actions = [policy.get_action(state, deterministic=True)[0] for _ in range(5)]
 
         assert all(a == actions[0] for a in actions)
 
@@ -229,13 +228,15 @@ class TestPPOTrainer:
         n_rows = 200
 
         prices = 100 * np.exp(np.cumsum(np.random.randn(n_rows) * 0.01))
-        data = pd.DataFrame({
-            "open": prices,
-            "high": prices * 1.01,
-            "low": prices * 0.99,
-            "close": prices,
-            "volume": np.random.randint(1000, 10000, n_rows),
-        })
+        data = pd.DataFrame(
+            {
+                "open": prices,
+                "high": prices * 1.01,
+                "low": prices * 0.99,
+                "close": prices,
+                "volume": np.random.randint(1000, 10000, n_rows),
+            }
+        )
 
         env = TradingEnvironment(
             data=data,
@@ -301,13 +302,15 @@ class TestA2CTrainer:
         n_rows = 200
 
         prices = 100 * np.exp(np.cumsum(np.random.randn(n_rows) * 0.01))
-        data = pd.DataFrame({
-            "open": prices,
-            "high": prices * 1.01,
-            "low": prices * 0.99,
-            "close": prices,
-            "volume": np.random.randint(1000, 10000, n_rows),
-        })
+        data = pd.DataFrame(
+            {
+                "open": prices,
+                "high": prices * 1.01,
+                "low": prices * 0.99,
+                "close": prices,
+                "volume": np.random.randint(1000, 10000, n_rows),
+            }
+        )
 
         env = TradingEnvironment(
             data=data,
@@ -364,9 +367,7 @@ class TestHybridMLRLAgent:
         """Create hybrid agent."""
         # Mock ML model
         mock_ml = MagicMock()
-        mock_ml.predict_proba = MagicMock(
-            return_value=np.array([[0.2, 0.3, 0.5]])
-        )
+        mock_ml.predict_proba = MagicMock(return_value=np.array([[0.2, 0.3, 0.5]]))
 
         config = HybridConfig(
             ml_weight=0.6,
@@ -661,13 +662,15 @@ class TestRLIntegration:
         n_rows = 200
 
         prices = 100 * np.exp(np.cumsum(np.random.randn(n_rows) * 0.01))
-        data = pd.DataFrame({
-            "open": prices,
-            "high": prices * 1.01,
-            "low": prices * 0.99,
-            "close": prices,
-            "volume": np.random.randint(1000, 10000, n_rows),
-        })
+        data = pd.DataFrame(
+            {
+                "open": prices,
+                "high": prices * 1.01,
+                "low": prices * 0.99,
+                "close": prices,
+                "volume": np.random.randint(1000, 10000, n_rows),
+            }
+        )
 
         # Create environment
         env = TradingEnvironment(
@@ -690,9 +693,7 @@ class TestRLIntegration:
 
         # Create hybrid agent with the policy
         mock_ml = MagicMock()
-        mock_ml.predict_proba = MagicMock(
-            return_value=np.array([[0.3, 0.4, 0.3]])
-        )
+        mock_ml.predict_proba = MagicMock(return_value=np.array([[0.3, 0.4, 0.3]]))
 
         agent = HybridMLRLAgent(
             ml_model=mock_ml,

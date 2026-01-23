@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class UncertaintyEstimate:
     """Uncertainty estimate for a prediction."""
+
     prediction: float
     lower_bound: float
     upper_bound: float
@@ -55,6 +56,7 @@ class UncertaintyEstimate:
 @dataclass
 class CalibrationResult:
     """Model calibration metrics."""
+
     expected_confidence: List[float]
     observed_accuracy: List[float]
     calibration_error: float  # ECE
@@ -75,6 +77,7 @@ class CalibrationResult:
 @dataclass
 class UncertaintyConfig:
     """Configuration for uncertainty estimation."""
+
     # Confidence level for intervals
     confidence_level: float = 0.95
 
@@ -152,10 +155,7 @@ class UncertaintyQuantifier:
         entropy = self._calculate_entropy(predictions)
 
         # Check reliability
-        is_reliable = (
-            std_pred < 0.3 and
-            entropy < self.config.max_entropy_threshold
-        )
+        is_reliable = std_pred < 0.3 and entropy < self.config.max_entropy_threshold
 
         return UncertaintyEstimate(
             prediction=float(mean_pred),
@@ -396,8 +396,7 @@ class UncertaintyQuantifier:
 
         # For binary classification probabilities
         entropy = -np.mean(
-            predictions * np.log(predictions) +
-            (1 - predictions) * np.log(1 - predictions)
+            predictions * np.log(predictions) + (1 - predictions) * np.log(1 - predictions)
         )
 
         # Normalize to 0-1 range
@@ -561,7 +560,7 @@ class EnsembleUncertainty:
 
 
 def create_uncertainty_quantifier(
-    config: Optional[UncertaintyConfig] = None
+    config: Optional[UncertaintyConfig] = None,
 ) -> UncertaintyQuantifier:
     """Factory function to create uncertainty quantifier."""
     return UncertaintyQuantifier(config=config)

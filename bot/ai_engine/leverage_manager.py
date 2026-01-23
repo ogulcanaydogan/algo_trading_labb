@@ -35,6 +35,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class LeverageDecision:
     """Result of leverage optimization."""
+
     recommended_leverage: float
     direction: str  # "long", "short", "none"
     position_size_pct: float  # % of capital to use
@@ -47,6 +48,7 @@ class LeverageDecision:
 @dataclass
 class MarginStatus:
     """Current margin account status."""
+
     total_margin: float
     used_margin: float
     available_margin: float
@@ -92,7 +94,11 @@ class AILeverageManager:
         # Performance tracking
         self.leverage_history: List[Dict] = []
         self.performance_by_leverage: Dict[float, List[float]] = {
-            1.0: [], 2.0: [], 3.0: [], 5.0: [], 10.0: []
+            1.0: [],
+            2.0: [],
+            3.0: [],
+            5.0: [],
+            10.0: [],
         }
 
     def calculate_optimal_leverage(
@@ -121,28 +127,28 @@ class AILeverageManager:
 
         # Create state for RL agent
         risk_info = {
-            'drawdown': pos.get('drawdown', 0),
-            'consecutive_losses': pos.get('consecutive_losses', 0),
-            'win_rate_recent': pos.get('win_rate_recent', 0.5),
+            "drawdown": pos.get("drawdown", 0),
+            "consecutive_losses": pos.get("consecutive_losses", 0),
+            "win_rate_recent": pos.get("win_rate_recent", 0.5),
         }
 
         state = LeverageState.from_market_data(
             indicators=indicators,
             position_info={
-                'position': pos.get('position', 0),
-                'leverage': pos.get('leverage', 1),
-                'pnl': pos.get('pnl', 0),
-                'duration': pos.get('duration', 0),
-                'unrealized_pnl': pos.get('unrealized_pnl', 0),
-                'margin_ratio': pos.get('margin_ratio', 0),
+                "position": pos.get("position", 0),
+                "leverage": pos.get("leverage", 1),
+                "pnl": pos.get("pnl", 0),
+                "duration": pos.get("duration", 0),
+                "unrealized_pnl": pos.get("unrealized_pnl", 0),
+                "margin_ratio": pos.get("margin_ratio", 0),
             },
             risk_info=risk_info,
         )
 
         # Get RL agent analysis
         analysis = self.rl_agent.get_action_analysis(state)
-        best_action = analysis['best_action']
-        confidence = analysis['confidence']
+        best_action = analysis["best_action"]
+        confidence = analysis["confidence"]
 
         # Determine direction
         if LeverageAction.is_long(best_action):
@@ -162,41 +168,43 @@ class AILeverageManager:
         # Adjust leverage based on multiple factors
         adjusted_leverage = self._adjust_leverage(
             base_leverage=rl_leverage,
-            volatility=indicators.get('volatility_ratio', 1),
-            trend_strength=indicators.get('trend_strength', 0.5),
-            adx=indicators.get('adx', 25),
+            volatility=indicators.get("volatility_ratio", 1),
+            trend_strength=indicators.get("trend_strength", 0.5),
+            adx=indicators.get("adx", 25),
             confidence=confidence,
             regime=regime,
-            margin_ratio=pos.get('margin_ratio', 0),
+            margin_ratio=pos.get("margin_ratio", 0),
         )
 
         if adjusted_leverage < rl_leverage:
-            warnings.append(f"Leverage reduced from {rl_leverage}x to {adjusted_leverage}x due to market conditions")
+            warnings.append(
+                f"Leverage reduced from {rl_leverage}x to {adjusted_leverage}x due to market conditions"
+            )
 
         # Calculate position size using Kelly criterion
         position_size = self._calculate_position_size(
             leverage=adjusted_leverage,
             confidence=confidence,
-            volatility=indicators.get('volatility_ratio', 1),
+            volatility=indicators.get("volatility_ratio", 1),
             risk_budget=risk_budget,
-            win_rate=risk_info.get('win_rate_recent', 0.5),
+            win_rate=risk_info.get("win_rate_recent", 0.5),
         )
 
         # Risk metrics
         risk_metrics = self._calculate_risk_metrics(
             leverage=adjusted_leverage,
             position_size=position_size,
-            volatility=indicators.get('volatility_ratio', 1),
+            volatility=indicators.get("volatility_ratio", 1),
             account_balance=account_balance,
             direction=direction,
         )
 
         # Additional warnings
-        if risk_metrics['max_loss_pct'] > 5:
+        if risk_metrics["max_loss_pct"] > 5:
             warnings.append(f"Max potential loss: {risk_metrics['max_loss_pct']:.1f}%")
-        if adjusted_leverage >= 5 and indicators.get('volatility_ratio', 1) > 1.5:
+        if adjusted_leverage >= 5 and indicators.get("volatility_ratio", 1) > 1.5:
             warnings.append("High leverage in volatile market - elevated risk")
-        if direction == "short" and indicators.get('trend_direction', 0) > 0.5:
+        if direction == "short" and indicators.get("trend_direction", 0) > 0.5:
             warnings.append("Shorting against uptrend - contrarian position")
 
         # Build reasoning
@@ -259,18 +267,18 @@ class AILeverageManager:
 
         # Regime adjustment
         regime_multipliers = {
-            'strong_bull': 1.1,
-            'bull': 1.0,
-            'neutral': 0.9,
-            'bear': 0.9,
-            'strong_bear': 0.8,  # More conservative in strong bear
-            'volatile': 0.7,
+            "strong_bull": 1.1,
+            "bull": 1.0,
+            "neutral": 0.9,
+            "bear": 0.9,
+            "strong_bear": 0.8,  # More conservative in strong bear
+            "volatile": 0.7,
         }
         leverage *= regime_multipliers.get(regime, 1.0)
 
         # Margin safety
         if margin_ratio > 0.6:
-            leverage *= (1 - margin_ratio)
+            leverage *= 1 - margin_ratio
 
         # Clamp to limits
         leverage = max(self.min_leverage, min(self.max_leverage, leverage))
@@ -324,7 +332,7 @@ class AILeverageManager:
         # Final clamps
         position_size = max(
             0.02,  # Min 2%
-            min(self.max_position_size, risk_capped)
+            min(self.max_position_size, risk_capped),
         )
 
         return round(position_size, 4)
@@ -354,14 +362,14 @@ class AILeverageManager:
         liquidation_distance = (1 - margin_per_leverage) * 100  # As percentage
 
         return {
-            'position_value': round(position_value, 2),
-            'daily_volatility_pct': round(daily_vol * 100, 2),
-            'max_adverse_move_pct': round(max_adverse_move, 2),
-            'max_loss_pct': round(max_loss_pct, 2),
-            'max_loss_usd': round(account_balance * max_loss_pct / 100, 2),
-            'liquidation_distance_pct': round(liquidation_distance, 2),
-            'effective_leverage': round(leverage * position_size, 2),
-            'risk_reward_ratio': round(1 / max(max_loss_pct, 0.1), 2),
+            "position_value": round(position_value, 2),
+            "daily_volatility_pct": round(daily_vol * 100, 2),
+            "max_adverse_move_pct": round(max_adverse_move, 2),
+            "max_loss_pct": round(max_loss_pct, 2),
+            "max_loss_usd": round(account_balance * max_loss_pct / 100, 2),
+            "liquidation_distance_pct": round(liquidation_distance, 2),
+            "effective_leverage": round(leverage * position_size, 2),
+            "risk_reward_ratio": round(1 / max(max_loss_pct, 0.1), 2),
         }
 
     def _build_reasoning(
@@ -378,15 +386,15 @@ class AILeverageManager:
         # Direction reasoning
         if direction == "long":
             parts.append(f"LONG position recommended at {leverage}x leverage.")
-            if indicators.get('trend_direction', 0) > 0.3:
+            if indicators.get("trend_direction", 0) > 0.3:
                 parts.append("Bullish trend detected.")
-            if indicators.get('rsi', 50) < 40:
+            if indicators.get("rsi", 50) < 40:
                 parts.append("RSI indicates oversold conditions.")
         elif direction == "short":
             parts.append(f"SHORT position recommended at {leverage}x leverage.")
-            if indicators.get('trend_direction', 0) < -0.3:
+            if indicators.get("trend_direction", 0) < -0.3:
                 parts.append("Bearish trend detected.")
-            if indicators.get('rsi', 50) > 60:
+            if indicators.get("rsi", 50) > 60:
                 parts.append("RSI indicates overbought conditions.")
         elif direction == "close":
             parts.append("Close current position recommended.")
@@ -402,7 +410,7 @@ class AILeverageManager:
         parts.append(f"Confidence: {conf_level} ({confidence:.0%}).")
 
         # Market conditions
-        vol = indicators.get('volatility_ratio', 1)
+        vol = indicators.get("volatility_ratio", 1)
         if vol > 1.5:
             parts.append("Note: High volatility environment.")
         elif vol < 0.7:
@@ -418,29 +426,33 @@ class AILeverageManager:
         """Calculate current margin status."""
         pos = position_info or {}
 
-        total_margin = account_info.get('total_margin', 0)
-        used_margin = account_info.get('used_margin', 0)
+        total_margin = account_info.get("total_margin", 0)
+        used_margin = account_info.get("used_margin", 0)
         available_margin = total_margin - used_margin
         margin_ratio = used_margin / total_margin if total_margin > 0 else 0
 
         # Calculate liquidation price (simplified)
-        entry_price = pos.get('entry_price')
-        leverage = pos.get('leverage', 1)
-        position_side = pos.get('side', 'long')
+        entry_price = pos.get("entry_price")
+        leverage = pos.get("leverage", 1)
+        position_side = pos.get("side", "long")
 
         liquidation_price = None
         distance_to_liquidation = 100.0
 
         if entry_price and leverage > 1:
             maintenance_margin = 0.005  # 0.5% maintenance margin
-            if position_side == 'long':
+            if position_side == "long":
                 liquidation_price = entry_price * (1 - (1 / leverage) + maintenance_margin)
-                current_price = pos.get('current_price', entry_price)
-                distance_to_liquidation = ((current_price - liquidation_price) / current_price) * 100
+                current_price = pos.get("current_price", entry_price)
+                distance_to_liquidation = (
+                    (current_price - liquidation_price) / current_price
+                ) * 100
             else:
                 liquidation_price = entry_price * (1 + (1 / leverage) - maintenance_margin)
-                current_price = pos.get('current_price', entry_price)
-                distance_to_liquidation = ((liquidation_price - current_price) / current_price) * 100
+                current_price = pos.get("current_price", entry_price)
+                distance_to_liquidation = (
+                    (liquidation_price - current_price) / current_price
+                ) * 100
 
         return MarginStatus(
             total_margin=total_margin,
@@ -449,7 +461,7 @@ class AILeverageManager:
             margin_ratio=margin_ratio,
             liquidation_price=liquidation_price,
             distance_to_liquidation=max(0, distance_to_liquidation),
-            unrealized_pnl=pos.get('unrealized_pnl', 0),
+            unrealized_pnl=pos.get("unrealized_pnl", 0),
         )
 
     def should_reduce_leverage(
@@ -489,14 +501,16 @@ class AILeverageManager:
         market_conditions: Dict[str, float],
     ):
         """Record trade result for learning."""
-        self.leverage_history.append({
-            'timestamp': datetime.now(timezone.utc).isoformat(),
-            'leverage': leverage,
-            'pnl_pct': pnl_pct,
-            'direction': direction,
-            'hold_duration': hold_duration,
-            'market_conditions': market_conditions,
-        })
+        self.leverage_history.append(
+            {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "leverage": leverage,
+                "pnl_pct": pnl_pct,
+                "direction": direction,
+                "hold_duration": hold_duration,
+                "market_conditions": market_conditions,
+            }
+        )
 
         if leverage in self.performance_by_leverage:
             self.performance_by_leverage[leverage].append(pnl_pct)
@@ -504,9 +518,9 @@ class AILeverageManager:
         # Save to database
         try:
             self.db.record_optimization_result(
-                symbol=market_conditions.get('symbol', 'unknown'),
-                regime=market_conditions.get('regime', 'unknown'),
-                parameters={'leverage': leverage, 'direction': direction},
+                symbol=market_conditions.get("symbol", "unknown"),
+                regime=market_conditions.get("regime", "unknown"),
+                parameters={"leverage": leverage, "direction": direction},
                 score=pnl_pct,
             )
         except Exception as e:
@@ -519,30 +533,30 @@ class AILeverageManager:
         for leverage, pnls in self.performance_by_leverage.items():
             if pnls:
                 summary[f"{leverage}x"] = {
-                    'trades': len(pnls),
-                    'total_pnl': round(sum(pnls), 2),
-                    'avg_pnl': round(np.mean(pnls), 2),
-                    'win_rate': round(len([p for p in pnls if p > 0]) / len(pnls), 2),
-                    'best_trade': round(max(pnls), 2),
-                    'worst_trade': round(min(pnls), 2),
-                    'sharpe_approx': round(
+                    "trades": len(pnls),
+                    "total_pnl": round(sum(pnls), 2),
+                    "avg_pnl": round(np.mean(pnls), 2),
+                    "win_rate": round(len([p for p in pnls if p > 0]) / len(pnls), 2),
+                    "best_trade": round(max(pnls), 2),
+                    "worst_trade": round(min(pnls), 2),
+                    "sharpe_approx": round(
                         np.mean(pnls) / np.std(pnls) if np.std(pnls) > 0 else 0, 2
                     ),
                 }
 
         # Optimal leverage based on risk-adjusted returns
         best_leverage = None
-        best_sharpe = float('-inf')
+        best_sharpe = float("-inf")
         for lev_str, stats in summary.items():
-            if stats.get('sharpe_approx', 0) > best_sharpe and stats['trades'] >= 10:
-                best_sharpe = stats['sharpe_approx']
+            if stats.get("sharpe_approx", 0) > best_sharpe and stats["trades"] >= 10:
+                best_sharpe = stats["sharpe_approx"]
                 best_leverage = lev_str
 
         return {
-            'by_leverage': summary,
-            'optimal_leverage': best_leverage,
-            'total_trades': len(self.leverage_history),
-            'rl_agent_stats': self.rl_agent.get_stats(),
+            "by_leverage": summary,
+            "optimal_leverage": best_leverage,
+            "total_trades": len(self.leverage_history),
+            "rl_agent_stats": self.rl_agent.get_stats(),
         }
 
 

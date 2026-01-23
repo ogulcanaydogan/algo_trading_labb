@@ -23,6 +23,7 @@ try:
     import torch
     import torch.nn as nn
     import torch.optim as optim
+
     HAS_TORCH = True
 except ImportError:
     HAS_TORCH = False
@@ -34,6 +35,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TrainingConfig:
     """Configuration for PPO training."""
+
     # Learning parameters
     learning_rate: float = 3e-4
     gamma: float = 0.99  # Discount factor
@@ -60,6 +62,7 @@ class TrainingConfig:
 @dataclass
 class TrainingResults:
     """Results from training."""
+
     episode_rewards: List[float] = field(default_factory=list)
     episode_lengths: List[int] = field(default_factory=list)
     policy_losses: List[float] = field(default_factory=list)
@@ -164,11 +167,11 @@ class RolloutBuffer:
     def get(self) -> Tuple[np.ndarray, ...]:
         """Get all data from buffer."""
         data = (
-            self.states[:self.ptr],
-            self.actions[:self.ptr],
-            self.log_probs[:self.ptr],
-            self.advantages[:self.ptr],
-            self.returns[:self.ptr],
+            self.states[: self.ptr],
+            self.actions[: self.ptr],
+            self.log_probs[: self.ptr],
+            self.advantages[: self.ptr],
+            self.returns[: self.ptr],
         )
 
         # Normalize advantages
@@ -249,6 +252,7 @@ class PPOTrainer:
             TrainingResults with metrics
         """
         import time
+
         start_time = time.time()
 
         n_updates = n_updates or self.config.n_updates
@@ -395,11 +399,10 @@ class PPOTrainer:
                 # Policy loss (clipped PPO objective)
                 ratio = torch.exp(new_log_probs - batch_old_log_probs)
                 surr1 = ratio * batch_advantages
-                surr2 = torch.clamp(
-                    ratio,
-                    1 - self.config.clip_ratio,
-                    1 + self.config.clip_ratio
-                ) * batch_advantages
+                surr2 = (
+                    torch.clamp(ratio, 1 - self.config.clip_ratio, 1 + self.config.clip_ratio)
+                    * batch_advantages
+                )
                 policy_loss = -torch.min(surr1, surr2).mean()
 
                 # Value loss
@@ -410,18 +413,15 @@ class PPOTrainer:
 
                 # Total loss
                 loss = (
-                    policy_loss +
-                    self.config.value_loss_coef * value_loss +
-                    self.config.entropy_coef * entropy_loss
+                    policy_loss
+                    + self.config.value_loss_coef * value_loss
+                    + self.config.entropy_coef * entropy_loss
                 )
 
                 # Optimize
                 self.optimizer.zero_grad()
                 loss.backward()
-                nn.utils.clip_grad_norm_(
-                    self.policy.parameters(),
-                    self.config.max_grad_norm
-                )
+                nn.utils.clip_grad_norm_(self.policy.parameters(), self.config.max_grad_norm)
                 self.optimizer.step()
 
                 total_policy_loss += policy_loss.item()

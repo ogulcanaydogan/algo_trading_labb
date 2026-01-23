@@ -30,6 +30,7 @@ from .base import BaseStrategy, StrategyConfig, StrategySignal
 @dataclass
 class IchimokuConfig(StrategyConfig):
     """Configuration for Ichimoku strategy."""
+
     tenkan_period: int = 9
     kijun_period: int = 26
     senkou_b_period: int = 52
@@ -120,7 +121,10 @@ class IchimokuStrategy(BaseStrategy):
 
     def generate_signal(self, ohlcv: pd.DataFrame) -> StrategySignal:
         """Generate Ichimoku trading signal."""
-        if len(ohlcv) < self.ichimoku_config.senkou_b_period + self.ichimoku_config.displacement + 5:
+        if (
+            len(ohlcv)
+            < self.ichimoku_config.senkou_b_period + self.ichimoku_config.displacement + 5
+        ):
             return self._flat_signal("Insufficient data for Ichimoku")
 
         df = self.add_indicators(ohlcv)
@@ -134,7 +138,9 @@ class IchimokuStrategy(BaseStrategy):
         span_b = float(current["senkou_span_b"]) if not pd.isna(current["senkou_span_b"]) else close
         cloud_top = max(span_a, span_b)
         cloud_bottom = min(span_a, span_b)
-        cloud_thickness = float(current["cloud_thickness"]) if not pd.isna(current["cloud_thickness"]) else 0
+        cloud_thickness = (
+            float(current["cloud_thickness"]) if not pd.isna(current["cloud_thickness"]) else 0
+        )
 
         # Check for previous crossover
         prev = df.iloc[-2]

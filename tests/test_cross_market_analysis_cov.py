@@ -29,10 +29,7 @@ def test_detect_correlation_shift():
     analyzer = CrossMarketAnalyzer(rolling_window=5, min_correlation_period=10)
     # Early windows strongly positive correlation, only last few windows flip to strong negative
     r1 = _series([0.01 + 0.001 * i for i in range(60)])
-    r2 = _series(
-        [0.01 + 0.001 * i for i in range(55)]
-        + [-0.01 - 0.001 * i for i in range(5)]
-    )
+    r2 = _series([0.01 + 0.001 * i for i in range(55)] + [-0.01 - 0.001 * i for i in range(5)])
     analyzer.add_returns("BTC", r1, "crypto")
     analyzer.add_returns("GLD", r2, "commodity")
 

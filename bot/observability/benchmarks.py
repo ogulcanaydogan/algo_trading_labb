@@ -21,12 +21,13 @@ import threading
 
 logger = logging.getLogger(__name__)
 
-F = TypeVar('F', bound=Callable[..., Any])
+F = TypeVar("F", bound=Callable[..., Any])
 
 
 @dataclass
 class LatencyStats:
     """Latency statistics."""
+
     name: str
     count: int
     mean_ms: float
@@ -64,6 +65,7 @@ class LatencyStats:
 @dataclass
 class ThroughputStats:
     """Throughput statistics."""
+
     name: str
     total_operations: int
     duration_seconds: float
@@ -87,6 +89,7 @@ class ThroughputStats:
 @dataclass
 class BenchmarkResult:
     """Complete benchmark result."""
+
     name: str
     description: str
     latency: Optional[LatencyStats] = None
@@ -127,7 +130,7 @@ class LatencyTracker:
         with self._lock:
             self._samples.append(latency_ms)
             if len(self._samples) > self.max_samples:
-                self._samples = self._samples[-self.max_samples:]
+                self._samples = self._samples[-self.max_samples :]
 
     @contextmanager
     def measure(self):
@@ -232,17 +235,21 @@ class ThroughputTracker:
 
 def latency_benchmark(tracker: LatencyTracker):
     """Decorator to benchmark function latency."""
+
     def decorator(func: F) -> F:
         @wraps(func)
         def wrapper(*args, **kwargs):
             with tracker.measure():
                 return func(*args, **kwargs)
+
         return wrapper  # type: ignore
+
     return decorator
 
 
 def async_latency_benchmark(tracker: LatencyTracker):
     """Decorator to benchmark async function latency."""
+
     def decorator(func: F) -> F:
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -252,13 +259,16 @@ def async_latency_benchmark(tracker: LatencyTracker):
             finally:
                 latency_ms = (time.perf_counter() - start) * 1000
                 tracker.record(latency_ms)
+
         return wrapper  # type: ignore
+
     return decorator
 
 
 @dataclass
 class BenchmarkConfig:
     """Benchmark configuration."""
+
     warmup_iterations: int = 10
     benchmark_iterations: int = 100
     timeout_seconds: float = 60.0
@@ -296,12 +306,7 @@ class PerformanceBenchmark:
         return self._throughput_trackers[name]
 
     def run_latency_benchmark(
-        self,
-        name: str,
-        func: Callable,
-        config: Optional[BenchmarkConfig] = None,
-        *args,
-        **kwargs
+        self, name: str, func: Callable, config: Optional[BenchmarkConfig] = None, *args, **kwargs
     ) -> BenchmarkResult:
         """
         Run a latency benchmark on a function.
@@ -345,7 +350,7 @@ class PerformanceBenchmark:
                     "warmup_iterations": config.warmup_iterations,
                     "benchmark_iterations": config.benchmark_iterations,
                     "threshold_ms": config.latency_threshold_ms,
-                }
+                },
             )
 
         except Exception as e:
@@ -360,12 +365,7 @@ class PerformanceBenchmark:
         return result
 
     async def run_async_latency_benchmark(
-        self,
-        name: str,
-        func: Callable,
-        config: Optional[BenchmarkConfig] = None,
-        *args,
-        **kwargs
+        self, name: str, func: Callable, config: Optional[BenchmarkConfig] = None, *args, **kwargs
     ) -> BenchmarkResult:
         """Run a latency benchmark on an async function."""
         config = config or BenchmarkConfig()
@@ -400,7 +400,7 @@ class PerformanceBenchmark:
                 metadata={
                     "warmup_iterations": config.warmup_iterations,
                     "benchmark_iterations": config.benchmark_iterations,
-                }
+                },
             )
 
         except Exception as e:
@@ -415,12 +415,7 @@ class PerformanceBenchmark:
         return result
 
     def run_throughput_benchmark(
-        self,
-        name: str,
-        func: Callable,
-        duration_seconds: float = 10.0,
-        *args,
-        **kwargs
+        self, name: str, func: Callable, duration_seconds: float = 10.0, *args, **kwargs
     ) -> BenchmarkResult:
         """
         Run a throughput benchmark.
@@ -451,7 +446,7 @@ class PerformanceBenchmark:
                 description=f"Throughput benchmark: {func.__name__}",
                 throughput=stats,
                 passed=True,
-                metadata={"duration_seconds": duration_seconds}
+                metadata={"duration_seconds": duration_seconds},
             )
 
         except Exception as e:
@@ -471,7 +466,7 @@ class PerformanceBenchmark:
         implementations: Dict[str, Callable],
         config: Optional[BenchmarkConfig] = None,
         *args,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, BenchmarkResult]:
         """
         Compare multiple implementations.
@@ -536,9 +531,7 @@ class TradingSystemBenchmarks:
         self._thresholds.update(thresholds)
 
     def benchmark_order_processing(
-        self,
-        order_func: Callable,
-        sample_orders: List[Any]
+        self, order_func: Callable, sample_orders: List[Any]
     ) -> BenchmarkResult:
         """Benchmark order processing latency."""
         config = BenchmarkConfig(
@@ -549,7 +542,7 @@ class TradingSystemBenchmarks:
 
         tracker = LatencyTracker("order_processing")
 
-        for order in sample_orders[:config.warmup_iterations]:
+        for order in sample_orders[: config.warmup_iterations]:
             order_func(order)
 
         gc.collect()
@@ -569,16 +562,14 @@ class TradingSystemBenchmarks:
             metadata={
                 "threshold_ms": config.latency_threshold_ms,
                 "num_orders": len(sample_orders),
-            }
+            },
         )
 
         self.benchmark._results.append(result)
         return result
 
     def benchmark_signal_generation(
-        self,
-        signal_func: Callable,
-        market_data: Any
+        self, signal_func: Callable, market_data: Any
     ) -> BenchmarkResult:
         """Benchmark signal generation latency."""
         config = BenchmarkConfig(
@@ -594,11 +585,7 @@ class TradingSystemBenchmarks:
             market_data,
         )
 
-    def benchmark_risk_calculation(
-        self,
-        risk_func: Callable,
-        portfolio: Any
-    ) -> BenchmarkResult:
+    def benchmark_risk_calculation(self, risk_func: Callable, portfolio: Any) -> BenchmarkResult:
         """Benchmark risk calculation latency."""
         config = BenchmarkConfig(
             warmup_iterations=5,
@@ -614,10 +601,7 @@ class TradingSystemBenchmarks:
         )
 
     def benchmark_data_pipeline(
-        self,
-        process_func: Callable,
-        data_batch: Any,
-        duration_seconds: float = 10.0
+        self, process_func: Callable, data_batch: Any, duration_seconds: float = 10.0
     ) -> BenchmarkResult:
         """Benchmark data pipeline throughput."""
         return self.benchmark.run_throughput_benchmark(
@@ -633,7 +617,7 @@ class TradingSystemBenchmarks:
         signal_func: Optional[Callable] = None,
         risk_func: Optional[Callable] = None,
         data_func: Optional[Callable] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, BenchmarkResult]:
         """Run full benchmark suite."""
         results = {}
@@ -654,9 +638,7 @@ class TradingSystemBenchmarks:
             )
 
         if data_func and "data_batch" in kwargs:
-            results["data_pipeline"] = self.benchmark_data_pipeline(
-                data_func, kwargs["data_batch"]
-            )
+            results["data_pipeline"] = self.benchmark_data_pipeline(data_func, kwargs["data_batch"])
 
         return results
 
@@ -680,14 +662,15 @@ class TradingSystemBenchmarks:
 
         if latency_results:
             summary["avg_p95_latency_ms"] = round(
-                statistics.mean(r.latency.p95_ms for r in latency_results if r.latency),
-                3
+                statistics.mean(r.latency.p95_ms for r in latency_results if r.latency), 3
             )
 
         if throughput_results:
             summary["avg_throughput_ops"] = round(
-                statistics.mean(r.throughput.ops_per_second for r in throughput_results if r.throughput),
-                2
+                statistics.mean(
+                    r.throughput.ops_per_second for r in throughput_results if r.throughput
+                ),
+                2,
             )
 
         return {
@@ -707,7 +690,7 @@ def get_benchmark() -> PerformanceBenchmark:
 
 
 def create_trading_benchmarks(
-    benchmark: Optional[PerformanceBenchmark] = None
+    benchmark: Optional[PerformanceBenchmark] = None,
 ) -> TradingSystemBenchmarks:
     """Factory function to create trading system benchmarks."""
     return TradingSystemBenchmarks(benchmark or _benchmark)

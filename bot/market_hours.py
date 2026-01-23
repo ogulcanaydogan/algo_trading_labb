@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 class MarketType(Enum):
     """Types of markets."""
+
     CRYPTO = "crypto"
     FOREX = "forex"
     STOCK = "stock"
@@ -32,6 +33,7 @@ class MarketType(Enum):
 @dataclass
 class TradingHours:
     """Trading hours configuration for a market."""
+
     market_type: MarketType
     open_time: Optional[time] = None
     close_time: Optional[time] = None
@@ -53,7 +55,6 @@ MARKET_HOURS: Dict[str, TradingHours] = {
         market_type=MarketType.CRYPTO,
         is_24_7=True,
     ),
-
     # Forex - 24/5 (Sunday 5pm - Friday 5pm ET)
     "forex": TradingHours(
         market_type=MarketType.FOREX,
@@ -62,7 +63,6 @@ MARKET_HOURS: Dict[str, TradingHours] = {
         timezone="America/New_York",
         open_days=[0, 1, 2, 3, 4],  # Continuous Mon-Fri
     ),
-
     # US Stocks (NYSE/NASDAQ)
     "stock_us": TradingHours(
         market_type=MarketType.STOCK,
@@ -73,7 +73,6 @@ MARKET_HOURS: Dict[str, TradingHours] = {
         pre_market_start=time(4, 0),
         after_hours_end=time(20, 0),
     ),
-
     # Commodities (CME/NYMEX)
     "commodity_us": TradingHours(
         market_type=MarketType.COMMODITY,
@@ -82,7 +81,6 @@ MARKET_HOURS: Dict[str, TradingHours] = {
         timezone="America/New_York",
         open_days=[0, 1, 2, 3, 4],
     ),
-
     # European Stocks (LSE)
     "stock_uk": TradingHours(
         market_type=MarketType.STOCK,
@@ -91,7 +89,6 @@ MARKET_HOURS: Dict[str, TradingHours] = {
         timezone="Europe/London",
         open_days=[0, 1, 2, 3, 4],
     ),
-
     # Asian Stocks (Tokyo)
     "stock_japan": TradingHours(
         market_type=MarketType.STOCK,

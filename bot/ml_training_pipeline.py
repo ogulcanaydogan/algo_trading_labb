@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 
 class ModelType(Enum):
     """Supported model types."""
+
     XGBOOST = "xgboost"
     LIGHTGBM = "lightgbm"
     RANDOM_FOREST = "random_forest"
@@ -43,15 +44,17 @@ class ModelType(Enum):
 
 class PredictionTarget(Enum):
     """What the model predicts."""
-    DIRECTION = "direction"      # Up/Down/Flat
-    RETURN = "return"            # Continuous return
-    VOLATILITY = "volatility"    # Future volatility
-    REGIME = "regime"            # Market regime
+
+    DIRECTION = "direction"  # Up/Down/Flat
+    RETURN = "return"  # Continuous return
+    VOLATILITY = "volatility"  # Future volatility
+    REGIME = "regime"  # Market regime
 
 
 @dataclass
 class TrainingConfig:
     """Configuration for model training."""
+
     model_type: ModelType = ModelType.XGBOOST
     target: PredictionTarget = PredictionTarget.DIRECTION
 
@@ -90,6 +93,7 @@ class TrainingConfig:
 @dataclass
 class FeatureSet:
     """Container for feature data."""
+
     X: np.ndarray
     y: np.ndarray
     feature_names: List[str]
@@ -100,6 +104,7 @@ class FeatureSet:
 @dataclass
 class TrainingResult:
     """Results from model training."""
+
     model_id: str
     model_type: ModelType
     target: PredictionTarget
@@ -128,12 +133,10 @@ class TrainingResult:
             "train_metrics": self.train_metrics,
             "val_metrics": self.val_metrics,
             "test_metrics": self.test_metrics,
-            "feature_importance": dict(sorted(
-                self.feature_importance.items(),
-                key=lambda x: x[1],
-                reverse=True
-            )[:20]),
-            "model_path": self.model_path
+            "feature_importance": dict(
+                sorted(self.feature_importance.items(), key=lambda x: x[1], reverse=True)[:20]
+            ),
+            "model_path": self.model_path,
         }
 
 
@@ -157,7 +160,7 @@ class FeatureEngineer:
         self,
         price_data: pd.DataFrame,
         news_features: Optional[pd.DataFrame] = None,
-        regime_data: Optional[pd.DataFrame] = None
+        regime_data: Optional[pd.DataFrame] = None,
     ) -> FeatureSet:
         """
         Create feature set from raw data.
@@ -210,80 +213,82 @@ class FeatureEngineer:
             metadata={
                 "n_samples": len(X),
                 "n_features": X.shape[1],
-                "target_distribution": dict(pd.Series(y).value_counts())
-            }
+                "target_distribution": dict(pd.Series(y).value_counts()),
+            },
         )
 
     def _create_technical_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """Create technical indicator features."""
         features = pd.DataFrame(index=df.index)
 
-        close = df['close']
-        high = df['high']
-        low = df['low']
-        volume = df['volume'] if 'volume' in df.columns else pd.Series(1, index=df.index)
+        close = df["close"]
+        high = df["high"]
+        low = df["low"]
+        volume = df["volume"] if "volume" in df.columns else pd.Series(1, index=df.index)
 
         # Returns
-        features['return_1d'] = close.pct_change(1)
-        features['return_5d'] = close.pct_change(5)
-        features['return_10d'] = close.pct_change(10)
-        features['return_20d'] = close.pct_change(20)
-        self.feature_names.extend(['return_1d', 'return_5d', 'return_10d', 'return_20d'])
+        features["return_1d"] = close.pct_change(1)
+        features["return_5d"] = close.pct_change(5)
+        features["return_10d"] = close.pct_change(10)
+        features["return_20d"] = close.pct_change(20)
+        self.feature_names.extend(["return_1d", "return_5d", "return_10d", "return_20d"])
 
         # Moving averages
         for period in [5, 10, 20, 50]:
             ma = close.rolling(period).mean()
-            features[f'ma_{period}'] = close / ma - 1
-            self.feature_names.append(f'ma_{period}')
+            features[f"ma_{period}"] = close / ma - 1
+            self.feature_names.append(f"ma_{period}")
 
         # Volatility
-        features['volatility_10d'] = close.pct_change().rolling(10).std()
-        features['volatility_20d'] = close.pct_change().rolling(20).std()
-        self.feature_names.extend(['volatility_10d', 'volatility_20d'])
+        features["volatility_10d"] = close.pct_change().rolling(10).std()
+        features["volatility_20d"] = close.pct_change().rolling(20).std()
+        self.feature_names.extend(["volatility_10d", "volatility_20d"])
 
         # RSI
         delta = close.diff()
         gain = (delta.where(delta > 0, 0)).rolling(14).mean()
         loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
         rs = gain / loss
-        features['rsi_14'] = 100 - (100 / (1 + rs))
-        self.feature_names.append('rsi_14')
+        features["rsi_14"] = 100 - (100 / (1 + rs))
+        self.feature_names.append("rsi_14")
 
         # MACD
         exp1 = close.ewm(span=12, adjust=False).mean()
         exp2 = close.ewm(span=26, adjust=False).mean()
         macd = exp1 - exp2
         signal = macd.ewm(span=9, adjust=False).mean()
-        features['macd'] = macd
-        features['macd_signal'] = signal
-        features['macd_hist'] = macd - signal
-        self.feature_names.extend(['macd', 'macd_signal', 'macd_hist'])
+        features["macd"] = macd
+        features["macd_signal"] = signal
+        features["macd_hist"] = macd - signal
+        self.feature_names.extend(["macd", "macd_signal", "macd_hist"])
 
         # Bollinger Bands
         ma20 = close.rolling(20).mean()
         std20 = close.rolling(20).std()
-        features['bb_upper'] = (close - (ma20 + 2 * std20)) / close
-        features['bb_lower'] = (close - (ma20 - 2 * std20)) / close
-        features['bb_width'] = (4 * std20) / ma20
-        self.feature_names.extend(['bb_upper', 'bb_lower', 'bb_width'])
+        features["bb_upper"] = (close - (ma20 + 2 * std20)) / close
+        features["bb_lower"] = (close - (ma20 - 2 * std20)) / close
+        features["bb_width"] = (4 * std20) / ma20
+        self.feature_names.extend(["bb_upper", "bb_lower", "bb_width"])
 
         # ATR
         tr1 = high - low
         tr2 = abs(high - close.shift())
         tr3 = abs(low - close.shift())
         tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
-        features['atr_14'] = tr.rolling(14).mean() / close
-        self.feature_names.append('atr_14')
+        features["atr_14"] = tr.rolling(14).mean() / close
+        self.feature_names.append("atr_14")
 
         # Volume features
-        if 'volume' in df.columns:
-            features['volume_ma_ratio'] = volume / volume.rolling(20).mean()
-            features['volume_change'] = volume.pct_change()
-            self.feature_names.extend(['volume_ma_ratio', 'volume_change'])
+        if "volume" in df.columns:
+            features["volume_ma_ratio"] = volume / volume.rolling(20).mean()
+            features["volume_change"] = volume.pct_change()
+            self.feature_names.extend(["volume_ma_ratio", "volume_change"])
 
         # Price position
-        features['price_position'] = (close - low.rolling(20).min()) / (high.rolling(20).max() - low.rolling(20).min())
-        self.feature_names.append('price_position')
+        features["price_position"] = (close - low.rolling(20).min()) / (
+            high.rolling(20).max() - low.rolling(20).min()
+        )
+        self.feature_names.append("price_position")
 
         return features
 
@@ -291,22 +296,20 @@ class FeatureEngineer:
         """Create lagged features."""
         features = pd.DataFrame(index=df.index)
 
-        returns = df['close'].pct_change()
+        returns = df["close"].pct_change()
 
         for lag in self.config.lag_periods:
-            features[f'return_lag_{lag}'] = returns.shift(lag)
-            self.feature_names.append(f'return_lag_{lag}')
+            features[f"return_lag_{lag}"] = returns.shift(lag)
+            self.feature_names.append(f"return_lag_{lag}")
 
         return features
 
     def _align_news_features(
-        self,
-        price_data: pd.DataFrame,
-        news_features: pd.DataFrame
+        self, price_data: pd.DataFrame, news_features: pd.DataFrame
     ) -> pd.DataFrame:
         """Align news features to price data index."""
         # Forward fill news features to match price data frequency
-        aligned = news_features.reindex(price_data.index, method='ffill')
+        aligned = news_features.reindex(price_data.index, method="ffill")
 
         # Add feature names
         for col in aligned.columns:
@@ -316,12 +319,10 @@ class FeatureEngineer:
         return aligned
 
     def _align_regime_features(
-        self,
-        price_data: pd.DataFrame,
-        regime_data: pd.DataFrame
+        self, price_data: pd.DataFrame, regime_data: pd.DataFrame
     ) -> pd.DataFrame:
         """Align regime features to price data index."""
-        aligned = regime_data.reindex(price_data.index, method='ffill')
+        aligned = regime_data.reindex(price_data.index, method="ffill")
 
         for col in aligned.columns:
             if col not in self.feature_names:
@@ -331,7 +332,7 @@ class FeatureEngineer:
 
     def _create_target(self, df: pd.DataFrame) -> pd.Series:
         """Create prediction target."""
-        close = df['close']
+        close = df["close"]
         horizon = self.config.forecast_horizon
 
         if self.config.target == PredictionTarget.DIRECTION:
@@ -352,20 +353,17 @@ class FeatureEngineer:
         return target
 
     def _align_and_clean(
-        self,
-        X: pd.DataFrame,
-        y: pd.Series,
-        index: pd.DatetimeIndex
+        self, X: pd.DataFrame, y: pd.Series, index: pd.DatetimeIndex
     ) -> Tuple[pd.DataFrame, pd.Series, List[datetime]]:
         """Align features and target, remove NaN rows."""
         # Combine for alignment
-        combined = pd.concat([X, y.rename('target')], axis=1)
+        combined = pd.concat([X, y.rename("target")], axis=1)
 
         # Drop rows with NaN
         combined = combined.dropna()
 
-        X_clean = combined.drop('target', axis=1)
-        y_clean = combined['target']
+        X_clean = combined.drop("target", axis=1)
+        y_clean = combined["target"]
         timestamps = [ts.to_pydatetime() for ts in combined.index]
 
         return X_clean, y_clean, timestamps
@@ -401,7 +399,7 @@ class BaseModel(ABC):
 
     @classmethod
     @abstractmethod
-    def load(cls, path: str) -> 'BaseModel':
+    def load(cls, path: str) -> "BaseModel":
         """Load model from disk."""
         pass
 
@@ -421,37 +419,42 @@ class XGBoostModel(BaseModel):
         except ImportError:
             logger.warning("XGBoost not installed, using sklearn GradientBoosting")
             from sklearn.ensemble import GradientBoostingClassifier
+
             self.model = GradientBoostingClassifier(
                 n_estimators=self.config.n_estimators,
                 max_depth=self.config.max_depth,
                 learning_rate=self.config.learning_rate,
-                random_state=self.config.random_state
+                random_state=self.config.random_state,
             )
             self.model.fit(X, y)
             return
 
-        X_val = kwargs.get('X_val')
-        y_val = kwargs.get('y_val')
+        X_val = kwargs.get("X_val")
+        y_val = kwargs.get("y_val")
 
         params = {
-            'objective': 'binary:logistic' if self.config.target == PredictionTarget.DIRECTION else 'reg:squarederror',
-            'max_depth': self.config.max_depth,
-            'learning_rate': self.config.learning_rate,
-            'n_estimators': self.config.n_estimators,
-            'random_state': self.config.random_state,
-            'use_label_encoder': False,
-            'eval_metric': 'logloss' if self.config.target == PredictionTarget.DIRECTION else 'rmse'
+            "objective": "binary:logistic"
+            if self.config.target == PredictionTarget.DIRECTION
+            else "reg:squarederror",
+            "max_depth": self.config.max_depth,
+            "learning_rate": self.config.learning_rate,
+            "n_estimators": self.config.n_estimators,
+            "random_state": self.config.random_state,
+            "use_label_encoder": False,
+            "eval_metric": "logloss"
+            if self.config.target == PredictionTarget.DIRECTION
+            else "rmse",
         }
 
-        self.model = xgb.XGBClassifier(**params) if self.config.target == PredictionTarget.DIRECTION else xgb.XGBRegressor(**params)
+        self.model = (
+            xgb.XGBClassifier(**params)
+            if self.config.target == PredictionTarget.DIRECTION
+            else xgb.XGBRegressor(**params)
+        )
 
         eval_set = [(X_val, y_val)] if X_val is not None else None
 
-        self.model.fit(
-            X, y,
-            eval_set=eval_set,
-            verbose=False
-        )
+        self.model.fit(X, y, eval_set=eval_set, verbose=False)
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         """Make predictions."""
@@ -459,13 +462,13 @@ class XGBoostModel(BaseModel):
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
         """Predict probabilities."""
-        if hasattr(self.model, 'predict_proba'):
+        if hasattr(self.model, "predict_proba"):
             return self.model.predict_proba(X)
         return self.model.predict(X)
 
     def get_feature_importance(self, feature_names: List[str]) -> Dict[str, float]:
         """Get feature importance."""
-        if hasattr(self.model, 'feature_importances_'):
+        if hasattr(self.model, "feature_importances_"):
             importance = self.model.feature_importances_
             return dict(zip(feature_names, importance))
         return {}
@@ -475,7 +478,7 @@ class XGBoostModel(BaseModel):
         joblib.dump(self.model, path)
 
     @classmethod
-    def load(cls, path: str) -> 'XGBoostModel':
+    def load(cls, path: str) -> "XGBoostModel":
         """Load model."""
         instance = cls(TrainingConfig())
         instance.model = joblib.load(path)
@@ -501,37 +504,40 @@ class LightGBMModel(BaseModel):
             self.model = xgb_model.model
             return
 
-        X_val = kwargs.get('X_val')
-        y_val = kwargs.get('y_val')
+        X_val = kwargs.get("X_val")
+        y_val = kwargs.get("y_val")
 
         params = {
-            'objective': 'binary' if self.config.target == PredictionTarget.DIRECTION else 'regression',
-            'max_depth': self.config.max_depth,
-            'learning_rate': self.config.learning_rate,
-            'n_estimators': self.config.n_estimators,
-            'random_state': self.config.random_state,
-            'verbose': -1
+            "objective": "binary"
+            if self.config.target == PredictionTarget.DIRECTION
+            else "regression",
+            "max_depth": self.config.max_depth,
+            "learning_rate": self.config.learning_rate,
+            "n_estimators": self.config.n_estimators,
+            "random_state": self.config.random_state,
+            "verbose": -1,
         }
 
-        self.model = lgb.LGBMClassifier(**params) if self.config.target == PredictionTarget.DIRECTION else lgb.LGBMRegressor(**params)
+        self.model = (
+            lgb.LGBMClassifier(**params)
+            if self.config.target == PredictionTarget.DIRECTION
+            else lgb.LGBMRegressor(**params)
+        )
 
         eval_set = [(X_val, y_val)] if X_val is not None else None
 
-        self.model.fit(
-            X, y,
-            eval_set=eval_set
-        )
+        self.model.fit(X, y, eval_set=eval_set)
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         return self.model.predict(X)
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
-        if hasattr(self.model, 'predict_proba'):
+        if hasattr(self.model, "predict_proba"):
             return self.model.predict_proba(X)
         return self.model.predict(X)
 
     def get_feature_importance(self, feature_names: List[str]) -> Dict[str, float]:
-        if hasattr(self.model, 'feature_importances_'):
+        if hasattr(self.model, "feature_importances_"):
             return dict(zip(feature_names, self.model.feature_importances_))
         return {}
 
@@ -539,7 +545,7 @@ class LightGBMModel(BaseModel):
         joblib.dump(self.model, path)
 
     @classmethod
-    def load(cls, path: str) -> 'LightGBMModel':
+    def load(cls, path: str) -> "LightGBMModel":
         instance = cls(TrainingConfig())
         instance.model = joblib.load(path)
         return instance
@@ -563,8 +569,8 @@ class NeuralNetModel(BaseModel):
         self.scaler = StandardScaler()
         X_scaled = self.scaler.fit_transform(X)
 
-        X_val = kwargs.get('X_val')
-        y_val = kwargs.get('y_val')
+        X_val = kwargs.get("X_val")
+        y_val = kwargs.get("y_val")
 
         if self.config.target == PredictionTarget.DIRECTION:
             self.model = MLPClassifier(
@@ -572,7 +578,7 @@ class NeuralNetModel(BaseModel):
                 max_iter=self.config.epochs,
                 random_state=self.config.random_state,
                 early_stopping=True if X_val is not None else False,
-                validation_fraction=0.1
+                validation_fraction=0.1,
             )
         else:
             self.model = MLPRegressor(
@@ -580,7 +586,7 @@ class NeuralNetModel(BaseModel):
                 max_iter=self.config.epochs,
                 random_state=self.config.random_state,
                 early_stopping=True if X_val is not None else False,
-                validation_fraction=0.1
+                validation_fraction=0.1,
             )
 
         self.model.fit(X_scaled, y)
@@ -591,7 +597,7 @@ class NeuralNetModel(BaseModel):
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
         X_scaled = self.scaler.transform(X)
-        if hasattr(self.model, 'predict_proba'):
+        if hasattr(self.model, "predict_proba"):
             return self.model.predict_proba(X_scaled)
         return self.model.predict(X_scaled)
 
@@ -601,14 +607,14 @@ class NeuralNetModel(BaseModel):
         return {name: 1.0 / len(feature_names) for name in feature_names}
 
     def save(self, path: str) -> None:
-        joblib.dump({'model': self.model, 'scaler': self.scaler}, path)
+        joblib.dump({"model": self.model, "scaler": self.scaler}, path)
 
     @classmethod
-    def load(cls, path: str) -> 'NeuralNetModel':
+    def load(cls, path: str) -> "NeuralNetModel":
         instance = cls(TrainingConfig())
         data = joblib.load(path)
-        instance.model = data['model']
-        instance.scaler = data['scaler']
+        instance.model = data["model"]
+        instance.scaler = data["scaler"]
         return instance
 
 
@@ -624,11 +630,7 @@ class MLTrainingPipeline:
     - Model persistence
     """
 
-    def __init__(
-        self,
-        config: TrainingConfig,
-        model_dir: str = "./data/models"
-    ):
+    def __init__(self, config: TrainingConfig, model_dir: str = "./data/models"):
         """
         Initialize training pipeline.
 
@@ -649,7 +651,7 @@ class MLTrainingPipeline:
         self,
         price_data: pd.DataFrame,
         news_features: Optional[pd.DataFrame] = None,
-        regime_data: Optional[pd.DataFrame] = None
+        regime_data: Optional[pd.DataFrame] = None,
     ) -> TrainingResult:
         """
         Train a model on the provided data.
@@ -665,11 +667,11 @@ class MLTrainingPipeline:
         logger.info("Starting training pipeline...")
 
         # Create features
-        feature_set = self.feature_engineer.create_features(
-            price_data, news_features, regime_data
-        )
+        feature_set = self.feature_engineer.create_features(price_data, news_features, regime_data)
 
-        logger.info(f"Created {feature_set.X.shape[1]} features from {feature_set.X.shape[0]} samples")
+        logger.info(
+            f"Created {feature_set.X.shape[1]} features from {feature_set.X.shape[0]} samples"
+        )
 
         # Split data
         X_train, X_val, X_test, y_train, y_val, y_test = self._split_data(feature_set)
@@ -710,7 +712,7 @@ class MLTrainingPipeline:
             feature_importance=feature_importance,
             config=self.config,
             data_hash=self._compute_data_hash(feature_set.X),
-            model_path=model_path
+            model_path=model_path,
         )
 
         # Save training result
@@ -719,8 +721,7 @@ class MLTrainingPipeline:
         return result
 
     def _split_data(
-        self,
-        feature_set: FeatureSet
+        self, feature_set: FeatureSet
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Split data into train/val/test sets."""
         n = len(feature_set.X)
@@ -750,12 +751,7 @@ class MLTrainingPipeline:
         model_class = model_classes.get(self.config.model_type, XGBoostModel)
         return model_class(self.config)
 
-    def _evaluate(
-        self,
-        X: np.ndarray,
-        y: np.ndarray,
-        split_name: str
-    ) -> Dict[str, float]:
+    def _evaluate(self, X: np.ndarray, y: np.ndarray, split_name: str) -> Dict[str, float]:
         """Evaluate model on a dataset."""
         from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
         from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
@@ -765,15 +761,15 @@ class MLTrainingPipeline:
         if self.config.target == PredictionTarget.DIRECTION:
             return {
                 "accuracy": float(accuracy_score(y, y_pred)),
-                "precision": float(precision_score(y, y_pred, average='binary', zero_division=0)),
-                "recall": float(recall_score(y, y_pred, average='binary', zero_division=0)),
-                "f1": float(f1_score(y, y_pred, average='binary', zero_division=0))
+                "precision": float(precision_score(y, y_pred, average="binary", zero_division=0)),
+                "recall": float(recall_score(y, y_pred, average="binary", zero_division=0)),
+                "f1": float(f1_score(y, y_pred, average="binary", zero_division=0)),
             }
         else:
             return {
                 "mse": float(mean_squared_error(y, y_pred)),
                 "mae": float(mean_absolute_error(y, y_pred)),
-                "r2": float(r2_score(y, y_pred))
+                "r2": float(r2_score(y, y_pred)),
             }
 
     def _generate_model_id(self, feature_set: FeatureSet) -> str:
@@ -797,7 +793,7 @@ class MLTrainingPipeline:
     def _save_result(self, result: TrainingResult) -> None:
         """Save training result to JSON."""
         result_path = self.model_dir / f"{result.model_id}_result.json"
-        with open(result_path, 'w') as f:
+        with open(result_path, "w") as f:
             json.dump(result.to_dict(), f, indent=2)
         logger.info(f"Training result saved to {result_path}")
 
@@ -827,9 +823,7 @@ class MLTrainingPipeline:
 
 
 def create_training_pipeline(
-    model_type: str = "xgboost",
-    target: str = "direction",
-    **kwargs
+    model_type: str = "xgboost", target: str = "direction", **kwargs
 ) -> MLTrainingPipeline:
     """
     Factory function to create a training pipeline.
@@ -843,9 +837,7 @@ def create_training_pipeline(
         Configured MLTrainingPipeline
     """
     config = TrainingConfig(
-        model_type=ModelType(model_type),
-        target=PredictionTarget(target),
-        **kwargs
+        model_type=ModelType(model_type), target=PredictionTarget(target), **kwargs
     )
 
     return MLTrainingPipeline(config)
@@ -857,28 +849,28 @@ if __name__ == "__main__":
 
     # Create sample data
     np.random.seed(42)
-    dates = pd.date_range('2023-01-01', periods=500, freq='D')
+    dates = pd.date_range("2023-01-01", periods=500, freq="D")
 
-    price_data = pd.DataFrame({
-        'open': 100 + np.cumsum(np.random.randn(500) * 0.5),
-        'high': 100 + np.cumsum(np.random.randn(500) * 0.5) + abs(np.random.randn(500)),
-        'low': 100 + np.cumsum(np.random.randn(500) * 0.5) - abs(np.random.randn(500)),
-        'close': 100 + np.cumsum(np.random.randn(500) * 0.5),
-        'volume': np.random.randint(1000, 10000, 500)
-    }, index=dates)
+    price_data = pd.DataFrame(
+        {
+            "open": 100 + np.cumsum(np.random.randn(500) * 0.5),
+            "high": 100 + np.cumsum(np.random.randn(500) * 0.5) + abs(np.random.randn(500)),
+            "low": 100 + np.cumsum(np.random.randn(500) * 0.5) - abs(np.random.randn(500)),
+            "close": 100 + np.cumsum(np.random.randn(500) * 0.5),
+            "volume": np.random.randint(1000, 10000, 500),
+        },
+        index=dates,
+    )
 
     # Fix high/low
-    price_data['high'] = price_data[['open', 'high', 'close']].max(axis=1)
-    price_data['low'] = price_data[['open', 'low', 'close']].min(axis=1)
+    price_data["high"] = price_data[["open", "high", "close"]].max(axis=1)
+    price_data["low"] = price_data[["open", "low", "close"]].min(axis=1)
 
     print("=== ML Training Pipeline Demo ===")
 
     # Create pipeline
     pipeline = create_training_pipeline(
-        model_type="xgboost",
-        target="direction",
-        n_estimators=50,
-        max_depth=4
+        model_type="xgboost", target="direction", n_estimators=50, max_depth=4
     )
 
     # Train

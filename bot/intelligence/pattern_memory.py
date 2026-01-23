@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TradingPattern:
     """A learned trading pattern."""
+
     pattern_id: Optional[int] = None
     symbol: str = ""
     regime: str = ""
@@ -76,6 +77,7 @@ class TradingPattern:
 @dataclass
 class PatternStats:
     """Statistics for a pattern category."""
+
     total_patterns: int = 0
     profitable_patterns: int = 0
     win_rate: float = 0.0
@@ -100,7 +102,9 @@ class PatternMemory:
 
     def __init__(self, db_path: Optional[str] = None):
         if db_path is None:
-            db_path = str(Path(__file__).parent.parent.parent / "data" / "intelligence" / "pattern_memory.db")
+            db_path = str(
+                Path(__file__).parent.parent.parent / "data" / "intelligence" / "pattern_memory.db"
+            )
 
         self.db_path = db_path
         self._lock = threading.Lock()
@@ -143,8 +147,12 @@ class PatternMemory:
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_patterns_symbol ON patterns(symbol)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_patterns_regime ON patterns(regime)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_patterns_action ON patterns(action)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_patterns_timestamp ON patterns(timestamp DESC)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_patterns_profitable ON patterns(was_profitable)")
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_patterns_timestamp ON patterns(timestamp DESC)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_patterns_profitable ON patterns(was_profitable)"
+        )
 
         # Confidence adjustments table
         cursor.execute("""
@@ -168,38 +176,43 @@ class PatternMemory:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO patterns (
                     symbol, regime, action, entry_price, exit_price, pnl_pct,
                     hold_duration_minutes, confidence_at_entry, rsi, macd,
                     volatility, trend_strength, was_profitable, max_drawdown_pct,
                     max_profit_pct, timestamp, decay_weight
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                pattern.symbol,
-                pattern.regime,
-                pattern.action,
-                pattern.entry_price,
-                pattern.exit_price,
-                pattern.pnl_pct,
-                pattern.hold_duration_minutes,
-                pattern.confidence_at_entry,
-                pattern.rsi,
-                pattern.macd,
-                pattern.volatility,
-                pattern.trend_strength,
-                1 if pattern.was_profitable else 0,
-                pattern.max_drawdown_pct,
-                pattern.max_profit_pct,
-                pattern.timestamp.isoformat(),
-                pattern.decay_weight,
-            ))
+            """,
+                (
+                    pattern.symbol,
+                    pattern.regime,
+                    pattern.action,
+                    pattern.entry_price,
+                    pattern.exit_price,
+                    pattern.pnl_pct,
+                    pattern.hold_duration_minutes,
+                    pattern.confidence_at_entry,
+                    pattern.rsi,
+                    pattern.macd,
+                    pattern.volatility,
+                    pattern.trend_strength,
+                    1 if pattern.was_profitable else 0,
+                    pattern.max_drawdown_pct,
+                    pattern.max_profit_pct,
+                    pattern.timestamp.isoformat(),
+                    pattern.decay_weight,
+                ),
+            )
 
             pattern_id = cursor.lastrowid
             conn.commit()
             conn.close()
 
-            logger.debug(f"Stored pattern #{pattern_id}: {pattern.symbol} {pattern.action} {pattern.pnl_pct:+.2f}%")
+            logger.debug(
+                f"Stored pattern #{pattern_id}: {pattern.symbol} {pattern.action} {pattern.pnl_pct:+.2f}%"
+            )
             return pattern_id
 
     def get_similar_patterns(
@@ -302,8 +315,12 @@ class PatternMemory:
         profitable = [p for p in patterns if p.was_profitable]
 
         weighted_pnl = sum(p.pnl_pct * p.decay_weight for p in patterns) / total_weight
-        weighted_duration = sum(p.hold_duration_minutes * p.decay_weight for p in patterns) / total_weight
-        weighted_confidence = sum(p.confidence_at_entry * p.decay_weight for p in patterns) / total_weight
+        weighted_duration = (
+            sum(p.hold_duration_minutes * p.decay_weight for p in patterns) / total_weight
+        )
+        weighted_confidence = (
+            sum(p.confidence_at_entry * p.decay_weight for p in patterns) / total_weight
+        )
 
         return PatternStats(
             total_patterns=len(patterns),
@@ -360,10 +377,13 @@ class PatternMemory:
             cursor = conn.cursor()
 
             # Get unique combinations
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT DISTINCT symbol, regime, action FROM patterns
                 WHERE timestamp > ?
-            """, ((datetime.now() - timedelta(days=30)).isoformat(),))
+            """,
+                ((datetime.now() - timedelta(days=30)).isoformat(),),
+            )
 
             combinations = cursor.fetchall()
 
@@ -380,18 +400,21 @@ class PatternMemory:
                     adjustment = 1.0 + ((stats.win_rate - 0.5) * 0.4)
                     adjustment = max(0.8, min(1.2, adjustment))
 
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         INSERT OR REPLACE INTO confidence_adjustments
                         (symbol, regime, action, adjustment_factor, based_on_patterns, last_updated)
                         VALUES (?, ?, ?, ?, ?, ?)
-                    """, (
-                        symbol,
-                        regime,
-                        action,
-                        adjustment,
-                        stats.total_patterns,
-                        datetime.now().isoformat(),
-                    ))
+                    """,
+                        (
+                            symbol,
+                            regime,
+                            action,
+                            adjustment,
+                            stats.total_patterns,
+                            datetime.now().isoformat(),
+                        ),
+                    )
 
             conn.commit()
             conn.close()

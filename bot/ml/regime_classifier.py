@@ -19,27 +19,29 @@ from ta.volatility import AverageTrueRange, BollingerBands
 
 class MarketRegime(Enum):
     """Market regime types."""
-    STRONG_BULL = "strong_bull"      # Strong uptrend, use aggressive momentum
-    BULL = "bull"                     # Moderate uptrend, use trend-following
-    SIDEWAYS = "sideways"             # Range-bound, use mean-reversion
-    BEAR = "bear"                     # Moderate downtrend, reduce exposure
-    STRONG_BEAR = "strong_bear"       # Strong downtrend, stay flat or short
-    VOLATILE = "volatile"             # High volatility, reduce position size
+
+    STRONG_BULL = "strong_bull"  # Strong uptrend, use aggressive momentum
+    BULL = "bull"  # Moderate uptrend, use trend-following
+    SIDEWAYS = "sideways"  # Range-bound, use mean-reversion
+    BEAR = "bear"  # Moderate downtrend, reduce exposure
+    STRONG_BEAR = "strong_bear"  # Strong downtrend, stay flat or short
+    VOLATILE = "volatile"  # High volatility, reduce position size
 
 
 @dataclass
 class RegimeAnalysis:
     """Result of market regime analysis."""
+
     regime: MarketRegime
     confidence: float
-    trend_strength: float      # -1 to 1 (negative = bearish, positive = bullish)
-    volatility_level: str      # low, normal, high, extreme
+    trend_strength: float  # -1 to 1 (negative = bearish, positive = bullish)
+    volatility_level: str  # low, normal, high, extreme
     volatility_percentile: float
     adx_value: float
     momentum_score: float
     support_level: float
     resistance_level: float
-    regime_duration: int       # Bars in current regime
+    regime_duration: int  # Bars in current regime
     recommended_strategy: str
     reasoning: List[str]
 
@@ -291,26 +293,36 @@ class MarketRegimeClassifier:
         # Strong trends (ADX > 25)
         if adx > 25:
             if trend_strength > 0.5:
-                reasoning.append(f"Strong ADX ({adx:.1f}) with bullish trend ({trend_strength:.2f})")
+                reasoning.append(
+                    f"Strong ADX ({adx:.1f}) with bullish trend ({trend_strength:.2f})"
+                )
                 return MarketRegime.STRONG_BULL, min(0.9, adx / 40), reasoning
             elif trend_strength < -0.5:
-                reasoning.append(f"Strong ADX ({adx:.1f}) with bearish trend ({trend_strength:.2f})")
+                reasoning.append(
+                    f"Strong ADX ({adx:.1f}) with bearish trend ({trend_strength:.2f})"
+                )
                 return MarketRegime.STRONG_BEAR, min(0.9, adx / 40), reasoning
 
         # Moderate trends
         if trend_strength > 0.25 and momentum > 0.1:
-            reasoning.append(f"Positive trend ({trend_strength:.2f}) with bullish momentum ({momentum:.2f})")
+            reasoning.append(
+                f"Positive trend ({trend_strength:.2f}) with bullish momentum ({momentum:.2f})"
+            )
             confidence = 0.6 + trend_strength * 0.2
             return MarketRegime.BULL, confidence, reasoning
 
         if trend_strength < -0.25 and momentum < -0.1:
-            reasoning.append(f"Negative trend ({trend_strength:.2f}) with bearish momentum ({momentum:.2f})")
+            reasoning.append(
+                f"Negative trend ({trend_strength:.2f}) with bearish momentum ({momentum:.2f})"
+            )
             confidence = 0.6 + abs(trend_strength) * 0.2
             return MarketRegime.BEAR, confidence, reasoning
 
         # High volatility without clear trend
         if volatility_level == "high":
-            reasoning.append(f"High volatility ({vol_percentile:.0f}% percentile) without clear trend")
+            reasoning.append(
+                f"High volatility ({vol_percentile:.0f}% percentile) without clear trend"
+            )
             return MarketRegime.VOLATILE, 0.6, reasoning
 
         # Default to sideways
@@ -350,7 +362,10 @@ class MarketRegimeClassifier:
         # Adjust for volatility
         if volatility == "extreme":
             return "stay_flat"
-        elif volatility == "high" and regime not in [MarketRegime.STRONG_BULL, MarketRegime.STRONG_BEAR]:
+        elif volatility == "high" and regime not in [
+            MarketRegime.STRONG_BULL,
+            MarketRegime.STRONG_BEAR,
+        ]:
             return "reduced_size"
 
         return base_strategy

@@ -1,4 +1,5 @@
 """Unit tests for the strategy module."""
+
 from __future__ import annotations
 
 import numpy as np
@@ -41,13 +42,15 @@ def sample_ohlcv_data() -> pd.DataFrame:
     returns = np.random.randn(n_rows) * 0.01  # 1% daily volatility
     prices = base_price * np.exp(np.cumsum(returns))
 
-    data = pd.DataFrame({
-        "open": prices * (1 + np.random.randn(n_rows) * 0.001),
-        "high": prices * (1 + np.abs(np.random.randn(n_rows)) * 0.005),
-        "low": prices * (1 - np.abs(np.random.randn(n_rows)) * 0.005),
-        "close": prices,
-        "volume": np.random.randint(1000, 10000, n_rows),
-    })
+    data = pd.DataFrame(
+        {
+            "open": prices * (1 + np.random.randn(n_rows) * 0.001),
+            "high": prices * (1 + np.abs(np.random.randn(n_rows)) * 0.005),
+            "low": prices * (1 - np.abs(np.random.randn(n_rows)) * 0.005),
+            "close": prices,
+            "volume": np.random.randint(1000, 10000, n_rows),
+        }
+    )
 
     data.index = pd.date_range(start="2024-01-01", periods=n_rows, freq="1min", tz="UTC")
     return data
@@ -59,18 +62,22 @@ def bullish_crossover_data() -> pd.DataFrame:
     n_rows = 50
 
     # Create data where fast EMA crosses above slow EMA
-    prices = np.concatenate([
-        np.linspace(100, 95, 25),  # downtrend
-        np.linspace(95, 105, 25),  # uptrend with crossover
-    ])
+    prices = np.concatenate(
+        [
+            np.linspace(100, 95, 25),  # downtrend
+            np.linspace(95, 105, 25),  # uptrend with crossover
+        ]
+    )
 
-    data = pd.DataFrame({
-        "open": prices,
-        "high": prices * 1.01,
-        "low": prices * 0.99,
-        "close": prices,
-        "volume": np.ones(n_rows) * 1000,
-    })
+    data = pd.DataFrame(
+        {
+            "open": prices,
+            "high": prices * 1.01,
+            "low": prices * 0.99,
+            "close": prices,
+            "volume": np.ones(n_rows) * 1000,
+        }
+    )
 
     data.index = pd.date_range(start="2024-01-01", periods=n_rows, freq="1min", tz="UTC")
     return data
@@ -82,18 +89,22 @@ def bearish_crossover_data() -> pd.DataFrame:
     n_rows = 50
 
     # Create data where fast EMA crosses below slow EMA
-    prices = np.concatenate([
-        np.linspace(100, 110, 25),  # uptrend
-        np.linspace(110, 95, 25),   # downtrend with crossover
-    ])
+    prices = np.concatenate(
+        [
+            np.linspace(100, 110, 25),  # uptrend
+            np.linspace(110, 95, 25),  # downtrend with crossover
+        ]
+    )
 
-    data = pd.DataFrame({
-        "open": prices,
-        "high": prices * 1.01,
-        "low": prices * 0.99,
-        "close": prices,
-        "volume": np.ones(n_rows) * 1000,
-    })
+    data = pd.DataFrame(
+        {
+            "open": prices,
+            "high": prices * 1.01,
+            "low": prices * 0.99,
+            "close": prices,
+            "volume": np.ones(n_rows) * 1000,
+        }
+    )
 
     data.index = pd.date_range(start="2024-01-01", periods=n_rows, freq="1min", tz="UTC")
     return data
@@ -174,13 +185,15 @@ class TestComputeIndicators:
 
     def test_insufficient_data_raises_error(self, default_config):
         """Test that insufficient data raises ValueError."""
-        small_data = pd.DataFrame({
-            "open": [100, 101],
-            "high": [102, 103],
-            "low": [99, 100],
-            "close": [101, 102],
-            "volume": [1000, 1000],
-        })
+        small_data = pd.DataFrame(
+            {
+                "open": [100, 101],
+                "high": [102, 103],
+                "low": [99, 100],
+                "close": [101, 102],
+                "volume": [1000, 1000],
+            }
+        )
 
         with pytest.raises(ValueError, match="Not enough data"):
             compute_indicators(small_data, default_config)

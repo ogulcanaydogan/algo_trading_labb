@@ -30,6 +30,7 @@ from .database import TradingDatabase, Trade
 # Import data store for persistent trade recording
 try:
     from .data_store import get_data_store, record_trade as store_trade
+
     HAS_DATA_STORE = True
 except ImportError:
     HAS_DATA_STORE = False
@@ -37,6 +38,7 @@ except ImportError:
 # Import order validation
 try:
     from .order_validator import validate_order, OrderValidation
+
     HAS_ORDER_VALIDATOR = True
 except ImportError:
     HAS_ORDER_VALIDATOR = False
@@ -44,6 +46,7 @@ except ImportError:
 # Import data freshness monitor
 try:
     from .data_freshness import get_monitor as get_freshness_monitor, update_data
+
     HAS_DATA_FRESHNESS = True
 except ImportError:
     HAS_DATA_FRESHNESS = False
@@ -55,6 +58,7 @@ logger = logging.getLogger("multi-asset-engine")
 @dataclass
 class AssetConfig:
     """Configuration for a single asset."""
+
     symbol: str
     data_symbol: Optional[str] = None  # For data provider mapping
     asset_type: str = "crypto"
@@ -66,6 +70,7 @@ class AssetConfig:
 @dataclass
 class MultiAssetConfig:
     """Configuration for multi-asset trading."""
+
     assets: List[AssetConfig] = field(default_factory=list)
     optimization_method: OptimizationMethod = OptimizationMethod.RISK_PARITY
     rebalance_threshold: float = 0.05  # 5% deviation triggers rebalance
@@ -80,6 +85,7 @@ class MultiAssetConfig:
 @dataclass
 class AssetDecision:
     """Trading decision for a single asset within the portfolio."""
+
     symbol: str
     action: str
     weight: float
@@ -94,6 +100,7 @@ class AssetDecision:
 @dataclass
 class PortfolioDecision:
     """Complete portfolio trading decision."""
+
     timestamp: datetime
     asset_decisions: List[AssetDecision]
     allocation: Dict[str, float]
@@ -137,16 +144,22 @@ class PortfolioDecision:
 
         print("\nAsset Allocations:")
         print("-" * 70)
-        print(f"{'Symbol':<12} {'Action':<8} {'Weight':<10} {'Target $':<12} {'Confidence':<10} {'Regime':<12}")
+        print(
+            f"{'Symbol':<12} {'Action':<8} {'Weight':<10} {'Target $':<12} {'Confidence':<10} {'Regime':<12}"
+        )
         print("-" * 70)
         for d in self.asset_decisions:
-            print(f"{d.symbol:<12} {d.action:<8} {d.weight:.2%}     ${d.target_value:<10,.2f} {d.confidence:.2%}     {d.regime:<12}")
+            print(
+                f"{d.symbol:<12} {d.action:<8} {d.weight:.2%}     ${d.target_value:<10,.2f} {d.confidence:.2%}     {d.regime:<12}"
+            )
 
         if self.trades_to_execute:
             print("\nTrades to Execute:")
             print("-" * 70)
             for trade in self.trades_to_execute:
-                print(f"  {trade['action']} {trade['quantity']:.6f} {trade['symbol']} @ ~${trade['price']:,.2f}")
+                print(
+                    f"  {trade['action']} {trade['quantity']:.6f} {trade['symbol']} @ ~${trade['price']:,.2f}"
+                )
 
         print("\nPortfolio Metrics:")
         for metric, value in self.portfolio_metrics.items():
@@ -198,11 +211,15 @@ class MultiAssetTradingEngine:
                 )
 
         # Risk manager for portfolio-level risk
-        self.risk_manager = RiskManager(RiskConfig(
-            max_daily_loss_pct=5.0,  # 5% max daily loss
-            max_drawdown_pct=15.0,   # 15% max drawdown
-            max_single_position_pct=self.config.assets[0].max_weight * 100 if self.config.assets else 50.0,
-        ))
+        self.risk_manager = RiskManager(
+            RiskConfig(
+                max_daily_loss_pct=5.0,  # 5% max daily loss
+                max_drawdown_pct=15.0,  # 15% max drawdown
+                max_single_position_pct=self.config.assets[0].max_weight * 100
+                if self.config.assets
+                else 50.0,
+            )
+        )
 
         # Position manager for tracking
         self.position_manager = PositionManager(PositionConfig())
@@ -213,7 +230,7 @@ class MultiAssetTradingEngine:
         # State
         self._current_allocation: Optional[AllocationResult] = None
         self._current_positions: Dict[str, float] = {}  # symbol -> quantity
-        self._current_prices: Dict[str, float] = {}     # symbol -> price
+        self._current_prices: Dict[str, float] = {}  # symbol -> price
         self._cash_balance: float = self.config.total_capital
         self._returns_history: Dict[str, pd.Series] = {}
 
@@ -286,7 +303,9 @@ class MultiAssetTradingEngine:
             target_weights = self._current_allocation.weights
         else:
             # Equal weight if not enough data
-            enabled_assets = [a.symbol for a in self.config.assets if a.enabled and a.symbol in market_data]
+            enabled_assets = [
+                a.symbol for a in self.config.assets if a.enabled and a.symbol in market_data
+            ]
             target_weights = {s: 1.0 / len(enabled_assets) for s in enabled_assets}
 
         # 2. Analyze each asset with smart engine
@@ -383,14 +402,16 @@ class MultiAssetTradingEngine:
 
         if rebalance_needed:
             for trade in rebalance_info["trades"]:
-                trades_to_execute.append({
-                    "symbol": trade["asset"],
-                    "action": trade["action"],
-                    "weight_change": trade["weight_change"],
-                    "amount_usd": trade.get("amount_usd", 0),
-                    "quantity": trade.get("quantity", 0),
-                    "price": self._current_prices.get(trade["asset"], 0),
-                })
+                trades_to_execute.append(
+                    {
+                        "symbol": trade["asset"],
+                        "action": trade["action"],
+                        "weight_change": trade["weight_change"],
+                        "amount_usd": trade.get("amount_usd", 0),
+                        "quantity": trade.get("quantity", 0),
+                        "price": self._current_prices.get(trade["asset"], 0),
+                    }
+                )
 
         # 5. Calculate portfolio metrics
         portfolio_metrics = {}
@@ -449,12 +470,14 @@ class MultiAssetTradingEngine:
                 )
                 if not validation.is_valid:
                     logger.warning(f"Order rejected for {symbol}: {validation.message}")
-                    executed_trades.append({
-                        "symbol": symbol,
-                        "action": action,
-                        "status": "rejected",
-                        "reason": validation.message,
-                    })
+                    executed_trades.append(
+                        {
+                            "symbol": symbol,
+                            "action": action,
+                            "status": "rejected",
+                            "reason": validation.message,
+                        }
+                    )
                     continue
                 # Use adjusted quantity if provided
                 if validation.adjusted_quantity is not None:
@@ -472,22 +495,28 @@ class MultiAssetTradingEngine:
                 cost = quantity * price
                 if cost <= self._cash_balance:
                     self._cash_balance -= cost
-                    self._current_positions[symbol] = self._current_positions.get(symbol, 0) + quantity
-                    executed_trades.append({
-                        "symbol": symbol,
-                        "action": "BUY",
-                        "quantity": quantity,
-                        "price": price,
-                        "cost": cost,
-                        "status": "executed",
-                    })
+                    self._current_positions[symbol] = (
+                        self._current_positions.get(symbol, 0) + quantity
+                    )
+                    executed_trades.append(
+                        {
+                            "symbol": symbol,
+                            "action": "BUY",
+                            "quantity": quantity,
+                            "price": price,
+                            "cost": cost,
+                            "status": "executed",
+                        }
+                    )
                     logger.info(f"Executed BUY {quantity:.6f} {symbol} @ ${price:,.2f}")
                 else:
-                    executed_trades.append({
-                        "symbol": symbol,
-                        "action": "BUY",
-                        "status": "insufficient_cash",
-                    })
+                    executed_trades.append(
+                        {
+                            "symbol": symbol,
+                            "action": "BUY",
+                            "status": "insufficient_cash",
+                        }
+                    )
             elif action == "SELL":
                 # Add cash, reduce position
                 current_qty = self._current_positions.get(symbol, 0)
@@ -496,14 +525,16 @@ class MultiAssetTradingEngine:
                     proceeds = sell_qty * price
                     self._cash_balance += proceeds
                     self._current_positions[symbol] = current_qty - sell_qty
-                    executed_trades.append({
-                        "symbol": symbol,
-                        "action": "SELL",
-                        "quantity": sell_qty,
-                        "price": price,
-                        "proceeds": proceeds,
-                        "status": "executed",
-                    })
+                    executed_trades.append(
+                        {
+                            "symbol": symbol,
+                            "action": "SELL",
+                            "quantity": sell_qty,
+                            "price": price,
+                            "proceeds": proceeds,
+                            "status": "executed",
+                        }
+                    )
                     logger.info(f"Executed SELL {sell_qty:.6f} {symbol} @ ${price:,.2f}")
 
         # Record to database and persistent data store
@@ -512,7 +543,7 @@ class MultiAssetTradingEngine:
                 # Find the asset decision for this trade
                 asset_decision = next(
                     (ad for ad in decision.asset_decisions if ad.symbol == trade_info["symbol"]),
-                    None
+                    None,
                 )
                 regime = asset_decision.regime if asset_decision else "unknown"
                 confidence = asset_decision.confidence if asset_decision else 0
@@ -541,7 +572,7 @@ class MultiAssetTradingEngine:
                         # Derive market type from asset config
                         asset_cfg = next(
                             (a for a in self.config.assets if a.symbol == trade_info["symbol"]),
-                            None
+                            None,
                         )
                         market_type = asset_cfg.asset_type if asset_cfg else "unknown"
                         store_trade(
@@ -656,7 +687,9 @@ class MultiAssetTradingEngine:
                 if qty > 0
             },
             "current_weights": self._get_current_weights(),
-            "target_allocation": self._current_allocation.weights if self._current_allocation else {},
+            "target_allocation": self._current_allocation.weights
+            if self._current_allocation
+            else {},
             "optimization_method": self.config.optimization_method.value,
             "assets_enabled": len([a for a in self.config.assets if a.enabled]),
         }

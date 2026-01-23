@@ -23,6 +23,7 @@ from scipy.optimize import minimize
 
 class OptimizationMethod(Enum):
     """Portfolio optimization methods."""
+
     EQUAL_WEIGHT = "equal_weight"
     RISK_PARITY = "risk_parity"
     MIN_VOLATILITY = "min_volatility"
@@ -34,6 +35,7 @@ class OptimizationMethod(Enum):
 @dataclass
 class PortfolioMetrics:
     """Portfolio performance metrics."""
+
     expected_return: float
     volatility: float
     sharpe_ratio: float
@@ -45,6 +47,7 @@ class PortfolioMetrics:
 @dataclass
 class AllocationResult:
     """Result from portfolio optimization."""
+
     weights: Dict[str, float]
     method: OptimizationMethod
     metrics: PortfolioMetrics
@@ -98,8 +101,8 @@ class PortfolioOptimizer:
     def __init__(
         self,
         risk_free_rate: float = 0.02,  # 2% annual risk-free rate
-        min_weight: float = 0.0,       # Minimum weight per asset
-        max_weight: float = 1.0,       # Maximum weight per asset
+        min_weight: float = 0.0,  # Minimum weight per asset
+        max_weight: float = 1.0,  # Maximum weight per asset
         target_volatility: Optional[float] = None,  # Target portfolio volatility
     ):
         """
@@ -142,7 +145,7 @@ class PortfolioOptimizer:
 
         # Calculate statistics
         mean_returns = returns.mean() * 252  # Annualize
-        cov_matrix = returns.cov() * 252     # Annualize
+        cov_matrix = returns.cov() * 252  # Annualize
         corr_matrix = returns.corr()
         volatilities = returns.std() * np.sqrt(252)
 
@@ -403,7 +406,7 @@ class PortfolioOptimizer:
         diversification_ratio = weighted_vol / volatility if volatility > 0 else 1
 
         # Effective N (Herfindahl index inverse)
-        effective_n = 1.0 / np.sum(weights ** 2)
+        effective_n = 1.0 / np.sum(weights**2)
 
         return PortfolioMetrics(
             expected_return=expected_return,
@@ -439,11 +442,13 @@ class PortfolioOptimizer:
                 asset1 = corr_matrix.columns[i]
                 asset2 = corr_matrix.columns[j]
                 corr = corr_matrix.iloc[i, j]
-                pairs.append({
-                    "asset1": asset1,
-                    "asset2": asset2,
-                    "correlation": round(corr, 4),
-                })
+                pairs.append(
+                    {
+                        "asset1": asset1,
+                        "asset2": asset2,
+                        "correlation": round(corr, 4),
+                    }
+                )
 
         # Sort by correlation
         pairs.sort(key=lambda x: x["correlation"])
@@ -676,13 +681,15 @@ def run_portfolio_optimization_example():
     symbols = ["BTC", "ETH", "SOL", "AVAX", "MATIC"]
 
     # Create correlation structure
-    corr = np.array([
-        [1.0, 0.7, 0.5, 0.5, 0.6],
-        [0.7, 1.0, 0.6, 0.5, 0.5],
-        [0.5, 0.6, 1.0, 0.7, 0.6],
-        [0.5, 0.5, 0.7, 1.0, 0.5],
-        [0.6, 0.5, 0.6, 0.5, 1.0],
-    ])
+    corr = np.array(
+        [
+            [1.0, 0.7, 0.5, 0.5, 0.6],
+            [0.7, 1.0, 0.6, 0.5, 0.5],
+            [0.5, 0.6, 1.0, 0.7, 0.6],
+            [0.5, 0.5, 0.7, 1.0, 0.5],
+            [0.6, 0.5, 0.6, 0.5, 1.0],
+        ]
+    )
 
     # Cholesky decomposition for correlated random numbers
     L = np.linalg.cholesky(corr)

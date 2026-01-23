@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 class ModelType(Enum):
     """Types of ML models being tracked."""
+
     LSTM = "lstm"
     XGBOOST = "xgboost"
     RANDOM_FOREST = "random_forest"
@@ -32,6 +33,7 @@ class ModelType(Enum):
 @dataclass
 class ModelPrediction:
     """Record of a model prediction."""
+
     timestamp: datetime
     model_type: str
     symbol: str
@@ -121,7 +123,7 @@ class MLPerformanceTracker:
         confidence: float,
         market_condition: str,
         volatility: float,
-        predicted_return: Optional[float] = None
+        predicted_return: Optional[float] = None,
     ) -> str:
         """
         Record a new model prediction.
@@ -138,7 +140,7 @@ class MLPerformanceTracker:
             confidence=confidence,
             predicted_return=predicted_return,
             market_condition=market_condition,
-            volatility=volatility
+            volatility=volatility,
         )
 
         # Generate unique ID
@@ -149,35 +151,37 @@ class MLPerformanceTracker:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO predictions
             (timestamp, model_type, symbol, prediction, confidence,
              predicted_return, market_condition, volatility)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            timestamp.isoformat(),
-            model_type,
-            symbol,
-            prediction,
-            confidence,
-            predicted_return,
-            market_condition,
-            volatility
-        ))
+        """,
+            (
+                timestamp.isoformat(),
+                model_type,
+                symbol,
+                prediction,
+                confidence,
+                predicted_return,
+                market_condition,
+                volatility,
+            ),
+        )
 
         pred_id_db = cursor.lastrowid
         conn.commit()
         conn.close()
 
-        logger.debug(f"Recorded {model_type} prediction: {prediction} ({confidence:.1%}) for {symbol}")
+        logger.debug(
+            f"Recorded {model_type} prediction: {prediction} ({confidence:.1%}) for {symbol}"
+        )
 
         return str(pred_id_db)
 
     def record_outcome(
-        self,
-        prediction_id: str,
-        actual_return: float,
-        was_correct: Optional[bool] = None
+        self, prediction_id: str, actual_return: float, was_correct: Optional[bool] = None
     ):
         """Record the actual outcome of a prediction."""
         conn = sqlite3.connect(self.db_path)
@@ -185,10 +189,7 @@ class MLPerformanceTracker:
 
         # Auto-determine correctness if not provided
         if was_correct is None:
-            cursor.execute(
-                "SELECT prediction FROM predictions WHERE id = ?",
-                (prediction_id,)
-            )
+            cursor.execute("SELECT prediction FROM predictions WHERE id = ?", (prediction_id,))
             row = cursor.fetchone()
             if row:
                 prediction = row[0]
@@ -199,16 +200,14 @@ class MLPerformanceTracker:
                 else:  # hold
                     was_correct = abs(actual_return) < 0.5  # Correct if sideways
 
-        cursor.execute("""
+        cursor.execute(
+            """
             UPDATE predictions
             SET actual_return = ?, was_correct = ?, outcome_recorded_at = ?
             WHERE id = ?
-        """, (
-            actual_return,
-            1 if was_correct else 0,
-            datetime.now().isoformat(),
-            prediction_id
-        ))
+        """,
+            (actual_return, 1 if was_correct else 0, datetime.now().isoformat(), prediction_id),
+        )
 
         conn.commit()
         conn.close()
@@ -216,10 +215,7 @@ class MLPerformanceTracker:
         logger.debug(f"Recorded outcome for prediction {prediction_id}: {actual_return:.2f}%")
 
     def get_model_performance(
-        self,
-        model_type: str,
-        market_condition: Optional[str] = None,
-        days: int = 30
+        self, model_type: str, market_condition: Optional[str] = None, days: int = 30
     ) -> Dict[str, Any]:
         """Get performance metrics for a specific model."""
         conn = sqlite3.connect(self.db_path)
@@ -260,7 +256,7 @@ class MLPerformanceTracker:
                 "avg_confidence": 0,
                 "avg_return": 0,
                 "profit_factor": 0,
-                "days": days
+                "days": days,
             }
 
         total, correct, avg_conf, avg_ret, gross_profit, gross_loss = row
@@ -273,20 +269,19 @@ class MLPerformanceTracker:
             "accuracy": (correct / total * 100) if total > 0 else 0,
             "avg_confidence": avg_conf or 0,
             "avg_return": avg_ret or 0,
-            "profit_factor": (gross_profit / gross_loss) if gross_loss > 0 else float('inf'),
-            "days": days
+            "profit_factor": (gross_profit / gross_loss) if gross_loss > 0 else float("inf"),
+            "days": days,
         }
 
     def get_best_model_for_condition(
-        self,
-        market_condition: str,
-        min_predictions: int = 10
+        self, market_condition: str, min_predictions: int = 10
     ) -> Optional[Dict[str, Any]]:
         """Find the best performing model for a specific market condition."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 model_type,
                 COUNT(*) as total,
@@ -299,7 +294,9 @@ class MLPerformanceTracker:
             HAVING COUNT(*) >= ?
             ORDER BY (SUM(CASE WHEN was_correct = 1 THEN 1 ELSE 0 END) * 1.0 / COUNT(*)) DESC
             LIMIT 1
-        """, (market_condition, min_predictions))
+        """,
+            (market_condition, min_predictions),
+        )
 
         row = cursor.fetchone()
         conn.close()
@@ -314,7 +311,7 @@ class MLPerformanceTracker:
             "market_condition": market_condition,
             "accuracy": (correct / total * 100) if total > 0 else 0,
             "total_predictions": total,
-            "avg_return": avg_return or 0
+            "avg_return": avg_return or 0,
         }
 
     def get_model_ranking(self, days: int = 30) -> List[Dict[str, Any]]:
@@ -324,7 +321,8 @@ class MLPerformanceTracker:
 
         since = (datetime.now() - timedelta(days=days)).isoformat()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 model_type,
                 COUNT(*) as total,
@@ -338,7 +336,9 @@ class MLPerformanceTracker:
             AND was_correct IS NOT NULL
             GROUP BY model_type
             ORDER BY AVG(actual_return) DESC
-        """, (since,))
+        """,
+            (since,),
+        )
 
         rows = cursor.fetchall()
         conn.close()
@@ -346,14 +346,18 @@ class MLPerformanceTracker:
         ranking = []
         for row in rows:
             model_type, total, correct, avg_conf, avg_ret, gross_profit, gross_loss = row
-            ranking.append({
-                "model_type": model_type,
-                "total_predictions": total,
-                "accuracy": (correct / total * 100) if total > 0 else 0,
-                "avg_confidence": avg_conf or 0,
-                "avg_return": avg_ret or 0,
-                "profit_factor": (gross_profit / gross_loss) if gross_loss > 0 else float('inf')
-            })
+            ranking.append(
+                {
+                    "model_type": model_type,
+                    "total_predictions": total,
+                    "accuracy": (correct / total * 100) if total > 0 else 0,
+                    "avg_confidence": avg_conf or 0,
+                    "avg_return": avg_ret or 0,
+                    "profit_factor": (gross_profit / gross_loss)
+                    if gross_loss > 0
+                    else float("inf"),
+                }
+            )
 
         return ranking
 
@@ -368,7 +372,8 @@ class MLPerformanceTracker:
 
         since = (datetime.now() - timedelta(days=days)).isoformat()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 model_type,
                 market_condition,
@@ -379,7 +384,9 @@ class MLPerformanceTracker:
             WHERE timestamp >= ?
             AND was_correct IS NOT NULL
             GROUP BY model_type, market_condition
-        """, (since,))
+        """,
+            (since,),
+        )
 
         rows = cursor.fetchall()
         conn.close()
@@ -391,7 +398,7 @@ class MLPerformanceTracker:
             matrix[model_type][condition] = {
                 "total": total,
                 "accuracy": (correct / total * 100) if total > 0 else 0,
-                "avg_return": avg_return or 0
+                "avg_return": avg_return or 0,
             }
 
         return dict(matrix)
@@ -415,7 +422,7 @@ class MLPerformanceTracker:
             return {
                 "recommended_model": "ensemble",
                 "confidence": 0.5,
-                "reason": "No historical data - using default ensemble"
+                "reason": "No historical data - using default ensemble",
             }
 
         # Calculate confidence based on sample size and accuracy
@@ -428,7 +435,7 @@ class MLPerformanceTracker:
             "accuracy": best["accuracy"],
             "total_samples": best["total_predictions"],
             "avg_return": best.get("avg_return", 0),
-            "reason": f"Best performer for {market_condition} with {best['accuracy']:.1f}% accuracy"
+            "reason": f"Best performer for {market_condition} with {best['accuracy']:.1f}% accuracy",
         }
 
     def get_summary(self, days: int = 7) -> Dict[str, Any]:
@@ -453,7 +460,7 @@ class MLPerformanceTracker:
             "best_overall": best_overall,
             "best_per_condition": best_per_condition,
             "model_ranking": ranking,
-            "performance_matrix": matrix
+            "performance_matrix": matrix,
         }
 
 
@@ -476,7 +483,7 @@ def track_prediction(
     confidence: float,
     market_condition: str,
     volatility: float = 50.0,
-    predicted_return: Optional[float] = None
+    predicted_return: Optional[float] = None,
 ) -> str:
     """Convenience function to track a prediction."""
     return get_ml_tracker().record_prediction(
@@ -486,7 +493,7 @@ def track_prediction(
         confidence=confidence,
         market_condition=market_condition,
         volatility=volatility,
-        predicted_return=predicted_return
+        predicted_return=predicted_return,
     )
 
 

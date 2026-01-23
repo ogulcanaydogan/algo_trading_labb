@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 class AllocationMethod(Enum):
     """Capital allocation methods"""
+
     EQUAL_WEIGHT = "equal_weight"
     RISK_PARITY = "risk_parity"
     MOMENTUM = "momentum"  # Follow recent performance
@@ -44,6 +45,7 @@ class AllocationMethod(Enum):
 @dataclass
 class StrategyAllocation:
     """Allocation result for a single strategy"""
+
     strategy_name: str
     weight: float  # 0.0 to 1.0
     capital_amount: float
@@ -76,6 +78,7 @@ class StrategyAllocation:
 @dataclass
 class AllocationResult:
     """Complete allocation result"""
+
     timestamp: datetime = field(default_factory=datetime.now)
     method: AllocationMethod = AllocationMethod.EQUAL_WEIGHT
     total_capital: float = 0.0
@@ -111,6 +114,7 @@ class AllocationResult:
 @dataclass
 class StrategyPerformanceSnapshot:
     """Performance snapshot for allocation decisions"""
+
     strategy_name: str
 
     # Returns
@@ -139,6 +143,7 @@ class StrategyPerformanceSnapshot:
 @dataclass
 class AllocationConfig:
     """Configuration for the meta-allocator"""
+
     # Allocation method
     method: AllocationMethod = AllocationMethod.REGIME_ADAPTIVE
 
@@ -244,9 +249,7 @@ class MetaAllocator:
             weights = self._equal_weight(performance_snapshots)
 
         # Apply adjustments
-        adjusted_weights = self._apply_adjustments(
-            weights, performance_snapshots, current_regime
-        )
+        adjusted_weights = self._apply_adjustments(weights, performance_snapshots, current_regime)
 
         # Apply constraints
         final_weights = self._apply_constraints(adjusted_weights)
@@ -282,7 +285,9 @@ class MetaAllocator:
         self.last_allocation = result
         self.last_allocation_time = datetime.now()
 
-        logger.info(f"Allocated to {result.effective_strategies} strategies, HHI={result.concentration_ratio:.3f}")
+        logger.info(
+            f"Allocated to {result.effective_strategies} strategies, HHI={result.concentration_ratio:.3f}"
+        )
 
         return result
 
@@ -340,20 +345,18 @@ class MetaAllocator:
         scores = {}
         for s in active:
             # Combine multiple timeframes
-            score = (
-                s.returns_1d * 0.2 +
-                s.returns_7d * 0.3 +
-                s.returns_30d * 0.5
-            )
+            score = s.returns_1d * 0.2 + s.returns_7d * 0.3 + s.returns_30d * 0.5
             # Adjust for Sharpe
             if s.sharpe_30d > 0:
-                score *= (1 + s.sharpe_30d * 0.2)
+                score *= 1 + s.sharpe_30d * 0.2
             scores[s.strategy_name] = max(0.01, score + 10)  # Shift to positive
 
         total = sum(scores.values())
         return {name: score / total for name, score in scores.items()}
 
-    def _mean_reversion_weight(self, snapshots: List[StrategyPerformanceSnapshot]) -> Dict[str, float]:
+    def _mean_reversion_weight(
+        self, snapshots: List[StrategyPerformanceSnapshot]
+    ) -> Dict[str, float]:
         """Mean reversion: bet on underperformers (contrarian)"""
         active = [s for s in snapshots if not s.is_degraded]
         if not active:
@@ -409,9 +412,7 @@ class MetaAllocator:
         return {name: w / total for name, w in kelly_weights.items()}
 
     def _contextual_bandit_weight(
-        self,
-        snapshots: List[StrategyPerformanceSnapshot],
-        current_regime: str
+        self, snapshots: List[StrategyPerformanceSnapshot], current_regime: str
     ) -> Dict[str, float]:
         """Thompson Sampling with regime context"""
         active = [s for s in snapshots if not s.is_degraded]
@@ -434,7 +435,7 @@ class MetaAllocator:
 
             # Adjust by regime score if available
             regime_score = s.regime_scores.get(current_regime, 0.5)
-            sample *= (0.5 + regime_score)
+            sample *= 0.5 + regime_score
 
             samples[name] = sample
 
@@ -453,12 +454,10 @@ class MetaAllocator:
 
         # Update Beta distribution parameters
         self.bandit_state[key]["alpha"] += norm_reward
-        self.bandit_state[key]["beta"] += (1 - norm_reward)
+        self.bandit_state[key]["beta"] += 1 - norm_reward
 
     def _regime_adaptive_weight(
-        self,
-        snapshots: List[StrategyPerformanceSnapshot],
-        current_regime: str
+        self, snapshots: List[StrategyPerformanceSnapshot], current_regime: str
     ) -> Dict[str, float]:
         """Regime-adaptive allocation (recommended default)"""
         active = [s for s in snapshots if not s.is_degraded]
@@ -470,9 +469,9 @@ class MetaAllocator:
             # Base weight from risk-adjusted performance
             base = 1.0
             if s.sharpe_30d > 0:
-                base *= (1 + s.sharpe_30d * 0.3)
+                base *= 1 + s.sharpe_30d * 0.3
             if s.profit_factor_30d > 1:
-                base *= (1 + (s.profit_factor_30d - 1) * 0.2)
+                base *= 1 + (s.profit_factor_30d - 1) * 0.2
 
             # Regime boost
             regime_score = s.regime_scores.get(current_regime, 0.5)
@@ -495,7 +494,7 @@ class MetaAllocator:
         self,
         weights: Dict[str, float],
         snapshots: List[StrategyPerformanceSnapshot],
-        current_regime: str
+        current_regime: str,
     ) -> Dict[str, float]:
         """Apply correlation and risk adjustments"""
         adjusted = weights.copy()
@@ -511,13 +510,15 @@ class MetaAllocator:
                 penalty = self.config.max_correlation_penalty * (len(members) - 1) / len(members)
                 for name in members:
                     if name in adjusted:
-                        adjusted[name] *= (1 - penalty)
+                        adjusted[name] *= 1 - penalty
 
         # Drawdown penalty
         for s in snapshots:
             if s.strategy_name in adjusted:
                 if s.current_drawdown > 5:
-                    dd_factor = 1 - (s.current_drawdown - 5) / 100 * self.config.drawdown_penalty_factor
+                    dd_factor = (
+                        1 - (s.current_drawdown - 5) / 100 * self.config.drawdown_penalty_factor
+                    )
                     adjusted[s.strategy_name] *= max(0.1, dd_factor)
 
         # Re-normalize
@@ -569,7 +570,10 @@ class MetaAllocator:
         constrained = {k: v for k, v in constrained.items() if v > 0}
 
         # Ensure minimum number of strategies
-        if len(constrained) < self.config.min_strategies and len(weights) >= self.config.min_strategies:
+        if (
+            len(constrained) < self.config.min_strategies
+            and len(weights) >= self.config.min_strategies
+        ):
             # Add back top strategies until we have minimum
             sorted_weights = sorted(weights.items(), key=lambda x: x[1], reverse=True)
             for name, w in sorted_weights:
@@ -587,7 +591,7 @@ class MetaAllocator:
 
     def _calculate_hhi(self, weights: Dict[str, float]) -> float:
         """Calculate Herfindahl-Hirschman Index (concentration)"""
-        return sum(w ** 2 for w in weights.values())
+        return sum(w**2 for w in weights.values())
 
     def _check_rebalance_needed(self, result: AllocationResult) -> Tuple[bool, str]:
         """Check if portfolio needs rebalancing"""
@@ -604,8 +608,12 @@ class MetaAllocator:
         max_drift = 0.0
         for alloc in result.allocations:
             old_alloc = next(
-                (a for a in self.last_allocation.allocations if a.strategy_name == alloc.strategy_name),
-                None
+                (
+                    a
+                    for a in self.last_allocation.allocations
+                    if a.strategy_name == alloc.strategy_name
+                ),
+                None,
             )
             if old_alloc:
                 drift = abs(alloc.weight - old_alloc.weight)
@@ -616,7 +624,10 @@ class MetaAllocator:
 
         # Check regime change
         if result.current_regime != self.last_allocation.current_regime:
-            return True, f"Regime changed from {self.last_allocation.current_regime} to {result.current_regime}"
+            return (
+                True,
+                f"Regime changed from {self.last_allocation.current_regime} to {result.current_regime}",
+            )
 
         return False, ""
 
@@ -633,8 +644,7 @@ class MetaAllocator:
             "num_strategies": self.last_allocation.effective_strategies,
             "concentration": self.last_allocation.concentration_ratio,
             "weights": {
-                a.strategy_name: round(a.weight, 4)
-                for a in self.last_allocation.allocations
+                a.strategy_name: round(a.weight, 4) for a in self.last_allocation.allocations
             },
         }
 
@@ -642,6 +652,7 @@ class MetaAllocator:
 # ============================================================
 # Rebalancer Helper
 # ============================================================
+
 
 class PortfolioRebalancer:
     """
@@ -653,7 +664,7 @@ class PortfolioRebalancer:
     def __init__(
         self,
         min_trade_pct: float = 0.5,  # Minimum trade size as % of portfolio
-        max_trades_per_rebalance: int = 5
+        max_trades_per_rebalance: int = 5,
     ):
         self.min_trade_pct = min_trade_pct
         self.max_trades_per_rebalance = max_trades_per_rebalance
@@ -662,7 +673,7 @@ class PortfolioRebalancer:
         self,
         current_weights: Dict[str, float],
         target_weights: Dict[str, float],
-        total_capital: float
+        total_capital: float,
     ) -> List[Dict[str, Any]]:
         """
         Calculate trades needed to rebalance.
@@ -683,21 +694,23 @@ class PortfolioRebalancer:
             trade_pct = abs(diff) * 100
 
             if trade_pct >= self.min_trade_pct:
-                trades.append({
-                    "strategy": strategy,
-                    "direction": "increase" if diff > 0 else "decrease",
-                    "current_weight": current,
-                    "target_weight": target,
-                    "weight_change": diff,
-                    "capital_change": trade_amount,
-                    "priority": trade_pct,  # Larger changes first
-                })
+                trades.append(
+                    {
+                        "strategy": strategy,
+                        "direction": "increase" if diff > 0 else "decrease",
+                        "current_weight": current,
+                        "target_weight": target,
+                        "weight_change": diff,
+                        "capital_change": trade_amount,
+                        "priority": trade_pct,  # Larger changes first
+                    }
+                )
 
         # Sort by priority (largest changes first)
         trades.sort(key=lambda x: x["priority"], reverse=True)
 
         # Limit number of trades
-        return trades[:self.max_trades_per_rebalance]
+        return trades[: self.max_trades_per_rebalance]
 
 
 # Global instance

@@ -123,7 +123,7 @@ class TestSlippageModel:
             order_size=5000.0,  # $5000 order
             avg_daily_volume=1000000.0,  # $1M daily volume
             current_volatility=0.02,
-            is_buy=True
+            is_buy=True,
         )
 
         assert slippage >= 0
@@ -134,17 +134,14 @@ class TestSlippageModel:
         model = SlippageModel(base_slippage_pct=0.01, volume_impact_factor=0.1)
 
         slippage_small = model.calculate_slippage(
-            order_size=1000.0,
-            avg_daily_volume=1000000.0,
-            current_volatility=0.02,
-            is_buy=True
+            order_size=1000.0, avg_daily_volume=1000000.0, current_volatility=0.02, is_buy=True
         )
 
         slippage_large = model.calculate_slippage(
             order_size=100000.0,  # 10x larger order
             avg_daily_volume=1000000.0,
             current_volatility=0.02,
-            is_buy=True
+            is_buy=True,
         )
 
         assert slippage_large > slippage_small
@@ -158,7 +155,7 @@ class TestSlippageModel:
             avg_daily_volume=1000000.0,
             current_volatility=0.01,
             baseline_volatility=0.02,
-            is_buy=True
+            is_buy=True,
         )
 
         slippage_high_vol = model.calculate_slippage(
@@ -166,7 +163,7 @@ class TestSlippageModel:
             avg_daily_volume=1000000.0,
             current_volatility=0.05,
             baseline_volatility=0.02,
-            is_buy=True
+            is_buy=True,
         )
 
         assert slippage_high_vol > slippage_low_vol
@@ -453,13 +450,15 @@ class TestLiveExecutionEngine:
     def engine_with_exchange(self):
         """Create engine with mocked exchange."""
         mock_exchange = MagicMock()
-        mock_exchange.create_market_order = AsyncMock(return_value={
-            "id": "exchange_order_123",
-            "status": "closed",
-            "filled": 0.1,
-            "average": 50100.0,
-            "fee": {"cost": 2.0},
-        })
+        mock_exchange.create_market_order = AsyncMock(
+            return_value={
+                "id": "exchange_order_123",
+                "status": "closed",
+                "filled": 0.1,
+                "average": 50100.0,
+                "fee": {"cost": 2.0},
+            }
+        )
         mock_exchange.cancel_order = AsyncMock(return_value={"status": "cancelled"})
 
         return LiveExecutionEngine(exchange_client=mock_exchange)
@@ -572,8 +571,12 @@ class TestCreateExecutionEngine:
         backtest_engine = create_execution_engine(ExecutionMode.BACKTEST)
         paper_engine = create_execution_engine(ExecutionMode.PAPER)
 
-        assert backtest_engine.fee_structure.maker_fee_pct == paper_engine.fee_structure.maker_fee_pct
-        assert backtest_engine.fee_structure.taker_fee_pct == paper_engine.fee_structure.taker_fee_pct
+        assert (
+            backtest_engine.fee_structure.maker_fee_pct == paper_engine.fee_structure.maker_fee_pct
+        )
+        assert (
+            backtest_engine.fee_structure.taker_fee_pct == paper_engine.fee_structure.taker_fee_pct
+        )
 
 
 class TestExecutionEngineRiskIntegration:

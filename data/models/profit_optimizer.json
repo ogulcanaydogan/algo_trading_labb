@@ -1,0 +1,16 @@
+{
+  "entry": {
+    "optimal_rsi_buy": 35.0,
+    "optimal_rsi_sell": 65.0,
+    "optimal_bb_deviation": 1.5,
+    "optimal_volume_ratio": 1.2
+  },
+  "exit": {
+    "optimal_profit_target": 0.03,
+    "optimal_stop_loss": 0.02,
+    "optimal_trailing_pct": 0.015,
+    "max_hold_bars": 50,
+    "break_even_trigger": 0.01
+  },
+  "saved_at": "2026-01-23T18:14:37.641327"
+}

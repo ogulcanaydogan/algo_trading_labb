@@ -82,13 +82,16 @@ class TestCandlestickAnalyzer:
         returns = np.random.randn(n) * 0.02
         prices = base_price * np.exp(np.cumsum(returns))
 
-        return pd.DataFrame({
-            "open": prices * (1 + np.random.randn(n) * 0.005),
-            "high": prices * (1 + np.abs(np.random.randn(n)) * 0.01),
-            "low": prices * (1 - np.abs(np.random.randn(n)) * 0.01),
-            "close": prices,
-            "volume": np.random.randint(1000, 10000, n),
-        }, index=dates)
+        return pd.DataFrame(
+            {
+                "open": prices * (1 + np.random.randn(n) * 0.005),
+                "high": prices * (1 + np.abs(np.random.randn(n)) * 0.01),
+                "low": prices * (1 - np.abs(np.random.randn(n)) * 0.01),
+                "close": prices,
+                "volume": np.random.randint(1000, 10000, n),
+            },
+            index=dates,
+        )
 
     def test_analyzer_creation(self, analyzer):
         """Test analyzer is created."""
@@ -109,12 +112,14 @@ class TestCandlestickAnalyzer:
 
     def test_analyze_insufficient_data(self, analyzer):
         """Test analyze with insufficient data."""
-        short_df = pd.DataFrame({
-            "open": [100, 101],
-            "high": [102, 103],
-            "low": [99, 100],
-            "close": [101, 102],
-        })
+        short_df = pd.DataFrame(
+            {
+                "open": [100, 101],
+                "high": [102, 103],
+                "low": [99, 100],
+                "close": [101, 102],
+            }
+        )
         patterns = analyzer.analyze(short_df)
         assert patterns == []
 
@@ -133,16 +138,14 @@ class TestCandlestickAnalyzer:
 
     def test_doji_with_specific_data(self, analyzer):
         """Test with specific doji-like candle data."""
-        df = pd.DataFrame({
-            "open": [100.0, 100.0, 100.0, 100.0, 100.0,
-                     100.0, 100.0, 100.0, 100.0, 100.0],
-            "high": [102.0, 102.0, 102.0, 102.0, 102.0,
-                     102.0, 102.0, 102.0, 102.0, 102.0],
-            "low": [98.0, 98.0, 98.0, 98.0, 98.0,
-                    98.0, 98.0, 98.0, 98.0, 98.0],
-            "close": [100.1, 100.1, 100.1, 100.1, 100.1,
-                      100.1, 100.1, 100.1, 100.1, 100.1],
-        })
+        df = pd.DataFrame(
+            {
+                "open": [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0],
+                "high": [102.0, 102.0, 102.0, 102.0, 102.0, 102.0, 102.0, 102.0, 102.0, 102.0],
+                "low": [98.0, 98.0, 98.0, 98.0, 98.0, 98.0, 98.0, 98.0, 98.0, 98.0],
+                "close": [100.1, 100.1, 100.1, 100.1, 100.1, 100.1, 100.1, 100.1, 100.1, 100.1],
+            }
+        )
         patterns = analyzer.analyze(df)
         # With very small body, these should be detected as doji
         assert isinstance(patterns, list)
@@ -199,13 +202,16 @@ class TestDivergenceDetector:
         noise = np.random.randn(n) * 0.5
         prices = trend + noise
 
-        return pd.DataFrame({
-            "open": prices - 0.5,
-            "high": prices + 1.0,
-            "low": prices - 1.0,
-            "close": prices,
-            "volume": np.random.randint(1000, 10000, n),
-        }, index=dates)
+        return pd.DataFrame(
+            {
+                "open": prices - 0.5,
+                "high": prices + 1.0,
+                "low": prices - 1.0,
+                "close": prices,
+                "volume": np.random.randint(1000, 10000, n),
+            },
+            index=dates,
+        )
 
     def test_detector_creation(self, detector):
         """Test detector is created."""
@@ -219,12 +225,14 @@ class TestDivergenceDetector:
 
     def test_detect_insufficient_data(self, detector):
         """Test with insufficient data."""
-        short_df = pd.DataFrame({
-            "open": [100, 101, 102],
-            "high": [102, 103, 104],
-            "low": [99, 100, 101],
-            "close": [101, 102, 103],
-        })
+        short_df = pd.DataFrame(
+            {
+                "open": [100, 101, 102],
+                "high": [102, 103, 104],
+                "low": [99, 100, 101],
+                "close": [101, 102, 103],
+            }
+        )
         divergences = detector.detect_all(short_df)
         assert divergences == []
 
@@ -292,13 +300,16 @@ class TestConfluenceDetector:
         returns = np.random.randn(n) * 0.01
         prices = base_price * np.exp(np.cumsum(returns))
 
-        return pd.DataFrame({
-            "open": prices * (1 + np.random.randn(n) * 0.002),
-            "high": prices * (1 + np.abs(np.random.randn(n)) * 0.005),
-            "low": prices * (1 - np.abs(np.random.randn(n)) * 0.005),
-            "close": prices,
-            "volume": np.random.randint(1000, 10000, n),
-        }, index=dates)
+        return pd.DataFrame(
+            {
+                "open": prices * (1 + np.random.randn(n) * 0.002),
+                "high": prices * (1 + np.abs(np.random.randn(n)) * 0.005),
+                "low": prices * (1 - np.abs(np.random.randn(n)) * 0.005),
+                "close": prices,
+                "volume": np.random.randint(1000, 10000, n),
+            },
+            index=dates,
+        )
 
     def test_detector_creation(self, detector):
         """Test detector is created."""
@@ -317,12 +328,14 @@ class TestConfluenceDetector:
 
     def test_detect_insufficient_data(self, detector):
         """Test with insufficient data."""
-        short_df = pd.DataFrame({
-            "open": [100] * 10,
-            "high": [102] * 10,
-            "low": [98] * 10,
-            "close": [101] * 10,
-        })
+        short_df = pd.DataFrame(
+            {
+                "open": [100] * 10,
+                "high": [102] * 10,
+                "low": [98] * 10,
+                "close": [101] * 10,
+            }
+        )
         zones = detector.detect(short_df)
         assert isinstance(zones, list)
 
@@ -401,13 +414,16 @@ class TestTechnicalAnalyzer:
         returns = np.random.randn(n) * 0.01
         prices = base_price * np.exp(np.cumsum(returns))
 
-        return pd.DataFrame({
-            "open": prices * (1 + np.random.randn(n) * 0.002),
-            "high": prices * (1 + np.abs(np.random.randn(n)) * 0.005),
-            "low": prices * (1 - np.abs(np.random.randn(n)) * 0.005),
-            "close": prices,
-            "volume": np.random.randint(1000, 10000, n),
-        }, index=dates)
+        return pd.DataFrame(
+            {
+                "open": prices * (1 + np.random.randn(n) * 0.002),
+                "high": prices * (1 + np.abs(np.random.randn(n)) * 0.005),
+                "low": prices * (1 - np.abs(np.random.randn(n)) * 0.005),
+                "close": prices,
+                "volume": np.random.randint(1000, 10000, n),
+            },
+            index=dates,
+        )
 
     def test_analyzer_creation(self, analyzer):
         """Test analyzer is created."""
@@ -436,12 +452,14 @@ class TestTechnicalAnalyzer:
     def test_analyze_short_data(self, analyzer):
         """Test analyze with short data."""
         # Create very short data
-        short_df = pd.DataFrame({
-            "open": [100, 101, 102, 103, 104, 105, 106, 107, 108, 109],
-            "high": [102, 103, 104, 105, 106, 107, 108, 109, 110, 111],
-            "low": [99, 100, 101, 102, 103, 104, 105, 106, 107, 108],
-            "close": [101, 102, 103, 104, 105, 106, 107, 108, 109, 110],
-        })
+        short_df = pd.DataFrame(
+            {
+                "open": [100, 101, 102, 103, 104, 105, 106, 107, 108, 109],
+                "high": [102, 103, 104, 105, 106, 107, 108, 109, 110, 111],
+                "low": [99, 100, 101, 102, 103, 104, 105, 106, 107, 108],
+                "close": [101, 102, 103, 104, 105, 106, 107, 108, 109, 110],
+            }
+        )
         result = analyzer.analyze(short_df)
 
         # Should handle short data gracefully

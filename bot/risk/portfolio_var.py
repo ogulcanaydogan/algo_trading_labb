@@ -22,13 +22,14 @@ logger = logging.getLogger(__name__)
 @dataclass
 class VaRResult:
     """Value-at-Risk calculation result."""
-    var_amount: float          # VaR in dollar terms
-    var_percent: float         # VaR as percentage of portfolio
-    confidence_level: float    # e.g., 0.95 for 95% VaR
+
+    var_amount: float  # VaR in dollar terms
+    var_percent: float  # VaR as percentage of portfolio
+    confidence_level: float  # e.g., 0.95 for 95% VaR
     time_horizon_days: int
     method: str
     expected_shortfall: float  # CVaR / ES
-    worst_case: float         # Worst historical loss
+    worst_case: float  # Worst historical loss
     timestamp: datetime = field(default_factory=datetime.now)
 
     def to_dict(self) -> Dict:
@@ -47,6 +48,7 @@ class VaRResult:
 @dataclass
 class PortfolioRiskMetrics:
     """Comprehensive portfolio risk metrics."""
+
     portfolio_value: float
     var_95: VaRResult
     var_99: VaRResult
@@ -84,6 +86,7 @@ class PortfolioRiskMetrics:
 @dataclass
 class VaRConfig:
     """Configuration for VaR calculations."""
+
     # Confidence levels
     confidence_95: float = 0.95
     confidence_99: float = 0.99
@@ -99,11 +102,12 @@ class VaRConfig:
 
     # Monte Carlo settings
     mc_simulations: int = 10000
+    mc_random_seed: Optional[int] = None  # None for true randomness
 
     # Risk limits
-    max_var_percent: float = 0.05      # Max 5% daily VaR
-    max_volatility: float = 0.30       # Max 30% annual volatility
-    max_drawdown_limit: float = 0.15   # Max 15% drawdown
+    max_var_percent: float = 0.05  # Max 5% daily VaR
+    max_volatility: float = 0.30  # Max 30% annual volatility
+    max_drawdown_limit: float = 0.15  # Max 15% drawdown
 
     # Risk-free rate for Sharpe
     risk_free_rate: float = 0.05  # 5% annual
@@ -226,8 +230,9 @@ class PortfolioVaR:
         mu = returns.mean()
         sigma = returns.std()
 
-        # Simulate returns
-        np.random.seed(42)
+        # Simulate returns (use seed only if configured for reproducibility)
+        if self.config.mc_random_seed is not None:
+            np.random.seed(self.config.mc_random_seed)
         simulated = np.random.normal(mu, sigma, self.config.mc_simulations)
 
         # Calculate VaR from simulated distribution
@@ -321,7 +326,9 @@ class PortfolioVaR:
         portfolio_value = sum(abs(v) for v in positions.values())
 
         # Calculate portfolio returns
-        weights = {s: v / portfolio_value for s, v in positions.items()} if portfolio_value > 0 else {}
+        weights = (
+            {s: v / portfolio_value for s, v in positions.items()} if portfolio_value > 0 else {}
+        )
 
         portfolio_returns = None
         for symbol, weight in weights.items():
@@ -351,7 +358,9 @@ class PortfolioVaR:
 
         # Sortino ratio (downside deviation)
         downside_returns = portfolio_returns[portfolio_returns < rf_daily]
-        downside_std = downside_returns.std() * np.sqrt(252) if len(downside_returns) > 0 else vol_annual
+        downside_std = (
+            downside_returns.std() * np.sqrt(252) if len(downside_returns) > 0 else vol_annual
+        )
         sortino = excess_return / downside_std if downside_std > 0 else 0
 
         # Max drawdown
@@ -384,11 +393,17 @@ class PortfolioVaR:
         # Check limits
         limit_breaches = []
         if var_95.var_percent > self.config.max_var_percent:
-            limit_breaches.append(f"VaR {var_95.var_percent:.1%} exceeds limit {self.config.max_var_percent:.1%}")
+            limit_breaches.append(
+                f"VaR {var_95.var_percent:.1%} exceeds limit {self.config.max_var_percent:.1%}"
+            )
         if vol_annual > self.config.max_volatility:
-            limit_breaches.append(f"Volatility {vol_annual:.1%} exceeds limit {self.config.max_volatility:.1%}")
+            limit_breaches.append(
+                f"Volatility {vol_annual:.1%} exceeds limit {self.config.max_volatility:.1%}"
+            )
         if max_dd > self.config.max_drawdown_limit:
-            limit_breaches.append(f"Drawdown {max_dd:.1%} exceeds limit {self.config.max_drawdown_limit:.1%}")
+            limit_breaches.append(
+                f"Drawdown {max_dd:.1%} exceeds limit {self.config.max_drawdown_limit:.1%}"
+            )
 
         return PortfolioRiskMetrics(
             portfolio_value=portfolio_value,

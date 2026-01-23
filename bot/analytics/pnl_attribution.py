@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 class AttributionMethod(Enum):
     """P&L attribution methods."""
+
     SIMPLE = "simple"  # Direct P&L from trades
     BRINSON = "brinson"  # Brinson-Fachler model
     FACTOR = "factor"  # Factor-based attribution
@@ -33,6 +34,7 @@ class AttributionMethod(Enum):
 
 class AttributionPeriod(Enum):
     """Attribution time periods."""
+
     DAILY = "daily"
     WEEKLY = "weekly"
     MONTHLY = "monthly"
@@ -43,6 +45,7 @@ class AttributionPeriod(Enum):
 @dataclass
 class Trade:
     """Trade record for attribution."""
+
     trade_id: str
     symbol: str
     strategy: str
@@ -79,6 +82,7 @@ class Trade:
 @dataclass
 class AttributionResult:
     """Result of P&L attribution analysis."""
+
     period_start: datetime
     period_end: datetime
     total_pnl: float
@@ -146,6 +150,7 @@ class AttributionResult:
 @dataclass
 class FactorExposure:
     """Factor exposure for attribution."""
+
     factor_name: str
     exposure: float
     factor_return: float
@@ -196,7 +201,7 @@ class PnLAttributor:
         self,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
-        method: AttributionMethod = AttributionMethod.SIMPLE
+        method: AttributionMethod = AttributionMethod.SIMPLE,
     ) -> AttributionResult:
         """
         Perform P&L attribution.
@@ -244,7 +249,9 @@ class PnLAttributor:
         win_rate = win_count / len(pnls) if pnls else 0
         avg_win = sum(wins) / win_count if wins else 0
         avg_loss = sum(losses) / loss_count if losses else 0
-        profit_factor = abs(sum(wins) / sum(losses)) if losses and sum(losses) != 0 else float('inf')
+        profit_factor = (
+            abs(sum(wins) / sum(losses)) if losses and sum(losses) != 0 else float("inf")
+        )
 
         # Factor attribution (if available)
         market_contrib = 0.0
@@ -287,9 +294,7 @@ class PnLAttributor:
         )
 
     def _filter_trades(
-        self,
-        start_date: Optional[datetime],
-        end_date: Optional[datetime]
+        self, start_date: Optional[datetime], end_date: Optional[datetime]
     ) -> List[Trade]:
         """Filter trades by date range."""
         trades = self._trades
@@ -299,17 +304,14 @@ class PnLAttributor:
 
         if end_date:
             trades = [
-                t for t in trades
+                t
+                for t in trades
                 if (t.exit_time and t.exit_time <= end_date) or t.entry_time <= end_date
             ]
 
         return trades
 
-    def _attribute_by_field(
-        self,
-        trades: List[Trade],
-        field: str
-    ) -> Dict[str, float]:
+    def _attribute_by_field(self, trades: List[Trade], field: str) -> Dict[str, float]:
         """Attribute P&L by a specific field."""
         attribution: Dict[str, float] = {}
 
@@ -324,10 +326,7 @@ class PnLAttributor:
         return attribution
 
     def _factor_attribution(
-        self,
-        trades: List[Trade],
-        start_date: Optional[datetime],
-        end_date: Optional[datetime]
+        self, trades: List[Trade], start_date: Optional[datetime], end_date: Optional[datetime]
     ) -> Dict[str, float]:
         """Perform factor-based attribution."""
         # Simplified factor attribution
@@ -361,7 +360,7 @@ class PnLAttributor:
         self,
         start_date: Optional[datetime],
         end_date: Optional[datetime],
-        method: AttributionMethod
+        method: AttributionMethod,
     ) -> AttributionResult:
         """Return empty result when no trades."""
         now = datetime.now()
@@ -375,9 +374,7 @@ class PnLAttributor:
         )
 
     def get_daily_pnl(
-        self,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None
+        self, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None
     ) -> pd.DataFrame:
         """Get daily P&L time series."""
         trades = self._filter_trades(start_date, end_date)
@@ -395,10 +392,7 @@ class PnLAttributor:
             daily_pnl[date_key] += trade.realized_pnl
 
         # Create DataFrame
-        df = pd.DataFrame([
-            {"date": date, "pnl": pnl}
-            for date, pnl in sorted(daily_pnl.items())
-        ])
+        df = pd.DataFrame([{"date": date, "pnl": pnl} for date, pnl in sorted(daily_pnl.items())])
 
         if not df.empty:
             df["cumulative_pnl"] = df["pnl"].cumsum()
@@ -406,9 +400,7 @@ class PnLAttributor:
         return df
 
     def get_strategy_comparison(
-        self,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None
+        self, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None
     ) -> pd.DataFrame:
         """Compare strategies performance."""
         trades = self._filter_trades(start_date, end_date)
@@ -442,18 +434,22 @@ class PnLAttributor:
             wins = [p for p in pnls if p > 0]
             losses = [p for p in pnls if p < 0]
 
-            rows.append({
-                "strategy": strategy,
-                "total_pnl": sum(pnls),
-                "trade_count": len(pnls),
-                "win_count": len(wins),
-                "loss_count": len(losses),
-                "win_rate": len(wins) / len(pnls) if pnls else 0,
-                "avg_pnl": sum(pnls) / len(pnls) if pnls else 0,
-                "max_win": max(wins) if wins else 0,
-                "max_loss": min(losses) if losses else 0,
-                "profit_factor": abs(sum(wins) / sum(losses)) if losses and sum(losses) != 0 else float('inf'),
-            })
+            rows.append(
+                {
+                    "strategy": strategy,
+                    "total_pnl": sum(pnls),
+                    "trade_count": len(pnls),
+                    "win_count": len(wins),
+                    "loss_count": len(losses),
+                    "win_rate": len(wins) / len(pnls) if pnls else 0,
+                    "avg_pnl": sum(pnls) / len(pnls) if pnls else 0,
+                    "max_win": max(wins) if wins else 0,
+                    "max_loss": min(losses) if losses else 0,
+                    "profit_factor": abs(sum(wins) / sum(losses))
+                    if losses and sum(losses) != 0
+                    else float("inf"),
+                }
+            )
 
         return pd.DataFrame(rows).sort_values("total_pnl", ascending=False)
 
@@ -461,7 +457,7 @@ class PnLAttributor:
         self,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
-        top_n: int = 10
+        top_n: int = 10,
     ) -> pd.DataFrame:
         """Get P&L breakdown by symbol."""
         trades = self._filter_trades(start_date, end_date)
@@ -499,7 +495,7 @@ class PnLAttributor:
         self,
         period: AttributionPeriod = AttributionPeriod.MONTHLY,
         start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None
+        end_date: Optional[datetime] = None,
     ) -> List[AttributionResult]:
         """Generate periodic attribution reports."""
         if not self._trades:
@@ -522,10 +518,7 @@ class PnLAttributor:
         return results
 
     def _generate_periods(
-        self,
-        start: datetime,
-        end: datetime,
-        period: AttributionPeriod
+        self, start: datetime, end: datetime, period: AttributionPeriod
     ) -> List[Tuple[datetime, datetime]]:
         """Generate period boundaries."""
         periods = []

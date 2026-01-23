@@ -333,23 +333,17 @@ class TestAdaptiveRiskController:
         name = controller._determine_strategy_name("crash", False, False, False)
         assert name == "Capital Preservation"
 
-    def test_determine_strategy_name_sideways(
-        self, controller: AdaptiveRiskController
-    ) -> None:
+    def test_determine_strategy_name_sideways(self, controller: AdaptiveRiskController) -> None:
         """Test strategy name for sideways market."""
         name = controller._determine_strategy_name("sideways", True, False, False)
         assert name == "Mean Reversion"
 
-    def test_get_strategy_description(
-        self, controller: AdaptiveRiskController
-    ) -> None:
+    def test_get_strategy_description(self, controller: AdaptiveRiskController) -> None:
         """Test strategy description generation."""
         desc = controller._get_strategy_description("strong_bull", "bullish", "buy")
         assert "uptrend" in desc.lower()
 
-    def test_get_strategy_description_unknown(
-        self, controller: AdaptiveRiskController
-    ) -> None:
+    def test_get_strategy_description_unknown(self, controller: AdaptiveRiskController) -> None:
         """Test strategy description for unknown combination."""
         desc = controller._get_strategy_description("unknown", "neutral", "hold")
         assert "Analyzing" in desc
@@ -386,9 +380,7 @@ class TestAdaptiveRiskController:
         # Should handle error gracefully and return False
         assert result is False
 
-    def test_current_settings_manual_update(
-        self, controller: AdaptiveRiskController
-    ) -> None:
+    def test_current_settings_manual_update(self, controller: AdaptiveRiskController) -> None:
         """Test that current_settings can be updated directly."""
         controller.current_settings["shorting"] = True
         controller.current_settings["leverage"] = True
@@ -429,6 +421,7 @@ class TestGlobalFunction:
     def test_get_adaptive_risk_controller_singleton(self) -> None:
         """Test singleton pattern."""
         import bot.adaptive_risk_controller as module
+
         module._controller = None
 
         controller1 = get_adaptive_risk_controller()

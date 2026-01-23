@@ -347,17 +347,13 @@ class TestCreateDefaultStrategies:
     def test_includes_trend_following(self):
         strategies = create_default_strategies()
         trend_strategies = [
-            s for s in strategies
-            if s.strategy_type == StrategyType.TREND_FOLLOWING
+            s for s in strategies if s.strategy_type == StrategyType.TREND_FOLLOWING
         ]
         assert len(trend_strategies) >= 1
 
     def test_includes_defensive(self):
         strategies = create_default_strategies()
-        defensive_strategies = [
-            s for s in strategies
-            if s.strategy_type == StrategyType.DEFENSIVE
-        ]
+        defensive_strategies = [s for s in strategies if s.strategy_type == StrategyType.DEFENSIVE]
         assert len(defensive_strategies) >= 1
 
 

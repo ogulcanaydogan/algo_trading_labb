@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ParameterSpace:
     """Defines the search space for a parameter."""
+
     name: str
     min_value: float
     max_value: float
@@ -66,6 +67,7 @@ class ParameterSpace:
 @dataclass
 class WindowOptimizationResult:
     """Result from optimizing a single walk-forward window."""
+
     window_id: int
     train_start: datetime
     train_end: datetime
@@ -87,10 +89,18 @@ class WindowOptimizationResult:
     def to_dict(self) -> Dict[str, Any]:
         return {
             "window_id": self.window_id,
-            "train_start": self.train_start.isoformat() if hasattr(self.train_start, 'isoformat') else str(self.train_start),
-            "train_end": self.train_end.isoformat() if hasattr(self.train_end, 'isoformat') else str(self.train_end),
-            "test_start": self.test_start.isoformat() if hasattr(self.test_start, 'isoformat') else str(self.test_start),
-            "test_end": self.test_end.isoformat() if hasattr(self.test_end, 'isoformat') else str(self.test_end),
+            "train_start": self.train_start.isoformat()
+            if hasattr(self.train_start, "isoformat")
+            else str(self.train_start),
+            "train_end": self.train_end.isoformat()
+            if hasattr(self.train_end, "isoformat")
+            else str(self.train_end),
+            "test_start": self.test_start.isoformat()
+            if hasattr(self.test_start, "isoformat")
+            else str(self.test_start),
+            "test_end": self.test_end.isoformat()
+            if hasattr(self.test_end, "isoformat")
+            else str(self.test_end),
             "best_params": self.best_params,
             "train_sharpe": round(self.train_sharpe, 4),
             "train_win_rate": round(self.train_win_rate, 4),
@@ -106,6 +116,7 @@ class WindowOptimizationResult:
 @dataclass
 class WalkForwardOptimizationResults:
     """Complete walk-forward optimization results."""
+
     windows: List[WindowOptimizationResult]
     parameter_space: List[ParameterSpace]
     strategy_name: str
@@ -299,7 +310,9 @@ class WalkForwardStrategyOptimizer:
             print(f"\n{'=' * 70}")
             print(f"WALK-FORWARD OPTIMIZATION: {strategy_name}")
             print(f"Symbol: {symbol}")
-            print(f"Config: train={self.train_days}d, test={self.test_days}d, step={self.step_days}d")
+            print(
+                f"Config: train={self.train_days}d, test={self.test_days}d, step={self.step_days}d"
+            )
             print(f"Random samples per window: {self.n_random_samples}")
             print(f"{'=' * 70}\n")
 
@@ -362,7 +375,9 @@ class WalkForwardStrategyOptimizer:
 
         # Save results
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        results_path = self.results_dir / f"{strategy_name}_{symbol.replace('/', '_')}_{timestamp}.json"
+        results_path = (
+            self.results_dir / f"{strategy_name}_{symbol.replace('/', '_')}_{timestamp}.json"
+        )
         results.save(results_path)
 
         if verbose:
@@ -412,7 +427,13 @@ class WalkForwardStrategyOptimizer:
             test_metrics = backtest_func(test_df, best_params)
         except Exception as e:
             logger.error(f"Test backtest failed: {e}")
-            test_metrics = {"sharpe": 0, "win_rate": 0, "total_return": 0, "max_drawdown": 0, "trades": 0}
+            test_metrics = {
+                "sharpe": 0,
+                "win_rate": 0,
+                "total_return": 0,
+                "max_drawdown": 0,
+                "trades": 0,
+            }
 
         return WindowOptimizationResult(
             window_id=window_id,
@@ -457,9 +478,11 @@ class WalkForwardStrategyOptimizer:
             "mean_max_drawdown": np.mean([r.test_max_drawdown for r in results]),
             "total_test_trades": sum(r.test_trades for r in results),
             "profitable_ratio": sum(1 for r in results if r.is_profitable) / len(results),
-            "overfitting_gap": np.mean([
-                r.train_sharpe - r.test_sharpe for r in results if r.train_sharpe > 0
-            ]) if any(r.train_sharpe > 0 for r in results) else 0,
+            "overfitting_gap": np.mean(
+                [r.train_sharpe - r.test_sharpe for r in results if r.train_sharpe > 0]
+            )
+            if any(r.train_sharpe > 0 for r in results)
+            else 0,
         }
         return metrics
 
@@ -488,6 +511,7 @@ class WalkForwardStrategyOptimizer:
             if space.param_type == "categorical":
                 # For categorical, check if same value appears > 60% of time
                 from collections import Counter
+
                 most_common = Counter(values).most_common(1)[0]
                 if most_common[1] / len(values) >= 0.6:
                     stable_params[space.name] = most_common[0]
@@ -569,6 +593,7 @@ class ParameterDriftTracker:
 
     Useful for detecting regime shifts and parameter instability.
     """
+
     history: List[Tuple[datetime, Dict[str, Any], Dict[str, float]]] = field(default_factory=list)
 
     def record(

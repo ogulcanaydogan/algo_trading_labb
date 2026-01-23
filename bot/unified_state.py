@@ -145,9 +145,7 @@ class UnifiedState:
     @classmethod
     def from_dict(cls, data: Dict) -> "UnifiedState":
         """Create from dictionary."""
-        positions = {
-            k: PositionState.from_dict(v) for k, v in data.get("positions", {}).items()
-        }
+        positions = {k: PositionState.from_dict(v) for k, v in data.get("positions", {}).items()}
         return cls(
             mode=TradingMode(data["mode"]),
             status=TradingStatus(data.get("status", "stopped")),
@@ -179,8 +177,7 @@ class UnifiedState:
     def total_equity(self) -> float:
         """Calculate total equity including unrealized P&L."""
         positions_value = sum(
-            pos.quantity * (pos.current_price or pos.entry_price)
-            for pos in self.positions.values()
+            pos.quantity * (pos.current_price or pos.entry_price) for pos in self.positions.values()
         )
         return self.current_balance + positions_value
 
@@ -258,10 +255,7 @@ class UnifiedStateStore:
             )
             self._save_state()
 
-            logger.info(
-                f"Initialized new state: mode={mode.value}, "
-                f"capital=${initial_capital:.2f}"
-            )
+            logger.info(f"Initialized new state: mode={mode.value}, capital=${initial_capital:.2f}")
             return self._state
 
     def _load_all(self) -> None:
@@ -282,9 +276,7 @@ class UnifiedStateStore:
         if self.equity_path.exists():
             with open(self.equity_path, "r") as f:
                 data = json.load(f)
-                self._equity_curve = [
-                    EquityPoint(**p) for p in data[-self.max_equity_points :]
-                ]
+                self._equity_curve = [EquityPoint(**p) for p in data[-self.max_equity_points :]]
 
         # Load mode history
         if self.mode_history_path.exists():
@@ -352,9 +344,7 @@ class UnifiedStateStore:
             self._save_state()
             return self._state
 
-    def update_position(
-        self, symbol: str, position: Optional[PositionState]
-    ) -> None:
+    def update_position(self, symbol: str, position: Optional[PositionState]) -> None:
         """Update or remove a position."""
         with self._lock:
             if not self._state:
@@ -405,9 +395,7 @@ class UnifiedStateStore:
                 pos.quantity * (pos.current_price or pos.entry_price)
                 for pos in self._state.positions.values()
             )
-            unrealized_pnl = sum(
-                pos.unrealized_pnl for pos in self._state.positions.values()
-            )
+            unrealized_pnl = sum(pos.unrealized_pnl for pos in self._state.positions.values())
 
             point = EquityPoint(
                 timestamp=datetime.now().isoformat(),
@@ -424,9 +412,7 @@ class UnifiedStateStore:
 
             self._save_equity()
 
-    def change_mode(
-        self, new_mode: TradingMode, reason: str = "", approver: str = ""
-    ) -> None:
+    def change_mode(self, new_mode: TradingMode, reason: str = "", approver: str = "") -> None:
         """Record a mode change."""
         with self._lock:
             if not self._state:
@@ -460,10 +446,7 @@ class UnifiedStateStore:
             self._save_state()
             self._save_mode_history()
 
-            logger.info(
-                f"Mode changed: {old_mode.value} -> {new_mode.value} "
-                f"(reason: {reason})"
-            )
+            logger.info(f"Mode changed: {old_mode.value} -> {new_mode.value} (reason: {reason})")
 
     def get_trades(self, limit: int = 100) -> List[TradeRecord]:
         """Get recent trades."""

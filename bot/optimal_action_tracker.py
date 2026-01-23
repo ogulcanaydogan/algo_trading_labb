@@ -66,7 +66,14 @@ class MarketState:
 
     def to_feature_vector(self) -> List[float]:
         """Convert to numeric features for ML."""
-        regime_map = {"strong_bull": 2, "bull": 1, "sideways": 0, "bear": -1, "strong_bear": -2, "crash": -3}
+        regime_map = {
+            "strong_bull": 2,
+            "bull": 1,
+            "sideways": 0,
+            "bear": -1,
+            "strong_bear": -2,
+            "crash": -3,
+        }
         trend_map = {"up": 1, "neutral": 0, "down": -1}
         vol_map = {"low": 0, "normal": 1, "high": 2, "extreme": 3}
 
@@ -238,24 +245,27 @@ class OptimalActionTracker:
         state_key = record.state.to_state_key()
         state_json = json.dumps(asdict(record.state))
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO action_records
             (symbol, timestamp, state_key, state_json, action, entry_price,
              position_size, model_prediction, model_confidence, strategy_used, signal_reason)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            record.symbol,
-            record.timestamp.isoformat(),
-            state_key,
-            state_json,
-            record.outcome.action.value,
-            record.outcome.entry_price,
-            record.outcome.position_size,
-            record.model_prediction,
-            record.model_confidence,
-            record.strategy_used,
-            record.signal_reason,
-        ))
+        """,
+            (
+                record.symbol,
+                record.timestamp.isoformat(),
+                state_key,
+                state_json,
+                record.outcome.action.value,
+                record.outcome.entry_price,
+                record.outcome.position_size,
+                record.model_prediction,
+                record.model_confidence,
+                record.strategy_used,
+                record.signal_reason,
+            ),
+        )
 
         record_id = cursor.lastrowid
         conn.commit()
@@ -268,7 +278,8 @@ class OptimalActionTracker:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             UPDATE action_records SET
                 exit_price = ?,
                 pnl = ?,
@@ -277,15 +288,17 @@ class OptimalActionTracker:
                 max_adverse = ?,
                 holding_time_hours = ?
             WHERE id = ?
-        """, (
-            outcome.exit_price,
-            outcome.pnl,
-            outcome.pnl_percent,
-            outcome.max_favorable,
-            outcome.max_adverse,
-            outcome.holding_time_hours,
-            record_id,
-        ))
+        """,
+            (
+                outcome.exit_price,
+                outcome.pnl,
+                outcome.pnl_percent,
+                outcome.max_favorable,
+                outcome.max_adverse,
+                outcome.holding_time_hours,
+                record_id,
+            ),
+        )
 
         conn.commit()
         conn.close()
@@ -298,9 +311,12 @@ class OptimalActionTracker:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT state_key, action, pnl_percent FROM action_records WHERE id = ?
-        """, (record_id,))
+        """,
+            (record_id,),
+        )
 
         row = cursor.fetchone()
         if not row:
@@ -310,10 +326,13 @@ class OptimalActionTracker:
         state_key, action, pnl_percent = row
 
         # Get existing stats
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT expected_value, count, win_rate, avg_win, avg_loss
             FROM q_table WHERE state_key = ? AND action = ?
-        """, (state_key, action))
+        """,
+            (state_key, action),
+        )
 
         existing = cursor.fetchone()
 
@@ -324,7 +343,9 @@ class OptimalActionTracker:
             # Update win rate
             if pnl_percent > 0:
                 new_win_rate = (win_rate * count + 1) / new_count
-                new_avg_win = (avg_win * (win_rate * count) + pnl_percent) / max(1, new_win_rate * new_count)
+                new_avg_win = (avg_win * (win_rate * count) + pnl_percent) / max(
+                    1, new_win_rate * new_count
+                )
                 new_avg_loss = avg_loss
             else:
                 new_win_rate = (win_rate * count) / new_count
@@ -335,7 +356,8 @@ class OptimalActionTracker:
             # Calculate expected value
             new_ev = new_win_rate * new_avg_win - (1 - new_win_rate) * new_avg_loss
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 UPDATE q_table SET
                     expected_value = ?,
                     count = ?,
@@ -344,8 +366,18 @@ class OptimalActionTracker:
                     avg_loss = ?,
                     last_updated = ?
                 WHERE state_key = ? AND action = ?
-            """, (new_ev, new_count, new_win_rate, new_avg_win, new_avg_loss,
-                  datetime.now(timezone.utc).isoformat(), state_key, action))
+            """,
+                (
+                    new_ev,
+                    new_count,
+                    new_win_rate,
+                    new_avg_win,
+                    new_avg_loss,
+                    datetime.now(timezone.utc).isoformat(),
+                    state_key,
+                    action,
+                ),
+            )
         else:
             # First record for this state-action pair
             win_rate = 1.0 if pnl_percent > 0 else 0.0
@@ -353,12 +385,22 @@ class OptimalActionTracker:
             avg_loss = abs(pnl_percent) if pnl_percent <= 0 else 0.0
             ev = pnl_percent
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO q_table
                 (state_key, action, expected_value, count, win_rate, avg_win, avg_loss, last_updated)
                 VALUES (?, ?, ?, 1, ?, ?, ?, ?)
-            """, (state_key, action, ev, win_rate, avg_win, avg_loss,
-                  datetime.now(timezone.utc).isoformat()))
+            """,
+                (
+                    state_key,
+                    action,
+                    ev,
+                    win_rate,
+                    avg_win,
+                    avg_loss,
+                    datetime.now(timezone.utc).isoformat(),
+                ),
+            )
 
         conn.commit()
         conn.close()
@@ -420,7 +462,8 @@ class OptimalActionTracker:
         cursor = conn.cursor()
 
         if state_key:
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT action,
                        COUNT(*) as count,
                        AVG(pnl_percent) as avg_return,
@@ -428,7 +471,9 @@ class OptimalActionTracker:
                 FROM action_records
                 WHERE state_key = ? AND pnl IS NOT NULL
                 GROUP BY action
-            """, (state_key,))
+            """,
+                (state_key,),
+            )
         else:
             cursor.execute("""
                 SELECT action,
@@ -457,7 +502,8 @@ class OptimalActionTracker:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT state_key,
                    COUNT(*) as count,
                    AVG(pnl_percent) as avg_return,
@@ -468,17 +514,21 @@ class OptimalActionTracker:
             HAVING count >= ?
             ORDER BY avg_return DESC
             LIMIT 20
-        """, (action, min_count))
+        """,
+            (action, min_count),
+        )
 
         results = []
         for row in cursor.fetchall():
             state_key, count, avg_return, win_rate = row
-            results.append({
-                "state": state_key,
-                "count": count,
-                "avg_return": round(avg_return, 4),
-                "win_rate": round(win_rate, 4),
-            })
+            results.append(
+                {
+                    "state": state_key,
+                    "count": count,
+                    "avg_return": round(avg_return, 4),
+                    "win_rate": round(win_rate, 4),
+                }
+            )
 
         conn.close()
         return results
@@ -486,6 +536,7 @@ class OptimalActionTracker:
 
 # Singleton instance
 _tracker: Optional[OptimalActionTracker] = None
+
 
 def get_tracker() -> OptimalActionTracker:
     """Get or create the global tracker instance."""

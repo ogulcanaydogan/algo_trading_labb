@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 class Trend(Enum):
     """Trend direction."""
+
     STRONG_UP = "strong_up"
     UP = "up"
     NEUTRAL = "neutral"
@@ -30,6 +31,7 @@ class Trend(Enum):
 
 class Signal(Enum):
     """Trading signal."""
+
     STRONG_BUY = "strong_buy"
     BUY = "buy"
     NEUTRAL = "neutral"
@@ -40,6 +42,7 @@ class Signal(Enum):
 @dataclass
 class TimeframeAnalysis:
     """Analysis results for a single timeframe."""
+
     timeframe: str
     trend: Trend
     signal: Signal
@@ -57,6 +60,7 @@ class TimeframeAnalysis:
 @dataclass
 class MultiTimeframeResult:
     """Combined multi-timeframe analysis result."""
+
     symbol: str
     timestamp: datetime
     analyses: Dict[str, TimeframeAnalysis]
@@ -124,13 +128,19 @@ class MultiTimeframeAnalyzer:
         if timeframe not in tf_map:
             return data
 
-        resampled = data.resample(tf_map[timeframe]).agg({
-            "open": "first",
-            "high": "max",
-            "low": "min",
-            "close": "last",
-            "volume": "sum",
-        }).dropna()
+        resampled = (
+            data.resample(tf_map[timeframe])
+            .agg(
+                {
+                    "open": "first",
+                    "high": "max",
+                    "low": "min",
+                    "close": "last",
+                    "volume": "sum",
+                }
+            )
+            .dropna()
+        )
 
         return resampled
 
@@ -163,7 +173,9 @@ class MultiTimeframeAnalyzer:
         confidence = self._calculate_confidence(analyses, trend_alignment)
 
         # Generate recommendation
-        recommendation = self._generate_recommendation(combined_signal, combined_strength, trend_alignment)
+        recommendation = self._generate_recommendation(
+            combined_signal, combined_strength, trend_alignment
+        )
 
         # Assess risk level
         risk_level = self._assess_risk(analyses, trend_alignment)
@@ -292,17 +304,16 @@ class MultiTimeframeAnalyzer:
 
         return float(np.mean(data[-period:]))
 
-    def _calculate_atr(self, high: np.ndarray, low: np.ndarray, close: np.ndarray, period: int = 14) -> float:
+    def _calculate_atr(
+        self, high: np.ndarray, low: np.ndarray, close: np.ndarray, period: int = 14
+    ) -> float:
         """Calculate ATR."""
         if len(close) < period + 1:
             return 0.0
 
         tr = np.maximum(
             high[1:] - low[1:],
-            np.maximum(
-                np.abs(high[1:] - close[:-1]),
-                np.abs(low[1:] - close[:-1])
-            )
+            np.maximum(np.abs(high[1:] - close[:-1]), np.abs(low[1:] - close[:-1])),
         )
 
         atr = np.mean(tr[-period:])
@@ -313,7 +324,7 @@ class MultiTimeframeAnalyzer:
         if len(close) < period + 1:
             return 0.0
 
-        returns = np.diff(np.log(close[-period - 1:]))
+        returns = np.diff(np.log(close[-period - 1 :]))
         return float(np.std(returns) * np.sqrt(252) * 100)  # Annualized
 
     def _calculate_support_resistance(
@@ -436,9 +447,7 @@ class MultiTimeframeAnalyzer:
         else:
             return Signal.NEUTRAL, strength
 
-    def _combine_signals(
-        self, analyses: Dict[str, TimeframeAnalysis]
-    ) -> Tuple[Signal, float]:
+    def _combine_signals(self, analyses: Dict[str, TimeframeAnalysis]) -> Tuple[Signal, float]:
         """Combine signals from multiple timeframes."""
         signal_values = {
             Signal.STRONG_BUY: 2,
@@ -521,9 +530,7 @@ class MultiTimeframeAnalyzer:
 
         return round(min(1.0, confidence), 2)
 
-    def _generate_recommendation(
-        self, signal: Signal, strength: float, alignment: float
-    ) -> str:
+    def _generate_recommendation(self, signal: Signal, strength: float, alignment: float) -> str:
         """Generate human-readable recommendation."""
         signal_text = {
             Signal.STRONG_BUY: "Strong Buy",
@@ -534,15 +541,19 @@ class MultiTimeframeAnalyzer:
         }
 
         strength_text = "high" if strength > 0.7 else "moderate" if strength > 0.4 else "low"
-        alignment_text = "well-aligned" if alignment > 0.7 else "partially aligned" if alignment > 0.4 else "conflicting"
+        alignment_text = (
+            "well-aligned"
+            if alignment > 0.7
+            else "partially aligned"
+            if alignment > 0.4
+            else "conflicting"
+        )
 
         base = signal_text.get(signal, "Hold")
 
         return f"{base} with {strength_text} strength. Timeframes are {alignment_text}."
 
-    def _assess_risk(
-        self, analyses: Dict[str, TimeframeAnalysis], alignment: float
-    ) -> str:
+    def _assess_risk(self, analyses: Dict[str, TimeframeAnalysis], alignment: float) -> str:
         """Assess risk level based on analysis."""
         avg_volatility = np.mean([a.volatility for a in analyses.values()])
 
@@ -746,13 +757,19 @@ def resample_to_htf(data: pd.DataFrame, target_tf: str) -> pd.DataFrame:
     """
     resample_str = TIMEFRAME_RESAMPLE_MAP.get(target_tf.lower(), "4H")
 
-    resampled = data.resample(resample_str).agg({
-        "open": "first",
-        "high": "max",
-        "low": "min",
-        "close": "last",
-        "volume": "sum",
-    }).dropna()
+    resampled = (
+        data.resample(resample_str)
+        .agg(
+            {
+                "open": "first",
+                "high": "max",
+                "low": "min",
+                "close": "last",
+                "volume": "sum",
+            }
+        )
+        .dropna()
+    )
 
     return resampled
 

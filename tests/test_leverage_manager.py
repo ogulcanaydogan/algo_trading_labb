@@ -430,7 +430,7 @@ class TestAILeverageManager:
                 "side": "long",
                 "current_price": 52000,
                 "unrealized_pnl": 400,
-            }
+            },
         )
 
         assert status.margin_ratio == 0.5
@@ -451,7 +451,7 @@ class TestAILeverageManager:
                 "side": "short",
                 "current_price": 48000,
                 "unrealized_pnl": 200,
-            }
+            },
         )
 
         assert status.liquidation_price is not None
@@ -617,10 +617,10 @@ class TestGetLeverageManager:
         """Test getter creates instance."""
         # Reset global instance first
         import bot.ai_engine.leverage_manager as lm
+
         lm._leverage_manager = None
 
-        with patch.object(lm, "get_leverage_rl_agent"), \
-             patch.object(lm, "get_learning_db"):
+        with patch.object(lm, "get_leverage_rl_agent"), patch.object(lm, "get_learning_db"):
             manager = get_leverage_manager()
             assert manager is not None
             assert isinstance(manager, AILeverageManager)
@@ -629,8 +629,7 @@ class TestGetLeverageManager:
         """Test getter returns same instance."""
         import bot.ai_engine.leverage_manager as lm
 
-        with patch.object(lm, "get_leverage_rl_agent"), \
-             patch.object(lm, "get_learning_db"):
+        with patch.object(lm, "get_leverage_rl_agent"), patch.object(lm, "get_learning_db"):
             manager1 = get_leverage_manager()
             manager2 = get_leverage_manager()
             assert manager1 is manager2

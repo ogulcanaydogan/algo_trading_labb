@@ -3,6 +3,7 @@
 Verifies that API responses match what the dashboard JavaScript expects.
 These tests prevent mismatches between backend data and frontend display.
 """
+
 from __future__ import annotations
 
 import json
@@ -95,7 +96,9 @@ class TestDashboardWinRateExpectations:
         display_percentage = int(win_rate * 100)
         assert display_percentage == 60, f"Expected 60%, got {display_percentage}%"
 
-    def test_performance_win_rate_is_decimal_for_dashboard(self, client, standard_state, monkeypatch):
+    def test_performance_win_rate_is_decimal_for_dashboard(
+        self, client, standard_state, monkeypatch
+    ):
         """Verify /performance win_rate is also decimal format."""
         state_dir = standard_state / "data" / "unified_trading"
         trades = [{"pnl": 100, "entry_time": datetime.now().isoformat()} for _ in range(6)]
@@ -318,15 +321,22 @@ class TestDashboardNumberFormatting:
         data = response.json()
 
         numeric_fields = [
-            "balance", "initial_capital", "portfolio_value", "total_pnl",
-            "total_pnl_pct", "total_trades", "win_rate", "max_drawdown",
-            "open_positions", "daily_trades", "daily_pnl"
+            "balance",
+            "initial_capital",
+            "portfolio_value",
+            "total_pnl",
+            "total_pnl_pct",
+            "total_trades",
+            "win_rate",
+            "max_drawdown",
+            "open_positions",
+            "daily_trades",
+            "daily_pnl",
         ]
 
         for field in numeric_fields:
             assert isinstance(data[field], (int, float)), (
-                f"Field {field}={data[field]} should be numeric, "
-                f"got {type(data[field])}"
+                f"Field {field}={data[field]} should be numeric, got {type(data[field])}"
             )
 
     def test_no_nan_or_inf_values(self, client, standard_state, monkeypatch):

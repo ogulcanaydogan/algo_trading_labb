@@ -178,9 +178,7 @@ def _load_execution_log(limit: Optional[int] = None) -> List[Dict[str, Any]]:
                     "price": trade.get("price", 0),
                     "fill_price": trade.get("price", None),
                     "slippage_pct": meta.get("slippage_pct"),
-                    "commission": meta.get("fees_paid")
-                    or trade.get("fees_paid")
-                    or 0,
+                    "commission": meta.get("fees_paid") or trade.get("fees_paid") or 0,
                     "status": meta.get("status", "filled"),
                     "mode": meta.get("mode", meta.get("execution_mode", "sync")),
                     "execution_time_ms": meta.get("execution_time_ms"),
@@ -196,6 +194,7 @@ def _load_execution_log(limit: Optional[int] = None) -> List[Dict[str, Any]]:
         logger.warning(f"Could not rebuild execution log: {e}")
 
     return []
+
 
 def _get_safety_path() -> Path:
     """Get the safety state path."""
@@ -275,7 +274,7 @@ def _get_mode_description(mode) -> str:
 async def get_unified_status():
     """Get current unified trading engine status."""
     from datetime import datetime
-    
+
     state = _load_state()
     safety = _load_safety_state()
 
@@ -349,7 +348,7 @@ async def get_unified_status():
 
 @router.get("/transition-progress", response_model=TransitionProgressResponse)
 async def get_transition_progress(
-    target_mode: str = Query(..., description="Target mode to check progress for")
+    target_mode: str = Query(..., description="Target mode to check progress for"),
 ):
     """Get progress towards transitioning to a target mode."""
     from bot.trading_mode import TradingMode
@@ -485,18 +484,23 @@ async def get_execution_telemetry():
         )
 
     slippages = [l.get("slippage_pct") for l in logs if l.get("slippage_pct") is not None]
-    exec_times = [l.get("execution_time_ms") for l in logs if l.get("execution_time_ms") is not None]
+    exec_times = [
+        l.get("execution_time_ms") for l in logs if l.get("execution_time_ms") is not None
+    ]
     total_commission = sum((l.get("commission") or 0) for l in logs)
     symbol_map: Dict[str, Dict[str, Any]] = {}
 
     for log in logs:
         symbol = log.get("symbol", "unknown")
-        entry = symbol_map.setdefault(symbol, {
-            "trades": 0,
-            "slippages": [],
-            "exec_times": [],
-            "commission": 0,
-        })
+        entry = symbol_map.setdefault(
+            symbol,
+            {
+                "trades": 0,
+                "slippages": [],
+                "exec_times": [],
+                "commission": 0,
+            },
+        )
         slip = log.get("slippage_pct")
         if slip is not None:
             entry["slippages"].append(slip)
@@ -510,13 +514,15 @@ async def get_execution_telemetry():
     for symbol, entry in symbol_map.items():
         avg_slip = sum(entry["slippages"]) / len(entry["slippages"]) if entry["slippages"] else 0
         avg_exec = sum(entry["exec_times"]) / len(entry["exec_times"]) if entry["exec_times"] else 0
-        symbol_breakdown.append(ExecutionSymbolTelemetry(
-            symbol=symbol,
-            trades=entry["trades"],
-            avg_slippage_pct=avg_slip,
-            avg_execution_time_ms=avg_exec,
-            total_commission=entry["commission"],
-        ))
+        symbol_breakdown.append(
+            ExecutionSymbolTelemetry(
+                symbol=symbol,
+                trades=entry["trades"],
+                avg_slippage_pct=avg_slip,
+                avg_execution_time_ms=avg_exec,
+                total_commission=entry["commission"],
+            )
+        )
 
     return ExecutionTelemetryResponse(
         total_trades=len(logs),
@@ -618,6 +624,7 @@ async def get_mode_history():
 
 class ExchangeConnectionResponse(BaseModel):
     """Response for exchange connection test."""
+
     connected: bool
     exchange: str
     mode: str  # testnet or live
@@ -629,6 +636,7 @@ class ExchangeConnectionResponse(BaseModel):
 
 class OrderExecutionLogEntry(BaseModel):
     """Order execution log entry."""
+
     order_id: str
     timestamp: str
     symbol: str
@@ -645,6 +653,7 @@ class OrderExecutionLogEntry(BaseModel):
 
 class PendingOrderConfirmation(BaseModel):
     """Pending order awaiting confirmation."""
+
     order_id: str
     symbol: str
     side: str
@@ -678,9 +687,9 @@ class DetailedPositionsResponse(BaseModel):
     total_unrealized_pnl: float
 
 
-
 class ReadinessCheckResponse(BaseModel):
     """Real trading readiness check response."""
+
     ready: bool
     current_mode: str
     target_mode: str
@@ -692,7 +701,7 @@ class ReadinessCheckResponse(BaseModel):
 
 @router.get("/exchange/test-connection", response_model=ExchangeConnectionResponse)
 async def test_exchange_connection(
-    mode: str = Query(default="testnet", description="testnet or live")
+    mode: str = Query(default="testnet", description="testnet or live"),
 ):
     """
     Test connection to exchange.
@@ -728,12 +737,14 @@ async def test_exchange_connection(
 
         start_time = time.time()
 
-        exchange = ccxt.binance({
-            "apiKey": api_key,
-            "secret": api_secret,
-            "sandbox": mode == "testnet",
-            "options": {"defaultType": "spot"},
-        })
+        exchange = ccxt.binance(
+            {
+                "apiKey": api_key,
+                "secret": api_secret,
+                "sandbox": mode == "testnet",
+                "options": {"defaultType": "spot"},
+            }
+        )
 
         # Test connection by fetching balance
         balance = exchange.fetch_balance()
@@ -792,6 +803,7 @@ async def get_pending_orders():
             orders = json.load(f)
         # Filter out expired orders
         from datetime import datetime
+
         now = datetime.now().isoformat()
         return [o for o in orders if o.get("expires_at", "") > now]
     except (OSError, json.JSONDecodeError):
@@ -851,7 +863,9 @@ async def confirm_order(order_id: str, approve: bool = True):
 
 @router.get("/readiness-check", response_model=ReadinessCheckResponse)
 async def check_trading_readiness(
-    target_mode: str = Query(default=None, description="Target trading mode (if None, uses next mode in progression)")
+    target_mode: str = Query(
+        default=None, description="Target trading mode (if None, uses next mode in progression)"
+    ),
 ):
     """
     Comprehensive readiness check for transitioning to live trading.
@@ -871,7 +885,7 @@ async def check_trading_readiness(
     state = _load_state()
     current_mode_str = state.get("mode", "paper_live_data") if state else "paper_live_data"
     current_mode = TradingMode(current_mode_str)
-    
+
     # If no target_mode specified, get the next mode in progression
     if target_mode is None:
         progression = TradingMode.get_progression()
@@ -899,19 +913,23 @@ async def check_trading_readiness(
     api_secret = os.getenv("BINANCE_API_SECRET", "")
 
     if api_key and api_secret:
-        checks.append({
-            "name": "API Keys",
-            "status": "pass",
-            "message": "Binance API keys configured",
-            "icon": "🔑"
-        })
+        checks.append(
+            {
+                "name": "API Keys",
+                "status": "pass",
+                "message": "Binance API keys configured",
+                "icon": "🔑",
+            }
+        )
     else:
-        checks.append({
-            "name": "API Keys",
-            "status": "fail",
-            "message": "API keys not configured",
-            "icon": "🔑"
-        })
+        checks.append(
+            {
+                "name": "API Keys",
+                "status": "fail",
+                "message": "API keys not configured",
+                "icon": "🔑",
+            }
+        )
         blocking.append("Configure BINANCE_API_KEY and BINANCE_API_SECRET in .env file")
 
     # 2. Paper Trading Performance Check
@@ -925,60 +943,72 @@ async def check_trading_readiness(
         # Check minimum trades
         min_trades_required = 100 if target == TradingMode.LIVE_LIMITED else 200
         if total_trades >= min_trades_required:
-            checks.append({
-                "name": "Trade Count",
-                "status": "pass",
-                "message": f"{total_trades} trades completed (min: {min_trades_required})",
-                "icon": "📊"
-            })
+            checks.append(
+                {
+                    "name": "Trade Count",
+                    "status": "pass",
+                    "message": f"{total_trades} trades completed (min: {min_trades_required})",
+                    "icon": "📊",
+                }
+            )
         else:
-            checks.append({
-                "name": "Trade Count",
-                "status": "fail",
-                "message": f"{total_trades}/{min_trades_required} trades",
-                "icon": "📊"
-            })
+            checks.append(
+                {
+                    "name": "Trade Count",
+                    "status": "fail",
+                    "message": f"{total_trades}/{min_trades_required} trades",
+                    "icon": "📊",
+                }
+            )
             blocking.append(f"Complete {min_trades_required - total_trades} more paper trades")
 
         # Check win rate
         min_win_rate = 0.45
         if win_rate >= min_win_rate:
-            checks.append({
-                "name": "Win Rate",
-                "status": "pass",
-                "message": f"{win_rate:.1%} (min: {min_win_rate:.0%})",
-                "icon": "🎯"
-            })
+            checks.append(
+                {
+                    "name": "Win Rate",
+                    "status": "pass",
+                    "message": f"{win_rate:.1%} (min: {min_win_rate:.0%})",
+                    "icon": "🎯",
+                }
+            )
         else:
-            checks.append({
-                "name": "Win Rate",
-                "status": "fail",
-                "message": f"{win_rate:.1%} (need {min_win_rate:.0%})",
-                "icon": "🎯"
-            })
+            checks.append(
+                {
+                    "name": "Win Rate",
+                    "status": "fail",
+                    "message": f"{win_rate:.1%} (need {min_win_rate:.0%})",
+                    "icon": "🎯",
+                }
+            )
             blocking.append(f"Improve win rate to at least {min_win_rate:.0%}")
 
         # Check drawdown
         max_allowed_dd = 0.12
         if max_drawdown <= max_allowed_dd:
-            checks.append({
-                "name": "Max Drawdown",
-                "status": "pass",
-                "message": f"{max_drawdown:.1%} (max allowed: {max_allowed_dd:.0%})",
-                "icon": "📉"
-            })
+            checks.append(
+                {
+                    "name": "Max Drawdown",
+                    "status": "pass",
+                    "message": f"{max_drawdown:.1%} (max allowed: {max_allowed_dd:.0%})",
+                    "icon": "📉",
+                }
+            )
         else:
-            checks.append({
-                "name": "Max Drawdown",
-                "status": "warn",
-                "message": f"{max_drawdown:.1%} exceeds {max_allowed_dd:.0%}",
-                "icon": "📉"
-            })
+            checks.append(
+                {
+                    "name": "Max Drawdown",
+                    "status": "warn",
+                    "message": f"{max_drawdown:.1%} exceeds {max_allowed_dd:.0%}",
+                    "icon": "📉",
+                }
+            )
             warnings.append("High drawdown - consider adjusting risk parameters")
 
         # Check days in mode (NEW: This is critical for mode transitions)
         days_in_mode = state.get("days_in_mode", 0)
-        
+
         # Get required days based on transition path
         required_days = 0
         if current_mode == TradingMode.PAPER_LIVE_DATA and target == TradingMode.TESTNET:
@@ -987,96 +1017,118 @@ async def check_trading_readiness(
             required_days = 14
         elif current_mode == TradingMode.LIVE_LIMITED and target == TradingMode.LIVE_FULL:
             required_days = 30
-        
+
         if required_days > 0:
             if days_in_mode >= required_days:
-                checks.append({
-                    "name": "Time in Mode",
-                    "status": "pass",
-                    "message": f"{days_in_mode} days in current mode (min: {required_days})",
-                    "icon": "⏰"
-                })
+                checks.append(
+                    {
+                        "name": "Time in Mode",
+                        "status": "pass",
+                        "message": f"{days_in_mode} days in current mode (min: {required_days})",
+                        "icon": "⏰",
+                    }
+                )
             else:
-                checks.append({
-                    "name": "Time in Mode",
-                    "status": "fail",
-                    "message": f"{days_in_mode}/{required_days} days in current mode",
-                    "icon": "⏰"
-                })
+                checks.append(
+                    {
+                        "name": "Time in Mode",
+                        "status": "fail",
+                        "message": f"{days_in_mode}/{required_days} days in current mode",
+                        "icon": "⏰",
+                    }
+                )
                 days_remaining = required_days - days_in_mode
-                blocking.append(f"Wait {days_remaining} more day(s) in current mode before transitioning")
+                blocking.append(
+                    f"Wait {days_remaining} more day(s) in current mode before transitioning"
+                )
     else:
-        checks.append({
-            "name": "Paper Trading",
-            "status": "fail",
-            "message": "No paper trading history found",
-            "icon": "📊"
-        })
+        checks.append(
+            {
+                "name": "Paper Trading",
+                "status": "fail",
+                "message": "No paper trading history found",
+                "icon": "📊",
+            }
+        )
         blocking.append("Complete paper trading first before going live")
 
     # 3. Safety Configuration Check
     safety_state = _load_safety_state()
     if safety_state and not safety_state.get("emergency_stop_active"):
-        checks.append({
-            "name": "Safety System",
-            "status": "pass",
-            "message": "Safety controller active, no emergency stops",
-            "icon": "🛡️"
-        })
+        checks.append(
+            {
+                "name": "Safety System",
+                "status": "pass",
+                "message": "Safety controller active, no emergency stops",
+                "icon": "🛡️",
+            }
+        )
     else:
         if safety_state and safety_state.get("emergency_stop_active"):
-            checks.append({
-                "name": "Safety System",
-                "status": "fail",
-                "message": f"Emergency stop active: {safety_state.get('emergency_stop_reason')}",
-                "icon": "🛡️"
-            })
+            checks.append(
+                {
+                    "name": "Safety System",
+                    "status": "fail",
+                    "message": f"Emergency stop active: {safety_state.get('emergency_stop_reason')}",
+                    "icon": "🛡️",
+                }
+            )
             blocking.append("Clear emergency stop before proceeding")
         else:
-            checks.append({
-                "name": "Safety System",
-                "status": "warn",
-                "message": "Safety state not initialized",
-                "icon": "🛡️"
-            })
+            checks.append(
+                {
+                    "name": "Safety System",
+                    "status": "warn",
+                    "message": "Safety state not initialized",
+                    "icon": "🛡️",
+                }
+            )
 
     # 4. Telegram Notifications Check
     telegram_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
     telegram_chat = os.getenv("TELEGRAM_CHAT_ID", "")
 
     if telegram_token and telegram_chat:
-        checks.append({
-            "name": "Notifications",
-            "status": "pass",
-            "message": "Telegram notifications configured",
-            "icon": "📱"
-        })
+        checks.append(
+            {
+                "name": "Notifications",
+                "status": "pass",
+                "message": "Telegram notifications configured",
+                "icon": "📱",
+            }
+        )
     else:
-        checks.append({
-            "name": "Notifications",
-            "status": "warn",
-            "message": "Telegram not configured - recommended for live trading",
-            "icon": "📱"
-        })
+        checks.append(
+            {
+                "name": "Notifications",
+                "status": "warn",
+                "message": "Telegram not configured - recommended for live trading",
+                "icon": "📱",
+            }
+        )
         recommendations.append("Configure Telegram for real-time trade alerts")
 
     # 5. Capital Limits Check
     if target == TradingMode.LIVE_LIMITED:
-        checks.append({
-            "name": "Capital Limit",
-            "status": "pass",
-            "message": "$100 max capital enforced for live_limited mode",
-            "icon": "💰"
-        })
+        checks.append(
+            {
+                "name": "Capital Limit",
+                "status": "pass",
+                "message": "$100 max capital enforced for live_limited mode",
+                "icon": "💰",
+            }
+        )
         recommendations.append("Start with small amounts ($20-50) to validate execution")
 
     # Add general recommendations
-    recommendations.extend([
-        "Test with Binance Testnet first before using real funds",
-        "Monitor first few live trades closely for any issues",
-        "Keep emergency stop accessible on your dashboard",
-        "Review execution log after each trade for slippage",
-    ])
+    recommendations.extend(
+        [
+            "Test with Binance Testnet first before using real funds",
+            "Monitor first few live trades closely for any issues",
+            "Keep emergency stop accessible on your dashboard",
+            "Review execution log after each trade for slippage",
+        ]
+    )
 
     ready = len(blocking) == 0
 
@@ -1095,42 +1147,46 @@ async def check_trading_readiness(
 async def get_positions():
     """
     Get currently open positions.
-    
+
     Returns list of all open positions with entry price, current price,
     unrealized P&L, and other position details.
     """
     state_path = Path("data/unified_trading/state.json")
-    
+
     if not state_path.exists():
         return {"positions": [], "total_open": 0}
-    
+
     try:
         with open(state_path) as f:
             state = json.load(f)
-        
+
         positions = state.get("positions", {})
         position_list = []
-        
+
         for symbol, pos_data in positions.items():
             if isinstance(pos_data, dict):
-                position_list.append({
-                    "symbol": symbol,
-                    "side": pos_data.get("side", "LONG"),
-                    "quantity": pos_data.get("quantity", 0),
-                    "entry_price": pos_data.get("entry_price", 0),
-                    "current_price": pos_data.get("current_price", pos_data.get("entry_price", 0)),
-                    "unrealized_pnl": pos_data.get("unrealized_pnl", 0),
-                    "unrealized_pnl_pct": pos_data.get("unrealized_pnl_pct", 0),
-                    "entry_time": pos_data.get("entry_time", ""),
-                    "stop_loss": pos_data.get("stop_loss", 0),
-                    "take_profit": pos_data.get("take_profit", 0),
-                })
-        
+                position_list.append(
+                    {
+                        "symbol": symbol,
+                        "side": pos_data.get("side", "LONG"),
+                        "quantity": pos_data.get("quantity", 0),
+                        "entry_price": pos_data.get("entry_price", 0),
+                        "current_price": pos_data.get(
+                            "current_price", pos_data.get("entry_price", 0)
+                        ),
+                        "unrealized_pnl": pos_data.get("unrealized_pnl", 0),
+                        "unrealized_pnl_pct": pos_data.get("unrealized_pnl_pct", 0),
+                        "entry_time": pos_data.get("entry_time", ""),
+                        "stop_loss": pos_data.get("stop_loss", 0),
+                        "take_profit": pos_data.get("take_profit", 0),
+                    }
+                )
+
         return {
             "positions": position_list,
             "total_open": len(position_list),
         }
-    
+
     except (OSError, json.JSONDecodeError):
         return {"positions": [], "total_open": 0}
 
@@ -1140,9 +1196,7 @@ async def get_detailed_positions():
     """Return enriched position data for every open position."""
     state = _load_state()
     if not state:
-        return DetailedPositionsResponse(
-            positions=[], total_market_value=0, total_unrealized_pnl=0
-        )
+        return DetailedPositionsResponse(positions=[], total_market_value=0, total_unrealized_pnl=0)
 
     current_balance = state.get("current_balance", 0) or 0
     raw_positions = state.get("positions", {}) or {}
@@ -1170,26 +1224,28 @@ async def get_detailed_positions():
         total_market_value += market_value
         total_unrealized_pnl += unrealized_pnl
 
-        entries.append({
-            "symbol": symbol,
-            "side": pos_data.get("side", "LONG"),
-            "quantity": quantity,
-            "entry_price": entry_price,
-            "current_price": current_price,
-            "market_value": market_value,
-            "unrealized_pnl": unrealized_pnl,
-            "unrealized_pnl_pct": unrealized_pct,
-            "entry_time": pos_data.get("entry_time", ""),
-            "stop_loss": pos_data.get("stop_loss"),
-            "take_profit": pos_data.get("take_profit"),
-        })
+        entries.append(
+            {
+                "symbol": symbol,
+                "side": pos_data.get("side", "LONG"),
+                "quantity": quantity,
+                "entry_price": entry_price,
+                "current_price": current_price,
+                "market_value": market_value,
+                "unrealized_pnl": unrealized_pnl,
+                "unrealized_pnl_pct": unrealized_pct,
+                "entry_time": pos_data.get("entry_time", ""),
+                "stop_loss": pos_data.get("stop_loss"),
+                "take_profit": pos_data.get("take_profit"),
+            }
+        )
 
-    portfolio_value = current_balance + total_market_value if current_balance + total_market_value else 0
+    portfolio_value = (
+        current_balance + total_market_value if current_balance + total_market_value else 0
+    )
     detailed_positions = []
     for entry in entries:
-        pct_of_portfolio = (
-            entry["market_value"] / portfolio_value if portfolio_value else 0
-        )
+        pct_of_portfolio = entry["market_value"] / portfolio_value if portfolio_value else 0
         detailed_positions.append(
             PositionDetail(
                 symbol=entry["symbol"],
@@ -1218,21 +1274,21 @@ async def get_detailed_positions():
 async def get_performance(days: int = Query(default=7, ge=1, le=365)):
     """
     Get performance metrics for the last N days.
-    
+
     Returns daily P&L, win rate, trade count, and other metrics
     for the specified lookback period.
     """
     state_path = Path("data/unified_trading/state.json")
     equity_path = Path("data/unified_trading/equity.json")
     trades_path = Path("data/unified_trading/trades.json")
-    
+
     try:
         # Get current state
         state_data = {}
         if state_path.exists():
             with open(state_path) as f:
                 state_data = json.load(f)
-        
+
         # Get recent trades
         recent_trades = []
         if trades_path.exists():
@@ -1240,6 +1296,7 @@ async def get_performance(days: int = Query(default=7, ge=1, le=365)):
                 all_trades = json.load(f)
                 # Get trades from last N days
                 from datetime import datetime, timedelta
+
                 cutoff_time = datetime.now() - timedelta(days=days)
                 for trade in all_trades:
                     try:
@@ -1248,17 +1305,31 @@ async def get_performance(days: int = Query(default=7, ge=1, le=365)):
                             recent_trades.append(trade)
                     except (ValueError, KeyError):
                         pass
-        
+
         # Calculate metrics
         total_trades = len(recent_trades)
         winning_trades = len([t for t in recent_trades if (t.get("pnl", 0) or 0) > 0])
         losing_trades = len([t for t in recent_trades if (t.get("pnl", 0) or 0) < 0])
         win_rate = (winning_trades / total_trades * 100) if total_trades > 0 else 0
-        
+
         total_pnl = sum(t.get("pnl", 0) or 0 for t in recent_trades)
-        avg_win = (sum(t.get("pnl", 0) or 0 for t in recent_trades if (t.get("pnl", 0) or 0) > 0) / winning_trades) if winning_trades > 0 else 0
-        avg_loss = (sum(t.get("pnl", 0) or 0 for t in recent_trades if (t.get("pnl", 0) or 0) < 0) / losing_trades) if losing_trades > 0 else 0
-        
+        avg_win = (
+            (
+                sum(t.get("pnl", 0) or 0 for t in recent_trades if (t.get("pnl", 0) or 0) > 0)
+                / winning_trades
+            )
+            if winning_trades > 0
+            else 0
+        )
+        avg_loss = (
+            (
+                sum(t.get("pnl", 0) or 0 for t in recent_trades if (t.get("pnl", 0) or 0) < 0)
+                / losing_trades
+            )
+            if losing_trades > 0
+            else 0
+        )
+
         return {
             "days": days,
             "total_trades": total_trades,
@@ -1271,7 +1342,7 @@ async def get_performance(days: int = Query(default=7, ge=1, le=365)):
             "current_balance": state_data.get("current_balance", 0),
             "initial_capital": state_data.get("initial_capital", 0),
         }
-    
+
     except (OSError, json.JSONDecodeError) as e:
         return {
             "days": days,
@@ -1343,6 +1414,7 @@ async def get_advanced_analytics(days: int = Query(default=30, ge=1, le=365)):
         # Filter by days
         if trades and days < 365:
             from datetime import datetime, timedelta
+
             cutoff = datetime.now() - timedelta(days=days)
             filtered = []
             for t in trades:
@@ -1367,47 +1439,38 @@ async def get_advanced_analytics(days: int = Query(default=30, ge=1, le=365)):
         return {
             "days": days,
             "trades_analyzed": metrics.total_trades,
-
             # Core metrics
             "win_rate": round(metrics.win_rate * 100, 1),
             "profit_factor": round(metrics.profit_factor, 2),
             "expectancy": round(metrics.expectancy, 2),
             "expectancy_pct": round(metrics.expectancy_pct, 2),
-
             # Risk-adjusted returns
             "sharpe_ratio": round(metrics.sharpe_ratio, 2),
             "sortino_ratio": round(metrics.sortino_ratio, 2),
             "calmar_ratio": round(metrics.calmar_ratio, 2),
-
             # P&L
             "total_pnl": round(metrics.total_pnl, 2),
             "total_pnl_pct": round(metrics.total_pnl_pct, 2),
             "avg_win": round(metrics.avg_win, 2),
             "avg_loss": round(metrics.avg_loss, 2),
             "avg_trade": round(metrics.avg_trade, 2),
-
             # Drawdown
             "max_drawdown_pct": round(metrics.max_drawdown_pct, 2),
             "current_drawdown_pct": round(metrics.current_drawdown_pct, 2),
-
             # Streaks
             "max_win_streak": metrics.max_win_streak,
             "max_loss_streak": metrics.max_loss_streak,
             "current_streak": metrics.current_streak,
             "current_streak_type": metrics.current_streak_type,
-
             # R-Multiple
             "avg_r_multiple": round(metrics.avg_r_multiple, 2),
             "total_r": round(metrics.total_r, 2),
-
             # Rolling metrics
             "rolling_win_rate_10": round(metrics.rolling_win_rate_10 * 100, 1),
             "rolling_win_rate_20": round(metrics.rolling_win_rate_20 * 100, 1),
-
             # Quality
             "quality_score": round(metrics.quality_score, 1),
             "quality_grade": metrics.quality_grade,
-
             # By symbol
             "by_symbol": {
                 sym: {
@@ -1417,7 +1480,6 @@ async def get_advanced_analytics(days: int = Query(default=30, ge=1, le=365)):
                 }
                 for sym, data in metrics.by_symbol.items()
             },
-
             "calculated_at": metrics.calculated_at,
         }
 
@@ -1460,7 +1522,7 @@ async def get_trade_journal():
                     trades = json.load(f)
 
                 for trade in trades:
-                    if 'pnl' in trade and trade.get('pnl') is not None:
+                    if "pnl" in trade and trade.get("pnl") is not None:
                         # Check if trade not already in journal
                         ts = trade.get("timestamp", trade.get("entry_time", ""))
                         if not any(e.entry_time == ts for e in journal.entries):
@@ -1470,23 +1532,19 @@ async def get_trade_journal():
 
         return {
             "total_journal_entries": len(journal.entries),
-
             # Time analysis
             "best_trading_hours": summary.best_trading_hours,
             "worst_trading_hours": summary.worst_trading_hours,
             "best_trading_days": summary.best_trading_days,
             "worst_trading_days": summary.worst_trading_days,
-
             # Exit analysis
             "premature_exits": summary.premature_exits,
             "optimal_exits": summary.optimal_exits,
             "avg_profit_left_on_table": round(summary.avg_profit_left_on_table, 2),
-
             # Regime
             "best_regime": summary.best_regime,
             "worst_regime": summary.worst_regime,
             "regime_performance": summary.regime_performance,
-
             # Patterns
             "patterns": [
                 {
@@ -1498,11 +1556,9 @@ async def get_trade_journal():
                 }
                 for p in summary.patterns
             ],
-
             # Recommendations
             "top_lessons": summary.top_lessons,
             "recommendations": summary.recommendations,
-
             "calculated_at": summary.calculated_at,
         }
 
@@ -1541,7 +1597,7 @@ async def get_pnl_chart_data(limit: int = Query(default=100, le=1000)):
                     break
 
         # Filter closed trades with P&L
-        closed = [t for t in trades if 'pnl' in t and t.get('pnl') is not None]
+        closed = [t for t in trades if "pnl" in t and t.get("pnl") is not None]
         closed = closed[-limit:]  # Last N trades
 
         # Build P&L series
@@ -1550,19 +1606,21 @@ async def get_pnl_chart_data(limit: int = Query(default=100, le=1000)):
         peak_pnl = 0
 
         for trade in closed:
-            pnl = trade.get('pnl', 0) or 0
+            pnl = trade.get("pnl", 0) or 0
             cumulative_pnl += pnl
             peak_pnl = max(peak_pnl, cumulative_pnl)
             drawdown = peak_pnl - cumulative_pnl
 
-            pnl_series.append({
-                "timestamp": trade.get("timestamp", trade.get("exit_time", "")),
-                "symbol": trade.get("symbol", "unknown"),
-                "pnl": round(pnl, 2),
-                "pnl_pct": round(trade.get("pnl_pct", 0) or 0, 2),
-                "cumulative_pnl": round(cumulative_pnl, 2),
-                "drawdown": round(drawdown, 2),
-            })
+            pnl_series.append(
+                {
+                    "timestamp": trade.get("timestamp", trade.get("exit_time", "")),
+                    "symbol": trade.get("symbol", "unknown"),
+                    "pnl": round(pnl, 2),
+                    "pnl_pct": round(trade.get("pnl_pct", 0) or 0, 2),
+                    "cumulative_pnl": round(cumulative_pnl, 2),
+                    "drawdown": round(drawdown, 2),
+                }
+            )
 
         # Get equity curve if available
         equity_curve = []
@@ -1584,10 +1642,14 @@ async def get_pnl_chart_data(limit: int = Query(default=100, le=1000)):
             "equity_curve": equity_curve,
             "summary": {
                 "total_pnl": round(cumulative_pnl, 2),
-                "max_drawdown": round(peak_pnl - min((p["cumulative_pnl"] for p in pnl_series), default=0), 2) if pnl_series else 0,
+                "max_drawdown": round(
+                    peak_pnl - min((p["cumulative_pnl"] for p in pnl_series), default=0), 2
+                )
+                if pnl_series
+                else 0,
                 "winning_trades": len([p for p in pnl_series if p["pnl"] > 0]),
                 "losing_trades": len([p for p in pnl_series if p["pnl"] < 0]),
-            }
+            },
         }
 
     except Exception as e:
@@ -1603,7 +1665,7 @@ async def get_pnl_chart_data(limit: int = Query(default=100, le=1000)):
 async def get_daily_calendar(
     year: int = Query(default=None, description="Year (defaults to current)"),
     month: int = Query(default=None, ge=1, le=12, description="Month (defaults to current)"),
-    daily_target_pct: float = Query(default=1.0, description="Daily profit target percentage")
+    daily_target_pct: float = Query(default=1.0, description="Daily profit target percentage"),
 ):
     """
     Get daily P&L calendar data with 1% (or custom) target tracking.
@@ -1645,16 +1707,18 @@ async def get_daily_calendar(
                 initial_capital = state.get("initial_capital", 30000.0)
 
         # Group trades by day
-        daily_data = defaultdict(lambda: {
-            "pnl": 0.0,
-            "pnl_pct": 0.0,
-            "trades": 0,
-            "wins": 0,
-            "losses": 0,
-        })
+        daily_data = defaultdict(
+            lambda: {
+                "pnl": 0.0,
+                "pnl_pct": 0.0,
+                "trades": 0,
+                "wins": 0,
+                "losses": 0,
+            }
+        )
 
         for trade in trades:
-            if 'pnl' not in trade or trade.get('pnl') is None:
+            if "pnl" not in trade or trade.get("pnl") is None:
                 continue
 
             try:
@@ -1664,8 +1728,8 @@ async def get_daily_calendar(
                 trade_date = datetime.fromisoformat(ts.replace("Z", "+00:00")).date()
                 date_str = trade_date.isoformat()
 
-                pnl = trade.get('pnl', 0) or 0
-                pnl_pct = trade.get('pnl_pct', 0) or 0
+                pnl = trade.get("pnl", 0) or 0
+                pnl_pct = trade.get("pnl_pct", 0) or 0
 
                 daily_data[date_str]["pnl"] += pnl
                 daily_data[date_str]["pnl_pct"] += pnl_pct
@@ -1679,6 +1743,7 @@ async def get_daily_calendar(
 
         # Build calendar grid for the month
         import calendar as cal
+
         first_day = datetime(year, month, 1)
         days_in_month = cal.monthrange(year, month)[1]
         first_weekday = first_day.weekday()  # Monday = 0
@@ -1687,8 +1752,8 @@ async def get_daily_calendar(
         target_hit_days = 0
         profit_days = 0
         loss_days = 0
-        best_day = {"date": "", "pnl_pct": float('-inf')}
-        worst_day = {"date": "", "pnl_pct": float('inf')}
+        best_day = {"date": "", "pnl_pct": float("-inf")}
+        worst_day = {"date": "", "pnl_pct": float("inf")}
         monthly_pnl = 0.0
         monthly_pnl_pct = 0.0
         trading_days = 0
@@ -1741,26 +1806,30 @@ async def get_daily_calendar(
             else:
                 status = "breakeven"
 
-            calendar_days.append({
-                "day": day,
-                "date": date_str,
-                "weekday": weekday,
-                "pnl": round(pnl, 2),
-                "pnl_pct": round(pnl_pct, 2),
-                "trades": trades_count,
-                "wins": wins,
-                "losses": losses,
-                "target_hit": target_hit,
-                "target_progress": round((pnl_pct / daily_target_pct) * 100, 1) if daily_target_pct > 0 else 0,
-                "status": status,
-                "is_today": is_today,
-                "is_weekend": is_weekend,
-            })
+            calendar_days.append(
+                {
+                    "day": day,
+                    "date": date_str,
+                    "weekday": weekday,
+                    "pnl": round(pnl, 2),
+                    "pnl_pct": round(pnl_pct, 2),
+                    "trades": trades_count,
+                    "wins": wins,
+                    "losses": losses,
+                    "target_hit": target_hit,
+                    "target_progress": round((pnl_pct / daily_target_pct) * 100, 1)
+                    if daily_target_pct > 0
+                    else 0,
+                    "status": status,
+                    "is_today": is_today,
+                    "is_weekend": is_weekend,
+                }
+            )
 
         # Fix infinity values
-        if best_day["pnl_pct"] == float('-inf'):
+        if best_day["pnl_pct"] == float("-inf"):
             best_day = {"date": "", "pnl_pct": 0, "pnl": 0}
-        if worst_day["pnl_pct"] == float('inf'):
+        if worst_day["pnl_pct"] == float("inf"):
             worst_day = {"date": "", "pnl_pct": 0, "pnl": 0}
 
         return {
@@ -1774,7 +1843,9 @@ async def get_daily_calendar(
             "stats": {
                 "trading_days": trading_days,
                 "target_hit_days": target_hit_days,
-                "hit_rate": round((target_hit_days / trading_days * 100) if trading_days > 0 else 0, 1),
+                "hit_rate": round(
+                    (target_hit_days / trading_days * 100) if trading_days > 0 else 0, 1
+                ),
                 "profit_days": profit_days,
                 "loss_days": loss_days,
                 "monthly_pnl": round(monthly_pnl, 2),
@@ -1787,8 +1858,9 @@ async def get_daily_calendar(
                 "pnl": daily_data.get(now.strftime("%Y-%m-%d"), {}).get("pnl", 0),
                 "pnl_pct": daily_data.get(now.strftime("%Y-%m-%d"), {}).get("pnl_pct", 0),
                 "trades": daily_data.get(now.strftime("%Y-%m-%d"), {}).get("trades", 0),
-                "target_hit": daily_data.get(now.strftime("%Y-%m-%d"), {}).get("pnl_pct", 0) >= daily_target_pct,
-            }
+                "target_hit": daily_data.get(now.strftime("%Y-%m-%d"), {}).get("pnl_pct", 0)
+                >= daily_target_pct,
+            },
         }
 
     except Exception as e:
@@ -1837,7 +1909,9 @@ async def get_slippage_analysis():
         # Calculate averages per symbol
         for symbol in by_symbol:
             data = by_symbol[symbol]
-            data["avg_slippage_pct"] = data["total_slippage"] / data["trades"] if data["trades"] > 0 else 0
+            data["avg_slippage_pct"] = (
+                data["total_slippage"] / data["trades"] if data["trades"] > 0 else 0
+            )
             data["max_slippage_pct"] = max(data["slippages"]) if data["slippages"] else 0
             del data["slippages"]
             del data["total_slippage"]
@@ -1867,12 +1941,14 @@ async def get_slippage_analysis():
 
 class ClosePositionRequest(BaseModel):
     """Request to close a position."""
+
     symbol: str
     reason: Optional[str] = "Manual closure"
 
 
 class ClosePositionResponse(BaseModel):
     """Response for position closure."""
+
     success: bool
     symbol: str
     closed_qty: float
@@ -1885,52 +1961,48 @@ class ClosePositionResponse(BaseModel):
 async def close_position(request: ClosePositionRequest):
     """
     Manually close an open position.
-    
+
     This endpoint allows manual liquidation of positions during emergency stops
     or for manual portfolio management.
     """
     import os
     from datetime import datetime
-    
+
     state_path = _get_state_path()
-    
+
     if not state_path.exists():
         raise HTTPException(status_code=404, detail="State file not found")
-    
+
     try:
         # Load current state
         with open(state_path) as f:
             state = json.load(f)
-        
+
         positions = state.get("positions", {})
-        
+
         if request.symbol not in positions:
             raise HTTPException(
-                status_code=404,
-                detail=f"No open position found for {request.symbol}"
+                status_code=404, detail=f"No open position found for {request.symbol}"
             )
-        
+
         position = positions[request.symbol]
         qty = position.get("quantity", position.get("qty", 0))
         entry_price = position.get("entry_price", 0)
         side = position.get("side", "LONG").upper()
-        
+
         if qty == 0:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Position has zero quantity"
-            )
-        
+            raise HTTPException(status_code=400, detail=f"Position has zero quantity")
+
         # Get current market price (use entry price as fallback for emergency closures)
         # In production, this should fetch from exchange
         close_price = entry_price  # Simplified for emergency closure
-        
+
         # Calculate P&L
         if side == "LONG":
             pnl = (close_price - entry_price) * qty
         else:
             pnl = (entry_price - close_price) * qty
-        
+
         # Update state
         del positions[request.symbol]
         state["positions"] = positions
@@ -1938,7 +2010,7 @@ async def close_position(request: ClosePositionRequest):
         state["total_pnl"] = state.get("total_pnl", 0) + pnl
         state["daily_pnl"] = state.get("daily_pnl", 0) + pnl
         state["timestamp"] = datetime.utcnow().isoformat()
-        
+
         # Log closure
         closure_log = {
             "timestamp": datetime.utcnow().isoformat(),
@@ -1949,34 +2021,31 @@ async def close_position(request: ClosePositionRequest):
             "close_price": close_price,
             "pnl": pnl,
             "reason": request.reason,
-            "type": "manual_closure"
+            "type": "manual_closure",
         }
-        
+
         # Append to trade history
         if "trade_history" not in state:
             state["trade_history"] = []
         state["trade_history"].append(closure_log)
-        
+
         # Save updated state
-        with open(state_path, 'w') as f:
+        with open(state_path, "w") as f:
             json.dump(state, f, indent=2)
-        
+
         return ClosePositionResponse(
             success=True,
             symbol=request.symbol,
             closed_qty=qty,
             close_price=close_price,
             pnl=pnl,
-            message=f"Position closed successfully: {side} {qty} @ ${close_price:.2f}, P&L: ${pnl:.2f}"
+            message=f"Position closed successfully: {side} {qty} @ ${close_price:.2f}, P&L: ${pnl:.2f}",
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error closing position: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error closing position: {str(e)}")
 
 
 # =============================================================================
@@ -1986,6 +2055,7 @@ async def close_position(request: ClosePositionRequest):
 
 class BacktestRequest(BaseModel):
     """Request model for running a backtest."""
+
     symbol: str = "BTC/USDT"
     days: int = 90
     model_type: str = "gradient_boosting"
@@ -1997,6 +2067,7 @@ class BacktestRequest(BaseModel):
 
 class BacktestResponse(BaseModel):
     """Response model for backtest results."""
+
     success: bool
     symbol: str
     days: int
@@ -2203,7 +2274,7 @@ async def get_model_status() -> Dict[str, Any]:
 
 @router.get("/models/predictions")
 async def get_model_predictions(
-    symbol: str = Query(default="BTC/USDT", description="Trading symbol")
+    symbol: str = Query(default="BTC/USDT", description="Trading symbol"),
 ) -> Dict[str, Any]:
     """
     Get current model predictions for a symbol.
@@ -2241,7 +2312,7 @@ async def get_model_predictions(
 
 @router.get("/models/onchain")
 async def get_onchain_metrics(
-    symbol: str = Query(default="BTC/USDT", description="Trading symbol")
+    symbol: str = Query(default="BTC/USDT", description="Trading symbol"),
 ) -> Dict[str, Any]:
     """
     Get on-chain metrics for a symbol.

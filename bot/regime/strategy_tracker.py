@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 class StrategyStatus(Enum):
     """Status of a strategy."""
+
     ACTIVE = "active"
     PAUSED = "paused"
     DISABLED = "disabled"
@@ -229,9 +230,7 @@ class StrategyTracker:
 
         self._trades[trade_id] = trade
 
-        logger.info(
-            f"Trade entry: {strategy_id} | {side} {quantity} {symbol} @ {entry_price}"
-        )
+        logger.info(f"Trade entry: {strategy_id} | {side} {quantity} {symbol} @ {entry_price}")
 
         return trade_id
 
@@ -273,7 +272,7 @@ class StrategyTracker:
 
         logger.info(
             f"Trade exit: {trade.strategy_id} | {trade.side} @ {exit_price} | "
-            f"P&L: ${trade.pnl:.2f} ({trade.pnl_pct*100:.2f}%)"
+            f"P&L: ${trade.pnl:.2f} ({trade.pnl_pct * 100:.2f}%)"
         )
 
         self._save_data()
@@ -322,7 +321,7 @@ class StrategyTracker:
         # Profit factor
         gross_profit = sum(wins)
         gross_loss = abs(sum(losses))
-        perf.profit_factor = gross_profit / gross_loss if gross_loss > 0 else float('inf')
+        perf.profit_factor = gross_profit / gross_loss if gross_loss > 0 else float("inf")
 
         # Regime performance
         if trade.regime:
@@ -339,10 +338,7 @@ class StrategyTracker:
 
         # Recent performance (last 30 days)
         recent_cutoff = datetime.now() - timedelta(days=30)
-        recent_trades = [
-            t for t in strategy_trades
-            if t.exit_time and t.exit_time > recent_cutoff
-        ]
+        recent_trades = [t for t in strategy_trades if t.exit_time and t.exit_time > recent_cutoff]
         perf.recent_trades = len(recent_trades)
         perf.recent_pnl = sum(t.pnl for t in recent_trades if t.pnl)
         recent_wins = len([t for t in recent_trades if t.pnl and t.pnl > 0])
@@ -418,10 +414,7 @@ class StrategyTracker:
         """Get recent trading activity."""
         cutoff = datetime.now() - timedelta(days=days)
 
-        recent = [
-            t.to_dict() for t in self._trade_history
-            if t.exit_time and t.exit_time > cutoff
-        ]
+        recent = [t.to_dict() for t in self._trade_history if t.exit_time and t.exit_time > cutoff]
 
         return sorted(recent, key=lambda x: x["exit_time"], reverse=True)[:20]
 
@@ -456,15 +449,17 @@ class StrategyTracker:
 
             lines.append(
                 f"{s.strategy_name:<25} {status_icon:<10} {s.total_trades:>8} "
-                f"{s.win_rate*100:>7.1f}% {pnl_color}{s.total_pnl:>11.2f} {s.profit_factor:>7.2f}"
+                f"{s.win_rate * 100:>7.1f}% {pnl_color}{s.total_pnl:>11.2f} {s.profit_factor:>7.2f}"
             )
 
-        lines.extend([
-            "-" * 80,
-            "",
-            "Legend: [ON]=Active [||]=Paused [X]=Disabled [?]=Testing",
-            "PF = Profit Factor (>1 is profitable)",
-        ])
+        lines.extend(
+            [
+                "-" * 80,
+                "",
+                "Legend: [ON]=Active [||]=Paused [X]=Disabled [?]=Testing",
+                "PF = Profit Factor (>1 is profitable)",
+            ]
+        )
 
         return "\n".join(lines)
 
@@ -530,7 +525,9 @@ class StrategyTracker:
                             entry_time=datetime.fromisoformat(tdata["entry_time"]),
                             entry_price=tdata["entry_price"],
                             quantity=tdata["quantity"],
-                            exit_time=datetime.fromisoformat(tdata["exit_time"]) if tdata.get("exit_time") else None,
+                            exit_time=datetime.fromisoformat(tdata["exit_time"])
+                            if tdata.get("exit_time")
+                            else None,
                             exit_price=tdata.get("exit_price"),
                             pnl=tdata.get("pnl"),
                             pnl_pct=tdata.get("pnl_pct"),
@@ -563,6 +560,7 @@ def get_tracker() -> StrategyTracker:
 # =============================================================================
 # Convenient Strategy Registration Helpers
 # =============================================================================
+
 
 def register_new_strategy(
     name: str,
@@ -647,13 +645,13 @@ def get_strategy_summary() -> str:
         f"Profitable: {summary['profitable_strategies']}",
         f"Total P&L: ${summary['total_pnl']:,.2f}",
         f"Trades: {summary['total_trades']}",
-        f"Win Rate: {summary['overall_win_rate']*100:.1f}%",
+        f"Win Rate: {summary['overall_win_rate'] * 100:.1f}%",
         "",
         "Top 3 Performers:",
     ]
 
-    for s in dashboard['top_performers'][:3]:
-        pnl = f"+${s['total_pnl']:.2f}" if s['total_pnl'] >= 0 else f"-${abs(s['total_pnl']):.2f}"
+    for s in dashboard["top_performers"][:3]:
+        pnl = f"+${s['total_pnl']:.2f}" if s["total_pnl"] >= 0 else f"-${abs(s['total_pnl']):.2f}"
         lines.append(f"  - {s['strategy_name']}: {pnl}")
 
     return "\n".join(lines)

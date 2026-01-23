@@ -22,6 +22,7 @@ import pandas as pd
 
 class StopType(Enum):
     """Types of stop loss mechanisms."""
+
     FIXED = "fixed"
     TRAILING_PERCENT = "trailing_percent"
     TRAILING_ATR = "trailing_atr"
@@ -31,6 +32,7 @@ class StopType(Enum):
 
 class ExitReason(Enum):
     """Reasons for position exit."""
+
     STOP_LOSS = "stop_loss"
     TAKE_PROFIT = "take_profit"
     TRAILING_STOP = "trailing_stop"
@@ -46,6 +48,7 @@ class ExitReason(Enum):
 @dataclass
 class TakeProfitLevel:
     """A single take-profit level."""
+
     price: float
     exit_percent: float  # Percentage of position to exit (0.0-1.0)
     triggered: bool = False
@@ -54,6 +57,7 @@ class TakeProfitLevel:
 @dataclass
 class PositionConfig:
     """Configuration for position management."""
+
     # Stop loss settings
     initial_stop_pct: float = 0.02  # 2% initial stop
     use_trailing_stop: bool = True
@@ -89,6 +93,7 @@ class PositionConfig:
 @dataclass
 class Position:
     """Represents an open position with advanced tracking."""
+
     symbol: str
     direction: str  # LONG or SHORT
     entry_price: float
@@ -101,7 +106,7 @@ class Position:
     current_stop: float
     stop_type: StopType = StopType.FIXED
     highest_price: float = 0.0  # For trailing (LONG)
-    lowest_price: float = float('inf')  # For trailing (SHORT)
+    lowest_price: float = float("inf")  # For trailing (SHORT)
 
     # Take profit tracking
     take_profit_levels: List[TakeProfitLevel] = field(default_factory=list)
@@ -201,15 +206,27 @@ class PositionManager:
         if self.config.use_multiple_tp:
             if direction == "LONG":
                 tp_levels = [
-                    TakeProfitLevel(entry_price * (1 + self.config.tp1_pct), self.config.tp1_exit_pct),
-                    TakeProfitLevel(entry_price * (1 + self.config.tp2_pct), self.config.tp2_exit_pct),
-                    TakeProfitLevel(entry_price * (1 + self.config.tp3_pct), self.config.tp3_exit_pct),
+                    TakeProfitLevel(
+                        entry_price * (1 + self.config.tp1_pct), self.config.tp1_exit_pct
+                    ),
+                    TakeProfitLevel(
+                        entry_price * (1 + self.config.tp2_pct), self.config.tp2_exit_pct
+                    ),
+                    TakeProfitLevel(
+                        entry_price * (1 + self.config.tp3_pct), self.config.tp3_exit_pct
+                    ),
                 ]
             else:
                 tp_levels = [
-                    TakeProfitLevel(entry_price * (1 - self.config.tp1_pct), self.config.tp1_exit_pct),
-                    TakeProfitLevel(entry_price * (1 - self.config.tp2_pct), self.config.tp2_exit_pct),
-                    TakeProfitLevel(entry_price * (1 - self.config.tp3_pct), self.config.tp3_exit_pct),
+                    TakeProfitLevel(
+                        entry_price * (1 - self.config.tp1_pct), self.config.tp1_exit_pct
+                    ),
+                    TakeProfitLevel(
+                        entry_price * (1 - self.config.tp2_pct), self.config.tp2_exit_pct
+                    ),
+                    TakeProfitLevel(
+                        entry_price * (1 - self.config.tp3_pct), self.config.tp3_exit_pct
+                    ),
                 ]
 
         position = Position(
@@ -304,16 +321,20 @@ class PositionManager:
         if position.direction == "LONG":
             if low <= position.current_stop:
                 exit_reason = (
-                    ExitReason.TRAILING_STOP if position.trailing_activated
-                    else ExitReason.BREAKEVEN_STOP if position.is_breakeven
+                    ExitReason.TRAILING_STOP
+                    if position.trailing_activated
+                    else ExitReason.BREAKEVEN_STOP
+                    if position.is_breakeven
                     else ExitReason.STOP_LOSS
                 )
                 return exit_reason, position.current_stop
         else:  # SHORT
             if high >= position.current_stop:
                 exit_reason = (
-                    ExitReason.TRAILING_STOP if position.trailing_activated
-                    else ExitReason.BREAKEVEN_STOP if position.is_breakeven
+                    ExitReason.TRAILING_STOP
+                    if position.trailing_activated
+                    else ExitReason.BREAKEVEN_STOP
+                    if position.is_breakeven
                     else ExitReason.STOP_LOSS
                 )
                 return exit_reason, position.current_stop
@@ -341,12 +362,14 @@ class PositionManager:
                 exit_size = position.current_size * tp.exit_percent
 
                 # Record partial exit
-                position.partial_exits.append({
-                    "price": tp.price,
-                    "size": exit_size,
-                    "level": i + 1,
-                    "timestamp": datetime.now().isoformat(),
-                })
+                position.partial_exits.append(
+                    {
+                        "price": tp.price,
+                        "size": exit_size,
+                        "level": i + 1,
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                )
 
                 # Update position size
                 position.current_size -= exit_size
@@ -358,7 +381,11 @@ class PositionManager:
                     pnl = (position.entry_price - tp.price) * exit_size
                 position.realized_pnl += pnl
 
-                exit_reasons = [ExitReason.PARTIAL_TP1, ExitReason.PARTIAL_TP2, ExitReason.PARTIAL_TP3]
+                exit_reasons = [
+                    ExitReason.PARTIAL_TP1,
+                    ExitReason.PARTIAL_TP2,
+                    ExitReason.PARTIAL_TP3,
+                ]
                 return exit_reasons[i], tp.price, exit_size
 
         return None, 0.0, 0.0
@@ -527,10 +554,7 @@ class PositionManager:
 
     def get_total_exposure(self) -> float:
         """Calculate total exposure across all positions."""
-        return sum(
-            p.current_size * p.entry_price
-            for p in self.positions.values()
-        )
+        return sum(p.current_size * p.entry_price for p in self.positions.values())
 
     def get_total_unrealized_pnl(self) -> float:
         """Get total unrealized P&L across all positions."""

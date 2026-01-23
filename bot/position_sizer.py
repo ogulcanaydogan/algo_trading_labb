@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 class SizingMethod(Enum):
     """Position sizing methods."""
+
     FIXED_FRACTION = "fixed_fraction"
     KELLY = "kelly"
     HALF_KELLY = "half_kelly"
@@ -38,6 +39,7 @@ class SizingMethod(Enum):
 @dataclass
 class SizingResult:
     """Result from position sizing calculation."""
+
     symbol: str
     method: SizingMethod
     position_size: float  # Fraction of portfolio (0-1)
@@ -65,6 +67,7 @@ class SizingResult:
 @dataclass
 class PortfolioSizing:
     """Position sizing for entire portfolio."""
+
     positions: Dict[str, SizingResult]
     total_allocation: float
     cash_reserve: float
@@ -274,7 +277,7 @@ class PositionSizer:
             cov_matrix = np.outer(vols, vols) * corr_matrix
         else:
             # Assume zero correlation
-            cov_matrix = np.diag(vols ** 2)
+            cov_matrix = np.diag(vols**2)
 
         # Simple risk parity: inverse volatility weighting
         inv_vols = 1.0 / (vols + 1e-8)
@@ -588,7 +591,9 @@ class PositionSizer:
         # Check total allocation
         max_total = 1.0 - self.min_cash_reserve
         if total_allocation > max_total:
-            warnings.append(f"Total allocation ({total_allocation:.1%}) exceeds max ({max_total:.1%})")
+            warnings.append(
+                f"Total allocation ({total_allocation:.1%}) exceeds max ({max_total:.1%})"
+            )
 
             # Scale down proportionally
             scale = max_total / total_allocation
@@ -634,7 +639,10 @@ class PositionSizer:
         # If we have good win rate data, use Kelly or Half Kelly
         if historical_win_rate is not None and historical_win_rate > 0.5:
             if historical_win_rate > 0.6:
-                return SizingMethod.KELLY, f"Strong edge (WR={historical_win_rate:.1%}) supports Kelly sizing"
+                return (
+                    SizingMethod.KELLY,
+                    f"Strong edge (WR={historical_win_rate:.1%}) supports Kelly sizing",
+                )
             else:
                 return SizingMethod.HALF_KELLY, f"Moderate edge supports conservative Half Kelly"
 
@@ -647,7 +655,10 @@ class PositionSizer:
             if current_volatility > 0.50:  # Very high volatility
                 return SizingMethod.ATR_BASED, "High volatility - ATR-based sizing recommended"
             else:
-                return SizingMethod.VOLATILITY_ADJUSTED, "Volatility-adjusted sizing for consistency"
+                return (
+                    SizingMethod.VOLATILITY_ADJUSTED,
+                    "Volatility-adjusted sizing for consistency",
+                )
 
         # Default to fixed fraction with confidence scaling
         return SizingMethod.CONFIDENCE_SCALED, "Using confidence-scaled fixed fraction"

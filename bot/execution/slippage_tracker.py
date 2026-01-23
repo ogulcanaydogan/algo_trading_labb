@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class SlippageRecord:
     """Record of a single execution's slippage."""
+
     order_id: str
     symbol: str
     side: Literal["buy", "sell"]
@@ -86,6 +87,7 @@ class SlippageRecord:
 @dataclass
 class SlippageStats:
     """Aggregated slippage statistics."""
+
     total_trades: int = 0
     total_slippage_usd: float = 0.0
     avg_slippage_bps: float = 0.0
@@ -145,18 +147,20 @@ class SlippageTracker:
                     for record in data:
                         ts = datetime.fromisoformat(record["timestamp"])
                         if ts > cutoff:
-                            self.records.append(SlippageRecord(
-                                order_id=record["order_id"],
-                                symbol=record["symbol"],
-                                side=record["side"],
-                                expected_price=record["expected_price"],
-                                executed_price=record["executed_price"],
-                                quantity=record["quantity"],
-                                timestamp=ts,
-                                market_volatility=record.get("market_volatility"),
-                                order_type=record.get("order_type", "market"),
-                                exchange=record.get("exchange"),
-                            ))
+                            self.records.append(
+                                SlippageRecord(
+                                    order_id=record["order_id"],
+                                    symbol=record["symbol"],
+                                    side=record["side"],
+                                    expected_price=record["expected_price"],
+                                    executed_price=record["executed_price"],
+                                    quantity=record["quantity"],
+                                    timestamp=ts,
+                                    market_volatility=record.get("market_volatility"),
+                                    order_type=record.get("order_type", "market"),
+                                    exchange=record.get("exchange"),
+                                )
+                            )
                 logger.info(f"Loaded {len(self.records)} slippage records")
             except Exception as e:
                 logger.error(f"Error loading slippage history: {e}")
@@ -222,10 +226,7 @@ class SlippageTracker:
                 f"{record.slippage_bps:.1f} bps (${record.cost_usd:.2f})"
             )
         else:
-            logger.debug(
-                f"Slippage recorded: {symbol} {side} "
-                f"{record.slippage_bps:.1f} bps"
-            )
+            logger.debug(f"Slippage recorded: {symbol} {side} {record.slippage_bps:.1f} bps")
 
         return record
 
@@ -312,10 +313,7 @@ class SlippageTracker:
         if not stats.by_hour:
             return list(range(top_n))
 
-        sorted_hours = sorted(
-            stats.by_hour.items(),
-            key=lambda x: x[1]["avg_slippage_bps"]
-        )
+        sorted_hours = sorted(stats.by_hour.items(), key=lambda x: x[1]["avg_slippage_bps"])
         return [h for h, _ in sorted_hours[:top_n]]
 
     def get_worst_execution_hours(self, top_n: int = 3) -> List[int]:
@@ -325,9 +323,7 @@ class SlippageTracker:
             return []
 
         sorted_hours = sorted(
-            stats.by_hour.items(),
-            key=lambda x: x[1]["avg_slippage_bps"],
-            reverse=True
+            stats.by_hour.items(), key=lambda x: x[1]["avg_slippage_bps"], reverse=True
         )
         return [h for h, _ in sorted_hours[:top_n]]
 

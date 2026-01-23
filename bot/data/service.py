@@ -6,6 +6,7 @@ with automatic caching, provider selection, and failover support.
 """
 
 import logging
+import threading
 from datetime import datetime
 from typing import Dict, List, Optional, Type
 
@@ -29,7 +30,17 @@ from .models import (
     get_symbols_by_market,
 )
 
-logger = logging.getLogger(__name__)
+# Import core utilities for validation and rate limiting
+from bot.core import (
+    validate_ohlcv,
+    RateLimiter,
+    retry_async,
+    get_logger,
+    log_operation,
+    metrics,
+)
+
+logger = get_logger(__name__)
 
 
 class MarketDataService:
@@ -128,10 +139,23 @@ class MarketDataService:
         if adapter is None:
             raise ValueError(f"No adapter available for {symbol}")
 
-        # Fetch data
+        # Fetch data with metrics tracking
         try:
-            data = adapter.fetch_ohlcv(symbol, timeframe, limit)
-            df = adapter.to_dataframe(data)
+            with log_operation(f"fetch_ohlcv_{symbol}") as op_metrics:
+                data = adapter.fetch_ohlcv(symbol, timeframe, limit)
+                df = adapter.to_dataframe(data)
+
+            # Validate data quality
+            validation = validate_ohlcv(df)
+            if not validation.is_valid:
+                logger.warning(f"Data validation failed for {symbol}: {validation.errors}")
+                metrics.increment("data_validation_failures")
+            elif validation.warnings:
+                logger.debug(f"Data warnings for {symbol}: {validation.warnings}")
+
+            # Track metrics
+            metrics.increment("ohlcv_fetches")
+            metrics.timing("ohlcv_fetch_ms", op_metrics.duration_ms)
 
             # Cache result
             if use_cache and self.cache and not df.empty:
@@ -142,6 +166,7 @@ class MarketDataService:
 
         except Exception as e:
             logger.error(f"Error fetching {symbol} from {adapter.name}: {e}")
+            metrics.increment("ohlcv_fetch_errors")
             # Try fallback
             return self._fetch_with_fallback(symbol, timeframe, limit, adapter.name, e)
 
@@ -280,8 +305,7 @@ class MarketDataService:
         compatible = [
             (name, adapter)
             for name, adapter in self.adapters.items()
-            if market_type in adapter.supported_markets
-            and self._provider_health.get(name, True)
+            if market_type in adapter.supported_markets and self._provider_health.get(name, True)
         ]
 
         if not compatible:
@@ -296,10 +320,12 @@ class MarketDataService:
             return None
 
         # Sort by preference
-        compatible.sort(key=lambda x: (
-            not (x[1].supports_realtime and prefer_realtime),
-            -x[1].priority,
-        ))
+        compatible.sort(
+            key=lambda x: (
+                not (x[1].supports_realtime and prefer_realtime),
+                -x[1].priority,
+            )
+        )
 
         return compatible[0][1]
 
@@ -403,13 +429,16 @@ class MarketDataService:
         return list(ALL_SYMBOLS.keys())
 
 
-# Singleton instance for convenience
+# Singleton instance for convenience with thread-safe initialization
 _default_service: Optional[MarketDataService] = None
+_service_lock = threading.Lock()
 
 
 def get_market_data_service(data_dir: str = "data") -> MarketDataService:
     """
     Get or create the default MarketDataService instance.
+
+    Thread-safe using double-check locking pattern.
 
     Args:
         data_dir: Directory for cache and data storage
@@ -418,12 +447,17 @@ def get_market_data_service(data_dir: str = "data") -> MarketDataService:
         MarketDataService instance
     """
     global _default_service
+    # First check without lock (fast path)
     if _default_service is None:
-        _default_service = MarketDataService(data_dir=data_dir)
+        with _service_lock:
+            # Second check with lock (thread-safe)
+            if _default_service is None:
+                _default_service = MarketDataService(data_dir=data_dir)
     return _default_service
 
 
 def reset_market_data_service() -> None:
-    """Reset the default service instance."""
+    """Reset the default service instance. Thread-safe."""
     global _default_service
-    _default_service = None
+    with _service_lock:
+        _default_service = None

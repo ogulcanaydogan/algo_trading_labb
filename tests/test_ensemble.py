@@ -257,7 +257,7 @@ class TestModelEnsemble:
         result = ensemble.predict(np.array([1.0]), voting_method="majority")
 
         assert result.signal == "LONG"  # 2 out of 3 vote LONG
-        assert result.agreement_score == pytest.approx(2/3, rel=0.01)
+        assert result.agreement_score == pytest.approx(2 / 3, rel=0.01)
 
     def test_weighted_voting(self, ensemble):
         """Test weighted voting method."""

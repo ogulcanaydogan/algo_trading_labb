@@ -59,6 +59,28 @@ from .online_learning import (
     TradeExperience,
 )
 
+# Aggressive profit hunter
+from .aggressive_predictor import (
+    AggressiveProfitHunter,
+    AggressiveSignal,
+    AggressiveConfig,
+    SignalStrength,
+    MistakeLearner,
+    TradeOutcome,
+    create_aggressive_predictor,
+)
+
+# Profit optimizer
+from .profit_optimizer import (
+    ProfitOptimizer,
+    EntryOptimizer,
+    ExitOptimizer,
+    EntrySignal,
+    ExitSignal,
+    TradeState,
+    OptimizedLevels,
+)
+
 __all__ = [
     # Core ML
     "FeatureEngineer",
@@ -98,4 +120,20 @@ __all__ = [
     "OnlineLearningManager",
     "StreamingFeatureEngineer",
     "TradeExperience",
+    # Aggressive profit hunter
+    "AggressiveProfitHunter",
+    "AggressiveSignal",
+    "AggressiveConfig",
+    "SignalStrength",
+    "MistakeLearner",
+    "TradeOutcome",
+    "create_aggressive_predictor",
+    # Profit optimizer
+    "ProfitOptimizer",
+    "EntryOptimizer",
+    "ExitOptimizer",
+    "EntrySignal",
+    "ExitSignal",
+    "TradeState",
+    "OptimizedLevels",
 ]

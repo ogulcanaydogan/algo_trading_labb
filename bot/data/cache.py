@@ -128,8 +128,7 @@ class SQLiteCache(CacheBackend):
         """Get value if exists and not expired."""
         with sqlite3.connect(self.db_path) as conn:
             row = conn.execute(
-                "SELECT value, value_type, expiry FROM cache WHERE key = ?",
-                (key,)
+                "SELECT value, value_type, expiry FROM cache WHERE key = ?", (key,)
             ).fetchone()
 
             if row is None:
@@ -146,10 +145,13 @@ class SQLiteCache(CacheBackend):
         """Set value with TTL."""
         value_blob, value_type = self._serialize(value)
         with sqlite3.connect(self.db_path) as conn:
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT OR REPLACE INTO cache (key, value, value_type, expiry, created_at)
                 VALUES (?, ?, ?, ?, ?)
-            """, (key, value_blob, value_type, time.time() + ttl, time.time()))
+            """,
+                (key, value_blob, value_type, time.time() + ttl, time.time()),
+            )
             conn.commit()
 
     def delete(self, key: str) -> None:
@@ -167,10 +169,7 @@ class SQLiteCache(CacheBackend):
     def cleanup_expired(self) -> int:
         """Remove all expired entries. Returns count removed."""
         with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.execute(
-                "DELETE FROM cache WHERE expiry < ?",
-                (time.time(),)
-            )
+            cursor = conn.execute("DELETE FROM cache WHERE expiry < ?", (time.time(),))
             conn.commit()
             return cursor.rowcount
 
@@ -197,8 +196,7 @@ class SQLiteCache(CacheBackend):
         with sqlite3.connect(self.db_path) as conn:
             total = conn.execute("SELECT COUNT(*) FROM cache").fetchone()[0]
             active = conn.execute(
-                "SELECT COUNT(*) FROM cache WHERE expiry > ?",
-                (time.time(),)
+                "SELECT COUNT(*) FROM cache WHERE expiry > ?", (time.time(),)
             ).fetchone()[0]
             size_bytes = self.db_path.stat().st_size if self.db_path.exists() else 0
             return {
@@ -220,15 +218,15 @@ class CacheManager:
 
     # Default TTLs by data type (seconds)
     DEFAULT_TTLS = {
-        "ohlcv_1m": (15, 30),      # L1: 15s, L2: 30s
-        "ohlcv_5m": (30, 60),      # L1: 30s, L2: 60s
-        "ohlcv_15m": (60, 180),    # L1: 1m, L2: 3m
-        "ohlcv_1h": (300, 1800),   # L1: 5m, L2: 30m
-        "ohlcv_4h": (600, 3600),   # L1: 10m, L2: 1h
+        "ohlcv_1m": (15, 30),  # L1: 15s, L2: 30s
+        "ohlcv_5m": (30, 60),  # L1: 30s, L2: 60s
+        "ohlcv_15m": (60, 180),  # L1: 1m, L2: 3m
+        "ohlcv_1h": (300, 1800),  # L1: 5m, L2: 30m
+        "ohlcv_4h": (600, 3600),  # L1: 10m, L2: 1h
         "ohlcv_1d": (1800, 7200),  # L1: 30m, L2: 2h
-        "quote": (5, 0),           # L1 only: 5s (too fast for L2)
+        "quote": (5, 0),  # L1 only: 5s (too fast for L2)
         "symbol_info": (3600, 86400),  # L1: 1h, L2: 24h
-        "default": (60, 300),      # L1: 1m, L2: 5m
+        "default": (60, 300),  # L1: 1m, L2: 5m
     }
 
     def __init__(self, data_dir: str = "data"):
@@ -287,10 +285,7 @@ class CacheManager:
         count = 0
         # L2 can be queried
         with sqlite3.connect(self.l2.db_path) as conn:
-            cursor = conn.execute(
-                "DELETE FROM cache WHERE key LIKE ?",
-                (f"%{symbol}%",)
-            )
+            cursor = conn.execute("DELETE FROM cache WHERE key LIKE ?", (f"%{symbol}%",))
             count = cursor.rowcount
             conn.commit()
         return count

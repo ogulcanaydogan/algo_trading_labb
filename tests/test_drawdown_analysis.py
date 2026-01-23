@@ -82,13 +82,46 @@ class TestDrawdownAnalyzer:
         """Create sample equity curve with drawdowns."""
         # Equity curve: 10000 -> 10500 -> 9500 -> 9000 -> 10000 -> 10500
         return [
-            10000, 10100, 10200, 10300, 10400, 10500,  # Growth
-            10400, 10200, 10000, 9800, 9600, 9500,     # Drawdown 1
-            9600, 9700, 9800, 9900, 10000,              # Recovery
-            10100, 10200, 10300, 10400, 10500,          # Growth
-            10400, 10200, 10000, 9800, 9500, 9200, 9000,  # Drawdown 2
-            9200, 9400, 9600, 9800, 10000,              # Recovery
-            10100, 10200, 10300, 10400, 10500, 10600,  # Growth
+            10000,
+            10100,
+            10200,
+            10300,
+            10400,
+            10500,  # Growth
+            10400,
+            10200,
+            10000,
+            9800,
+            9600,
+            9500,  # Drawdown 1
+            9600,
+            9700,
+            9800,
+            9900,
+            10000,  # Recovery
+            10100,
+            10200,
+            10300,
+            10400,
+            10500,  # Growth
+            10400,
+            10200,
+            10000,
+            9800,
+            9500,
+            9200,
+            9000,  # Drawdown 2
+            9200,
+            9400,
+            9600,
+            9800,
+            10000,  # Recovery
+            10100,
+            10200,
+            10300,
+            10400,
+            10500,
+            10600,  # Growth
         ]
 
     def test_init(self, analyzer: DrawdownAnalyzer) -> None:
@@ -471,7 +504,23 @@ class TestDrawdownAnalyzer:
         """Test max drawdown duration calculation."""
         dates = [datetime(2024, 1, i) for i in range(1, 16)]
         # 14 day drawdown period
-        equity = [10000, 10500, 10200, 9800, 9400, 9000, 8800, 9000, 9200, 9400, 9600, 9800, 10000, 10200, 10500]
+        equity = [
+            10000,
+            10500,
+            10200,
+            9800,
+            9400,
+            9000,
+            8800,
+            9000,
+            9200,
+            9400,
+            9600,
+            9800,
+            10000,
+            10200,
+            10500,
+        ]
 
         analyzer.load_equity_curve(equity, dates)
 
@@ -532,8 +581,16 @@ class TestDrawdownAnalyzer:
     ) -> None:
         """Test with multiple small drawdowns."""
         equity = [
-            10000, 10100, 10000, 10100, 10050,  # Small oscillations
-            10100, 10000, 10100, 10050, 10100,
+            10000,
+            10100,
+            10000,
+            10100,
+            10050,  # Small oscillations
+            10100,
+            10000,
+            10100,
+            10050,
+            10100,
         ]
         analyzer.load_equity_curve(equity)
 
@@ -668,6 +725,7 @@ class TestDrawdownAnalyzer:
     ) -> None:
         """Test with large equity curve."""
         import numpy as np
+
         np.random.seed(42)
         equity = [10000]
         for _ in range(999):

@@ -23,15 +23,17 @@ import numpy as np
 
 class MarketCondition(Enum):
     """Market liquidity conditions."""
-    VERY_LIQUID = "very_liquid"      # Tight spreads, deep book
-    LIQUID = "liquid"                 # Normal conditions
-    MODERATE = "moderate"             # Wider spreads
-    ILLIQUID = "illiquid"            # Poor liquidity
-    STRESSED = "stressed"             # Extreme conditions
+
+    VERY_LIQUID = "very_liquid"  # Tight spreads, deep book
+    LIQUID = "liquid"  # Normal conditions
+    MODERATE = "moderate"  # Wider spreads
+    ILLIQUID = "illiquid"  # Poor liquidity
+    STRESSED = "stressed"  # Extreme conditions
 
 
 class OrderType(Enum):
     """Order types for slippage calculation."""
+
     MARKET = "market"
     LIMIT = "limit"
     STOP_MARKET = "stop_market"
@@ -41,17 +43,18 @@ class OrderType(Enum):
 @dataclass
 class SlippageConfig:
     """Configuration for slippage model."""
+
     # Base slippage parameters
-    base_slippage_bps: float = 5.0        # 5 basis points base slippage
-    min_slippage_bps: float = 1.0         # Minimum 1 bp
-    max_slippage_bps: float = 50.0        # Maximum 50 bp
+    base_slippage_bps: float = 5.0  # 5 basis points base slippage
+    min_slippage_bps: float = 1.0  # Minimum 1 bp
+    max_slippage_bps: float = 50.0  # Maximum 50 bp
 
     # Volume impact parameters
     volume_impact_coefficient: float = 0.1  # Impact per % of ADV
-    max_volume_pct_adv: float = 5.0        # Max 5% of ADV per trade
+    max_volume_pct_adv: float = 5.0  # Max 5% of ADV per trade
 
     # Volatility adjustment
-    volatility_multiplier: float = 2.0     # Slippage increases 2x with vol
+    volatility_multiplier: float = 2.0  # Slippage increases 2x with vol
 
     # Order type multipliers
     order_type_multipliers: Dict[OrderType, float] = field(default_factory=dict)
@@ -61,9 +64,9 @@ class SlippageConfig:
 
     # Time-of-day factors
     use_time_adjustments: bool = True
-    opening_multiplier: float = 1.5        # Higher slippage at open
-    closing_multiplier: float = 1.3        # Higher at close
-    overnight_multiplier: float = 2.0      # Higher for overnight gaps
+    opening_multiplier: float = 1.5  # Higher slippage at open
+    closing_multiplier: float = 1.3  # Higher at close
+    overnight_multiplier: float = 2.0  # Higher for overnight gaps
 
     # Tracking
     track_execution_quality: bool = True
@@ -73,8 +76,8 @@ class SlippageConfig:
         if not self.order_type_multipliers:
             self.order_type_multipliers = {
                 OrderType.MARKET: 1.0,
-                OrderType.LIMIT: 0.3,          # Lower slippage for limits
-                OrderType.STOP_MARKET: 1.5,    # Higher for stop markets
+                OrderType.LIMIT: 0.3,  # Lower slippage for limits
+                OrderType.STOP_MARKET: 1.5,  # Higher for stop markets
                 OrderType.STOP_LIMIT: 0.8,
             }
 
@@ -91,11 +94,12 @@ class SlippageConfig:
 @dataclass
 class SlippageEstimate:
     """Estimated slippage for a trade."""
-    expected_slippage_bps: float           # Expected basis points
-    expected_slippage_pct: float           # Expected percentage
-    expected_slippage_price: float         # Expected price impact
-    price_after_slippage: float            # Adjusted entry/exit price
-    confidence: float                      # Estimation confidence (0-1)
+
+    expected_slippage_bps: float  # Expected basis points
+    expected_slippage_pct: float  # Expected percentage
+    expected_slippage_price: float  # Expected price impact
+    price_after_slippage: float  # Adjusted entry/exit price
+    confidence: float  # Estimation confidence (0-1)
     components: Dict[str, float] = field(default_factory=dict)
     warnings: List[str] = field(default_factory=list)
 
@@ -114,19 +118,20 @@ class SlippageEstimate:
 @dataclass
 class ExecutionRecord:
     """Record of actual trade execution."""
+
     timestamp: datetime
     symbol: str
-    side: str                    # "buy" or "sell"
+    side: str  # "buy" or "sell"
     order_type: OrderType
-    expected_price: float        # Price at signal
-    executed_price: float        # Actual fill price
+    expected_price: float  # Price at signal
+    executed_price: float  # Actual fill price
     size: float
-    volume_at_time: float        # Market volume
-    spread_at_time: float        # Bid-ask spread
-    volatility: float            # Recent volatility
-    actual_slippage_bps: float   # Actual slippage
+    volume_at_time: float  # Market volume
+    spread_at_time: float  # Bid-ask spread
+    volatility: float  # Recent volatility
+    actual_slippage_bps: float  # Actual slippage
     estimated_slippage_bps: float  # What we predicted
-    estimation_error: float      # Prediction error
+    estimation_error: float  # Prediction error
 
     def to_dict(self) -> Dict:
         return {
@@ -225,11 +230,15 @@ class SlippageModel:
             volume_pct = (size / price) / adv * 100
 
             if volume_pct > self.config.max_volume_pct_adv:
-                warnings.append(f"Trade size ({volume_pct:.1f}%) exceeds {self.config.max_volume_pct_adv}% of ADV")
+                warnings.append(
+                    f"Trade size ({volume_pct:.1f}%) exceeds {self.config.max_volume_pct_adv}% of ADV"
+                )
                 volume_pct = min(volume_pct, self.config.max_volume_pct_adv * 2)
 
             # Square root model for market impact
-            volume_impact = self.config.volume_impact_coefficient * np.sqrt(volume_pct) * 100  # in bps
+            volume_impact = (
+                self.config.volume_impact_coefficient * np.sqrt(volume_pct) * 100
+            )  # in bps
             components["volume_impact"] = volume_impact
         elif size / price > 10000:  # Large trade without ADV data
             warnings.append("No ADV data - using conservative volume impact estimate")
@@ -274,11 +283,14 @@ class SlippageModel:
 
         # === Calculate Total Slippage ===
         base_with_spread = base_slippage + spread_component + volume_impact
-        total_slippage_bps = base_with_spread * vol_multiplier * order_mult * condition_mult * time_mult
+        total_slippage_bps = (
+            base_with_spread * vol_multiplier * order_mult * condition_mult * time_mult
+        )
 
         # Apply limits
-        total_slippage_bps = max(self.config.min_slippage_bps,
-                                 min(self.config.max_slippage_bps, total_slippage_bps))
+        total_slippage_bps = max(
+            self.config.min_slippage_bps, min(self.config.max_slippage_bps, total_slippage_bps)
+        )
 
         # Calculate price impact
         slippage_pct = total_slippage_bps / 10000
@@ -373,8 +385,7 @@ class SlippageModel:
         # Trim history
         cutoff = datetime.now() - timedelta(days=self.config.execution_history_days)
         self._execution_history[symbol] = [
-            r for r in self._execution_history[symbol]
-            if r.timestamp > cutoff
+            r for r in self._execution_history[symbol] if r.timestamp > cutoff
         ]
 
         # Update adaptive parameters
@@ -410,8 +421,7 @@ class SlippageModel:
 
         # Update volatility multiplier based on correlation
         vol_slippage_pairs = [
-            (r.volatility, r.actual_slippage_bps)
-            for r in recent if r.volatility > 0
+            (r.volatility, r.actual_slippage_bps) for r in recent if r.volatility > 0
         ]
 
         if len(vol_slippage_pairs) >= 10:
@@ -486,8 +496,8 @@ class SlippageModel:
 
         # Execution improvement (are we getting better?)
         if len(recent) >= 20:
-            first_half = np.mean([r.actual_slippage_bps for r in recent[:len(recent)//2]])
-            second_half = np.mean([r.actual_slippage_bps for r in recent[len(recent)//2:]])
+            first_half = np.mean([r.actual_slippage_bps for r in recent[: len(recent) // 2]])
+            second_half = np.mean([r.actual_slippage_bps for r in recent[len(recent) // 2 :]])
             improvement = first_half - second_half
         else:
             improvement = 0
@@ -502,7 +512,9 @@ class SlippageModel:
             "estimation_mae_bps": round(mae, 2),
             "estimation_bias_bps": round(bias, 2),
             "execution_improvement_bps": round(improvement, 2),
-            "adaptive_base_bps": round(self._adaptive_base.get(symbol, self.config.base_slippage_bps), 2),
+            "adaptive_base_bps": round(
+                self._adaptive_base.get(symbol, self.config.base_slippage_bps), 2
+            ),
         }
 
     def estimate_trade_cost(

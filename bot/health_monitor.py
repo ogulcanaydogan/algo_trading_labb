@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 class HealthStatus(Enum):
     """Health status levels."""
+
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"
@@ -33,6 +34,7 @@ class HealthStatus(Enum):
 
 class ComponentType(Enum):
     """Types of system components."""
+
     API = "api"
     ORCHESTRATOR = "orchestrator"
     DATA_FEED = "data_feed"
@@ -48,6 +50,7 @@ class ComponentType(Enum):
 @dataclass
 class ComponentHealth:
     """Health status of a single component."""
+
     name: str
     component_type: ComponentType
     status: HealthStatus = HealthStatus.UNKNOWN
@@ -77,6 +80,7 @@ class ComponentHealth:
 @dataclass
 class HealthCheckResult:
     """Result of a health check."""
+
     healthy: bool
     latency_ms: float
     message: str = ""
@@ -86,6 +90,7 @@ class HealthCheckResult:
 @dataclass
 class SystemHealth:
     """Overall system health status."""
+
     status: HealthStatus
     components: Dict[str, ComponentHealth]
     last_update: datetime
@@ -99,7 +104,9 @@ class SystemHealth:
             "last_update": self.last_update.isoformat(),
             "uptime_seconds": self.uptime_seconds,
             "alerts": self.alerts,
-            "healthy_count": sum(1 for c in self.components.values() if c.status == HealthStatus.HEALTHY),
+            "healthy_count": sum(
+                1 for c in self.components.values() if c.status == HealthStatus.HEALTHY
+            ),
             "total_count": len(self.components),
         }
 
@@ -202,9 +209,7 @@ class HealthMonitor:
             if asyncio.iscoroutinefunction(check_func):
                 result = await check_func()
             else:
-                result = await asyncio.get_event_loop().run_in_executor(
-                    None, check_func
-                )
+                result = await asyncio.get_event_loop().run_in_executor(None, check_func)
 
             latency = (time.monotonic() - start_time) * 1000
 
@@ -237,8 +242,10 @@ class HealthMonitor:
                         component.status = HealthStatus.DEGRADED
 
                     # Alert if threshold reached
-                    if (component.consecutive_failures >= self.alert_threshold
-                            and name not in self._alerted_components):
+                    if (
+                        component.consecutive_failures >= self.alert_threshold
+                        and name not in self._alerted_components
+                    ):
                         self._alerted_components.add(name)
                         await self._send_alert(name, component)
 
@@ -255,8 +262,10 @@ class HealthMonitor:
 
                 logger.error(f"Health check failed for {name}: {e}")
 
-                if (component.consecutive_failures >= self.alert_threshold
-                        and name not in self._alerted_components):
+                if (
+                    component.consecutive_failures >= self.alert_threshold
+                    and name not in self._alerted_components
+                ):
                     self._alerted_components.add(name)
                     await self._send_alert(name, component)
 
@@ -381,7 +390,7 @@ class HealthMonitor:
         while self._running:
             try:
                 await self.check_all()
-                self._save_state()
+                await self._save_state_async()
             except Exception as e:
                 logger.error(f"Health check cycle failed: {e}")
 
@@ -392,8 +401,22 @@ class HealthMonitor:
         self._running = False
         logger.info("Health monitor stopped")
 
+    async def _save_state_async(self) -> None:
+        """Save current health state to file (non-blocking)."""
+        try:
+            health = self.get_system_health()
+            data = health.to_dict()
+
+            def _write_state():
+                with open(self.state_file, "w") as f:
+                    json.dump(data, f, indent=2, default=str)
+
+            await asyncio.to_thread(_write_state)
+        except Exception as e:
+            logger.error(f"Failed to save health state: {e}")
+
     def _save_state(self) -> None:
-        """Save current health state to file."""
+        """Save current health state to file (blocking, for non-async contexts)."""
         try:
             health = self.get_system_health()
             with open(self.state_file, "w") as f:
@@ -428,10 +451,10 @@ def create_exchange_health_check(exchange_name: str, exchange_client: Any) -> Ca
         try:
             start = time.monotonic()
 
-            if hasattr(exchange_client, 'fetch_ticker'):
+            if hasattr(exchange_client, "fetch_ticker"):
                 # Try to fetch a common ticker
                 await exchange_client.fetch_ticker("BTC/USDT")
-            elif hasattr(exchange_client, 'ping'):
+            elif hasattr(exchange_client, "ping"):
                 await exchange_client.ping()
 
             latency = (time.monotonic() - start) * 1000
@@ -463,7 +486,7 @@ def create_api_health_check(url: str, timeout: float = 5.0) -> Callable:
         try:
             start = time.monotonic()
 
-            req = urllib.request.Request(url, method='GET')
+            req = urllib.request.Request(url, method="GET")
             with urllib.request.urlopen(req, timeout=timeout) as response:
                 status = response.status
                 latency = (time.monotonic() - start) * 1000
@@ -550,7 +573,7 @@ def create_process_health_check(process_name: str) -> Callable:
             )
 
             healthy = result.returncode == 0
-            pid_count = len(result.stdout.decode().strip().split('\n')) if healthy else 0
+            pid_count = len(result.stdout.decode().strip().split("\n")) if healthy else 0
 
             return HealthCheckResult(
                 healthy=healthy,
@@ -575,6 +598,7 @@ def create_memory_health_check(max_usage_percent: float = 90.0) -> Callable:
     def check() -> HealthCheckResult:
         try:
             import psutil
+
             mem = psutil.virtual_memory()
 
             healthy = mem.percent < max_usage_percent
@@ -616,6 +640,7 @@ def create_disk_health_check(
     def check() -> HealthCheckResult:
         try:
             import shutil
+
             usage = shutil.disk_usage(path)
             free_gb = usage.free / (1024**3)
 

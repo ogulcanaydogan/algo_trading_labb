@@ -16,24 +16,26 @@ logger = logging.getLogger(__name__)
 
 class FreshnessStatus(Enum):
     """Status of data freshness."""
-    FRESH = "fresh"       # Data is current
-    STALE = "stale"       # Data is old but usable
-    EXPIRED = "expired"   # Data too old to use
-    UNKNOWN = "unknown"   # No data received yet
+
+    FRESH = "fresh"  # Data is current
+    STALE = "stale"  # Data is old but usable
+    EXPIRED = "expired"  # Data too old to use
+    UNKNOWN = "unknown"  # No data received yet
 
 
 @dataclass
 class DataFreshnessConfig:
     """Configuration for data freshness thresholds."""
+
     # Crypto markets (24/7)
-    crypto_fresh_seconds: int = 60       # Fresh if < 1 minute old
-    crypto_stale_seconds: int = 300      # Stale if < 5 minutes old
-    crypto_expired_seconds: int = 900    # Expired if > 15 minutes old
+    crypto_fresh_seconds: int = 60  # Fresh if < 1 minute old
+    crypto_stale_seconds: int = 300  # Stale if < 5 minutes old
+    crypto_expired_seconds: int = 900  # Expired if > 15 minutes old
 
     # Stock markets (market hours only)
-    stock_fresh_seconds: int = 120       # Fresh if < 2 minutes old
-    stock_stale_seconds: int = 600       # Stale if < 10 minutes old
-    stock_expired_seconds: int = 1800    # Expired if > 30 minutes old
+    stock_fresh_seconds: int = 120  # Fresh if < 2 minutes old
+    stock_stale_seconds: int = 600  # Stale if < 10 minutes old
+    stock_expired_seconds: int = 1800  # Expired if > 30 minutes old
 
     # Commodity markets
     commodity_fresh_seconds: int = 120
@@ -44,6 +46,7 @@ class DataFreshnessConfig:
 @dataclass
 class DataFreshnessResult:
     """Result of freshness check for a symbol."""
+
     symbol: str
     status: FreshnessStatus
     age_seconds: float
@@ -55,6 +58,7 @@ class DataFreshnessResult:
 @dataclass
 class SymbolData:
     """Tracked data for a symbol."""
+
     last_update: datetime
     last_price: float
     market_type: str
@@ -114,7 +118,7 @@ class DataFreshnessMonitor:
             return DataFreshnessResult(
                 symbol=symbol,
                 status=FreshnessStatus.UNKNOWN,
-                age_seconds=float('inf'),
+                age_seconds=float("inf"),
                 last_update=None,
                 message=f"No data received for {symbol}",
                 is_tradeable=False,
@@ -177,15 +181,13 @@ class DataFreshnessMonitor:
 
     def get_tradeable_symbols(self) -> List[str]:
         """Get list of symbols with fresh enough data to trade."""
-        return [
-            symbol for symbol in self._symbol_data
-            if self.check_freshness(symbol).is_tradeable
-        ]
+        return [symbol for symbol in self._symbol_data if self.check_freshness(symbol).is_tradeable]
 
     def get_stale_symbols(self) -> List[str]:
         """Get list of symbols with stale or expired data."""
         return [
-            symbol for symbol in self._symbol_data
+            symbol
+            for symbol in self._symbol_data
             if not self.check_freshness(symbol).status == FreshnessStatus.FRESH
         ]
 
@@ -210,7 +212,9 @@ class DataFreshnessMonitor:
         expired_count = sum(1 for r in results.values() if r.status == FreshnessStatus.EXPIRED)
         unknown_count = sum(1 for r in results.values() if r.status == FreshnessStatus.UNKNOWN)
 
-        avg_age = sum(r.age_seconds for r in results.values() if r.age_seconds < float('inf')) / max(len(results), 1)
+        avg_age = sum(
+            r.age_seconds for r in results.values() if r.age_seconds < float("inf")
+        ) / max(len(results), 1)
 
         return {
             "total_symbols": len(self._symbol_data),

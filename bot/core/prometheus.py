@@ -131,11 +131,13 @@ class Counter(Metric):
         with self._lock:
             for label_key, value in self._values.items():
                 labels = dict(label_key)
-                samples.append(MetricSample(
-                    name=self.name + "_total",
-                    labels=labels,
-                    value=value,
-                ))
+                samples.append(
+                    MetricSample(
+                        name=self.name + "_total",
+                        labels=labels,
+                        value=value,
+                    )
+                )
         return samples
 
 
@@ -197,11 +199,13 @@ class Gauge(Metric):
         with self._lock:
             for label_key, value in self._values.items():
                 labels = dict(label_key)
-                samples.append(MetricSample(
-                    name=self.name,
-                    labels=labels,
-                    value=value,
-                ))
+                samples.append(
+                    MetricSample(
+                        name=self.name,
+                        labels=labels,
+                        value=value,
+                    )
+                )
         return samples
 
 
@@ -230,7 +234,21 @@ class Histogram(Metric):
     """
 
     DEFAULT_BUCKETS = (
-        0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1.0, 2.5, 5.0, 7.5, 10.0, float("inf")
+        0.005,
+        0.01,
+        0.025,
+        0.05,
+        0.075,
+        0.1,
+        0.25,
+        0.5,
+        0.75,
+        1.0,
+        2.5,
+        5.0,
+        7.5,
+        10.0,
+        float("inf"),
     )
 
     def __init__(
@@ -280,24 +298,33 @@ class Histogram(Metric):
 
                 # Bucket samples (already cumulative from observe method)
                 for bucket in self._buckets:
-                    bucket_labels = {**labels, "le": str(bucket) if bucket != float("inf") else "+Inf"}
-                    samples.append(MetricSample(
-                        name=f"{self.name}_bucket",
-                        labels=bucket_labels,
-                        value=self._bucket_counts[label_key].get(bucket, 0),
-                    ))
+                    bucket_labels = {
+                        **labels,
+                        "le": str(bucket) if bucket != float("inf") else "+Inf",
+                    }
+                    samples.append(
+                        MetricSample(
+                            name=f"{self.name}_bucket",
+                            labels=bucket_labels,
+                            value=self._bucket_counts[label_key].get(bucket, 0),
+                        )
+                    )
 
                 # Sum and count
-                samples.append(MetricSample(
-                    name=f"{self.name}_sum",
-                    labels=labels,
-                    value=self._sums[label_key],
-                ))
-                samples.append(MetricSample(
-                    name=f"{self.name}_count",
-                    labels=labels,
-                    value=self._counts[label_key],
-                ))
+                samples.append(
+                    MetricSample(
+                        name=f"{self.name}_sum",
+                        labels=labels,
+                        value=self._sums[label_key],
+                    )
+                )
+                samples.append(
+                    MetricSample(
+                        name=f"{self.name}_count",
+                        labels=labels,
+                        value=self._counts[label_key],
+                    )
+                )
 
         return samples
 
@@ -361,10 +388,9 @@ class Summary(Metric):
 
             # Remove old samples
             cutoff = now - self._max_age
-            self._samples[label_key] = [
-                (t, v) for t, v in samples
-                if t > cutoff
-            ][-self._max_samples:]
+            self._samples[label_key] = [(t, v) for t, v in samples if t > cutoff][
+                -self._max_samples :
+            ]
 
     def _collect(self) -> List[MetricSample]:
         samples = []
@@ -373,16 +399,20 @@ class Summary(Metric):
                 labels = dict(label_key)
 
                 # Sum and count
-                samples.append(MetricSample(
-                    name=f"{self.name}_sum",
-                    labels=labels,
-                    value=self._sums[label_key],
-                ))
-                samples.append(MetricSample(
-                    name=f"{self.name}_count",
-                    labels=labels,
-                    value=self._counts[label_key],
-                ))
+                samples.append(
+                    MetricSample(
+                        name=f"{self.name}_sum",
+                        labels=labels,
+                        value=self._sums[label_key],
+                    )
+                )
+                samples.append(
+                    MetricSample(
+                        name=f"{self.name}_count",
+                        labels=labels,
+                        value=self._counts[label_key],
+                    )
+                )
 
         return samples
 
@@ -563,6 +593,13 @@ model_predictions = Counter("model_predictions_total", "ML model predictions", [
 signal_strength = Gauge("signal_strength", "Current signal strength", ["symbol", "strategy"])
 
 # Register to trading registry
-for m in [trades_total, trade_pnl, position_size, order_latency,
-          data_fetch_errors, model_predictions, signal_strength]:
+for m in [
+    trades_total,
+    trade_pnl,
+    position_size,
+    order_latency,
+    data_fetch_errors,
+    model_predictions,
+    signal_strength,
+]:
     trading_registry.register(m)

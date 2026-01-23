@@ -26,14 +26,9 @@ from sklearn.ensemble import (
     StackingClassifier,
     VotingClassifier,
     BaggingClassifier,
-    AdaBoostClassifier
+    AdaBoostClassifier,
 )
-from sklearn.feature_selection import (
-    SelectKBest,
-    mutual_info_classif,
-    RFE,
-    SelectFromModel
-)
+from sklearn.feature_selection import SelectKBest, mutual_info_classif, RFE, SelectFromModel
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     accuracy_score,
@@ -41,13 +36,9 @@ from sklearn.metrics import (
     recall_score,
     f1_score,
     roc_auc_score,
-    classification_report
+    classification_report,
 )
-from sklearn.model_selection import (
-    TimeSeriesSplit,
-    cross_val_predict,
-    cross_val_score
-)
+from sklearn.model_selection import TimeSeriesSplit, cross_val_predict, cross_val_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils.class_weight import compute_class_weight
 
@@ -57,6 +48,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ImprovementResult:
     """Results from accuracy improvement."""
+
     original_accuracy: float
     improved_accuracy: float
     improvement_pct: float
@@ -76,10 +68,7 @@ class FeatureSelector:
         self.selector = None
 
     def select_best_features(
-        self,
-        X: pd.DataFrame,
-        y: pd.Series,
-        method: str = 'mutual_info'
+        self, X: pd.DataFrame, y: pd.Series, method: str = "mutual_info"
     ) -> Tuple[pd.DataFrame, List[str]]:
         """
         Select best features using specified method.
@@ -90,20 +79,20 @@ class FeatureSelector:
         - importance: Feature importance from tree model
         - combined: Ensemble of methods
         """
-        if method == 'mutual_info':
+        if method == "mutual_info":
             selector = SelectKBest(mutual_info_classif, k=min(self.n_features, X.shape[1]))
             X_selected = selector.fit_transform(X, y)
             mask = selector.get_support()
             selected_features = X.columns[mask].tolist()
 
-        elif method == 'rfe':
+        elif method == "rfe":
             estimator = RandomForestClassifier(n_estimators=50, max_depth=10, random_state=42)
             selector = RFE(estimator, n_features_to_select=min(self.n_features, X.shape[1]))
             X_selected = selector.fit_transform(X, y)
             mask = selector.get_support()
             selected_features = X.columns[mask].tolist()
 
-        elif method == 'importance':
+        elif method == "importance":
             model = RandomForestClassifier(n_estimators=100, random_state=42)
             model.fit(X, y)
             selector = SelectFromModel(model, max_features=self.n_features, prefit=True)
@@ -111,23 +100,27 @@ class FeatureSelector:
             mask = selector.get_support()
             selected_features = X.columns[mask].tolist()
 
-        elif method == 'combined':
+        elif method == "combined":
             # Use voting across methods
             scores = np.zeros(X.shape[1])
 
             # Mutual info scores
-            mi_selector = SelectKBest(mutual_info_classif, k='all')
+            mi_selector = SelectKBest(mutual_info_classif, k="all")
             mi_selector.fit(X, y)
-            scores += (mi_selector.scores_ - mi_selector.scores_.min()) / (mi_selector.scores_.max() - mi_selector.scores_.min() + 1e-10)
+            scores += (mi_selector.scores_ - mi_selector.scores_.min()) / (
+                mi_selector.scores_.max() - mi_selector.scores_.min() + 1e-10
+            )
 
             # Tree importance
             model = RandomForestClassifier(n_estimators=50, random_state=42)
             model.fit(X, y)
             importance = model.feature_importances_
-            scores += (importance - importance.min()) / (importance.max() - importance.min() + 1e-10)
+            scores += (importance - importance.min()) / (
+                importance.max() - importance.min() + 1e-10
+            )
 
             # Select top features by combined score
-            top_idx = np.argsort(scores)[-self.n_features:]
+            top_idx = np.argsort(scores)[-self.n_features :]
             selected_features = X.columns[top_idx].tolist()
             X_selected = X[selected_features].values
 
@@ -149,7 +142,7 @@ class ClassBalancer:
     def compute_weights(self, y: pd.Series) -> Dict[int, float]:
         """Compute class weights for imbalanced data."""
         classes = np.unique(y)
-        weights = compute_class_weight('balanced', classes=classes, y=y)
+        weights = compute_class_weight("balanced", classes=classes, y=y)
         self.class_weights = dict(zip(classes, weights))
 
         logger.info(f"Class distribution: {dict(pd.Series(y).value_counts())}")
@@ -158,10 +151,7 @@ class ClassBalancer:
         return self.class_weights
 
     def resample_data(
-        self,
-        X: pd.DataFrame,
-        y: pd.Series,
-        method: str = 'oversample'
+        self, X: pd.DataFrame, y: pd.Series, method: str = "oversample"
     ) -> Tuple[pd.DataFrame, pd.Series]:
         """Resample data to balance classes."""
         from collections import Counter
@@ -170,7 +160,7 @@ class ClassBalancer:
         max_count = max(class_counts.values())
         min_count = min(class_counts.values())
 
-        if method == 'oversample':
+        if method == "oversample":
             # Oversample minority classes
             X_resampled = []
             y_resampled = []
@@ -192,7 +182,7 @@ class ClassBalancer:
 
             return pd.concat(X_resampled), pd.concat(y_resampled)
 
-        elif method == 'undersample':
+        elif method == "undersample":
             # Undersample majority classes
             X_resampled = []
             y_resampled = []
@@ -222,23 +212,30 @@ class AdvancedEnsemble:
         self.base_models = None
 
     def create_stacking_ensemble(
-        self,
-        X_train: np.ndarray,
-        y_train: np.ndarray
+        self, X_train: np.ndarray, y_train: np.ndarray
     ) -> StackingClassifier:
         """Create a stacking ensemble with diverse base models."""
         base_estimators = [
-            ('rf', RandomForestClassifier(n_estimators=100, max_depth=15, random_state=42)),
-            ('gb', GradientBoostingClassifier(n_estimators=100, max_depth=5, random_state=42)),
-            ('ada', AdaBoostClassifier(n_estimators=50, random_state=42)),
+            ("rf", RandomForestClassifier(n_estimators=100, max_depth=15, random_state=42)),
+            ("gb", GradientBoostingClassifier(n_estimators=100, max_depth=5, random_state=42)),
+            ("ada", AdaBoostClassifier(n_estimators=50, random_state=42)),
         ]
 
         # Try to add XGBoost if available
         try:
             from xgboost import XGBClassifier
+
             base_estimators.append(
-                ('xgb', XGBClassifier(n_estimators=100, max_depth=5, random_state=42,
-                                     use_label_encoder=False, eval_metric='mlogloss'))
+                (
+                    "xgb",
+                    XGBClassifier(
+                        n_estimators=100,
+                        max_depth=5,
+                        random_state=42,
+                        use_label_encoder=False,
+                        eval_metric="mlogloss",
+                    ),
+                )
             )
         except ImportError:
             pass
@@ -246,8 +243,9 @@ class AdvancedEnsemble:
         # Try to add LightGBM if available
         try:
             from lightgbm import LGBMClassifier
+
             base_estimators.append(
-                ('lgbm', LGBMClassifier(n_estimators=100, max_depth=5, random_state=42, verbose=-1))
+                ("lgbm", LGBMClassifier(n_estimators=100, max_depth=5, random_state=42, verbose=-1))
             )
         except ImportError:
             pass
@@ -256,8 +254,8 @@ class AdvancedEnsemble:
             estimators=base_estimators,
             final_estimator=LogisticRegression(max_iter=1000),
             cv=TimeSeriesSplit(n_splits=3),
-            stack_method='predict_proba',
-            n_jobs=-1
+            stack_method="predict_proba",
+            n_jobs=-1,
         )
 
         self.ensemble.fit(X_train, y_train)
@@ -266,31 +264,34 @@ class AdvancedEnsemble:
         return self.ensemble
 
     def create_voting_ensemble(
-        self,
-        X_train: np.ndarray,
-        y_train: np.ndarray,
-        weights: Optional[List[float]] = None
+        self, X_train: np.ndarray, y_train: np.ndarray, weights: Optional[List[float]] = None
     ) -> VotingClassifier:
         """Create a soft voting ensemble."""
         estimators = [
-            ('rf', RandomForestClassifier(n_estimators=100, max_depth=15, random_state=42)),
-            ('gb', GradientBoostingClassifier(n_estimators=100, max_depth=5, random_state=42)),
+            ("rf", RandomForestClassifier(n_estimators=100, max_depth=15, random_state=42)),
+            ("gb", GradientBoostingClassifier(n_estimators=100, max_depth=5, random_state=42)),
         ]
 
         try:
             from xgboost import XGBClassifier
+
             estimators.append(
-                ('xgb', XGBClassifier(n_estimators=100, max_depth=5, random_state=42,
-                                     use_label_encoder=False, eval_metric='mlogloss'))
+                (
+                    "xgb",
+                    XGBClassifier(
+                        n_estimators=100,
+                        max_depth=5,
+                        random_state=42,
+                        use_label_encoder=False,
+                        eval_metric="mlogloss",
+                    ),
+                )
             )
         except ImportError:
             pass
 
         self.ensemble = VotingClassifier(
-            estimators=estimators,
-            voting='soft',
-            weights=weights,
-            n_jobs=-1
+            estimators=estimators, voting="soft", weights=weights, n_jobs=-1
         )
 
         self.ensemble.fit(X_train, y_train)
@@ -304,10 +305,7 @@ class ThresholdOptimizer:
         self.optimal_thresholds = None
 
     def optimize_thresholds(
-        self,
-        y_true: np.ndarray,
-        y_proba: np.ndarray,
-        metric: str = 'f1'
+        self, y_true: np.ndarray, y_proba: np.ndarray, metric: str = "f1"
     ) -> Dict[int, float]:
         """
         Find optimal probability thresholds for each class.
@@ -334,9 +332,9 @@ class ThresholdOptimizer:
                         y_pred[i] = 0  # HOLD if not confident enough
 
                 # Calculate metric
-                if metric == 'f1':
+                if metric == "f1":
                     score = f1_score(y_true == cls, y_pred == cls, zero_division=0)
-                elif metric == 'precision':
+                elif metric == "precision":
                     score = precision_score(y_true == cls, y_pred == cls, zero_division=0)
                 else:
                     score = accuracy_score(y_true == cls, y_pred == cls)
@@ -360,11 +358,7 @@ class ConfidenceCalibrator:
         self.calibrator = None
 
     def calibrate(
-        self,
-        model: BaseEstimator,
-        X: np.ndarray,
-        y: np.ndarray,
-        method: str = 'isotonic'
+        self, model: BaseEstimator, X: np.ndarray, y: np.ndarray, method: str = "isotonic"
     ) -> CalibratedClassifierCV:
         """
         Calibrate model probabilities.
@@ -374,9 +368,7 @@ class ConfidenceCalibrator:
         - sigmoid: Platt scaling
         """
         self.calibrator = CalibratedClassifierCV(
-            model,
-            method=method,
-            cv=TimeSeriesSplit(n_splits=3)
+            model, method=method, cv=TimeSeriesSplit(n_splits=3)
         )
 
         self.calibrator.fit(X, y)
@@ -395,7 +387,7 @@ class AccuracyImprover:
         use_class_balancing: bool = True,
         use_ensemble: bool = True,
         use_calibration: bool = True,
-        use_threshold_optimization: bool = True
+        use_threshold_optimization: bool = True,
     ):
         self.target_accuracy = target_accuracy
         self.use_feature_selection = use_feature_selection
@@ -411,10 +403,7 @@ class AccuracyImprover:
         self.calibrator = ConfidenceCalibrator()
 
     def improve(
-        self,
-        X: pd.DataFrame,
-        y: pd.Series,
-        base_model: Optional[BaseEstimator] = None
+        self, X: pd.DataFrame, y: pd.Series, base_model: Optional[BaseEstimator] = None
     ) -> Tuple[BaseEstimator, ImprovementResult]:
         """
         Apply all improvement techniques and return best model.
@@ -458,7 +447,7 @@ class AccuracyImprover:
         if self.use_feature_selection:
             logger.info("\n--- Feature Selection ---")
             X_selected, selected_features = self.feature_selector.select_best_features(
-                X_train, y_train, method='combined'
+                X_train, y_train, method="combined"
             )
 
             X_train_sel = scaler.fit_transform(X_selected)
@@ -481,7 +470,7 @@ class AccuracyImprover:
             logger.info("\n--- Class Balancing ---")
             class_weights = self.class_balancer.compute_weights(y_train)
 
-            if hasattr(base_model, 'class_weight'):
+            if hasattr(base_model, "class_weight"):
                 model_cw = clone(base_model)
                 model_cw.set_params(class_weight=class_weights)
                 model_cw.fit(X_train_scaled, y_train)
@@ -525,7 +514,7 @@ class AccuracyImprover:
 
         # 4. Confidence Calibration
         calibrated = False
-        if self.use_calibration and hasattr(best_model, 'predict_proba'):
+        if self.use_calibration and hasattr(best_model, "predict_proba"):
             logger.info("\n--- Confidence Calibration ---")
             try:
                 calibrated_model = self.calibrator.calibrate(
@@ -543,7 +532,7 @@ class AccuracyImprover:
                 logger.warning(f"Calibration failed: {e}")
 
         # 5. Threshold Optimization
-        if self.use_threshold_optimization and hasattr(best_model, 'predict_proba'):
+        if self.use_threshold_optimization and hasattr(best_model, "predict_proba"):
             logger.info("\n--- Threshold Optimization ---")
             try:
                 y_proba = best_model.predict_proba(X_test_scaled)
@@ -589,7 +578,7 @@ class AccuracyImprover:
             feature_count=len(selected_features),
             selected_features=selected_features,
             calibrated=calibrated,
-            ensemble_used='ensemble' in best_technique
+            ensemble_used="ensemble" in best_technique,
         )
 
         return best_model, result
@@ -599,7 +588,7 @@ def improve_model_accuracy(
     X: pd.DataFrame,
     y: pd.Series,
     base_model: Optional[BaseEstimator] = None,
-    target_accuracy: float = 0.65
+    target_accuracy: float = 0.65,
 ) -> Tuple[BaseEstimator, ImprovementResult]:
     """
     Convenience function to improve model accuracy.

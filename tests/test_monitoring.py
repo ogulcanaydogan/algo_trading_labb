@@ -389,6 +389,7 @@ class TestAlertManager:
 
     def test_handler_exception_handled(self, alert_manager):
         """Test handler exceptions are handled."""
+
         def bad_handler(alert):
             raise Exception("Handler error")
 
@@ -612,12 +613,14 @@ class TestMonitoringService:
     @pytest.fixture
     def service(self):
         """Create monitoring service."""
-        return MonitoringService(config={
-            "cpu_threshold": 80,
-            "memory_threshold": 80,
-            "disk_threshold": 90,
-            "max_daily_loss_pct": 0.05,
-        })
+        return MonitoringService(
+            config={
+                "cpu_threshold": 80,
+                "memory_threshold": 80,
+                "disk_threshold": 90,
+                "max_daily_loss_pct": 0.05,
+            }
+        )
 
     def test_initialization(self, service):
         """Test service initialization."""

@@ -290,7 +290,7 @@ class RegimeBacktester:
         # Main loop
         for i in range(self.config.lookback_bars, len(df)):
             bar_time = df.index[i]
-            bar_data = df.iloc[:i + 1]
+            bar_data = df.iloc[: i + 1]
             current_bar = df.iloc[i]
 
             # Detect regime
@@ -348,9 +348,7 @@ class RegimeBacktester:
         Returns:
             List of BacktestResult for each out-of-sample period
         """
-        logger.info(
-            f"Starting walk-forward analysis: {self.config.walk_forward_splits} splits"
-        )
+        logger.info(f"Starting walk-forward analysis: {self.config.walk_forward_splits} splits")
 
         results = []
         n_bars = len(df)
@@ -371,8 +369,10 @@ class RegimeBacktester:
             if len(test_df) < self.config.lookback_bars + 50:
                 continue
 
-            logger.info(f"Walk-forward split {i + 1}/{self.config.walk_forward_splits}: "
-                       f"{len(test_df)} test bars")
+            logger.info(
+                f"Walk-forward split {i + 1}/{self.config.walk_forward_splits}: "
+                f"{len(test_df)} test bars"
+            )
 
             result = self.run(test_df, symbol)
             results.append(result)
@@ -557,13 +557,17 @@ class RegimeBacktester:
                 unrealized = (self._position.entry_price - price) * self._position.quantity
             equity += unrealized
 
-        self._equity_curve.append({
-            "timestamp": timestamp.isoformat(),
-            "equity": equity,
-            "drawdown": (self._peak_equity - equity) / self._peak_equity if self._peak_equity > 0 else 0,
-            "regime": regime.value,
-            "has_position": self._position is not None and self._position.is_open,
-        })
+        self._equity_curve.append(
+            {
+                "timestamp": timestamp.isoformat(),
+                "equity": equity,
+                "drawdown": (self._peak_equity - equity) / self._peak_equity
+                if self._peak_equity > 0
+                else 0,
+                "regime": regime.value,
+                "has_position": self._position is not None and self._position.is_open,
+            }
+        )
 
     def _calculate_results(self, df: pd.DataFrame, symbol: str) -> BacktestResult:
         """Calculate comprehensive backtest metrics."""
@@ -635,7 +639,8 @@ class RegimeBacktester:
 
             # Turnover
             result.total_turnover = sum(
-                t.entry_price * t.quantity * 2 for t in self._trades  # Entry + exit
+                t.entry_price * t.quantity * 2
+                for t in self._trades  # Entry + exit
             )
 
             # Holding period

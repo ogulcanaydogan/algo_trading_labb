@@ -28,40 +28,40 @@ logger = logging.getLogger(__name__)
 
 class NewsFetchThrottler:
     """Prevents excessive API calls by enforcing minimum intervals."""
-    
+
     def __init__(self, min_interval_seconds: int = 300):
         """Initialize throttler.
-        
+
         Args:
             min_interval_seconds: Minimum seconds between fetches for same symbol (default 5 min)
         """
         self.min_interval = min_interval_seconds
         self.last_fetch_time: Dict[str, float] = {}  # Symbol -> timestamp
-    
+
     def should_fetch(self, symbol: str) -> bool:
         """Check if enough time has passed since last fetch.
-        
+
         Args:
             symbol: Symbol to check
-            
+
         Returns:
             True if fetch is allowed, False if still throttled
         """
         now = time.time()
         last = self.last_fetch_time.get(symbol, 0)
-        
+
         if (now - last) >= self.min_interval:
             self.last_fetch_time[symbol] = now
             return True
-        
+
         return False
-    
+
     def get_next_fetch_time(self, symbol: str) -> float:
         """Get seconds until next fetch allowed.
-        
+
         Args:
             symbol: Symbol to check
-            
+
         Returns:
             Seconds until next fetch allowed (0 if immediate)
         """
@@ -72,6 +72,7 @@ class NewsFetchThrottler:
 
 class EventType(Enum):
     """Types of market-moving events."""
+
     # Central Bank
     FOMC = "fomc"
     ECB = "ecb"
@@ -118,6 +119,7 @@ class EventType(Enum):
 
 class EventImpact(Enum):
     """Expected impact level of an event."""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -126,6 +128,7 @@ class EventImpact(Enum):
 
 class SentimentScore(Enum):
     """Sentiment classification."""
+
     VERY_BEARISH = -2
     BEARISH = -1
     NEUTRAL = 0
@@ -136,6 +139,7 @@ class SentimentScore(Enum):
 @dataclass
 class EconomicEvent:
     """Represents an economic calendar event."""
+
     event_id: str
     event_type: EventType
     timestamp: datetime
@@ -186,6 +190,7 @@ class EconomicEvent:
 @dataclass
 class NewsItem:
     """Represents a news headline/article."""
+
     news_id: str
     timestamp: datetime
     headline: str
@@ -213,6 +218,7 @@ class NewsItem:
 @dataclass
 class NewsFeatures:
     """Extracted features from news and events."""
+
     timestamp: datetime
 
     # Aggregate sentiment
@@ -268,7 +274,7 @@ class NewsFeatures:
             self.recent_news_intensity,
             self.hours_to_next_high_impact or 168.0,  # Default to 1 week
             self.news_velocity,
-            self.headline_risk_score
+            self.headline_risk_score,
         ]
 
     @staticmethod
@@ -292,7 +298,7 @@ class NewsFeatures:
             "recent_news_intensity",
             "hours_to_next_high_impact",
             "news_velocity",
-            "headline_risk_score"
+            "headline_risk_score",
         ]
 
 
@@ -324,48 +330,90 @@ class RuleBasedSentimentAnalyzer(SentimentAnalyzer):
     # Keyword dictionaries with weights
     BULLISH_KEYWORDS = {
         # Strong bullish
-        "surge": 0.8, "soar": 0.8, "rally": 0.7, "breakout": 0.7,
-        "boom": 0.7, "skyrocket": 0.9, "moon": 0.6,
-
+        "surge": 0.8,
+        "soar": 0.8,
+        "rally": 0.7,
+        "breakout": 0.7,
+        "boom": 0.7,
+        "skyrocket": 0.9,
+        "moon": 0.6,
         # Moderate bullish
-        "rise": 0.5, "gain": 0.5, "up": 0.4, "higher": 0.4,
-        "advance": 0.5, "climb": 0.5, "jump": 0.6, "pop": 0.5,
-
+        "rise": 0.5,
+        "gain": 0.5,
+        "up": 0.4,
+        "higher": 0.4,
+        "advance": 0.5,
+        "climb": 0.5,
+        "jump": 0.6,
+        "pop": 0.5,
         # Mild bullish
-        "positive": 0.3, "bullish": 0.4, "optimistic": 0.3,
-        "growth": 0.3, "expand": 0.3, "improve": 0.3,
-
+        "positive": 0.3,
+        "bullish": 0.4,
+        "optimistic": 0.3,
+        "growth": 0.3,
+        "expand": 0.3,
+        "improve": 0.3,
         # Beat expectations
-        "beat": 0.6, "exceed": 0.5, "surpass": 0.5, "outperform": 0.5,
-        "strong": 0.4, "robust": 0.4
+        "beat": 0.6,
+        "exceed": 0.5,
+        "surpass": 0.5,
+        "outperform": 0.5,
+        "strong": 0.4,
+        "robust": 0.4,
     }
 
     BEARISH_KEYWORDS = {
         # Strong bearish
-        "crash": -0.9, "plunge": -0.8, "collapse": -0.8, "tank": -0.7,
-        "tumble": -0.7, "plummet": -0.8, "selloff": -0.7,
-
+        "crash": -0.9,
+        "plunge": -0.8,
+        "collapse": -0.8,
+        "tank": -0.7,
+        "tumble": -0.7,
+        "plummet": -0.8,
+        "selloff": -0.7,
         # Moderate bearish
-        "fall": -0.5, "drop": -0.5, "down": -0.4, "lower": -0.4,
-        "decline": -0.5, "slide": -0.5, "sink": -0.6, "dump": -0.6,
-
+        "fall": -0.5,
+        "drop": -0.5,
+        "down": -0.4,
+        "lower": -0.4,
+        "decline": -0.5,
+        "slide": -0.5,
+        "sink": -0.6,
+        "dump": -0.6,
         # Mild bearish
-        "negative": -0.3, "bearish": -0.4, "pessimistic": -0.3,
-        "weak": -0.3, "slowdown": -0.3, "contract": -0.3,
-
+        "negative": -0.3,
+        "bearish": -0.4,
+        "pessimistic": -0.3,
+        "weak": -0.3,
+        "slowdown": -0.3,
+        "contract": -0.3,
         # Miss expectations
-        "miss": -0.6, "disappoint": -0.5, "underperform": -0.5,
-        "fail": -0.5, "concern": -0.3, "worry": -0.3,
-
+        "miss": -0.6,
+        "disappoint": -0.5,
+        "underperform": -0.5,
+        "fail": -0.5,
+        "concern": -0.3,
+        "worry": -0.3,
         # Risk words
-        "risk": -0.3, "fear": -0.4, "panic": -0.6, "crisis": -0.7,
-        "recession": -0.6, "inflation": -0.4, "default": -0.7
+        "risk": -0.3,
+        "fear": -0.4,
+        "panic": -0.6,
+        "crisis": -0.7,
+        "recession": -0.6,
+        "inflation": -0.4,
+        "default": -0.7,
     }
 
     INTENSITY_MODIFIERS = {
-        "very": 1.3, "extremely": 1.5, "significantly": 1.2,
-        "slightly": 0.7, "somewhat": 0.8, "marginally": 0.6,
-        "sharply": 1.4, "dramatically": 1.4, "massively": 1.5
+        "very": 1.3,
+        "extremely": 1.5,
+        "significantly": 1.2,
+        "slightly": 0.7,
+        "somewhat": 0.8,
+        "marginally": 0.6,
+        "sharply": 1.4,
+        "dramatically": 1.4,
+        "massively": 1.5,
     }
 
     @property
@@ -375,7 +423,7 @@ class RuleBasedSentimentAnalyzer(SentimentAnalyzer):
     def analyze(self, text: str) -> Tuple[float, float]:
         """Analyze text using keyword matching."""
         text_lower = text.lower()
-        words = re.findall(r'\b\w+\b', text_lower)
+        words = re.findall(r"\b\w+\b", text_lower)
 
         total_score = 0.0
         match_count = 0
@@ -484,14 +532,27 @@ class NewsFeatureExtractor:
         EventType.STOCK_SPLIT: "corporate",
         EventType.ELECTION: "geopolitical",
         EventType.GEOPOLITICAL: "geopolitical",
-        EventType.TRADE_WAR: "geopolitical"
+        EventType.TRADE_WAR: "geopolitical",
     }
 
     # Risk keywords for headline risk scoring
     RISK_KEYWORDS = [
-        "crash", "crisis", "collapse", "panic", "fear", "recession",
-        "default", "bankruptcy", "war", "conflict", "sanctions",
-        "hack", "breach", "fraud", "investigation", "lawsuit"
+        "crash",
+        "crisis",
+        "collapse",
+        "panic",
+        "fear",
+        "recession",
+        "default",
+        "bankruptcy",
+        "war",
+        "conflict",
+        "sanctions",
+        "hack",
+        "breach",
+        "fraud",
+        "investigation",
+        "lawsuit",
     ]
 
     def __init__(
@@ -499,7 +560,7 @@ class NewsFeatureExtractor:
         sentiment_analyzer: Optional[SentimentAnalyzer] = None,
         lookback_hours: int = 24,
         decay_half_life_hours: float = 6.0,
-        fetch_throttle_minutes: int = 5
+        fetch_throttle_minutes: int = 5,
     ):
         """
         Initialize the feature extractor.
@@ -522,12 +583,16 @@ class NewsFeatureExtractor:
         # Cache for computed features
         self._feature_cache: Dict[str, NewsFeatures] = {}
         self._cache_ttl_minutes = 5
-        
+
         # Fetch throttler to reduce API calls
         self.fetch_throttler = NewsFetchThrottler(min_interval_seconds=fetch_throttle_minutes * 60)
 
-        logger.info(f"NewsFeatureExtractor initialized with {self.sentiment_analyzer.name} analyzer")
-        logger.info(f"News fetch throttled to 1 request per {fetch_throttle_minutes} minutes per symbol")
+        logger.info(
+            f"NewsFeatureExtractor initialized with {self.sentiment_analyzer.name} analyzer"
+        )
+        logger.info(
+            f"News fetch throttled to 1 request per {fetch_throttle_minutes} minutes per symbol"
+        )
 
     def add_economic_event(self, event: EconomicEvent):
         """Add an economic event to the tracker."""
@@ -568,22 +633,14 @@ class NewsFeatureExtractor:
         return decay
 
     def _filter_by_lookback(
-        self,
-        items: List[Any],
-        current_time: datetime,
-        timestamp_attr: str = "timestamp"
+        self, items: List[Any], current_time: datetime, timestamp_attr: str = "timestamp"
     ) -> List[Any]:
         """Filter items to only those within lookback window."""
         cutoff = current_time - timedelta(hours=self.lookback_hours)
-        return [
-            item for item in items
-            if getattr(item, timestamp_attr) >= cutoff
-        ]
+        return [item for item in items if getattr(item, timestamp_attr) >= cutoff]
 
     def extract_features(
-        self,
-        current_time: Optional[datetime] = None,
-        regime: Optional[str] = None
+        self, current_time: Optional[datetime] = None, regime: Optional[str] = None
     ) -> NewsFeatures:
         """
         Extract aggregated features from news and events.
@@ -629,10 +686,7 @@ class NewsFeatureExtractor:
         return features
 
     def _compute_sentiment_features(
-        self,
-        features: NewsFeatures,
-        news_items: List[NewsItem],
-        current_time: datetime
+        self, features: NewsFeatures, news_items: List[NewsItem], current_time: datetime
     ):
         """Compute aggregate sentiment features."""
         if not news_items:
@@ -668,22 +722,19 @@ class NewsFeatureExtractor:
             sorted_news = sorted(news_items, key=lambda n: n.timestamp, reverse=True)
             half = len(sorted_news) // 2
 
-            recent_avg = sum(
-                n.sentiment_score for n in sorted_news[:half]
-                if n.sentiment_score is not None
-            ) / half
-            older_avg = sum(
-                n.sentiment_score for n in sorted_news[half:]
-                if n.sentiment_score is not None
-            ) / half
+            recent_avg = (
+                sum(n.sentiment_score for n in sorted_news[:half] if n.sentiment_score is not None)
+                / half
+            )
+            older_avg = (
+                sum(n.sentiment_score for n in sorted_news[half:] if n.sentiment_score is not None)
+                / half
+            )
 
             features.sentiment_momentum = recent_avg - older_avg
 
     def _compute_event_features(
-        self,
-        features: NewsFeatures,
-        events: List[EconomicEvent],
-        current_time: datetime
+        self, features: NewsFeatures, events: List[EconomicEvent], current_time: datetime
     ):
         """Compute features from economic events."""
         if not events:
@@ -714,14 +765,14 @@ class NewsFeatureExtractor:
         features: NewsFeatures,
         news_items: List[NewsItem],
         events: List[EconomicEvent],
-        current_time: datetime
+        current_time: datetime,
     ):
         """Compute category-specific sentiment."""
         category_sentiments: Dict[str, List[float]] = {
             "central_bank": [],
             "economic_data": [],
             "corporate": [],
-            "geopolitical": []
+            "geopolitical": [],
         }
 
         # From news items
@@ -742,48 +793,36 @@ class NewsFeatureExtractor:
 
         # Compute averages
         if category_sentiments["central_bank"]:
-            features.central_bank_sentiment = (
-                sum(category_sentiments["central_bank"]) /
-                len(category_sentiments["central_bank"])
+            features.central_bank_sentiment = sum(category_sentiments["central_bank"]) / len(
+                category_sentiments["central_bank"]
             )
 
         if category_sentiments["economic_data"]:
-            features.economic_data_sentiment = (
-                sum(category_sentiments["economic_data"]) /
-                len(category_sentiments["economic_data"])
+            features.economic_data_sentiment = sum(category_sentiments["economic_data"]) / len(
+                category_sentiments["economic_data"]
             )
 
         if category_sentiments["corporate"]:
-            features.corporate_sentiment = (
-                sum(category_sentiments["corporate"]) /
-                len(category_sentiments["corporate"])
+            features.corporate_sentiment = sum(category_sentiments["corporate"]) / len(
+                category_sentiments["corporate"]
             )
 
         if category_sentiments["geopolitical"]:
-            features.geopolitical_sentiment = (
-                sum(category_sentiments["geopolitical"]) /
-                len(category_sentiments["geopolitical"])
+            features.geopolitical_sentiment = sum(category_sentiments["geopolitical"]) / len(
+                category_sentiments["geopolitical"]
             )
 
-    def _compute_upcoming_features(
-        self,
-        features: NewsFeatures,
-        current_time: datetime
-    ):
+    def _compute_upcoming_features(self, features: NewsFeatures, current_time: datetime):
         """Compute features related to upcoming events."""
         # Filter to future events
-        future_events = [
-            e for e in self.upcoming_events
-            if e.timestamp > current_time
-        ]
+        future_events = [e for e in self.upcoming_events if e.timestamp > current_time]
 
         if not future_events:
             return
 
         # Find next high-impact event
         high_impact_events = [
-            e for e in future_events
-            if e.impact in [EventImpact.HIGH, EventImpact.CRITICAL]
+            e for e in future_events if e.impact in [EventImpact.HIGH, EventImpact.CRITICAL]
         ]
 
         if high_impact_events:
@@ -793,10 +832,7 @@ class NewsFeatureExtractor:
             features.next_event_type = next_event.event_type.value
 
     def _compute_risk_indicators(
-        self,
-        features: NewsFeatures,
-        news_items: List[NewsItem],
-        current_time: datetime
+        self, features: NewsFeatures, news_items: List[NewsItem], current_time: datetime
     ):
         """Compute risk-related indicators."""
         if not news_items:
@@ -825,9 +861,7 @@ class NewsFeatureExtractor:
         features.headline_risk_score = min(1.0, risk_score / 5.0)
 
     def get_regime_relevant_features(
-        self,
-        regime: str,
-        current_time: Optional[datetime] = None
+        self, regime: str, current_time: Optional[datetime] = None
     ) -> Dict[str, float]:
         """
         Get features most relevant to a specific regime.
@@ -844,7 +878,7 @@ class NewsFeatureExtractor:
         regime_features = {
             "overall_sentiment": features.overall_sentiment,
             "sentiment_momentum": features.sentiment_momentum,
-            "headline_risk": features.headline_risk_score
+            "headline_risk": features.headline_risk_score,
         }
 
         # Add regime-specific features
@@ -861,8 +895,7 @@ class NewsFeatureExtractor:
             regime_features["geopolitical_sentiment"] = features.geopolitical_sentiment
             regime_features["high_impact_count"] = float(features.high_impact_events)
             regime_features["max_surprise"] = max(
-                abs(features.max_positive_surprise),
-                abs(features.max_negative_surprise)
+                abs(features.max_positive_surprise), abs(features.max_negative_surprise)
             )
 
         return regime_features
@@ -911,17 +944,13 @@ class EconomicCalendarParser:
         r"consumer confidence|sentiment": EventType.CONSUMER_CONFIDENCE,
         r"earnings|quarterly report": EventType.EARNINGS,
         r"guidance|outlook": EventType.GUIDANCE,
-        r"election|vote": EventType.ELECTION
+        r"election|vote": EventType.ELECTION,
     }
 
     # Impact keywords
-    HIGH_IMPACT_PATTERNS = [
-        r"fomc", r"fed", r"cpi", r"nfp", r"gdp", r"ecb", r"boj"
-    ]
+    HIGH_IMPACT_PATTERNS = [r"fomc", r"fed", r"cpi", r"nfp", r"gdp", r"ecb", r"boj"]
 
-    MEDIUM_IMPACT_PATTERNS = [
-        r"pmi", r"ism", r"retail", r"housing", r"unemployment"
-    ]
+    MEDIUM_IMPACT_PATTERNS = [r"pmi", r"ism", r"retail", r"housing", r"unemployment"]
 
     def parse_event(
         self,
@@ -930,7 +959,7 @@ class EconomicCalendarParser:
         actual: Optional[float] = None,
         expected: Optional[float] = None,
         previous: Optional[float] = None,
-        source: str = ""
+        source: str = "",
     ) -> EconomicEvent:
         """
         Parse an economic event from raw data.
@@ -960,7 +989,7 @@ class EconomicCalendarParser:
             actual=actual,
             expected=expected,
             previous=previous,
-            source=source
+            source=source,
         )
 
     def _detect_event_type(self, title: str) -> EventType:
@@ -989,8 +1018,11 @@ class EconomicCalendarParser:
 
         # Default by event type
         high_impact_types = {
-            EventType.FOMC, EventType.ECB, EventType.CPI,
-            EventType.NFP, EventType.GDP
+            EventType.FOMC,
+            EventType.ECB,
+            EventType.CPI,
+            EventType.NFP,
+            EventType.GDP,
         }
 
         if event_type in high_impact_types:
@@ -1002,11 +1034,13 @@ class EconomicCalendarParser:
         """Parse event from JSON format (common API format)."""
         return self.parse_event(
             title=json_data.get("title", json_data.get("name", "")),
-            timestamp=datetime.fromisoformat(json_data.get("datetime", json_data.get("timestamp", ""))),
+            timestamp=datetime.fromisoformat(
+                json_data.get("datetime", json_data.get("timestamp", ""))
+            ),
             actual=json_data.get("actual"),
             expected=json_data.get("expected", json_data.get("forecast")),
             previous=json_data.get("previous"),
-            source=json_data.get("source", "")
+            source=json_data.get("source", ""),
         )
 
 
@@ -1023,7 +1057,7 @@ class NewsParser:
         timestamp: datetime,
         source: str = "",
         tickers: Optional[List[str]] = None,
-        body: str = ""
+        body: str = "",
     ) -> NewsItem:
         """
         Parse a news headline.
@@ -1064,7 +1098,7 @@ class NewsParser:
             sentiment_source=self.sentiment_analyzer.name,
             event_type=event_type,
             impact=impact,
-            keywords=keywords
+            keywords=keywords,
         )
 
     def _detect_news_type(self, headline: str) -> EventType:
@@ -1112,7 +1146,7 @@ class NewsParser:
     def _extract_keywords(self, headline: str) -> List[str]:
         """Extract significant keywords from headline."""
         # Simple keyword extraction - could be enhanced with NLP
-        words = re.findall(r'\b[A-Z][a-z]+\b|\b[A-Z]+\b', headline)
+        words = re.findall(r"\b[A-Z][a-z]+\b|\b[A-Z]+\b", headline)
 
         # Filter common words
         stop_words = {"The", "A", "An", "In", "On", "At", "To", "For", "And", "Or", "Is", "Are"}
@@ -1125,11 +1159,13 @@ class NewsParser:
         return self.parse_headline(
             headline=json_data.get("headline", json_data.get("title", "")),
             timestamp=datetime.fromisoformat(
-                json_data.get("datetime", json_data.get("publishedAt", json_data.get("timestamp", "")))
+                json_data.get(
+                    "datetime", json_data.get("publishedAt", json_data.get("timestamp", ""))
+                )
             ),
             source=json_data.get("source", ""),
             tickers=json_data.get("tickers", json_data.get("symbols", [])),
-            body=json_data.get("body", json_data.get("description", ""))
+            body=json_data.get("body", json_data.get("description", "")),
         )
 
 
@@ -1138,7 +1174,7 @@ def create_news_feature_extractor(
     use_llm: bool = False,
     llm_client: Optional[Any] = None,
     lookback_hours: int = 24,
-    decay_half_life_hours: float = 6.0
+    decay_half_life_hours: float = 6.0,
 ) -> NewsFeatureExtractor:
     """
     Create a news feature extractor with appropriate configuration.
@@ -1160,7 +1196,7 @@ def create_news_feature_extractor(
     return NewsFeatureExtractor(
         sentiment_analyzer=analyzer,
         lookback_hours=lookback_hours,
-        decay_half_life_hours=decay_half_life_hours
+        decay_half_life_hours=decay_half_life_hours,
     )
 
 
@@ -1170,9 +1206,7 @@ if __name__ == "__main__":
 
     # Create extractor
     extractor = create_news_feature_extractor(
-        use_llm=False,
-        lookback_hours=24,
-        decay_half_life_hours=6.0
+        use_llm=False, lookback_hours=24, decay_half_life_hours=6.0
     )
 
     # Add some sample events
@@ -1189,15 +1223,15 @@ if __name__ == "__main__":
             "datetime": (now - timedelta(hours=2)).isoformat(),
             "actual": 5.25,
             "expected": 5.25,
-            "previous": 5.0
+            "previous": 5.0,
         },
         {
             "title": "CPI Inflation YoY",
             "datetime": (now - timedelta(hours=6)).isoformat(),
             "actual": 3.2,
             "expected": 3.1,
-            "previous": 3.0
-        }
+            "previous": 3.0,
+        },
     ]
 
     for event_data in events:
@@ -1211,14 +1245,12 @@ if __name__ == "__main__":
         "Fed Chair Powell signals potential rate cuts ahead",
         "Tech stocks surge on strong earnings reports",
         "Bitcoin crashes 10% amid regulatory concerns",
-        "Nvidia beats earnings expectations, stock jumps 5%"
+        "Nvidia beats earnings expectations, stock jumps 5%",
     ]
 
     for i, headline in enumerate(headlines):
         news = news_parser.parse_headline(
-            headline=headline,
-            timestamp=now - timedelta(hours=i),
-            source="Reuters"
+            headline=headline, timestamp=now - timedelta(hours=i), source="Reuters"
         )
         extractor.add_news_item(news)
 
@@ -1227,7 +1259,7 @@ if __name__ == "__main__":
         title="NFP Employment Report",
         timestamp=now + timedelta(hours=48),
         expected=200000,
-        previous=180000
+        previous=180000,
     )
     extractor.add_upcoming_event(upcoming)
 

@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 class StrategyType(Enum):
     """Strategy categories."""
+
     TREND_FOLLOWING = "trend_following"
     MEAN_REVERSION = "mean_reversion"
     MOMENTUM = "momentum"
@@ -35,6 +36,7 @@ class StrategyType(Enum):
 @dataclass
 class StrategyConfig:
     """Configuration for a trading strategy."""
+
     strategy_id: str
     name: str
     strategy_type: StrategyType
@@ -70,6 +72,7 @@ class StrategyConfig:
 @dataclass
 class StrategyPerformance:
     """Historical performance metrics for a strategy."""
+
     strategy_id: str
     regime: MarketRegime
     total_return: float
@@ -91,10 +94,7 @@ class StrategyPerformance:
         dd_component = -min(1, self.max_drawdown / 0.3)  # Penalize >30% drawdown
 
         return (
-            sharpe_component * 0.4 +
-            win_component * 0.2 +
-            pf_component * 0.25 +
-            dd_component * 0.15
+            sharpe_component * 0.4 + win_component * 0.2 + pf_component * 0.25 + dd_component * 0.15
         )
 
     def to_dict(self) -> Dict:
@@ -115,6 +115,7 @@ class StrategyPerformance:
 @dataclass
 class SelectionResult:
     """Result of strategy selection."""
+
     selected_strategies: List[str]
     regime: MarketRegime
     confidence: float
@@ -140,6 +141,7 @@ class SelectionResult:
 @dataclass
 class SelectorConfig:
     """Strategy selector configuration."""
+
     # Selection parameters
     max_concurrent_strategies: int = 3
     min_trade_count_for_scoring: int = 10
@@ -186,10 +188,7 @@ class RegimeStrategySelector:
         self._strategies.pop(strategy_id, None)
 
     def update_performance(
-        self,
-        strategy_id: str,
-        regime: MarketRegime,
-        performance: StrategyPerformance
+        self, strategy_id: str, regime: MarketRegime, performance: StrategyPerformance
     ):
         """Update performance data for a strategy."""
         key = (strategy_id, regime)
@@ -197,10 +196,7 @@ class RegimeStrategySelector:
         logger.debug(f"Updated performance for {strategy_id} in {regime.value}")
 
     def select_strategies(
-        self,
-        regime: MarketRegime,
-        volatility: float = 0.0,
-        force_reselection: bool = False
+        self, regime: MarketRegime, volatility: float = 0.0, force_reselection: bool = False
     ) -> SelectionResult:
         """
         Select optimal strategies for current regime.
@@ -220,7 +216,10 @@ class RegimeStrategySelector:
         regime_changed = regime != self._current_regime
         if regime_changed:
             time_since_change = (datetime.now() - self._last_regime_change).total_seconds() / 60
-            if time_since_change < self.config.regime_transition_cooldown_minutes and not force_reselection:
+            if (
+                time_since_change < self.config.regime_transition_cooldown_minutes
+                and not force_reselection
+            ):
                 reasoning.append(f"In cooldown ({time_since_change:.1f}m since regime change)")
                 # Keep current strategies during cooldown
                 return SelectionResult(
@@ -262,7 +261,8 @@ class RegimeStrategySelector:
             # Fallback to defensive strategies
             reasoning.append("No suitable strategies, using defensive mode")
             defensive = [
-                sid for sid, cfg in self._strategies.items()
+                sid
+                for sid, cfg in self._strategies.items()
                 if cfg.strategy_type == StrategyType.DEFENSIVE
             ]
             return SelectionResult(
@@ -280,7 +280,7 @@ class RegimeStrategySelector:
 
         # Select top strategies
         selected = []
-        for strategy_id, config, score in candidates[:self.config.max_concurrent_strategies]:
+        for strategy_id, config, score in candidates[: self.config.max_concurrent_strategies]:
             selected.append(strategy_id)
             reasoning.append(f"Selected {config.name} (score={score:.3f})")
 
@@ -289,7 +289,8 @@ class RegimeStrategySelector:
 
         # Calculate confidence based on performance data availability
         scored_count = sum(
-            1 for sid, _, score in candidates[:self.config.max_concurrent_strategies]
+            1
+            for sid, _, score in candidates[: self.config.max_concurrent_strategies]
             if (sid, regime) in self._performance
         )
         confidence = 0.5 + (scored_count / self.config.max_concurrent_strategies) * 0.4
@@ -324,10 +325,7 @@ class RegimeStrategySelector:
         elif volatility > 0.05:
             base *= 0.5
 
-        return max(
-            self.config.min_position_scale,
-            min(self.config.max_position_scale, base)
-        )
+        return max(self.config.min_position_scale, min(self.config.max_position_scale, base))
 
     def _calculate_risk_scale(self, regime: MarketRegime) -> float:
         """Calculate risk scale factor."""
@@ -343,9 +341,7 @@ class RegimeStrategySelector:
             return 0.9
 
     def get_strategy_allocation(
-        self,
-        regime: MarketRegime,
-        total_capital: float
+        self, regime: MarketRegime, total_capital: float
     ) -> Dict[str, float]:
         """
         Get capital allocation across strategies.
@@ -422,6 +418,7 @@ class RegimeStrategySelector:
 
 # Pre-configured strategy templates
 
+
 def create_default_strategies() -> List[StrategyConfig]:
     """Create default strategy configurations."""
     return [
@@ -431,8 +428,10 @@ def create_default_strategies() -> List[StrategyConfig]:
             name="EMA Trend Following",
             strategy_type=StrategyType.TREND_FOLLOWING,
             suitable_regimes={
-                MarketRegime.BULL, MarketRegime.STRONG_BULL,
-                MarketRegime.BEAR, MarketRegime.STRONG_BEAR
+                MarketRegime.BULL,
+                MarketRegime.STRONG_BULL,
+                MarketRegime.BEAR,
+                MarketRegime.STRONG_BEAR,
             },
             unsuitable_regimes={MarketRegime.SIDEWAYS, MarketRegime.CRASH},
             priority=2,
@@ -441,14 +440,10 @@ def create_default_strategies() -> List[StrategyConfig]:
             strategy_id="trend_macd",
             name="MACD Trend",
             strategy_type=StrategyType.TREND_FOLLOWING,
-            suitable_regimes={
-                MarketRegime.BULL, MarketRegime.STRONG_BULL,
-                MarketRegime.BEAR
-            },
+            suitable_regimes={MarketRegime.BULL, MarketRegime.STRONG_BULL, MarketRegime.BEAR},
             unsuitable_regimes={MarketRegime.CRASH, MarketRegime.HIGH_VOL},
             priority=1,
         ),
-
         # Mean reversion strategies
         StrategyConfig(
             strategy_id="mean_rev_bb",
@@ -456,8 +451,9 @@ def create_default_strategies() -> List[StrategyConfig]:
             strategy_type=StrategyType.MEAN_REVERSION,
             suitable_regimes={MarketRegime.SIDEWAYS},
             unsuitable_regimes={
-                MarketRegime.STRONG_BULL, MarketRegime.STRONG_BEAR,
-                MarketRegime.CRASH
+                MarketRegime.STRONG_BULL,
+                MarketRegime.STRONG_BEAR,
+                MarketRegime.CRASH,
             },
             priority=2,
         ),
@@ -469,7 +465,6 @@ def create_default_strategies() -> List[StrategyConfig]:
             unsuitable_regimes={MarketRegime.CRASH},
             priority=1,
         ),
-
         # Momentum strategies
         StrategyConfig(
             strategy_id="momentum_breakout",
@@ -480,7 +475,6 @@ def create_default_strategies() -> List[StrategyConfig]:
             min_volatility=0.01,
             priority=1,
         ),
-
         # Volatility strategies
         StrategyConfig(
             strategy_id="vol_expansion",
@@ -492,7 +486,6 @@ def create_default_strategies() -> List[StrategyConfig]:
             position_sizing_factor=0.7,  # Smaller positions
             priority=1,
         ),
-
         # Defensive strategies
         StrategyConfig(
             strategy_id="defensive_cash",
@@ -508,8 +501,7 @@ def create_default_strategies() -> List[StrategyConfig]:
 
 
 def create_regime_strategy_selector(
-    config: Optional[SelectorConfig] = None,
-    include_defaults: bool = True
+    config: Optional[SelectorConfig] = None, include_defaults: bool = True
 ) -> RegimeStrategySelector:
     """
     Factory function to create regime strategy selector.

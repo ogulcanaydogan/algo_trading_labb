@@ -46,7 +46,7 @@ class Lifetime(Enum):
 
     SINGLETON = "singleton"  # One instance for the entire application
     TRANSIENT = "transient"  # New instance on each request
-    SCOPED = "scoped"        # One instance per scope (e.g., per request)
+    SCOPED = "scoped"  # One instance per scope (e.g., per request)
 
 
 @dataclass
@@ -233,7 +233,11 @@ class Container:
         try:
             # Get constructor signature
             sig = inspect.signature(service_type.__init__)
-            hints = get_type_hints(service_type.__init__) if hasattr(service_type.__init__, "__annotations__") else {}
+            hints = (
+                get_type_hints(service_type.__init__)
+                if hasattr(service_type.__init__, "__annotations__")
+                else {}
+            )
 
             kwargs = {}
             for param_name, param in sig.parameters.items():

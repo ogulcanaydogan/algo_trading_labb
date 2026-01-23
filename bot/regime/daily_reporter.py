@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ReportSchedule:
     """Schedule configuration for a report."""
+
     name: str
     report_type: str  # "daily", "weekly", "monthly"
     time: time = time(20, 0)  # Default 8 PM
@@ -32,10 +33,14 @@ class ReporterConfig:
     """Configuration for daily reporter."""
 
     # Report schedules
-    schedules: List[ReportSchedule] = field(default_factory=lambda: [
-        ReportSchedule(name="daily_summary", report_type="daily", time=time(20, 0)),
-        ReportSchedule(name="weekly_summary", report_type="weekly", time=time(18, 0), day_of_week=6),
-    ])
+    schedules: List[ReportSchedule] = field(
+        default_factory=lambda: [
+            ReportSchedule(name="daily_summary", report_type="daily", time=time(20, 0)),
+            ReportSchedule(
+                name="weekly_summary", report_type="weekly", time=time(18, 0), day_of_week=6
+            ),
+        ]
+    )
 
     # Alert thresholds
     alert_on_large_win: float = 500.0  # Alert if trade wins > $500
@@ -163,6 +168,7 @@ class DailyReporter:
         """Generate report message."""
         try:
             from .performance_tracker import get_performance_tracker
+
             tracker = get_performance_tracker()
             return tracker.generate_telegram_summary(report_type)
         except Exception as e:

@@ -22,12 +22,14 @@ try:
     from sklearn.model_selection import train_test_split, cross_val_score
     from sklearn.preprocessing import StandardScaler
     from sklearn.metrics import accuracy_score, classification_report
+
     HAS_SKLEARN = True
 except ImportError:
     HAS_SKLEARN = False
 
 try:
     import xgboost as xgb
+
     HAS_XGBOOST = True
 except ImportError:
     HAS_XGBOOST = False
@@ -45,6 +47,7 @@ from .feature_engineer import FeatureEngineer, FeatureConfig
 @dataclass
 class PredictionResult:
     """Result from ML prediction."""
+
     action: Literal["LONG", "SHORT", "FLAT"]
     confidence: float
     probability_long: float
@@ -72,6 +75,7 @@ class PredictionResult:
 @dataclass
 class ModelMetrics:
     """Training metrics for a model."""
+
     accuracy: float
     cross_val_mean: float
     cross_val_std: float
@@ -318,7 +322,9 @@ class MLPredictor:
 
         # Estimate expected return based on recent data
         recent_returns = ohlcv["close"].pct_change().tail(20)
-        expected_return = float(recent_returns.mean() * (1 if action == "LONG" else -1 if action == "SHORT" else 0))
+        expected_return = float(
+            recent_returns.mean() * (1 if action == "LONG" else -1 if action == "SHORT" else 0)
+        )
 
         return PredictionResult(
             action=action,
@@ -363,7 +369,9 @@ class MLPredictor:
                 "cross_val_std": self.metrics.cross_val_std,
                 "train_samples": self.metrics.train_samples,
                 "test_samples": self.metrics.test_samples,
-            } if self.metrics else None,
+            }
+            if self.metrics
+            else None,
             "saved_at": datetime.now().isoformat(),
         }
         with open(meta_path, "w") as f:
@@ -402,9 +410,7 @@ class MLPredictor:
             return []
 
         sorted_features = sorted(
-            self.metrics.feature_importance.items(),
-            key=lambda x: x[1],
-            reverse=True
+            self.metrics.feature_importance.items(), key=lambda x: x[1], reverse=True
         )
         return sorted_features[:top_n]
 
@@ -467,9 +473,7 @@ _predictor: Optional[MLPredictor] = None
 
 
 def get_predictor(
-    model_type: str = "random_forest",
-    model_dir: str = "data/models",
-    symbol: str = "BTC_USDT"
+    model_type: str = "random_forest", model_dir: str = "data/models", symbol: str = "BTC_USDT"
 ) -> Optional[MLPredictor]:
     """
     Get or create a predictor instance.
@@ -509,5 +513,6 @@ def get_predictor(
 
     except Exception as e:
         import logging
+
         logging.getLogger(__name__).warning(f"Could not create predictor: {e}")
         return None

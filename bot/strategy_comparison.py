@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class StrategyMetrics:
     """Comprehensive metrics for a single strategy."""
+
     name: str
     total_trades: int = 0
     winning_trades: int = 0
@@ -50,6 +51,7 @@ class StrategyMetrics:
 @dataclass
 class ComparisonResult:
     """Result of comparing multiple strategies."""
+
     strategies: List[StrategyMetrics]
     best_pnl: str
     best_sharpe: str
@@ -163,7 +165,9 @@ class StrategyComparator:
             sharpe_ratio=metrics.get("sharpe_ratio", 0),
             sortino_ratio=metrics.get("sortino_ratio", 0),
             max_drawdown=metrics.get("max_drawdown", 0),
-            profit_factor=metrics.get("profit_factor", gross_profit / gross_loss if gross_loss > 0 else 0),
+            profit_factor=metrics.get(
+                "profit_factor", gross_profit / gross_loss if gross_loss > 0 else 0
+            ),
             avg_win=gross_profit / len(wins) if wins else 0,
             avg_loss=gross_loss / len(losses) if losses else 0,
             largest_win=max(t.get("pnl", 0) for t in trades) if trades else 0,
@@ -290,7 +294,9 @@ class StrategyComparator:
         best_sharpe = max(strategies, key=lambda s: s.sharpe_ratio).name
         best_win_rate = max(strategies, key=lambda s: s.win_rate).name
         lowest_drawdown = min(strategies, key=lambda s: s.max_drawdown).name
-        best_profit_factor = max(strategies, key=lambda s: s.profit_factor if s.profit_factor != float("inf") else 0).name
+        best_profit_factor = max(
+            strategies, key=lambda s: s.profit_factor if s.profit_factor != float("inf") else 0
+        ).name
 
         # Calculate rankings
         ranking = self._calculate_ranking(strategies)
@@ -346,29 +352,33 @@ class StrategyComparator:
 
         for i, strategy in enumerate(strategies):
             composite_score = (
-                norm_sharpe[i] * 0.25 +
-                norm_win_rate[i] * 0.20 +
-                norm_pf[i] * 0.20 +
-                norm_dd[i] * 0.20 +
-                norm_pnl[i] * 0.15
+                norm_sharpe[i] * 0.25
+                + norm_win_rate[i] * 0.20
+                + norm_pf[i] * 0.20
+                + norm_dd[i] * 0.20
+                + norm_pnl[i] * 0.15
             )
 
-            scores.append({
-                "rank": 0,  # Will be assigned after sorting
-                "name": strategy.name,
-                "composite_score": round(composite_score, 3),
-                "sharpe_score": round(norm_sharpe[i], 3),
-                "win_rate_score": round(norm_win_rate[i], 3),
-                "profit_factor_score": round(norm_pf[i], 3),
-                "drawdown_score": round(norm_dd[i], 3),
-                "pnl_score": round(norm_pnl[i], 3),
-                "total_trades": strategy.total_trades,
-                "sharpe_ratio": round(strategy.sharpe_ratio, 2),
-                "win_rate": round(strategy.win_rate, 1),
-                "profit_factor": round(strategy.profit_factor, 2) if strategy.profit_factor != float("inf") else "∞",
-                "max_drawdown": round(strategy.max_drawdown, 1),
-                "total_pnl": round(strategy.total_pnl, 2),
-            })
+            scores.append(
+                {
+                    "rank": 0,  # Will be assigned after sorting
+                    "name": strategy.name,
+                    "composite_score": round(composite_score, 3),
+                    "sharpe_score": round(norm_sharpe[i], 3),
+                    "win_rate_score": round(norm_win_rate[i], 3),
+                    "profit_factor_score": round(norm_pf[i], 3),
+                    "drawdown_score": round(norm_dd[i], 3),
+                    "pnl_score": round(norm_pnl[i], 3),
+                    "total_trades": strategy.total_trades,
+                    "sharpe_ratio": round(strategy.sharpe_ratio, 2),
+                    "win_rate": round(strategy.win_rate, 1),
+                    "profit_factor": round(strategy.profit_factor, 2)
+                    if strategy.profit_factor != float("inf")
+                    else "∞",
+                    "max_drawdown": round(strategy.max_drawdown, 1),
+                    "total_pnl": round(strategy.total_pnl, 2),
+                }
+            )
 
         # Sort by composite score
         scores.sort(key=lambda x: x["composite_score"], reverse=True)
@@ -399,7 +409,9 @@ class StrategyComparator:
 
         return correlation
 
-    def get_equity_comparison(self, strategy_names: Optional[List[str]] = None) -> Dict[str, List[Dict]]:
+    def get_equity_comparison(
+        self, strategy_names: Optional[List[str]] = None
+    ) -> Dict[str, List[Dict]]:
         """
         Get equity curves for comparison charting.
 
@@ -437,7 +449,9 @@ class StrategyComparator:
                 "sharpe_ratio": round(s.sharpe_ratio, 2),
                 "sortino_ratio": round(s.sortino_ratio, 2),
                 "max_drawdown": round(s.max_drawdown, 1),
-                "profit_factor": round(s.profit_factor, 2) if s.profit_factor != float("inf") else "∞",
+                "profit_factor": round(s.profit_factor, 2)
+                if s.profit_factor != float("inf")
+                else "∞",
                 "avg_win": round(s.avg_win, 2),
                 "avg_loss": round(s.avg_loss, 2),
                 "largest_win": round(s.largest_win, 2),
@@ -461,8 +475,7 @@ class StrategyComparator:
             "ranking": comparison.ranking,
             "correlation_matrix": comparison.correlation_matrix,
             "equity_curves": {
-                s.name: [round(eq * 100, 2) for eq in s.equity_curve]
-                for s in comparison.strategies
+                s.name: [round(eq * 100, 2) for eq in s.equity_curve] for s in comparison.strategies
             },
             "metrics_table": [
                 {
@@ -473,7 +486,9 @@ class StrategyComparator:
                     "sharpe_ratio": round(s.sharpe_ratio, 2),
                     "sortino_ratio": round(s.sortino_ratio, 2),
                     "max_drawdown": round(s.max_drawdown, 1),
-                    "profit_factor": round(s.profit_factor, 2) if s.profit_factor != float("inf") else 999,
+                    "profit_factor": round(s.profit_factor, 2)
+                    if s.profit_factor != float("inf")
+                    else 999,
                 }
                 for s in comparison.strategies
             ],

@@ -267,7 +267,7 @@ class BaseMLModel(ABC):
 
         sequences = []
         for i in range(len(features) - seq_len + 1):
-            sequences.append(features[i:i + seq_len])
+            sequences.append(features[i : i + seq_len])
 
         return np.array(sequences)
 

@@ -5,7 +5,6 @@ Provides abstract interface and implementations for order execution across
 different trading modes (paper, testnet, live).
 """
 
-import logging
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -13,7 +12,14 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-logger = logging.getLogger(__name__)
+from bot.core import (
+    get_logger,
+    log_trade,
+    metrics,
+    validate_order,
+)
+
+logger = get_logger(__name__)
 
 
 class OrderSide(Enum):
@@ -209,23 +215,44 @@ class PaperExecutionAdapter(ExecutionAdapter):
     async def get_current_price(self, symbol: str) -> float:
         """Get simulated current price with random variation."""
         import random
-        
+
         if symbol in self._prices:
             base_price = self._prices[symbol]
         else:
             # Default price for testing
             base_price = 50000.0 if "BTC" in symbol else 3000.0
             self._prices[symbol] = base_price
-        
+
         # Add random price variation (±0.5% per call) to simulate market movement
         # This makes the portfolio balance update in real-time as "market prices" change
         variation_pct = random.uniform(-0.005, 0.005)  # ±0.5%
         varied_price = base_price * (1 + variation_pct)
-        
+
         return varied_price
 
     async def place_order(self, order: Order) -> OrderResult:
         """Simulate order placement."""
+        # Validate order parameters
+        validation = validate_order(
+            symbol=order.symbol,
+            side=order.side.value,
+            quantity=order.quantity,
+            price=order.price,
+            order_type=order.order_type.value,
+        )
+        if not validation.is_valid:
+            logger.warning(f"Order validation failed: {validation.errors}")
+            metrics.increment("order_validation_failures")
+            return OrderResult(
+                success=False,
+                order_id="",
+                status=OrderStatus.REJECTED,
+                filled_quantity=0,
+                average_price=0,
+                error_message=f"Validation failed: {validation.errors[0]}",
+                simulated=True,
+            )
+
         self._order_counter += 1
         order_id = f"PAPER_{int(time.time())}_{self._order_counter}"
 
@@ -306,6 +333,23 @@ class PaperExecutionAdapter(ExecutionAdapter):
         self._orders[order_id] = order
         self._order_results[order_id] = result
 
+        # Log trade with structured data
+        log_trade(
+            symbol=order.symbol,
+            side=order.side.value,
+            quantity=order.quantity,
+            price=fill_price,
+            order_type=order.order_type.value,
+            order_id=order_id,
+            fees=commission,
+            slippage_bps=slippage / fill_price * 10000,
+            extra={"simulated": True},
+        )
+
+        # Track metrics
+        metrics.increment("orders_executed")
+        metrics.increment(f"orders_{order.side.value}")
+
         logger.info(
             f"Paper order executed: {order.side.value} {order.quantity} {order.symbol} "
             f"@ {fill_price:.2f} (slippage: {slippage:.2f})"
@@ -331,9 +375,7 @@ class PaperExecutionAdapter(ExecutionAdapter):
             if pos.side == "long":
                 pos.unrealized_pnl = pos.quantity * (current_price - pos.entry_price)
             else:
-                pos.unrealized_pnl = abs(pos.quantity) * (
-                    pos.entry_price - current_price
-                )
+                pos.unrealized_pnl = abs(pos.quantity) * (pos.entry_price - current_price)
         return pos
 
     async def get_all_positions(self) -> List[Position]:
@@ -448,9 +490,7 @@ class TestnetExecutionAdapter(ExecutionAdapter):
             return OrderResult(
                 success=True,
                 order_id=result["id"],
-                status=OrderStatus.FILLED
-                if result["status"] == "closed"
-                else OrderStatus.OPEN,
+                status=OrderStatus.FILLED if result["status"] == "closed" else OrderStatus.OPEN,
                 filled_quantity=result.get("filled", 0),
                 average_price=result.get("average", result.get("price", 0)),
                 commission=result.get("fee", {}).get("cost", 0),
@@ -490,7 +530,8 @@ class TestnetExecutionAdapter(ExecutionAdapter):
                 "canceled": OrderStatus.CANCELLED,
             }
             return status_map.get(order["status"], OrderStatus.PENDING)
-        except Exception:
+        except (KeyError, ConnectionError, TimeoutError) as e:
+            logger.warning(f"Failed to get order status: {e}")
             return OrderStatus.PENDING
 
     async def get_position(self, symbol: str) -> Optional[Position]:
@@ -657,9 +698,7 @@ class LiveExecutionAdapter(ExecutionAdapter):
             order_result = OrderResult(
                 success=True,
                 order_id=result["id"],
-                status=OrderStatus.FILLED
-                if result["status"] == "closed"
-                else OrderStatus.OPEN,
+                status=OrderStatus.FILLED if result["status"] == "closed" else OrderStatus.OPEN,
                 filled_quantity=result.get("filled", 0),
                 average_price=result.get("average", result.get("price", 0)),
                 commission=result.get("fee", {}).get("cost", 0),
@@ -711,7 +750,8 @@ class LiveExecutionAdapter(ExecutionAdapter):
                 "canceled": OrderStatus.CANCELLED,
             }
             return status_map.get(order["status"], OrderStatus.PENDING)
-        except Exception:
+        except (KeyError, ConnectionError, TimeoutError) as e:
+            logger.warning(f"Failed to get order status: {e}")
             return OrderStatus.PENDING
 
     async def get_position(self, symbol: str) -> Optional[Position]:

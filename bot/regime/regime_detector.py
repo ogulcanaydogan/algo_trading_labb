@@ -30,23 +30,25 @@ class MarketRegime(Enum):
 
     # Bullish regimes
     STRONG_BULL = "strong_bull"  # Strong uptrend, aggressive long
-    BULL = "bull"                 # Moderate uptrend, trend following
+    BULL = "bull"  # Moderate uptrend, trend following
     # Bearish regimes
-    BEAR = "bear"                 # Moderate downtrend, reduce exposure or short
-    STRONG_BEAR = "strong_bear"   # Strong downtrend, short or stay flat
+    BEAR = "bear"  # Moderate downtrend, reduce exposure or short
+    STRONG_BEAR = "strong_bear"  # Strong downtrend, short or stay flat
     # Crisis regimes
-    CRASH = "crash"               # Rapid decline, defensive mode
-    VOLATILE = "volatile"         # High volatility, reduce size
-    HIGH_VOL = "high_vol"         # Elevated volatility (alias for volatile)
+    CRASH = "crash"  # Rapid decline, defensive mode
+    VOLATILE = "volatile"  # High volatility, reduce size
+    HIGH_VOL = "high_vol"  # Elevated volatility (alias for volatile)
     # Neutral
-    SIDEWAYS = "sideways"         # Range-bound, mean reversion
-    UNKNOWN = "unknown"           # Insufficient data
+    SIDEWAYS = "sideways"  # Range-bound, mean reversion
+    UNKNOWN = "unknown"  # Insufficient data
 
     @property
     def is_trending(self) -> bool:
         return self in (
-            MarketRegime.BULL, MarketRegime.STRONG_BULL,
-            MarketRegime.BEAR, MarketRegime.STRONG_BEAR
+            MarketRegime.BULL,
+            MarketRegime.STRONG_BULL,
+            MarketRegime.BEAR,
+            MarketRegime.STRONG_BEAR,
         )
 
     @property
@@ -214,9 +216,7 @@ class RegimeDetector:
             RegimeState with regime classification and indicators
         """
         if len(df) < self.config.lookback_bars:
-            logger.warning(
-                f"Insufficient data: {len(df)} bars, need {self.config.lookback_bars}"
-            )
+            logger.warning(f"Insufficient data: {len(df)} bars, need {self.config.lookback_bars}")
             return RegimeState(
                 regime=MarketRegime.UNKNOWN,
                 confidence=0.0,
@@ -244,7 +244,10 @@ class RegimeDetector:
         # 2. Current duration exceeds minimum
         # 3. New regime is CRASH (safety override - always allow crash detection)
         if previous_regime and previous_regime != raw_regime:
-            if raw_regime != MarketRegime.CRASH and current_duration < self.config.min_regime_duration:
+            if (
+                raw_regime != MarketRegime.CRASH
+                and current_duration < self.config.min_regime_duration
+            ):
                 # Block regime change, keep current regime
                 regime = previous_regime
                 logger.debug(
@@ -329,7 +332,9 @@ class RegimeDetector:
         # Realized volatility (annualized)
         returns = np.diff(np.log(close))
         if len(returns) >= self.config.vol_lookback:
-            indicators.realized_vol = np.std(returns[-self.config.vol_lookback:]) * np.sqrt(252 * 24)
+            indicators.realized_vol = np.std(returns[-self.config.vol_lookback :]) * np.sqrt(
+                252 * 24
+            )
 
         # Volatility percentile (vs history)
         self._vol_history.append(indicators.realized_vol)
@@ -339,24 +344,33 @@ class RegimeDetector:
         if len(self._vol_history) > 20:
             indicators.vol_percentile = (
                 np.sum(np.array(self._vol_history) <= indicators.realized_vol)
-                / len(self._vol_history) * 100
+                / len(self._vol_history)
+                * 100
             )
 
         # Volatility spike ratio
         if len(self._vol_history) > 20:
-            normal_vol = np.median(self._vol_history[-100:]) if len(self._vol_history) > 100 else np.median(self._vol_history)
-            indicators.vol_spike_ratio = indicators.realized_vol / normal_vol if normal_vol > 0 else 1.0
+            normal_vol = (
+                np.median(self._vol_history[-100:])
+                if len(self._vol_history) > 100
+                else np.median(self._vol_history)
+            )
+            indicators.vol_spike_ratio = (
+                indicators.realized_vol / normal_vol if normal_vol > 0 else 1.0
+            )
 
         # --- Drawdown Indicators ---
 
         # Rolling peak and drawdown
         rolling_max = pd.Series(close).rolling(self.config.lookback_bars).max().values
-        indicators.drawdown_pct = (close[-1] - rolling_max[-1]) / rolling_max[-1] if rolling_max[-1] > 0 else 0
+        indicators.drawdown_pct = (
+            (close[-1] - rolling_max[-1]) / rolling_max[-1] if rolling_max[-1] > 0 else 0
+        )
 
         # Short-term return
         window = min(self.config.crash_window, len(close) - 1)
         if window > 0:
-            indicators.short_term_return = (close[-1] - close[-window-1]) / close[-window-1]
+            indicators.short_term_return = (close[-1] - close[-window - 1]) / close[-window - 1]
 
         # --- Range Indicators ---
 
@@ -480,7 +494,9 @@ class RegimeDetector:
         return pd.Series(data).rolling(period).std().values
 
     @staticmethod
-    def _compute_atr(high: np.ndarray, low: np.ndarray, close: np.ndarray, period: int) -> np.ndarray:
+    def _compute_atr(
+        high: np.ndarray, low: np.ndarray, close: np.ndarray, period: int
+    ) -> np.ndarray:
         """Compute Average True Range."""
         tr1 = high - low
         tr2 = np.abs(high - np.roll(close, 1))
@@ -500,10 +516,7 @@ class RegimeDetector:
         # True Range
         tr = np.maximum(
             high - low,
-            np.maximum(
-                np.abs(high - np.roll(close, 1)),
-                np.abs(low - np.roll(close, 1))
-            )
+            np.maximum(np.abs(high - np.roll(close, 1)), np.abs(low - np.roll(close, 1))),
         )
 
         # +DM and -DM
@@ -548,9 +561,9 @@ class RegimeDetector:
 
         return {
             "total_observations": total,
-            "regime_distribution": {
-                k: round(v / total * 100, 1) for k, v in regime_counts.items()
-            },
+            "regime_distribution": {k: round(v / total * 100, 1) for k, v in regime_counts.items()},
             "current_regime": self.current_regime.value if self.current_regime else None,
-            "current_duration_bars": self._current_state.regime_duration_bars if self._current_state else 0,
+            "current_duration_bars": self._current_state.regime_duration_bars
+            if self._current_state
+            else 0,
         }

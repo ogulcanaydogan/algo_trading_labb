@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class OrderBookSnapshot:
     """Single order book snapshot."""
+
     timestamp: datetime
     bids: List[Tuple[float, float]]  # [(price, size), ...]
     asks: List[Tuple[float, float]]
@@ -39,6 +40,7 @@ class OrderBookSnapshot:
 @dataclass
 class OrderFlowSignal:
     """Signal derived from order flow analysis."""
+
     timestamp: datetime
     imbalance: float  # -1 (sell pressure) to 1 (buy pressure)
     toxicity: float  # 0 (normal) to 1 (toxic flow)
@@ -58,7 +60,7 @@ class OrderBookAnalyzer:
         self,
         depth_levels: int = 20,
         history_size: int = 1000,
-        whale_threshold: float = 0.1  # 10% of total depth
+        whale_threshold: float = 0.1,  # 10% of total depth
     ):
         self.depth_levels = depth_levels
         self.history_size = history_size
@@ -78,7 +80,7 @@ class OrderBookAnalyzer:
         self,
         bids: List[Tuple[float, float]],
         asks: List[Tuple[float, float]],
-        timestamp: Optional[datetime] = None
+        timestamp: Optional[datetime] = None,
     ) -> OrderBookSnapshot:
         """
         Process new order book data.
@@ -101,17 +103,17 @@ class OrderBookAnalyzer:
         spread = best_ask - best_bid if best_bid and best_ask else 0
 
         # Depth at N levels
-        bid_depth = sum(size for _, size in bids[:self.depth_levels])
-        ask_depth = sum(size for _, size in asks[:self.depth_levels])
+        bid_depth = sum(size for _, size in bids[: self.depth_levels])
+        ask_depth = sum(size for _, size in asks[: self.depth_levels])
 
         snapshot = OrderBookSnapshot(
             timestamp=timestamp,
-            bids=bids[:self.depth_levels],
-            asks=asks[:self.depth_levels],
+            bids=bids[: self.depth_levels],
+            asks=asks[: self.depth_levels],
             mid_price=mid_price,
             spread=spread,
             bid_depth=bid_depth,
-            ask_depth=ask_depth
+            ask_depth=ask_depth,
         )
 
         self.snapshots.append(snapshot)
@@ -166,12 +168,12 @@ class OrderBookAnalyzer:
         """
         if snapshot is None:
             if not self.snapshots:
-                return {'detected': False, 'side': None, 'size_ratio': 0}
+                return {"detected": False, "side": None, "size_ratio": 0}
             snapshot = self.snapshots[-1]
 
         total_depth = snapshot.bid_depth + snapshot.ask_depth
         if total_depth == 0:
-            return {'detected': False, 'side': None, 'size_ratio': 0}
+            return {"detected": False, "side": None, "size_ratio": 0}
 
         # Check for large orders on each side
         whale_bids = []
@@ -193,20 +195,20 @@ class OrderBookAnalyzer:
 
         if whale_bid_total > whale_ask_total and whale_bids:
             return {
-                'detected': True,
-                'side': 'BUY',
-                'size_ratio': whale_bid_total / total_depth,
-                'orders': whale_bids
+                "detected": True,
+                "side": "BUY",
+                "size_ratio": whale_bid_total / total_depth,
+                "orders": whale_bids,
             }
         elif whale_ask_total > whale_bid_total and whale_asks:
             return {
-                'detected': True,
-                'side': 'SELL',
-                'size_ratio': whale_ask_total / total_depth,
-                'orders': whale_asks
+                "detected": True,
+                "side": "SELL",
+                "size_ratio": whale_ask_total / total_depth,
+                "orders": whale_asks,
             }
 
-        return {'detected': False, 'side': None, 'size_ratio': 0}
+        return {"detected": False, "side": None, "size_ratio": 0}
 
     def calculate_vpin(self, trades: List[Dict]) -> float:
         """
@@ -228,10 +230,10 @@ class OrderBookAnalyzer:
         sell_volume = 0
 
         for trade in trades:
-            if trade.get('side') == 'buy':
-                buy_volume += trade['size']
+            if trade.get("side") == "buy":
+                buy_volume += trade["size"]
             else:
-                sell_volume += trade['size']
+                sell_volume += trade["size"]
 
         total_volume = buy_volume + sell_volume
         if total_volume == 0:
@@ -272,8 +274,8 @@ class OrderBookAnalyzer:
                 whale_activity=0,
                 spread_percentile=0.5,
                 depth_ratio=1.0,
-                signal='NEUTRAL',
-                confidence=0
+                signal="NEUTRAL",
+                confidence=0,
             )
 
         snapshot = self.snapshots[-1]
@@ -291,22 +293,22 @@ class OrderBookAnalyzer:
         toxicity = self.calculate_vpin(recent_trades) if recent_trades else 0
 
         # Generate signal
-        signal = 'NEUTRAL'
+        signal = "NEUTRAL"
         confidence = 0.0
 
         # Strong imbalance signals
         if imbalance > 0.3:
-            signal = 'BUY'
+            signal = "BUY"
             confidence = min(0.9, 0.5 + imbalance)
         elif imbalance < -0.3:
-            signal = 'SELL'
+            signal = "SELL"
             confidence = min(0.9, 0.5 + abs(imbalance))
 
         # Whale activity can amplify or confirm signals
-        if whale_info['detected']:
-            if whale_info['side'] == signal:
+        if whale_info["detected"]:
+            if whale_info["side"] == signal:
                 confidence = min(0.95, confidence + 0.15)
-            elif whale_info['side'] != signal and signal != 'NEUTRAL':
+            elif whale_info["side"] != signal and signal != "NEUTRAL":
                 # Conflicting signals - reduce confidence
                 confidence *= 0.7
 
@@ -322,11 +324,11 @@ class OrderBookAnalyzer:
             timestamp=datetime.now(),
             imbalance=imbalance,
             toxicity=toxicity,
-            whale_activity=whale_info['size_ratio'] if whale_info['detected'] else 0,
+            whale_activity=whale_info["size_ratio"] if whale_info["detected"] else 0,
             spread_percentile=spread_pct,
             depth_ratio=depth_ratio,
             signal=signal,
-            confidence=confidence
+            confidence=confidence,
         )
 
     def get_features(self) -> Dict[str, float]:
@@ -337,14 +339,14 @@ class OrderBookAnalyzer:
         """
         if not self.snapshots:
             return {
-                'ob_imbalance': 0,
-                'ob_imbalance_ma': 0,
-                'ob_spread_pct': 0.5,
-                'ob_depth_ratio': 1.0,
-                'ob_whale_activity': 0,
-                'ob_toxicity': 0,
-                'ob_bid_depth_change': 0,
-                'ob_ask_depth_change': 0
+                "ob_imbalance": 0,
+                "ob_imbalance_ma": 0,
+                "ob_spread_pct": 0.5,
+                "ob_depth_ratio": 1.0,
+                "ob_whale_activity": 0,
+                "ob_toxicity": 0,
+                "ob_bid_depth_change": 0,
+                "ob_ask_depth_change": 0,
             }
 
         signal = self.get_signal()
@@ -363,14 +365,14 @@ class OrderBookAnalyzer:
             ask_depth_change = 0
 
         return {
-            'ob_imbalance': signal.imbalance,
-            'ob_imbalance_ma': imbalance_ma,
-            'ob_spread_pct': signal.spread_percentile,
-            'ob_depth_ratio': np.clip(signal.depth_ratio, 0.1, 10) / 10,  # Normalize
-            'ob_whale_activity': signal.whale_activity,
-            'ob_toxicity': signal.toxicity,
-            'ob_bid_depth_change': np.clip(bid_depth_change, -1, 1),
-            'ob_ask_depth_change': np.clip(ask_depth_change, -1, 1)
+            "ob_imbalance": signal.imbalance,
+            "ob_imbalance_ma": imbalance_ma,
+            "ob_spread_pct": signal.spread_percentile,
+            "ob_depth_ratio": np.clip(signal.depth_ratio, 0.1, 10) / 10,  # Normalize
+            "ob_whale_activity": signal.whale_activity,
+            "ob_toxicity": signal.toxicity,
+            "ob_bid_depth_change": np.clip(bid_depth_change, -1, 1),
+            "ob_ask_depth_change": np.clip(ask_depth_change, -1, 1),
         }
 
 
@@ -399,7 +401,7 @@ class OptionsFlowAnalyzer:
         size: int,
         side: str,  # 'buy' or 'sell'
         underlying_price: float,
-        timestamp: Optional[datetime] = None
+        timestamp: Optional[datetime] = None,
     ) -> Dict[str, Any]:
         """
         Process an options trade.
@@ -411,26 +413,28 @@ class OptionsFlowAnalyzer:
 
         # Calculate trade characteristics
         days_to_expiry = (expiry - timestamp).days
-        moneyness = underlying_price / strike if option_type == 'call' else strike / underlying_price
+        moneyness = (
+            underlying_price / strike if option_type == "call" else strike / underlying_price
+        )
 
         # Determine if this is significant
         is_sweep = False  # Would need multi-exchange data
         is_unusual = premium * size > 100000  # $100k+ premium
 
         trade_info = {
-            'timestamp': timestamp,
-            'symbol': symbol,
-            'type': option_type,
-            'strike': strike,
-            'expiry': expiry,
-            'premium': premium,
-            'size': size,
-            'side': side,
-            'underlying': underlying_price,
-            'days_to_expiry': days_to_expiry,
-            'moneyness': moneyness,
-            'notional': premium * size * 100,  # Options are per 100 shares
-            'is_unusual': is_unusual
+            "timestamp": timestamp,
+            "symbol": symbol,
+            "type": option_type,
+            "strike": strike,
+            "expiry": expiry,
+            "premium": premium,
+            "size": size,
+            "side": side,
+            "underlying": underlying_price,
+            "days_to_expiry": days_to_expiry,
+            "moneyness": moneyness,
+            "notional": premium * size * 100,  # Options are per 100 shares
+            "is_unusual": is_unusual,
         }
 
         self.flow_history.append(trade_info)
@@ -453,13 +457,13 @@ class OptionsFlowAnalyzer:
         put_volume = 0
 
         for trade in self.flow_history:
-            if trade['timestamp'] < cutoff:
+            if trade["timestamp"] < cutoff:
                 continue
 
-            if trade['type'] == 'call':
-                call_volume += trade['size']
+            if trade["type"] == "call":
+                call_volume += trade["size"]
             else:
-                put_volume += trade['size']
+                put_volume += trade["size"]
 
         if call_volume == 0:
             return 2.0  # Max bearish
@@ -479,14 +483,14 @@ class OptionsFlowAnalyzer:
         cutoff = datetime.now() - timedelta(hours=24)
 
         for trade in self.flow_history:
-            if trade['timestamp'] < cutoff:
+            if trade["timestamp"] < cutoff:
                 continue
 
-            if trade['notional'] >= min_notional:
+            if trade["notional"] >= min_notional:
                 unusual.append(trade)
 
         # Sort by notional value
-        unusual.sort(key=lambda x: x['notional'], reverse=True)
+        unusual.sort(key=lambda x: x["notional"], reverse=True)
 
         return unusual[:20]
 
@@ -501,44 +505,48 @@ class OptionsFlowAnalyzer:
         unusual = self.get_unusual_activity()
 
         # Analyze unusual activity sentiment
-        call_unusual = sum(t['notional'] for t in unusual if t['type'] == 'call' and t['side'] == 'buy')
-        put_unusual = sum(t['notional'] for t in unusual if t['type'] == 'put' and t['side'] == 'buy')
+        call_unusual = sum(
+            t["notional"] for t in unusual if t["type"] == "call" and t["side"] == "buy"
+        )
+        put_unusual = sum(
+            t["notional"] for t in unusual if t["type"] == "put" and t["side"] == "buy"
+        )
 
         # Generate signal
-        signal = 'NEUTRAL'
+        signal = "NEUTRAL"
         confidence = 0.5
 
         # Extreme P/C ratio (contrarian)
         if pc_ratio > 1.5:
             # Very bearish sentiment - contrarian bullish
-            signal = 'BUY'
+            signal = "BUY"
             confidence = 0.6
         elif pc_ratio < 0.5:
             # Very bullish sentiment - contrarian bearish
-            signal = 'SELL'
+            signal = "SELL"
             confidence = 0.6
 
         # Unusual activity (follow smart money)
         if call_unusual > put_unusual * 2:
-            if signal == 'BUY':
+            if signal == "BUY":
                 confidence += 0.15
             else:
-                signal = 'BUY'
+                signal = "BUY"
                 confidence = 0.65
         elif put_unusual > call_unusual * 2:
-            if signal == 'SELL':
+            if signal == "SELL":
                 confidence += 0.15
             else:
-                signal = 'SELL'
+                signal = "SELL"
                 confidence = 0.65
 
         return {
-            'signal': signal,
-            'confidence': min(0.9, confidence),
-            'put_call_ratio': pc_ratio,
-            'call_unusual_notional': call_unusual,
-            'put_unusual_notional': put_unusual,
-            'unusual_trades': len(unusual)
+            "signal": signal,
+            "confidence": min(0.9, confidence),
+            "put_call_ratio": pc_ratio,
+            "call_unusual_notional": call_unusual,
+            "put_unusual_notional": put_unusual,
+            "unusual_trades": len(unusual),
         }
 
     def get_features(self) -> Dict[str, float]:
@@ -546,23 +554,27 @@ class OptionsFlowAnalyzer:
         Get options flow features for ML model.
         """
         signal = self.get_signal()
-        pc_ratio = signal['put_call_ratio']
+        pc_ratio = signal["put_call_ratio"]
 
         # Normalize P/C ratio (typical range 0.5-2.0)
         pc_normalized = np.clip((pc_ratio - 1) / 1, -1, 1)
 
         # P/C ratio percentile
         if len(self.put_call_history) > 10:
-            pc_percentile = sum(1 for r in self.put_call_history if r < pc_ratio) / len(self.put_call_history)
+            pc_percentile = sum(1 for r in self.put_call_history if r < pc_ratio) / len(
+                self.put_call_history
+            )
         else:
             pc_percentile = 0.5
 
         return {
-            'opt_put_call_ratio': pc_normalized,
-            'opt_pc_percentile': pc_percentile,
-            'opt_unusual_call': np.log1p(signal['call_unusual_notional']) / 20,  # Normalize
-            'opt_unusual_put': np.log1p(signal['put_unusual_notional']) / 20,
-            'opt_flow_signal': 1 if signal['signal'] == 'BUY' else (-1 if signal['signal'] == 'SELL' else 0)
+            "opt_put_call_ratio": pc_normalized,
+            "opt_pc_percentile": pc_percentile,
+            "opt_unusual_call": np.log1p(signal["call_unusual_notional"]) / 20,  # Normalize
+            "opt_unusual_put": np.log1p(signal["put_unusual_notional"]) / 20,
+            "opt_flow_signal": 1
+            if signal["signal"] == "BUY"
+            else (-1 if signal["signal"] == "SELL" else 0),
         }
 
 

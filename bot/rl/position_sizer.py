@@ -22,6 +22,7 @@ try:
     import torch.nn as nn
     import torch.nn.functional as F
     import torch.optim as optim
+
     HAS_TORCH = True
 except ImportError:
     HAS_TORCH = False
@@ -35,10 +36,11 @@ logger = logging.getLogger(__name__)
 @dataclass
 class PositionSizerConfig:
     """Configuration for RL position sizer."""
+
     # State dimensions
     market_feature_dim: int = 20  # Technical indicators
     portfolio_feature_dim: int = 8  # Portfolio state
-    regime_feature_dim: int = 5   # Market regime
+    regime_feature_dim: int = 5  # Market regime
 
     # Action space
     min_position_size: float = 0.0  # Minimum position (% of max)
@@ -67,27 +69,27 @@ class PositionSizerConfig:
 @dataclass
 class PositionSizerState:
     """State representation for position sizer."""
+
     market_features: np.ndarray  # Technical indicators
     portfolio_state: np.ndarray  # Cash, positions, PnL
     regime_features: np.ndarray  # Market regime indicators
-    signal_strength: float       # Strategy signal (-1 to 1)
-    signal_confidence: float     # Confidence (0 to 1)
-    volatility: float           # Current volatility
-    drawdown: float             # Current drawdown from peak
+    signal_strength: float  # Strategy signal (-1 to 1)
+    signal_confidence: float  # Confidence (0 to 1)
+    volatility: float  # Current volatility
+    drawdown: float  # Current drawdown from peak
 
     def to_tensor(self) -> np.ndarray:
         """Convert to flat tensor."""
-        return np.concatenate([
-            self.market_features,
-            self.portfolio_state,
-            self.regime_features,
-            np.array([
-                self.signal_strength,
-                self.signal_confidence,
-                self.volatility,
-                self.drawdown
-            ])
-        ]).astype(np.float32)
+        return np.concatenate(
+            [
+                self.market_features,
+                self.portfolio_state,
+                self.regime_features,
+                np.array(
+                    [self.signal_strength, self.signal_confidence, self.volatility, self.drawdown]
+                ),
+            ]
+        ).astype(np.float32)
 
 
 class ReplayBuffer:
@@ -107,12 +109,7 @@ class ReplayBuffer:
         self.size = 0
 
     def add(
-        self,
-        state: np.ndarray,
-        action: float,
-        reward: float,
-        next_state: np.ndarray,
-        done: bool
+        self, state: np.ndarray, action: float, reward: float, next_state: np.ndarray, done: bool
     ) -> None:
         """Add experience to buffer."""
         self.states[self.ptr] = state
@@ -133,7 +130,7 @@ class ReplayBuffer:
             self.actions[indices],
             self.rewards[indices],
             self.next_states[indices],
-            self.dones[indices]
+            self.dones[indices],
         )
 
     def __len__(self) -> int:
@@ -141,6 +138,7 @@ class ReplayBuffer:
 
 
 if HAS_TORCH:
+
     class PositionSizerNetwork(nn.Module):
         """
         Neural network for position sizing.
@@ -155,10 +153,10 @@ if HAS_TORCH:
 
             # Input dimension
             self.state_dim = (
-                config.market_feature_dim +
-                config.portfolio_feature_dim +
-                config.regime_feature_dim +
-                4  # signal_strength, confidence, volatility, drawdown
+                config.market_feature_dim
+                + config.portfolio_feature_dim
+                + config.regime_feature_dim
+                + 4  # signal_strength, confidence, volatility, drawdown
             )
 
             # Shared encoder
@@ -193,11 +191,13 @@ if HAS_TORCH:
 
             for i in range(self.config.num_layers):
                 out_dim = self.config.hidden_dim
-                layers.extend([
-                    nn.Linear(in_dim, out_dim),
-                    nn.ReLU(),
-                    nn.Dropout(self.config.dropout),
-                ])
+                layers.extend(
+                    [
+                        nn.Linear(in_dim, out_dim),
+                        nn.ReLU(),
+                        nn.Dropout(self.config.dropout),
+                    ]
+                )
                 in_dim = out_dim
 
             if self.config.use_attention:
@@ -213,7 +213,7 @@ if HAS_TORCH:
                 nn.ReLU(),
                 nn.Linear(self.config.hidden_dim, self.config.hidden_dim // 2),
                 nn.ReLU(),
-                nn.Linear(self.config.hidden_dim // 2, 1)
+                nn.Linear(self.config.hidden_dim // 2, 1),
             )
 
         def _init_weights(self) -> None:
@@ -229,9 +229,7 @@ if HAS_TORCH:
             return self.encoder(state)
 
         def get_action(
-            self,
-            state: torch.Tensor,
-            deterministic: bool = False
+            self, state: torch.Tensor, deterministic: bool = False
         ) -> Tuple[torch.Tensor, torch.Tensor]:
             """
             Get position size action from policy.
@@ -260,9 +258,7 @@ if HAS_TORCH:
             return action.squeeze(-1), log_prob.squeeze(-1)
 
         def get_q_values(
-            self,
-            state: torch.Tensor,
-            action: torch.Tensor
+            self, state: torch.Tensor, action: torch.Tensor
         ) -> Tuple[torch.Tensor, torch.Tensor]:
             """Get Q-values for state-action pair."""
             if action.dim() == 1:
@@ -275,11 +271,7 @@ if HAS_TORCH:
 
             return q1, q2
 
-        def get_target_q_values(
-            self,
-            state: torch.Tensor,
-            action: torch.Tensor
-        ) -> torch.Tensor:
+        def get_target_q_values(self, state: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
             """Get target Q-values (min of twin Q)."""
             if action.dim() == 1:
                 action = action.unsqueeze(-1)
@@ -293,25 +285,16 @@ if HAS_TORCH:
 
         def soft_update_targets(self, tau: float) -> None:
             """Soft update target networks."""
-            for param, target_param in zip(
-                self.q1.parameters(), self.q1_target.parameters()
-            ):
-                target_param.data.copy_(
-                    tau * param.data + (1 - tau) * target_param.data
-                )
+            for param, target_param in zip(self.q1.parameters(), self.q1_target.parameters()):
+                target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
 
-            for param, target_param in zip(
-                self.q2.parameters(), self.q2_target.parameters()
-            ):
-                target_param.data.copy_(
-                    tau * param.data + (1 - tau) * target_param.data
-                )
+            for param, target_param in zip(self.q2.parameters(), self.q2_target.parameters()):
+                target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
 
         @property
         def alpha(self) -> torch.Tensor:
             """Get entropy coefficient."""
             return self.log_alpha.exp()
-
 
     class SelfAttention(nn.Module):
         """Self-attention layer for feature importance."""
@@ -321,7 +304,7 @@ if HAS_TORCH:
             self.query = nn.Linear(dim, dim)
             self.key = nn.Linear(dim, dim)
             self.value = nn.Linear(dim, dim)
-            self.scale = dim ** 0.5
+            self.scale = dim**0.5
 
         def forward(self, x: torch.Tensor) -> torch.Tensor:
             # For 1D input, just apply learned transformation
@@ -364,9 +347,7 @@ class RLPositionSizer:
     """
 
     def __init__(
-        self,
-        config: Optional[PositionSizerConfig] = None,
-        model_path: Optional[str] = None
+        self, config: Optional[PositionSizerConfig] = None, model_path: Optional[str] = None
     ):
         """
         Initialize RL position sizer.
@@ -379,10 +360,10 @@ class RLPositionSizer:
 
         # State dimension
         self.state_dim = (
-            self.config.market_feature_dim +
-            self.config.portfolio_feature_dim +
-            self.config.regime_feature_dim +
-            4  # Additional features
+            self.config.market_feature_dim
+            + self.config.portfolio_feature_dim
+            + self.config.regime_feature_dim
+            + 4  # Additional features
         )
 
         # Initialize network
@@ -391,21 +372,19 @@ class RLPositionSizer:
 
             # Optimizers
             self.actor_optimizer = optim.Adam(
-                list(self.network.encoder.parameters()) +
-                list(self.network.actor_mean.parameters()) +
-                list(self.network.actor_log_std.parameters()),
-                lr=self.config.learning_rate
+                list(self.network.encoder.parameters())
+                + list(self.network.actor_mean.parameters())
+                + list(self.network.actor_log_std.parameters()),
+                lr=self.config.learning_rate,
             )
 
             self.critic_optimizer = optim.Adam(
-                list(self.network.q1.parameters()) +
-                list(self.network.q2.parameters()),
-                lr=self.config.learning_rate
+                list(self.network.q1.parameters()) + list(self.network.q2.parameters()),
+                lr=self.config.learning_rate,
             )
 
             self.alpha_optimizer = optim.Adam(
-                [self.network.log_alpha],
-                lr=self.config.learning_rate
+                [self.network.log_alpha], lr=self.config.learning_rate
             )
 
             # Load pre-trained if available
@@ -415,10 +394,7 @@ class RLPositionSizer:
             self.network = None
 
         # Replay buffer
-        self.buffer = ReplayBuffer(
-            self.config.buffer_size,
-            self.state_dim
-        )
+        self.buffer = ReplayBuffer(self.config.buffer_size, self.state_dim)
 
         # Training state
         self.training_steps = 0
@@ -428,11 +404,7 @@ class RLPositionSizer:
         self._position_history: List[Dict[str, Any]] = []
         self._reward_history: List[float] = []
 
-    def get_position_size(
-        self,
-        state: PositionSizerState,
-        deterministic: bool = False
-    ) -> float:
+    def get_position_size(self, state: PositionSizerState, deterministic: bool = False) -> float:
         """
         Get optimal position size for given state.
 
@@ -457,15 +429,17 @@ class RLPositionSizer:
         position_size = self._apply_risk_constraints(position_size, state)
 
         # Record for analysis
-        self._position_history.append({
-            "timestamp": datetime.now().isoformat(),
-            "signal_strength": state.signal_strength,
-            "signal_confidence": state.signal_confidence,
-            "volatility": state.volatility,
-            "drawdown": state.drawdown,
-            "raw_size": action.item() if HAS_TORCH else position_size,
-            "final_size": position_size,
-        })
+        self._position_history.append(
+            {
+                "timestamp": datetime.now().isoformat(),
+                "signal_strength": state.signal_strength,
+                "signal_confidence": state.signal_confidence,
+                "volatility": state.volatility,
+                "drawdown": state.drawdown,
+                "raw_size": action.item() if HAS_TORCH else position_size,
+                "final_size": position_size,
+            }
+        )
 
         # Keep limited history
         if len(self._position_history) > 10000:
@@ -492,11 +466,7 @@ class RLPositionSizer:
 
         return np.clip(base_size, 0.0, 1.0)
 
-    def _apply_risk_constraints(
-        self,
-        position_size: float,
-        state: PositionSizerState
-    ) -> float:
+    def _apply_risk_constraints(self, position_size: float, state: PositionSizerState) -> float:
         """Apply risk constraints to position size."""
         # Drawdown constraint
         if state.drawdown > self.config.max_drawdown_threshold:
@@ -522,7 +492,7 @@ class RLPositionSizer:
         action: float,
         reward: float,
         next_state: PositionSizerState,
-        done: bool
+        done: bool,
     ) -> Dict[str, float]:
         """
         Update position sizer with experience.
@@ -538,13 +508,7 @@ class RLPositionSizer:
             Training metrics
         """
         # Add to buffer
-        self.buffer.add(
-            state.to_tensor(),
-            action,
-            reward,
-            next_state.to_tensor(),
-            done
-        )
+        self.buffer.add(state.to_tensor(), action, reward, next_state.to_tensor(), done)
 
         self._reward_history.append(reward)
 
@@ -560,9 +524,7 @@ class RLPositionSizer:
             return {}
 
         # Sample batch
-        states, actions, rewards, next_states, dones = self.buffer.sample(
-            self.config.batch_size
-        )
+        states, actions, rewards, next_states, dones = self.buffer.sample(self.config.batch_size)
 
         # Convert to tensors
         states = torch.FloatTensor(states)
@@ -599,9 +561,9 @@ class RLPositionSizer:
         self.actor_optimizer.step()
 
         # Update entropy coefficient
-        alpha_loss = -(self.network.log_alpha * (
-            log_probs.detach() + self.network.target_entropy
-        )).mean()
+        alpha_loss = -(
+            self.network.log_alpha * (log_probs.detach() + self.network.target_entropy)
+        ).mean()
 
         self.alpha_optimizer.zero_grad()
         alpha_loss.backward()
@@ -625,7 +587,7 @@ class RLPositionSizer:
         position_size: float,
         volatility: float,
         drawdown: float,
-        holding_time: int
+        holding_time: int,
     ) -> float:
         """
         Calculate risk-adjusted reward for position.
@@ -690,19 +652,26 @@ class RLPositionSizer:
         save_path.parent.mkdir(parents=True, exist_ok=True)
 
         if HAS_TORCH and self.network:
-            torch.save({
-                "network_state": self.network.state_dict(),
-                "config": self.config,
-                "training_steps": self.training_steps,
-            }, path)
+            torch.save(
+                {
+                    "network_state": self.network.state_dict(),
+                    "config": self.config,
+                    "training_steps": self.training_steps,
+                },
+                path,
+            )
             logger.info(f"Saved position sizer to {path}")
         else:
             # Save config only
             with open(path, "w") as f:
-                json.dump({
-                    "training_steps": self.training_steps,
-                    "config": self.config.__dict__,
-                }, f, indent=2)
+                json.dump(
+                    {
+                        "training_steps": self.training_steps,
+                        "config": self.config.__dict__,
+                    },
+                    f,
+                    indent=2,
+                )
 
     def load(self, path: str) -> None:
         """Load model from file."""
@@ -722,23 +691,19 @@ class DiscretePositionSizer:
     """
 
     def __init__(
-        self,
-        config: Optional[PositionSizerConfig] = None,
-        model_path: Optional[str] = None
+        self, config: Optional[PositionSizerConfig] = None, model_path: Optional[str] = None
     ):
         self.config = config or PositionSizerConfig()
         self.n_actions = self.config.position_granularity
 
         # Map action index to position size
-        self.action_to_size = {
-            i: i / (self.n_actions - 1) for i in range(self.n_actions)
-        }
+        self.action_to_size = {i: i / (self.n_actions - 1) for i in range(self.n_actions)}
 
         self.state_dim = (
-            self.config.market_feature_dim +
-            self.config.portfolio_feature_dim +
-            self.config.regime_feature_dim +
-            4
+            self.config.market_feature_dim
+            + self.config.portfolio_feature_dim
+            + self.config.regime_feature_dim
+            + 4
         )
 
         # Q-network
@@ -747,10 +712,7 @@ class DiscretePositionSizer:
             self.target_network = self._build_q_network()
             self.target_network.load_state_dict(self.q_network.state_dict())
 
-            self.optimizer = optim.Adam(
-                self.q_network.parameters(),
-                lr=self.config.learning_rate
-            )
+            self.optimizer = optim.Adam(self.q_network.parameters(), lr=self.config.learning_rate)
 
             if model_path and Path(model_path).exists():
                 self.load(model_path)
@@ -776,14 +738,10 @@ class DiscretePositionSizer:
             nn.Linear(self.config.hidden_dim, self.config.hidden_dim // 2),
             nn.ReLU(),
             nn.Dropout(self.config.dropout),
-            nn.Linear(self.config.hidden_dim // 2, self.n_actions)
+            nn.Linear(self.config.hidden_dim // 2, self.n_actions),
         )
 
-    def get_position_size(
-        self,
-        state: PositionSizerState,
-        deterministic: bool = False
-    ) -> float:
+    def get_position_size(self, state: PositionSizerState, deterministic: bool = False) -> float:
         """Get position size."""
         if not HAS_TORCH or self.q_network is None:
             return self._fallback_sizing(state)
@@ -808,11 +766,7 @@ class DiscretePositionSizer:
         base_size = abs(state.signal_strength) * state.signal_confidence
         return np.clip(base_size, 0.0, 1.0)
 
-    def _apply_risk_constraints(
-        self,
-        position_size: float,
-        state: PositionSizerState
-    ) -> float:
+    def _apply_risk_constraints(self, position_size: float, state: PositionSizerState) -> float:
         """Apply risk constraints."""
         if state.drawdown > self.config.max_drawdown_threshold:
             max_allowed = 1.0 - (state.drawdown / self.config.max_drawdown_threshold)
@@ -826,16 +780,10 @@ class DiscretePositionSizer:
         action: float,
         reward: float,
         next_state: PositionSizerState,
-        done: bool
+        done: bool,
     ) -> Dict[str, float]:
         """Update with experience."""
-        self.buffer.add(
-            state.to_tensor(),
-            action,
-            reward,
-            next_state.to_tensor(),
-            done
-        )
+        self.buffer.add(state.to_tensor(), action, reward, next_state.to_tensor(), done)
 
         # Decay epsilon
         self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
@@ -850,14 +798,10 @@ class DiscretePositionSizer:
         if not HAS_TORCH or self.q_network is None:
             return {}
 
-        states, actions, rewards, next_states, dones = self.buffer.sample(
-            self.config.batch_size
-        )
+        states, actions, rewards, next_states, dones = self.buffer.sample(self.config.batch_size)
 
         states = torch.FloatTensor(states)
-        actions = torch.LongTensor(
-            [int(a * (self.n_actions - 1)) for a in actions]
-        )
+        actions = torch.LongTensor([int(a * (self.n_actions - 1)) for a in actions])
         rewards = torch.FloatTensor(rewards)
         next_states = torch.FloatTensor(next_states)
         dones = torch.FloatTensor(dones)
@@ -896,12 +840,15 @@ class DiscretePositionSizer:
     def save(self, path: str) -> None:
         """Save model."""
         if HAS_TORCH and self.q_network:
-            torch.save({
-                "q_network": self.q_network.state_dict(),
-                "target_network": self.target_network.state_dict(),
-                "epsilon": self.epsilon,
-                "training_steps": self.training_steps,
-            }, path)
+            torch.save(
+                {
+                    "q_network": self.q_network.state_dict(),
+                    "target_network": self.target_network.state_dict(),
+                    "epsilon": self.epsilon,
+                    "training_steps": self.training_steps,
+                },
+                path,
+            )
 
     def load(self, path: str) -> None:
         """Load model."""

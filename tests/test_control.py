@@ -146,10 +146,14 @@ class TestLoadBotControl:
     def test_load_valid_file(self, tmp_path: Path) -> None:
         """Test loading valid control file."""
         control_file = tmp_path / "control.json"
-        control_file.write_text(json.dumps({
-            "paused": True,
-            "reason": "Test pause",
-        }))
+        control_file.write_text(
+            json.dumps(
+                {
+                    "paused": True,
+                    "reason": "Test pause",
+                }
+            )
+        )
 
         state = load_bot_control(tmp_path)
 

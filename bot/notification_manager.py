@@ -34,26 +34,29 @@ logger = logging.getLogger(__name__)
 
 class NotificationPriority(Enum):
     """Notification priority levels."""
-    LOW = 1       # Informational, can be batched
-    MEDIUM = 2    # Important, deliver within minutes
-    HIGH = 3      # Urgent, deliver immediately
+
+    LOW = 1  # Informational, can be batched
+    MEDIUM = 2  # Important, deliver within minutes
+    HIGH = 3  # Urgent, deliver immediately
     CRITICAL = 4  # Emergency, deliver immediately to all channels
 
 
 class NotificationCategory(Enum):
     """Categories for notification routing."""
-    TRADE = "trade"           # Trade executions
-    SIGNAL = "signal"         # Strategy signals
-    RISK = "risk"             # Risk alerts
-    SYSTEM = "system"         # System status
+
+    TRADE = "trade"  # Trade executions
+    SIGNAL = "signal"  # Strategy signals
+    RISK = "risk"  # Risk alerts
+    SYSTEM = "system"  # System status
     PERFORMANCE = "performance"  # Performance updates
-    REGIME = "regime"         # Regime changes
-    ERROR = "error"           # Errors and exceptions
-    REPORT = "report"         # Daily/weekly reports
+    REGIME = "regime"  # Regime changes
+    ERROR = "error"  # Errors and exceptions
+    REPORT = "report"  # Daily/weekly reports
 
 
 class NotificationChannel(Enum):
     """Delivery channels."""
+
     TELEGRAM = "telegram"
     EMAIL = "email"
     WEBHOOK = "webhook"
@@ -64,6 +67,7 @@ class NotificationChannel(Enum):
 @dataclass
 class Notification:
     """A notification to be delivered."""
+
     notification_id: str
     category: NotificationCategory
     priority: NotificationPriority
@@ -91,6 +95,7 @@ class Notification:
 @dataclass
 class NotificationConfig:
     """Configuration for notification system."""
+
     # Telegram
     telegram_enabled: bool = False
     telegram_bot_token: str = ""
@@ -119,16 +124,18 @@ class NotificationConfig:
     # Routing
     route_critical_to_all: bool = True
     quiet_hours_start: int = 22  # 10 PM
-    quiet_hours_end: int = 7     # 7 AM
+    quiet_hours_end: int = 7  # 7 AM
     quiet_hours_allow_critical: bool = True
 
     @classmethod
-    def from_env(cls) -> 'NotificationConfig':
+    def from_env(cls) -> "NotificationConfig":
         """Load configuration from environment variables."""
         return cls(
             telegram_enabled=os.getenv("TELEGRAM_ENABLED", "false").lower() == "true",
             telegram_bot_token=os.getenv("TELEGRAM_BOT_TOKEN", ""),
-            telegram_chat_ids=os.getenv("TELEGRAM_CHAT_IDS", "").split(",") if os.getenv("TELEGRAM_CHAT_IDS") else [],
+            telegram_chat_ids=os.getenv("TELEGRAM_CHAT_IDS", "").split(",")
+            if os.getenv("TELEGRAM_CHAT_IDS")
+            else [],
             telegram_admin_chat_id=os.getenv("TELEGRAM_ADMIN_CHAT_ID", ""),
             email_enabled=os.getenv("EMAIL_ENABLED", "false").lower() == "true",
             smtp_host=os.getenv("SMTP_HOST", "smtp.gmail.com"),
@@ -136,9 +143,13 @@ class NotificationConfig:
             smtp_user=os.getenv("SMTP_USER", ""),
             smtp_password=os.getenv("SMTP_PASSWORD", ""),
             email_from=os.getenv("EMAIL_FROM", ""),
-            email_recipients=os.getenv("EMAIL_RECIPIENTS", "").split(",") if os.getenv("EMAIL_RECIPIENTS") else [],
+            email_recipients=os.getenv("EMAIL_RECIPIENTS", "").split(",")
+            if os.getenv("EMAIL_RECIPIENTS")
+            else [],
             webhook_enabled=os.getenv("WEBHOOK_ENABLED", "false").lower() == "true",
-            webhook_urls=os.getenv("WEBHOOK_URLS", "").split(",") if os.getenv("WEBHOOK_URLS") else []
+            webhook_urls=os.getenv("WEBHOOK_URLS", "").split(",")
+            if os.getenv("WEBHOOK_URLS")
+            else [],
         )
 
 
@@ -225,7 +236,7 @@ class TelegramSender(NotificationSender):
             "chat_id": chat_id,
             "text": message,
             "parse_mode": "HTML" if parse_html else None,
-            "disable_web_page_preview": True
+            "disable_web_page_preview": True,
         }
 
         async with aiohttp.ClientSession() as session:
@@ -241,7 +252,7 @@ class TelegramSender(NotificationSender):
             NotificationPriority.LOW: "ℹ️",
             NotificationPriority.MEDIUM: "📊",
             NotificationPriority.HIGH: "⚠️",
-            NotificationPriority.CRITICAL: "🚨"
+            NotificationPriority.CRITICAL: "🚨",
         }
 
         # Category emoji
@@ -253,7 +264,7 @@ class TelegramSender(NotificationSender):
             NotificationCategory.PERFORMANCE: "📊",
             NotificationCategory.REGIME: "🔄",
             NotificationCategory.ERROR: "❌",
-            NotificationCategory.REPORT: "📋"
+            NotificationCategory.REPORT: "📋",
         }
 
         emoji = category_emoji.get(notification.category, "📌")
@@ -294,7 +305,7 @@ class EmailSender(NotificationSender):
         smtp_user: str,
         smtp_password: str,
         from_address: str,
-        default_recipients: List[str]
+        default_recipients: List[str],
     ):
         """Initialize email sender."""
         self.smtp_host = smtp_host
@@ -339,12 +350,7 @@ class EmailSender(NotificationSender):
                 msg.attach(MIMEText(html_body, "html"))
 
             # Send
-            await asyncio.get_event_loop().run_in_executor(
-                None,
-                self._send_smtp,
-                recipients,
-                msg
-            )
+            await asyncio.get_event_loop().run_in_executor(None, self._send_smtp, recipients, msg)
 
             return True
 
@@ -368,20 +374,14 @@ class EmailSender(NotificationSender):
             NotificationPriority.CRITICAL: "[CRITICAL] ",
             NotificationPriority.HIGH: "[ALERT] ",
             NotificationPriority.MEDIUM: "",
-            NotificationPriority.LOW: ""
+            NotificationPriority.LOW: "",
         }
         prefix = priority_prefix.get(notification.priority, "")
         return f"{prefix}Trading Bot: {notification.title}"
 
     def _format_text_body(self, notification: Notification) -> str:
         """Format plain text email body."""
-        lines = [
-            notification.title,
-            "=" * len(notification.title),
-            "",
-            notification.message,
-            ""
-        ]
+        lines = [notification.title, "=" * len(notification.title), "", notification.message, ""]
 
         if notification.data:
             lines.append("Details:")
@@ -405,7 +405,7 @@ class EmailSender(NotificationSender):
             NotificationPriority.CRITICAL: "#dc3545",
             NotificationPriority.HIGH: "#fd7e14",
             NotificationPriority.MEDIUM: "#0d6efd",
-            NotificationPriority.LOW: "#6c757d"
+            NotificationPriority.LOW: "#6c757d",
         }
         color = priority_colors.get(notification.priority, "#6c757d")
 
@@ -416,7 +416,11 @@ class EmailSender(NotificationSender):
                     value = f"{value:.4f}"
                 data_rows += f"<tr><td style='padding: 8px; border-bottom: 1px solid #eee;'><strong>{key}</strong></td><td style='padding: 8px; border-bottom: 1px solid #eee;'>{value}</td></tr>"
 
-        data_table = f"<table style='width: 100%; border-collapse: collapse; margin: 16px 0;'>{data_rows}</table>" if data_rows else ""
+        data_table = (
+            f"<table style='width: 100%; border-collapse: collapse; margin: 16px 0;'>{data_rows}</table>"
+            if data_rows
+            else ""
+        )
 
         return f"""
         <!DOCTYPE html>
@@ -437,7 +441,7 @@ class EmailSender(NotificationSender):
             {data_table}
 
             <div style="color: #999; font-size: 12px; border-top: 1px solid #eee; padding-top: 16px; margin-top: 20px;">
-                <p style="margin: 0;">{notification.timestamp.strftime('%Y-%m-%d %H:%M:%S')}</p>
+                <p style="margin: 0;">{notification.timestamp.strftime("%Y-%m-%d %H:%M:%S")}</p>
                 <p style="margin: 8px 0 0 0;">Algo Trading Bot</p>
             </div>
         </body>
@@ -476,7 +480,7 @@ class WebhookSender(NotificationSender):
             "title": notification.title,
             "message": notification.message,
             "data": notification.data,
-            "timestamp": notification.timestamp.isoformat()
+            "timestamp": notification.timestamp.isoformat(),
         }
 
         success = True
@@ -511,12 +515,12 @@ class ConsoleSender(NotificationSender):
             NotificationPriority.LOW: logging.INFO,
             NotificationPriority.MEDIUM: logging.INFO,
             NotificationPriority.HIGH: logging.WARNING,
-            NotificationPriority.CRITICAL: logging.ERROR
+            NotificationPriority.CRITICAL: logging.ERROR,
         }.get(notification.priority, logging.INFO)
 
         logger.log(
             level,
-            f"[{notification.category.value.upper()}] {notification.title}: {notification.message}"
+            f"[{notification.category.value.upper()}] {notification.title}: {notification.message}",
         )
 
         return True
@@ -564,12 +568,23 @@ class NotificationManager:
         self._category_routes: Dict[NotificationCategory, List[NotificationChannel]] = {
             NotificationCategory.TRADE: [NotificationChannel.TELEGRAM, NotificationChannel.CONSOLE],
             NotificationCategory.SIGNAL: [NotificationChannel.CONSOLE],
-            NotificationCategory.RISK: [NotificationChannel.TELEGRAM, NotificationChannel.EMAIL, NotificationChannel.CONSOLE],
+            NotificationCategory.RISK: [
+                NotificationChannel.TELEGRAM,
+                NotificationChannel.EMAIL,
+                NotificationChannel.CONSOLE,
+            ],
             NotificationCategory.SYSTEM: [NotificationChannel.CONSOLE],
             NotificationCategory.PERFORMANCE: [NotificationChannel.CONSOLE],
-            NotificationCategory.REGIME: [NotificationChannel.TELEGRAM, NotificationChannel.CONSOLE],
-            NotificationCategory.ERROR: [NotificationChannel.TELEGRAM, NotificationChannel.EMAIL, NotificationChannel.CONSOLE],
-            NotificationCategory.REPORT: [NotificationChannel.EMAIL, NotificationChannel.TELEGRAM]
+            NotificationCategory.REGIME: [
+                NotificationChannel.TELEGRAM,
+                NotificationChannel.CONSOLE,
+            ],
+            NotificationCategory.ERROR: [
+                NotificationChannel.TELEGRAM,
+                NotificationChannel.EMAIL,
+                NotificationChannel.CONSOLE,
+            ],
+            NotificationCategory.REPORT: [NotificationChannel.EMAIL, NotificationChannel.TELEGRAM],
         }
 
         # Statistics
@@ -577,7 +592,7 @@ class NotificationManager:
             "total_sent": 0,
             "total_failed": 0,
             "total_rate_limited": 0,
-            "total_deduplicated": 0
+            "total_deduplicated": 0,
         }
 
         logger.info("NotificationManager initialized")
@@ -591,7 +606,7 @@ class NotificationManager:
         if self.config.telegram_enabled:
             self.senders[NotificationChannel.TELEGRAM] = TelegramSender(
                 bot_token=self.config.telegram_bot_token,
-                default_chat_ids=self.config.telegram_chat_ids
+                default_chat_ids=self.config.telegram_chat_ids,
             )
 
         # Email sender
@@ -602,7 +617,7 @@ class NotificationManager:
                 smtp_user=self.config.smtp_user,
                 smtp_password=self.config.smtp_password,
                 from_address=self.config.email_from,
-                default_recipients=self.config.email_recipients
+                default_recipients=self.config.email_recipients,
             )
 
         # Webhook sender
@@ -642,7 +657,7 @@ class NotificationManager:
         data: Optional[Dict[str, Any]] = None,
         channels: Optional[List[NotificationChannel]] = None,
         recipients: Optional[List[str]] = None,
-        force: bool = False
+        force: bool = False,
     ) -> bool:
         """
         Send a notification.
@@ -661,7 +676,7 @@ class NotificationManager:
             True if notification was sent (or queued)
         """
         # Create notification
-        notification_id = f"notif_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{hash(title)%10000}"
+        notification_id = f"notif_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{hash(title) % 10000}"
 
         notification = Notification(
             notification_id=notification_id,
@@ -671,7 +686,7 @@ class NotificationManager:
             message=message,
             data=data or {},
             channels=channels or self._get_channels_for_category(category, priority),
-            recipients=recipients or []
+            recipients=recipients or [],
         )
 
         # Deduplication check
@@ -706,7 +721,10 @@ class NotificationManager:
 
         # Critical notifications go to all channels if configured
         channels = notification.channels
-        if notification.priority == NotificationPriority.CRITICAL and self.config.route_critical_to_all:
+        if (
+            notification.priority == NotificationPriority.CRITICAL
+            and self.config.route_critical_to_all
+        ):
             channels = list(self.senders.keys())
 
         for channel in channels:
@@ -734,9 +752,7 @@ class NotificationManager:
         return success
 
     def _get_channels_for_category(
-        self,
-        category: NotificationCategory,
-        priority: NotificationPriority
+        self, category: NotificationCategory, priority: NotificationPriority
     ) -> List[NotificationChannel]:
         """Get default channels for a category."""
         channels = self._category_routes.get(category, [NotificationChannel.CONSOLE])
@@ -790,8 +806,7 @@ class NotificationManager:
 
             # Remove old timestamps
             self._sent_timestamps = [
-                ts for ts in self._sent_timestamps
-                if (now - ts).total_seconds() < 3600
+                ts for ts in self._sent_timestamps if (now - ts).total_seconds() < 3600
             ]
 
             # Check hourly limit
@@ -843,7 +858,7 @@ class NotificationManager:
                     priority=NotificationPriority.LOW,
                     title=f"{len(notifications)} {category.value} updates",
                     message="\n".join([f"• {t}" for t in titles[:10]]),
-                    channels=notifications[0].channels
+                    channels=notifications[0].channels,
                 )
                 await self._deliver(aggregated)
 
@@ -858,7 +873,7 @@ class NotificationManager:
         quantity: float,
         price: float,
         strategy: str,
-        pnl: Optional[float] = None
+        pnl: Optional[float] = None,
     ):
         """Send trade execution notification."""
         pnl_str = f"P&L: ${pnl:+.2f}" if pnl is not None else ""
@@ -874,8 +889,8 @@ class NotificationManager:
                 "quantity": quantity,
                 "price": price,
                 "strategy": strategy,
-                "pnl": pnl
-            }
+                "pnl": pnl,
+            },
         )
 
     async def notify_risk_alert(
@@ -883,7 +898,7 @@ class NotificationManager:
         alert_type: str,
         message: str,
         metrics: Optional[Dict[str, float]] = None,
-        critical: bool = False
+        critical: bool = False,
     ):
         """Send risk alert notification."""
         await self.notify(
@@ -891,15 +906,10 @@ class NotificationManager:
             title=f"Risk Alert: {alert_type}",
             message=message,
             priority=NotificationPriority.CRITICAL if critical else NotificationPriority.HIGH,
-            data=metrics or {}
+            data=metrics or {},
         )
 
-    async def notify_regime_change(
-        self,
-        old_regime: str,
-        new_regime: str,
-        confidence: float
-    ):
+    async def notify_regime_change(self, old_regime: str, new_regime: str, confidence: float):
         """Send regime change notification."""
         await self.notify(
             category=NotificationCategory.REGIME,
@@ -909,15 +919,12 @@ class NotificationManager:
             data={
                 "previous_regime": old_regime,
                 "new_regime": new_regime,
-                "confidence": confidence
-            }
+                "confidence": confidence,
+            },
         )
 
     async def notify_system_error(
-        self,
-        error_type: str,
-        error_message: str,
-        stack_trace: Optional[str] = None
+        self, error_type: str, error_message: str, stack_trace: Optional[str] = None
     ):
         """Send system error notification."""
         await self.notify(
@@ -925,7 +932,7 @@ class NotificationManager:
             title=f"System Error: {error_type}",
             message=error_message,
             priority=NotificationPriority.HIGH,
-            data={"stack_trace": stack_trace} if stack_trace else {}
+            data={"stack_trace": stack_trace} if stack_trace else {},
         )
 
     async def notify_daily_report(
@@ -935,7 +942,7 @@ class NotificationManager:
         win_rate: float,
         max_drawdown: float,
         top_winners: List[Dict],
-        top_losers: List[Dict]
+        top_losers: List[Dict],
     ):
         """Send daily performance report."""
         pnl_emoji = "📈" if total_pnl >= 0 else "📉"
@@ -948,8 +955,8 @@ Daily Performance Summary:
 🎯 Win Rate: {win_rate:.1%}
 📉 Max Drawdown: {max_drawdown:.2%}
 
-Top Winners: {', '.join([f"{w['symbol']} (+${w['pnl']:.2f})" for w in top_winners[:3]])}
-Top Losers: {', '.join([f"{l['symbol']} (-${abs(l['pnl']):.2f})" for l in top_losers[:3]])}
+Top Winners: {", ".join([f"{w['symbol']} (+${w['pnl']:.2f})" for w in top_winners[:3]])}
+Top Losers: {", ".join([f"{l['symbol']} (-${abs(l['pnl']):.2f})" for l in top_losers[:3]])}
         """.strip()
 
         await self.notify(
@@ -961,8 +968,8 @@ Top Losers: {', '.join([f"{l['symbol']} (-${abs(l['pnl']):.2f})" for l in top_lo
                 "total_pnl": total_pnl,
                 "total_trades": total_trades,
                 "win_rate": win_rate,
-                "max_drawdown": max_drawdown
-            }
+                "max_drawdown": max_drawdown,
+            },
         )
 
     async def notify_kill_switch(self, action: str, reason: str):
@@ -972,14 +979,12 @@ Top Losers: {', '.join([f"{l['symbol']} (-${abs(l['pnl']):.2f})" for l in top_lo
             title=f"Kill Switch: {action.upper()}",
             message=f"Trading {'stopped' if action == 'stop' else 'resumed'}: {reason}",
             priority=NotificationPriority.CRITICAL,
-            force=True
+            force=True,
         )
 
 
 # Factory function
-def create_notification_manager(
-    config: Optional[NotificationConfig] = None
-) -> NotificationManager:
+def create_notification_manager(config: Optional[NotificationConfig] = None) -> NotificationManager:
     """Create a notification manager with configuration."""
     return NotificationManager(config=config)
 
@@ -987,6 +992,7 @@ def create_notification_manager(
 if __name__ == "__main__":
     # Demo usage
     import asyncio
+
     logging.basicConfig(level=logging.INFO)
 
     async def demo():
@@ -994,7 +1000,9 @@ if __name__ == "__main__":
         manager = NotificationManager()
 
         print("=== Notification Manager Demo ===")
-        print(f"Available senders: {[ch.value for ch, s in manager.senders.items() if s.is_available()]}")
+        print(
+            f"Available senders: {[ch.value for ch, s in manager.senders.items() if s.is_available()]}"
+        )
 
         # Send test notifications
         await manager.notify_trade(
@@ -1003,19 +1011,17 @@ if __name__ == "__main__":
             quantity=0.1,
             price=45000,
             strategy="momentum",
-            pnl=150.00
+            pnl=150.00,
         )
 
         await manager.notify_risk_alert(
             alert_type="Drawdown Warning",
             message="Portfolio drawdown approaching 5% threshold",
-            metrics={"current_drawdown": 0.045, "threshold": 0.05}
+            metrics={"current_drawdown": 0.045, "threshold": 0.05},
         )
 
         await manager.notify_regime_change(
-            old_regime="trending_bullish",
-            new_regime="mean_reverting",
-            confidence=0.85
+            old_regime="trending_bullish", new_regime="mean_reverting", confidence=0.85
         )
 
         print(f"\nStats: {manager.stats}")

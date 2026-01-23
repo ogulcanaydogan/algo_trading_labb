@@ -21,6 +21,7 @@ try:
     from tensorflow.keras.layers import LSTM, Dense, Dropout, BatchNormalization
     from tensorflow.keras.optimizers import Adam
     from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
+
     HAS_TENSORFLOW = True
 except ImportError:
     HAS_TENSORFLOW = False
@@ -61,29 +62,28 @@ class LSTMPredictor:
         if not HAS_TENSORFLOW:
             raise ImportError("TensorFlow required for LSTM model")
 
-        self.model = Sequential([
-            # First LSTM layer
-            LSTM(
-                self.lstm_units[0],
-                return_sequences=True,
-                input_shape=(self.sequence_length, self.n_features),
-            ),
-            BatchNormalization(),
-            Dropout(self.dropout_rate),
-
-            # Second LSTM layer
-            LSTM(self.lstm_units[1], return_sequences=False),
-            BatchNormalization(),
-            Dropout(self.dropout_rate),
-
-            # Dense layers
-            Dense(32, activation="relu"),
-            Dropout(self.dropout_rate / 2),
-            Dense(16, activation="relu"),
-
-            # Output layer
-            Dense(1, activation="sigmoid"),
-        ])
+        self.model = Sequential(
+            [
+                # First LSTM layer
+                LSTM(
+                    self.lstm_units[0],
+                    return_sequences=True,
+                    input_shape=(self.sequence_length, self.n_features),
+                ),
+                BatchNormalization(),
+                Dropout(self.dropout_rate),
+                # Second LSTM layer
+                LSTM(self.lstm_units[1], return_sequences=False),
+                BatchNormalization(),
+                Dropout(self.dropout_rate),
+                # Dense layers
+                Dense(32, activation="relu"),
+                Dropout(self.dropout_rate / 2),
+                Dense(16, activation="relu"),
+                # Output layer
+                Dense(1, activation="sigmoid"),
+            ]
+        )
 
         self.model.compile(
             optimizer=Adam(learning_rate=self.learning_rate),
@@ -132,7 +132,7 @@ class LSTMPredictor:
         targets = df[target_col].values if target_col in df.columns else None
 
         for i in range(self.sequence_length, len(values)):
-            X.append(values[i - self.sequence_length:i])
+            X.append(values[i - self.sequence_length : i])
             if targets is not None:
                 y.append(targets[i])
 
@@ -200,7 +200,8 @@ class LSTMPredictor:
         logger.info(f"Training LSTM on {len(X)} samples...")
 
         history = self.model.fit(
-            X, y,
+            X,
+            y,
             epochs=epochs,
             batch_size=batch_size,
             validation_split=validation_split,
@@ -248,7 +249,9 @@ class LSTMPredictor:
             raise ValueError("Not enough data for prediction")
 
         # Get last sequence
-        X_last = X[-1:] if len(X.shape) == 3 else X[-1].reshape(1, self.sequence_length, self.n_features)
+        X_last = (
+            X[-1:] if len(X.shape) == 3 else X[-1].reshape(1, self.sequence_length, self.n_features)
+        )
 
         # Predict
         prob_up = float(self.model.predict(X_last, verbose=0)[0][0])

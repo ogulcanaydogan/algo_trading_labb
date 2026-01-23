@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 # Optional imports
 try:
     import shap
+
     HAS_SHAP = True
 except ImportError:
     HAS_SHAP = False
@@ -29,6 +30,7 @@ except ImportError:
 @dataclass
 class FeatureImportance:
     """Feature importance result."""
+
     feature_name: str
     importance: float
     rank: int
@@ -46,6 +48,7 @@ class FeatureImportance:
 @dataclass
 class PredictionExplanation:
     """Explanation for a single prediction."""
+
     prediction: float
     prediction_label: str
     confidence: float
@@ -71,6 +74,7 @@ class PredictionExplanation:
 @dataclass
 class ModelInsights:
     """Overall model insights."""
+
     model_type: str
     feature_importances: List[FeatureImportance]
     top_positive_features: List[str]
@@ -145,7 +149,12 @@ class ModelInterpreter:
         model_type = type(self.model).__name__.lower()
 
         try:
-            if "tree" in model_type or "forest" in model_type or "xgb" in model_type or "lgb" in model_type:
+            if (
+                "tree" in model_type
+                or "forest" in model_type
+                or "xgb" in model_type
+                or "lgb" in model_type
+            ):
                 # Tree-based models
                 self._explainer = shap.TreeExplainer(self.model)
             elif "linear" in model_type or "logistic" in model_type:
@@ -154,8 +163,10 @@ class ModelInterpreter:
             else:
                 # Generic kernel explainer (slower)
                 self._explainer = shap.KernelExplainer(
-                    self.model.predict_proba if hasattr(self.model, "predict_proba") else self.model.predict,
-                    self._background_data
+                    self.model.predict_proba
+                    if hasattr(self.model, "predict_proba")
+                    else self.model.predict,
+                    self._background_data,
                 )
             logger.info(f"Created SHAP explainer for {model_type}")
         except Exception as e:
@@ -252,26 +263,35 @@ class ModelInterpreter:
             sorted_features = sorted(
                 zip(self.feature_names, shap_values, X.flatten()),
                 key=lambda x: abs(x[1]),
-                reverse=True
+                reverse=True,
             )
 
             top_features = []
             for name, shap_val, feat_val in sorted_features[:top_n]:
-                top_features.append({
-                    "feature": name,
-                    "value": float(feat_val),
-                    "shap_value": float(shap_val),
-                    "direction": "positive" if shap_val > 0 else "negative",
-                })
+                top_features.append(
+                    {
+                        "feature": name,
+                        "value": float(feat_val),
+                        "shap_value": float(shap_val),
+                        "direction": "positive" if shap_val > 0 else "negative",
+                    }
+                )
         else:
             # Fallback to permutation importance
             base_value = 0.5
             feature_contributions = self._fallback_importance(X)
             top_features = sorted(
-                [{"feature": k, "value": 0, "shap_value": v, "direction": "positive" if v > 0 else "negative"}
-                 for k, v in feature_contributions.items()],
+                [
+                    {
+                        "feature": k,
+                        "value": 0,
+                        "shap_value": v,
+                        "direction": "positive" if v > 0 else "negative",
+                    }
+                    for k, v in feature_contributions.items()
+                ],
                 key=lambda x: abs(x["shap_value"]),
-                reverse=True
+                reverse=True,
             )[:top_n]
 
         return PredictionExplanation(
@@ -343,13 +363,21 @@ class ModelInterpreter:
         sorted_indices = np.argsort(importances)[::-1]
 
         for rank, idx in enumerate(sorted_indices):
-            direction = "positive" if directions[idx] > 0 else "negative" if directions[idx] < 0 else "mixed"
-            results.append(FeatureImportance(
-                feature_name=self.feature_names[idx],
-                importance=float(importances[idx]),
-                rank=rank + 1,
-                direction=direction,
-            ))
+            direction = (
+                "positive"
+                if directions[idx] > 0
+                else "negative"
+                if directions[idx] < 0
+                else "mixed"
+            )
+            results.append(
+                FeatureImportance(
+                    feature_name=self.feature_names[idx],
+                    importance=float(importances[idx]),
+                    rank=rank + 1,
+                    direction=direction,
+                )
+            )
 
         return results
 
@@ -429,7 +457,7 @@ class ModelInterpreter:
 
         # Check for interactions between top features
         for i, f1 in enumerate(top_features[:5]):
-            for f2 in top_features[i+1:5]:
+            for f2 in top_features[i + 1 : 5]:
                 idx1 = self.feature_names.index(f1.feature_name)
                 idx2 = self.feature_names.index(f2.feature_name)
 
@@ -437,12 +465,14 @@ class ModelInterpreter:
                 corr = np.corrcoef(X[:, idx1], X[:, idx2])[0, 1]
 
                 if abs(corr) > 0.5:
-                    interactions.append({
-                        "feature1": f1.feature_name,
-                        "feature2": f2.feature_name,
-                        "correlation": float(corr),
-                        "interaction_type": "correlated",
-                    })
+                    interactions.append(
+                        {
+                            "feature1": f1.feature_name,
+                            "feature2": f2.feature_name,
+                            "correlation": float(corr),
+                            "interaction_type": "correlated",
+                        }
+                    )
 
         return interactions
 

@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 class RiskAction(Enum):
     """Risk management actions."""
+
     NORMAL = "normal"
     REDUCE_SIZE = "reduce_size"
     PAUSE_TRADING = "pause_trading"
@@ -42,32 +43,36 @@ class DynamicRiskConfig:
     atr_take_profit_multiplier: float = 3.0  # TP at 3x ATR (1.5:1 R:R)
 
     # Regime-specific ATR multipliers
-    regime_atr_multipliers: Dict[str, float] = field(default_factory=lambda: {
-        "bull": 2.0,
-        "bear": 1.5,      # Tighter stops in bear
-        "sideways": 1.5,
-        "high_vol": 2.5,  # Wider stops in high vol
-        "crash": 1.0,     # Very tight in crash
-    })
+    regime_atr_multipliers: Dict[str, float] = field(
+        default_factory=lambda: {
+            "bull": 2.0,
+            "bear": 1.5,  # Tighter stops in bear
+            "sideways": 1.5,
+            "high_vol": 2.5,  # Wider stops in high vol
+            "crash": 1.0,  # Very tight in crash
+        }
+    )
 
     # Drawdown protection
-    drawdown_reduce_threshold: float = 0.05   # Reduce size at 5% DD
-    drawdown_pause_threshold: float = 0.10    # Pause at 10% DD
-    drawdown_close_threshold: float = 0.15    # Close all at 15% DD
+    drawdown_reduce_threshold: float = 0.05  # Reduce size at 5% DD
+    drawdown_pause_threshold: float = 0.10  # Pause at 10% DD
+    drawdown_close_threshold: float = 0.15  # Close all at 15% DD
     drawdown_recovery_threshold: float = 0.03  # Resume when DD < 3%
 
     # Daily/weekly limits
-    daily_loss_limit: float = 0.02    # 2% max daily loss
-    weekly_loss_limit: float = 0.05   # 5% max weekly loss
-    daily_trade_limit: int = 20       # Max trades per day
+    daily_loss_limit: float = 0.02  # 2% max daily loss
+    weekly_loss_limit: float = 0.05  # 5% max weekly loss
+    daily_trade_limit: int = 20  # Max trades per day
 
     # Position sizing based on drawdown
-    size_reduction_schedule: Dict[float, float] = field(default_factory=lambda: {
-        0.03: 0.75,  # At 3% DD, reduce to 75% size
-        0.05: 0.50,  # At 5% DD, reduce to 50% size
-        0.08: 0.25,  # At 8% DD, reduce to 25% size
-        0.10: 0.10,  # At 10% DD, reduce to 10% size
-    })
+    size_reduction_schedule: Dict[float, float] = field(
+        default_factory=lambda: {
+            0.03: 0.75,  # At 3% DD, reduce to 75% size
+            0.05: 0.50,  # At 5% DD, reduce to 50% size
+            0.08: 0.25,  # At 8% DD, reduce to 25% size
+            0.10: 0.10,  # At 10% DD, reduce to 10% size
+        }
+    )
 
     # Correlation limits
     max_correlation: float = 0.7  # Reduce if assets too correlated
@@ -77,6 +82,7 @@ class DynamicRiskConfig:
 @dataclass
 class RiskState:
     """Current risk state."""
+
     current_drawdown: float = 0.0
     peak_equity: float = 0.0
     current_equity: float = 0.0
@@ -107,6 +113,7 @@ class RiskState:
 @dataclass
 class StopLossResult:
     """Result of stop-loss calculation."""
+
     stop_loss_price: float
     take_profit_price: float
     atr_value: float
@@ -202,7 +209,7 @@ class DynamicRiskManager:
         """Calculate Average True Range."""
         if len(df) < self.config.atr_period + 1:
             # Fallback to simple range
-            return (df["High"].iloc[-1] - df["Low"].iloc[-1])
+            return df["High"].iloc[-1] - df["Low"].iloc[-1]
 
         high = df["High"].values
         low = df["Low"].values
@@ -265,14 +272,18 @@ class DynamicRiskManager:
         if dd >= self.config.drawdown_close_threshold:
             self._state.action = RiskAction.CLOSE_ALL
             self._state.position_size_multiplier = 0.0
-            self._state.reason = f"Drawdown {dd:.1%} >= {self.config.drawdown_close_threshold:.1%} close threshold"
+            self._state.reason = (
+                f"Drawdown {dd:.1%} >= {self.config.drawdown_close_threshold:.1%} close threshold"
+            )
             self._is_paused = True
             self._pause_reason = self._state.reason
 
         elif dd >= self.config.drawdown_pause_threshold:
             self._state.action = RiskAction.PAUSE_TRADING
             self._state.position_size_multiplier = 0.0
-            self._state.reason = f"Drawdown {dd:.1%} >= {self.config.drawdown_pause_threshold:.1%} pause threshold"
+            self._state.reason = (
+                f"Drawdown {dd:.1%} >= {self.config.drawdown_pause_threshold:.1%} pause threshold"
+            )
             self._is_paused = True
             self._pause_reason = self._state.reason
 
@@ -308,8 +319,7 @@ class DynamicRiskManager:
         # Calculate daily P&L
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         daily_pnl = sum(
-            t.get("pnl", 0) for t in self._daily_trades
-            if t.get("timestamp", now) >= today_start
+            t.get("pnl", 0) for t in self._daily_trades if t.get("timestamp", now) >= today_start
         )
         self._state.daily_pnl = daily_pnl
 
@@ -327,8 +337,7 @@ class DynamicRiskManager:
         week_start = now - timedelta(days=now.weekday())
         week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
         weekly_pnl = sum(
-            t.get("pnl", 0) for t in self._weekly_trades
-            if t.get("timestamp", now) >= week_start
+            t.get("pnl", 0) for t in self._weekly_trades if t.get("timestamp", now) >= week_start
         )
         self._state.weekly_pnl = weekly_pnl
 
@@ -342,10 +351,7 @@ class DynamicRiskManager:
                 self._is_paused = True
 
         # Check daily trade count
-        daily_count = len([
-            t for t in self._daily_trades
-            if t.get("timestamp", now) >= today_start
-        ])
+        daily_count = len([t for t in self._daily_trades if t.get("timestamp", now) >= today_start])
         self._state.daily_trades = daily_count
         if daily_count >= self.config.daily_trade_limit:
             self._state.action = RiskAction.PAUSE_TRADING

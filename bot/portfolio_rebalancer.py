@@ -178,8 +178,7 @@ class PortfolioRebalancer:
 
         for symbol, weight in weights.items():
             constrained[symbol] = max(
-                self.config.min_position_pct,
-                min(self.config.max_position_pct, weight)
+                self.config.min_position_pct, min(self.config.max_position_pct, weight)
             )
 
         # Renormalize
@@ -286,13 +285,15 @@ class PortfolioRebalancer:
             quantity = abs(value_change) / price
             side = "buy" if value_change > 0 else "sell"
 
-            orders.append({
-                "symbol": symbol,
-                "side": side,
-                "quantity": quantity,
-                "value": abs(value_change),
-                "reason": f"Rebalance: {diff*100:+.1f}% drift",
-            })
+            orders.append(
+                {
+                    "symbol": symbol,
+                    "side": side,
+                    "quantity": quantity,
+                    "value": abs(value_change),
+                    "reason": f"Rebalance: {diff * 100:+.1f}% drift",
+                }
+            )
 
         # Sort: sells first, then buys
         orders.sort(key=lambda x: (0 if x["side"] == "sell" else 1, -x["value"]))
@@ -309,10 +310,7 @@ class PortfolioRebalancer:
         if not current_positions or total_value == 0:
             return {}
 
-        weights = {
-            s: pos["value"] / total_value
-            for s, pos in current_positions.items()
-        }
+        weights = {s: pos["value"] / total_value for s, pos in current_positions.items()}
 
         # Concentration (Herfindahl index)
         hhi = sum(w**2 for w in weights.values())

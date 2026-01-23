@@ -39,7 +39,7 @@ class TestZeroAndNegativeValues:
             take_profit=44000.0,
             current_price=40000.0,
         )
-        
+
         pnl = (position.current_price - position.entry_price) * position.quantity
         assert pnl < 0
 
@@ -55,7 +55,7 @@ class TestZeroAndNegativeValues:
             take_profit=None,
             current_price=42000.0,
         )
-        
+
         assert position.quantity == 0.0
 
 
@@ -85,7 +85,7 @@ class TestBoundaryValues:
             take_profit=0.00011,
             current_price=0.0001,
         )
-        
+
         assert position.entry_price == 0.0001
 
     def test_very_large_prices(self):
@@ -100,7 +100,7 @@ class TestBoundaryValues:
             take_profit=1050000.0,
             current_price=1000000.0,
         )
-        
+
         position_value = position.quantity * position.entry_price
         assert position_value == 10.0
 
@@ -116,7 +116,7 @@ class TestBoundaryValues:
             take_profit=2600.0,
             current_price=2500.0,
         )
-        
+
         assert position.quantity == 0.00000001
 
 
@@ -146,7 +146,7 @@ class TestConcurrentPositionEdgeCases:
             take_profit=2600.0,
             current_price=2400.0,
         )
-        
+
         for pos in state.positions.values():
             if pos.stop_loss and pos.current_price == pos.stop_loss:
                 assert pos.current_price == pos.stop_loss
@@ -174,10 +174,9 @@ class TestConcurrentPositionEdgeCases:
             take_profit=2600.0,
             current_price=2600.0,
         )
-        
+
         total_pnl = sum(
-            (pos.current_price - pos.entry_price) * pos.quantity
-            for pos in state.positions.values()
+            (pos.current_price - pos.entry_price) * pos.quantity for pos in state.positions.values()
         )
         assert total_pnl > 0
 
@@ -186,11 +185,11 @@ class TestConcurrentPositionEdgeCases:
         limits = SafetyLimits(max_trades_per_day=3)
         controller = SafetyController(limits=limits)
         controller.update_balance(10000.0)
-        
+
         positions = {}
         for i in range(3):
             positions[f"COIN{i}/USDT"] = 100.0
-        
+
         controller.update_positions(positions)
         assert len(controller._open_positions) == 3
 
@@ -210,7 +209,7 @@ class TestRiskManagementEdgeCases:
             take_profit=44000.0,
             current_price=42000.0,
         )
-        
+
         assert position.stop_loss > position.entry_price
 
     def test_take_profit_below_current_price(self):
@@ -225,7 +224,7 @@ class TestRiskManagementEdgeCases:
             take_profit=41000.0,
             current_price=42000.0,
         )
-        
+
         assert position.take_profit < position.entry_price
 
     def test_daily_loss_limit_zero(self, tmp_path):
@@ -255,18 +254,18 @@ class TestModeTransitionEdgeCases:
             take_profit=44000.0,
             current_price=42000.0,
         )
-        
+
         state.mode = TradingMode.TESTNET
-        
+
         assert len(state.positions) == 1
         assert state.positions["BTC/USDT"].symbol == "BTC/USDT"
 
     def test_transition_with_negative_balance(self):
         """Test transition behavior with negative balance."""
         state = _create_state(balance=-100.0)
-        
+
         state.mode = TradingMode.TESTNET
-        
+
         assert state.mode == TradingMode.TESTNET
         assert state.current_balance < 0
 
@@ -297,6 +296,6 @@ class TestStringAndEnumEdgeCases:
             take_profit=44000.0,
             current_price=42000.0,
         )
-        
+
         assert "/" in position.symbol
         assert ":" in position.symbol

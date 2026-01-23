@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class FactorExposure:
     """Exposure to a single factor."""
+
     name: str
     beta: float  # Factor loading/beta
     contribution: float  # Return contribution
@@ -32,6 +33,7 @@ class FactorExposure:
 @dataclass
 class FactorAnalysisResult:
     """Complete factor analysis results."""
+
     timestamp: datetime
     total_return: float
     factor_explained_return: float
@@ -111,13 +113,13 @@ class FactorAnalyzer:
         # Momentum factor (past 20-period return)
         momentum = np.zeros(len(returns))
         for i in range(20, len(returns)):
-            momentum[i] = np.mean(returns[i - 20:i])
+            momentum[i] = np.mean(returns[i - 20 : i])
         factors["momentum"] = momentum[1:]  # Align with returns
 
         # Volatility factor (rolling 20-period std)
         volatility = np.zeros(len(returns))
         for i in range(20, len(returns)):
-            volatility[i] = np.std(returns[i - 20:i])
+            volatility[i] = np.std(returns[i - 20 : i])
         factors["volatility"] = volatility[1:]
 
         # Trend factor (price vs 20-period SMA)
@@ -230,14 +232,16 @@ class FactorAnalyzer:
 
             factor_contributions[name] = round(contribution * 100, 2)
 
-            factors.append(FactorExposure(
-                name=name,
-                beta=round(float(factor_beta), 4),
-                contribution=round(float(contribution) * 100, 2),
-                t_stat=round(float(t_stats[i + 1]), 2),
-                p_value=round(float(p_values[i + 1]), 4),
-                is_significant=float(p_values[i + 1]) < 0.05,
-            ))
+            factors.append(
+                FactorExposure(
+                    name=name,
+                    beta=round(float(factor_beta), 4),
+                    contribution=round(float(contribution) * 100, 2),
+                    t_stat=round(float(t_stats[i + 1]), 2),
+                    p_value=round(float(p_values[i + 1]), 4),
+                    is_significant=float(p_values[i + 1]) < 0.05,
+                )
+            )
 
         # Residual analysis
         residuals = returns - predictions
@@ -252,7 +256,9 @@ class FactorAnalyzer:
             "std": round(float(np.std(residuals)) * 100, 4),
             "skewness": 0.0 if resid_std == 0 else round(float(stats.skew(residuals)), 2),
             "kurtosis": 0.0 if resid_std == 0 else round(float(stats.kurtosis(residuals)), 2),
-            "autocorrelation": round(float(autocorr), 3) if has_variance and len(residuals) > 1 else 0,
+            "autocorrelation": round(float(autocorr), 3)
+            if has_variance and len(residuals) > 1
+            else 0,
         }
 
         total_return = float(np.sum(returns)) * 100
@@ -290,9 +296,7 @@ class FactorAnalyzer:
 
         return correlations
 
-    def get_rolling_factor_exposure(
-        self, window: int = 60
-    ) -> Dict[str, List[Dict[str, float]]]:
+    def get_rolling_factor_exposure(self, window: int = 60) -> Dict[str, List[Dict[str, float]]]:
         """
         Calculate rolling factor exposures over time.
 
@@ -311,19 +315,23 @@ class FactorAnalyzer:
         rolling_exposures = {f: [] for f in self._factor_data.keys()}
 
         for i in range(window, len(returns)):
-            window_returns = returns[i - window:i]
+            window_returns = returns[i - window : i]
 
             for factor_name, factor_data in self._factor_data.items():
-                window_factor = factor_data[-min_len:][i - window:i]
+                window_factor = factor_data[-min_len:][i - window : i]
 
                 if len(window_returns) > 2 and len(window_factor) > 2:
                     try:
                         slope, _, _, _, _ = stats.linregress(window_factor, window_returns)
-                        rolling_exposures[factor_name].append({
-                            "index": i,
-                            "timestamp": self._timestamps[i].isoformat() if i < len(self._timestamps) else None,
-                            "exposure": round(float(slope), 4),
-                        })
+                        rolling_exposures[factor_name].append(
+                            {
+                                "index": i,
+                                "timestamp": self._timestamps[i].isoformat()
+                                if i < len(self._timestamps)
+                                else None,
+                                "exposure": round(float(slope), 4),
+                            }
+                        )
                     except Exception:
                         pass
 

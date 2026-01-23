@@ -1,4 +1,5 @@
 """Unit tests for API security module."""
+
 from __future__ import annotations
 
 import os

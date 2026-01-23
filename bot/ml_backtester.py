@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class BacktestTrade:
     """Single backtest trade record."""
+
     entry_time: datetime
     exit_time: Optional[datetime] = None
     symbol: str = ""
@@ -56,6 +57,7 @@ class BacktestTrade:
 @dataclass
 class BacktestMetrics:
     """Comprehensive backtest metrics."""
+
     # Basic
     initial_balance: float = 10000.0
     final_balance: float = 10000.0
@@ -265,7 +267,7 @@ class MLBacktester:
 
         # Run simulation
         for i in range(100, len(df)):  # Skip first 100 for indicators
-            window = df.iloc[:i+1]
+            window = df.iloc[: i + 1]
             current = df.iloc[i]
             timestamp = df.index[i]
 
@@ -282,15 +284,23 @@ class MLBacktester:
             if self.position:
                 # Mark-to-market
                 if self.position.side == "long":
-                    equity += (current["close"] - self.position.entry_price) * self.position.quantity
+                    equity += (
+                        current["close"] - self.position.entry_price
+                    ) * self.position.quantity
                 else:
-                    equity += (self.position.entry_price - current["close"]) * self.position.quantity
+                    equity += (
+                        self.position.entry_price - current["close"]
+                    ) * self.position.quantity
 
-            self.equity_curve.append({
-                "timestamp": timestamp.isoformat() if hasattr(timestamp, 'isoformat') else str(timestamp),
-                "equity": round(equity, 2),
-                "price": round(current["close"], 2),
-            })
+            self.equity_curve.append(
+                {
+                    "timestamp": timestamp.isoformat()
+                    if hasattr(timestamp, "isoformat")
+                    else str(timestamp),
+                    "equity": round(equity, 2),
+                    "price": round(current["close"], 2),
+                }
+            )
 
         # Close any open position
         if self.position:
@@ -464,9 +474,8 @@ class MLBacktester:
         metrics.profit_factor = total_wins / total_losses if total_losses > 0 else 0
 
         # Expectancy
-        metrics.expectancy = (
-            (metrics.win_rate * metrics.avg_win) -
-            ((1 - metrics.win_rate) * metrics.avg_loss)
+        metrics.expectancy = (metrics.win_rate * metrics.avg_win) - (
+            (1 - metrics.win_rate) * metrics.avg_loss
         )
 
         # Drawdown
@@ -505,7 +514,9 @@ class MLBacktester:
                 # Sortino (only downside deviation)
                 downside_returns = daily_returns[daily_returns < 0]
                 if len(downside_returns) > 0 and downside_returns.std() > 0:
-                    metrics.sortino_ratio = (excess_return / downside_returns.std()) * np.sqrt(24 * 365)
+                    metrics.sortino_ratio = (excess_return / downside_returns.std()) * np.sqrt(
+                        24 * 365
+                    )
 
         # Calmar ratio
         if metrics.max_drawdown_pct > 0:
@@ -522,7 +533,7 @@ class MLBacktester:
         for t in self.trades:
             if t.entry_time and t.exit_time:
                 try:
-                    if hasattr(t.entry_time, 'timestamp'):
+                    if hasattr(t.entry_time, "timestamp"):
                         duration = (t.exit_time - t.entry_time).total_seconds() / 3600
                     else:
                         duration = 1  # Default 1 hour
@@ -555,7 +566,9 @@ class MLBacktester:
         print(f"Win Rate: {metrics.win_rate:.1%}")
         print()
         print(f"Avg Win: ${metrics.avg_win:.2f} | Avg Loss: ${metrics.avg_loss:.2f}")
-        print(f"Largest Win: ${metrics.largest_win:.2f} | Largest Loss: ${metrics.largest_loss:.2f}")
+        print(
+            f"Largest Win: ${metrics.largest_win:.2f} | Largest Loss: ${metrics.largest_loss:.2f}"
+        )
         print(f"Profit Factor: {metrics.profit_factor:.2f}")
         print(f"Expectancy: ${metrics.expectancy:.2f}")
         print()

@@ -16,6 +16,7 @@ from typing import Dict, Any, List, Optional
 # DATA CLASS CONTRACT TESTS
 # =============================================================================
 
+
 class TestPositionStateContract:
     """Tests for PositionState data class contract."""
 
@@ -28,7 +29,7 @@ class TestPositionStateContract:
             quantity=0.01,
             entry_price=42000.0,
             side="long",
-            entry_time="2026-01-15T10:00:00Z"
+            entry_time="2026-01-15T10:00:00Z",
         )
 
         # Required fields per API_CONTRACTS.md
@@ -49,7 +50,7 @@ class TestPositionStateContract:
             side="long",
             entry_time="2026-01-15T10:00:00Z",
             stop_loss=41000.0,
-            take_profit=43000.0
+            take_profit=43000.0,
         )
 
         assert hasattr(pos, "stop_loss")
@@ -66,7 +67,7 @@ class TestPositionStateContract:
             quantity=0.01,
             entry_price=42000.0,
             side="long",
-            entry_time="2026-01-15T10:00:00Z"
+            entry_time="2026-01-15T10:00:00Z",
         )
         assert pos_long.side in ("long", "short")
 
@@ -76,7 +77,7 @@ class TestPositionStateContract:
             quantity=0.01,
             entry_price=42000.0,
             side="short",
-            entry_time="2026-01-15T10:00:00Z"
+            entry_time="2026-01-15T10:00:00Z",
         )
         assert pos_short.side in ("long", "short")
 
@@ -100,14 +101,23 @@ class TestTradeRecordContract:
             entry_time="2026-01-15T08:00:00Z",
             exit_time="2026-01-15T10:00:00Z",
             exit_reason="take_profit",
-            mode="paper_live_data"
+            mode="paper_live_data",
         )
 
         # Required fields per API_CONTRACTS.md
         required = [
-            "id", "symbol", "side", "quantity", "entry_price",
-            "exit_price", "pnl", "pnl_pct", "entry_time",
-            "exit_time", "exit_reason", "mode"
+            "id",
+            "symbol",
+            "side",
+            "quantity",
+            "entry_price",
+            "exit_price",
+            "pnl",
+            "pnl_pct",
+            "entry_time",
+            "exit_time",
+            "exit_reason",
+            "mode",
         ]
         for field in required:
             assert hasattr(trade, field), f"Missing required field: {field}"
@@ -131,7 +141,7 @@ class TestTradeRecordContract:
                 entry_time="2026-01-15T08:00:00Z",
                 exit_time="2026-01-15T10:00:00Z",
                 exit_reason=reason,
-                mode="paper_live_data"
+                mode="paper_live_data",
             )
             assert trade.exit_reason == reason
 
@@ -154,7 +164,15 @@ class TestUnifiedStateContract:
         )
 
         # Core state tracking fields
-        required = ["mode", "status", "current_balance", "initial_capital", "total_pnl", "total_trades", "max_drawdown_pct"]
+        required = [
+            "mode",
+            "status",
+            "current_balance",
+            "initial_capital",
+            "total_pnl",
+            "total_trades",
+            "max_drawdown_pct",
+        ]
         for field in required:
             assert hasattr(state, field), f"Missing required field: {field}"
 
@@ -181,6 +199,7 @@ class TestUnifiedStateContract:
 # ML PERFORMANCE TRACKER CONTRACT TESTS
 # =============================================================================
 
+
 class TestMLPerformanceTrackerContract:
     """Tests for ML Performance Tracker contract."""
 
@@ -198,7 +217,7 @@ class TestMLPerformanceTrackerContract:
                 prediction="buy",
                 confidence=0.75,
                 market_condition="bull",
-                volatility=50.0
+                volatility=50.0,
             )
 
             assert pred_id is not None
@@ -219,7 +238,7 @@ class TestMLPerformanceTrackerContract:
                 prediction="buy",
                 confidence=0.75,
                 market_condition="bull",
-                volatility=50.0
+                volatility=50.0,
             )
             tracker.record_outcome(pred_id, actual_return=1.5)
 
@@ -227,8 +246,14 @@ class TestMLPerformanceTrackerContract:
 
             # Per API_CONTRACTS.md
             required_keys = [
-                "model_type", "market_condition", "total_predictions",
-                "accuracy", "avg_confidence", "avg_return", "profit_factor", "days"
+                "model_type",
+                "market_condition",
+                "total_predictions",
+                "accuracy",
+                "avg_confidence",
+                "avg_return",
+                "profit_factor",
+                "days",
             ]
             for key in required_keys:
                 assert key in perf, f"Missing key in performance response: {key}"
@@ -264,6 +289,7 @@ class TestMLPerformanceTrackerContract:
 # =============================================================================
 # AI BRAIN CONTRACT TESTS
 # =============================================================================
+
 
 class TestAIBrainContract:
     """Tests for AI Brain contract."""
@@ -310,7 +336,16 @@ class TestAIBrainContract:
         from bot.ai_trading_brain import MarketCondition
 
         # Per SPEC.md
-        expected = ["BULL", "BEAR", "SIDEWAYS", "VOLATILE", "STRONG_BULL", "STRONG_BEAR", "WEAK_BULL", "WEAK_BEAR"]
+        expected = [
+            "BULL",
+            "BEAR",
+            "SIDEWAYS",
+            "VOLATILE",
+            "STRONG_BULL",
+            "STRONG_BEAR",
+            "WEAK_BULL",
+            "WEAK_BEAR",
+        ]
 
         for cond in expected:
             assert hasattr(MarketCondition, cond), f"Missing MarketCondition: {cond}"
@@ -319,6 +354,7 @@ class TestAIBrainContract:
 # =============================================================================
 # RISK SETTINGS CONTRACT TESTS
 # =============================================================================
+
 
 class TestRiskSettingsContract:
     """Tests for risk settings contract."""
@@ -329,11 +365,7 @@ class TestRiskSettingsContract:
         from pathlib import Path
 
         # Default values per SPEC.md
-        defaults = {
-            "shorting": False,
-            "leverage": False,
-            "aggressive": False
-        }
+        defaults = {"shorting": False, "leverage": False, "aggressive": False}
 
         # If file exists, check format
         settings_path = Path("data/risk_settings.json")
@@ -358,6 +390,7 @@ class TestRiskSettingsContract:
 # ENGINE CONFIG CONTRACT TESTS
 # =============================================================================
 
+
 class TestEngineConfigContract:
     """Tests for engine configuration contract."""
 
@@ -368,12 +401,7 @@ class TestEngineConfigContract:
         config = EngineConfig()
 
         # Per SPEC.md
-        required = [
-            "initial_mode",
-            "stop_loss_pct",
-            "take_profit_pct",
-            "data_dir"
-        ]
+        required = ["initial_mode", "stop_loss_pct", "take_profit_pct", "data_dir"]
 
         for field in required:
             assert hasattr(config, field), f"Missing config field: {field}"
@@ -391,6 +419,7 @@ class TestEngineConfigContract:
 # =============================================================================
 # HELPER FUNCTION TESTS
 # =============================================================================
+
 
 def validate_iso_timestamp(timestamp: str) -> bool:
     """Validate ISO 8601 timestamp format."""
@@ -413,7 +442,7 @@ class TestTimestampContract:
             quantity=0.01,
             entry_price=42000.0,
             side="long",
-            entry_time=datetime.now().isoformat()
+            entry_time=datetime.now().isoformat(),
         )
 
         assert validate_iso_timestamp(pos.entry_time), "entry_time must be ISO format"
@@ -422,6 +451,7 @@ class TestTimestampContract:
 # =============================================================================
 # REGRESSION TESTS
 # =============================================================================
+
 
 class TestRegressions:
     """
@@ -478,7 +508,7 @@ class TestRegressions:
                 prediction="buy",
                 confidence=0.7,
                 market_condition="test",
-                volatility=50.0
+                volatility=50.0,
             )
 
             # Must be able to record outcome

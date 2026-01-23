@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ModelPrediction:
     """Prediction from a single model."""
+
     model_name: str
     signal: Literal["LONG", "SHORT", "FLAT"]
     confidence: float
@@ -33,6 +34,7 @@ class ModelPrediction:
 @dataclass
 class EnsemblePrediction:
     """Combined prediction from ensemble."""
+
     signal: Literal["LONG", "SHORT", "FLAT"]
     confidence: float
     agreement_score: float
@@ -317,7 +319,7 @@ class ModelEnsemble:
 
             # Keep only recent history
             if len(self._model_accuracy[name]) > self.performance_window:
-                self._model_accuracy[name] = self._model_accuracy[name][-self.performance_window:]
+                self._model_accuracy[name] = self._model_accuracy[name][-self.performance_window :]
 
             # Update weight based on recent accuracy
             recent_accuracy = np.mean(self._model_accuracy[name])

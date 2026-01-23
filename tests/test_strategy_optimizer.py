@@ -162,25 +162,31 @@ class TestStrategyOptimizer:
         returns = np.random.randn(n) * 0.02
         prices = base_price * np.exp(np.cumsum(returns))
 
-        return pd.DataFrame({
-            "open": prices * (1 + np.random.randn(n) * 0.001),
-            "high": prices * (1 + np.abs(np.random.randn(n)) * 0.01),
-            "low": prices * (1 - np.abs(np.random.randn(n)) * 0.01),
-            "close": prices,
-            "volume": np.random.randint(1000, 10000, n),
-        }, index=dates)
+        return pd.DataFrame(
+            {
+                "open": prices * (1 + np.random.randn(n) * 0.001),
+                "high": prices * (1 + np.abs(np.random.randn(n)) * 0.01),
+                "low": prices * (1 - np.abs(np.random.randn(n)) * 0.01),
+                "close": prices,
+                "volume": np.random.randint(1000, 10000, n),
+            },
+            index=dates,
+        )
 
     @pytest.fixture
     def short_ohlcv(self):
         """Create short OHLCV data."""
         dates = pd.date_range("2024-01-01", periods=50, freq="D")
-        return pd.DataFrame({
-            "open": [100] * 50,
-            "high": [102] * 50,
-            "low": [98] * 50,
-            "close": [101] * 50,
-            "volume": [1000] * 50,
-        }, index=dates)
+        return pd.DataFrame(
+            {
+                "open": [100] * 50,
+                "high": [102] * 50,
+                "low": [98] * 50,
+                "close": [101] * 50,
+                "volume": [1000] * 50,
+            },
+            index=dates,
+        )
 
     def test_optimizer_creation(self, optimizer):
         """Test optimizer is created."""
@@ -229,13 +235,15 @@ class TestStrategyOptimizer:
 
     def test_optimize_non_datetime_index(self, optimizer):
         """Test optimize with non-datetime index."""
-        df = pd.DataFrame({
-            "open": [100, 101],
-            "high": [102, 103],
-            "low": [99, 100],
-            "close": [101, 102],
-            "volume": [1000, 1000],
-        })
+        df = pd.DataFrame(
+            {
+                "open": [100, 101],
+                "high": [102, 103],
+                "low": [99, 100],
+                "close": [101, 102],
+                "volume": [1000, 1000],
+            }
+        )
 
         with pytest.raises(ValueError, match="DatetimeIndex"):
             optimizer.optimize(
@@ -331,15 +339,27 @@ class TestStrategyOptimizer:
 
         class NoParamStrategy(BaseStrategy):
             @property
-            def name(self): return "no_param"
+            def name(self):
+                return "no_param"
+
             @property
-            def description(self): return "test"
+            def description(self):
+                return "test"
+
             @property
-            def suitable_regimes(self): return []
-            def get_required_indicators(self): return []
-            def add_indicators(self, df): return df
+            def suitable_regimes(self):
+                return []
+
+            def get_required_indicators(self):
+                return []
+
+            def add_indicators(self, df):
+                return df
+
             def generate_signal(self, df):
-                return StrategySignal(decision="FLAT", confidence=0, strategy_name="test", reason="test")
+                return StrategySignal(
+                    decision="FLAT", confidence=0, strategy_name="test", reason="test"
+                )
 
         strategy = optimizer._create_strategy(
             NoParamStrategy,
@@ -365,13 +385,16 @@ class TestBacktest:
         # Uptrend
         prices = 100 + np.arange(n) * 0.5 + np.random.randn(n) * 2
 
-        return pd.DataFrame({
-            "open": prices - 0.5,
-            "high": prices + 1,
-            "low": prices - 1,
-            "close": prices,
-            "volume": np.random.randint(1000, 10000, n),
-        }, index=dates)
+        return pd.DataFrame(
+            {
+                "open": prices - 0.5,
+                "high": prices + 1,
+                "low": prices - 1,
+                "close": prices,
+                "volume": np.random.randint(1000, 10000, n),
+            },
+            index=dates,
+        )
 
     def test_backtest_generates_trades(self, optimizer, trending_ohlcv):
         """Test backtest generates trades."""
@@ -384,13 +407,16 @@ class TestBacktest:
     def test_backtest_short_data(self, optimizer):
         """Test backtest with insufficient data."""
         dates = pd.date_range("2024-01-01", periods=50, freq="D")
-        short_df = pd.DataFrame({
-            "open": [100] * 50,
-            "high": [102] * 50,
-            "low": [98] * 50,
-            "close": [101] * 50,
-            "volume": [1000] * 50,
-        }, index=dates)
+        short_df = pd.DataFrame(
+            {
+                "open": [100] * 50,
+                "high": [102] * 50,
+                "low": [98] * 50,
+                "close": [101] * 50,
+                "volume": [1000] * 50,
+            },
+            index=dates,
+        )
 
         strategy = MockStrategy()
         trades = optimizer._backtest(strategy, short_df)
@@ -407,13 +433,16 @@ class TestConvenienceFunction:
         dates = pd.date_range("2024-01-01", periods=n, freq="D")
         prices = 100 * np.exp(np.cumsum(np.random.randn(n) * 0.02))
 
-        ohlcv = pd.DataFrame({
-            "open": prices * 0.99,
-            "high": prices * 1.01,
-            "low": prices * 0.98,
-            "close": prices,
-            "volume": np.random.randint(1000, 10000, n),
-        }, index=dates)
+        ohlcv = pd.DataFrame(
+            {
+                "open": prices * 0.99,
+                "high": prices * 1.01,
+                "low": prices * 0.98,
+                "close": prices,
+                "volume": np.random.randint(1000, 10000, n),
+            },
+            index=dates,
+        )
 
         result = optimize_strategy(
             MockStrategy,

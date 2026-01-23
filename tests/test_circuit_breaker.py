@@ -150,6 +150,7 @@ class TestCircuitBreaker:
     @pytest.mark.asyncio
     async def test_successful_call(self, circuit):
         """Test successful call through circuit."""
+
         async def success_func():
             return "success"
 
@@ -163,6 +164,7 @@ class TestCircuitBreaker:
     @pytest.mark.asyncio
     async def test_failed_call(self, circuit):
         """Test failed call through circuit."""
+
         async def fail_func():
             raise ValueError("Test error")
 

@@ -77,9 +77,7 @@ class YFinanceMarketDataClient:
                 threads=False,
             )
         except Exception as exc:  # pragma: no cover - network/HTTP layer
-            raise MarketDataError(
-                f"Failed to fetch data for {symbol} via yfinance: {exc}"
-            ) from exc
+            raise MarketDataError(f"Failed to fetch data for {symbol} via yfinance: {exc}") from exc
 
         if frame.empty:
             raise MarketDataError(

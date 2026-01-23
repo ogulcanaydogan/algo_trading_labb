@@ -1,4 +1,5 @@
 """Pydantic schemas for configuration validation."""
+
 from __future__ import annotations
 
 from typing import List, Literal, Optional
@@ -46,8 +47,8 @@ class BotConfigSchema(BaseModel):
     symbol: str = Field(default="BTC/USDT", min_length=1, max_length=50)
     data_symbol: Optional[str] = Field(default=None, max_length=50)
     macro_symbol: Optional[str] = Field(default=None, max_length=50)
-    asset_type: Literal["crypto", "equity", "stock", "etf", "index", "commodity", "forex"] = (
-        Field(default="crypto")
+    asset_type: Literal["crypto", "equity", "stock", "etf", "index", "commodity", "forex"] = Field(
+        default="crypto"
     )
     timeframe: str = Field(default="1m", pattern=r"^\d+[mhdwM]$")
     loop_interval_seconds: int = Field(default=60, ge=1, le=86400)

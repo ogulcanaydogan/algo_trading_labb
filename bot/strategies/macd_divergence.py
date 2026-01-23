@@ -18,12 +18,13 @@ from .base import BaseStrategy, StrategyConfig, StrategySignal
 
 class MACDDivergenceConfig(StrategyConfig):
     """Configuration for MACD Divergence strategy."""
+
     macd_fast: int = 12
     macd_slow: int = 26
     macd_signal: int = 9
     rsi_period: int = 14
     divergence_lookback: int = 20  # Bars to look for divergence
-    min_divergence_bars: int = 3   # Minimum bars for valid divergence
+    min_divergence_bars: int = 3  # Minimum bars for valid divergence
 
 
 class MACDDivergenceStrategy(BaseStrategy):
@@ -66,7 +67,7 @@ class MACDDivergenceStrategy(BaseStrategy):
             df["close"],
             window_slow=self.config.macd_slow,
             window_fast=self.config.macd_fast,
-            window_sign=self.config.macd_signal
+            window_sign=self.config.macd_signal,
         )
         df["macd"] = macd.macd()
         df["macd_signal"] = macd.macd_signal()
@@ -231,8 +232,9 @@ class MACDDivergenceStrategy(BaseStrategy):
         """Find indices of local minima."""
         minima = []
         for i in range(order, len(arr) - order):
-            if all(arr[i] <= arr[i-j] for j in range(1, order+1)) and \
-               all(arr[i] <= arr[i+j] for j in range(1, order+1)):
+            if all(arr[i] <= arr[i - j] for j in range(1, order + 1)) and all(
+                arr[i] <= arr[i + j] for j in range(1, order + 1)
+            ):
                 minima.append(i)
         return minima
 
@@ -240,8 +242,9 @@ class MACDDivergenceStrategy(BaseStrategy):
         """Find indices of local maxima."""
         maxima = []
         for i in range(order, len(arr) - order):
-            if all(arr[i] >= arr[i-j] for j in range(1, order+1)) and \
-               all(arr[i] >= arr[i+j] for j in range(1, order+1)):
+            if all(arr[i] >= arr[i - j] for j in range(1, order + 1)) and all(
+                arr[i] >= arr[i + j] for j in range(1, order + 1)
+            ):
                 maxima.append(i)
         return maxima
 

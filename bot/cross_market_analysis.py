@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 class CorrelationRegime(Enum):
     """Correlation regime types."""
+
     HIGH_POSITIVE = "high_positive"  # > 0.7
     MODERATE_POSITIVE = "moderate_positive"  # 0.3 to 0.7
     LOW = "low"  # -0.3 to 0.3
@@ -34,6 +35,7 @@ class CorrelationRegime(Enum):
 @dataclass
 class PairCorrelation:
     """Correlation between two assets."""
+
     asset1: str
     asset2: str
     correlation: float
@@ -62,6 +64,7 @@ class PairCorrelation:
 @dataclass
 class DiversificationScore:
     """Portfolio diversification metrics."""
+
     overall_score: float  # 0-100, higher = more diversified
     effective_assets: float  # Number of "effective" uncorrelated assets
     max_correlation: float
@@ -83,6 +86,7 @@ class DiversificationScore:
 @dataclass
 class CorrelationShift:
     """Detected correlation regime shift."""
+
     asset1: str
     asset2: str
     old_regime: CorrelationRegime
@@ -108,6 +112,7 @@ class CorrelationShift:
 @dataclass
 class HedgeOpportunity:
     """Identified hedging opportunity."""
+
     primary_asset: str
     hedge_asset: str
     correlation: float
@@ -323,7 +328,7 @@ class CrossMarketAnalyzer:
         symbols = list(self._returns.keys())
 
         for i, sym1 in enumerate(symbols):
-            for j, sym2 in enumerate(symbols[i + 1:], start=i + 1):
+            for j, sym2 in enumerate(symbols[i + 1 :], start=i + 1):
                 mkt1 = self._market_types.get(sym1)
                 mkt2 = self._market_types.get(sym2)
 
@@ -354,7 +359,7 @@ class CrossMarketAnalyzer:
         symbols = list(self._returns.keys())
 
         for i, sym1 in enumerate(symbols):
-            for j, sym2 in enumerate(symbols[i + 1:], start=i + 1):
+            for j, sym2 in enumerate(symbols[i + 1 :], start=i + 1):
                 pair_corr = self.calculate_pair_correlation(sym1, sym2)
                 if not pair_corr or len(pair_corr.rolling_correlation) < 10:
                     continue
@@ -445,12 +450,12 @@ class CrossMarketAnalyzer:
             # Calculate expected variance reduction
             # Var(hedged) = Var(primary) + h^2 * Var(hedge) + 2*h*Cov
             hedged_variance = (
-                primary_volatility ** 2 +
-                hedge_ratio ** 2 * hedge_variance +
-                2 * hedge_ratio * covariance
+                primary_volatility**2
+                + hedge_ratio**2 * hedge_variance
+                + 2 * hedge_ratio * covariance
             )
 
-            variance_reduction = 1 - (hedged_variance / (primary_volatility ** 2))
+            variance_reduction = 1 - (hedged_variance / (primary_volatility**2))
             variance_reduction = max(0, min(1, variance_reduction))
 
             # Estimate hedging cost (simplified - assume 0.1% per trade)
@@ -513,7 +518,7 @@ class CrossMarketAnalyzer:
         # Calculate metrics
         correlations = []
         for i, sym1 in enumerate(symbols):
-            for j, sym2 in enumerate(symbols[i + 1:], start=i + 1):
+            for j, sym2 in enumerate(symbols[i + 1 :], start=i + 1):
                 c = corr_matrix.loc[sym1, sym2]
                 if not np.isnan(c):
                     correlations.append(c)
@@ -541,7 +546,7 @@ class CrossMarketAnalyzer:
         effective_n = np.exp(entropy)
 
         # Risk concentration (Herfindahl index)
-        risk_concentration = np.sum(weights ** 2)
+        risk_concentration = np.sum(weights**2)
 
         # Overall score (0-100)
         # Penalize high correlation and concentration
@@ -549,7 +554,9 @@ class CrossMarketAnalyzer:
         concentration_penalty = max(0, (risk_concentration - 0.2) * 100)
         cross_market_bonus = self._calculate_cross_market_bonus(symbols) * 20
 
-        overall_score = max(0, min(100, 70 - correlation_penalty - concentration_penalty + cross_market_bonus))
+        overall_score = max(
+            0, min(100, 70 - correlation_penalty - concentration_penalty + cross_market_bonus)
+        )
 
         # Generate suggestions
         suggestions = []
@@ -570,7 +577,7 @@ class CrossMarketAnalyzer:
 
         # Find highly correlated pairs
         for i, sym1 in enumerate(symbols):
-            for j, sym2 in enumerate(symbols[i + 1:], start=i + 1):
+            for j, sym2 in enumerate(symbols[i + 1 :], start=i + 1):
                 c = corr_matrix.loc[sym1, sym2]
                 if not np.isnan(c) and c > 0.8:
                     suggestions.append(f"High correlation ({c:.2f}) between {sym1} and {sym2}")

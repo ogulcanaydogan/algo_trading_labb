@@ -135,13 +135,31 @@ DEFAULT_EQUITY_ASSETS: Sequence[str] = (
 
 DEFAULT_HORIZONS: Sequence[HorizonConfig] = (
     HorizonConfig(
-        label="short", timeframe="1m", lookback=720, ema_fast=8, ema_slow=21, rsi_overbought=68.0, rsi_oversold=32.0
+        label="short",
+        timeframe="1m",
+        lookback=720,
+        ema_fast=8,
+        ema_slow=21,
+        rsi_overbought=68.0,
+        rsi_oversold=32.0,
     ),
     HorizonConfig(
-        label="medium", timeframe="15m", lookback=480, ema_fast=12, ema_slow=26, rsi_overbought=70.0, rsi_oversold=30.0
+        label="medium",
+        timeframe="15m",
+        lookback=480,
+        ema_fast=12,
+        ema_slow=26,
+        rsi_overbought=70.0,
+        rsi_oversold=30.0,
     ),
     HorizonConfig(
-        label="long", timeframe="1h", lookback=360, ema_fast=20, ema_slow=50, rsi_overbought=72.0, rsi_oversold=28.0
+        label="long",
+        timeframe="1h",
+        lookback=360,
+        ema_fast=20,
+        ema_slow=50,
+        rsi_overbought=72.0,
+        rsi_oversold=28.0,
     ),
 )
 
@@ -235,29 +253,37 @@ def _annualised_return(total_return_pct: float, candles: int, timeframe: str) ->
         return 0.0
     growth = 1 + total_return_pct / 100
     periods_per_year = 365 / max(duration_days, 1e-6)
-    annualised = (growth ** periods_per_year) - 1
+    annualised = (growth**periods_per_year) - 1
     return float(round(annualised * 100, 4))
 
 
-def _summarise_asset(horizons: Sequence[HorizonSnapshot], macro: Optional[MacroInsight]) -> List[str]:
+def _summarise_asset(
+    horizons: Sequence[HorizonSnapshot], macro: Optional[MacroInsight]
+) -> List[str]:
     notes: List[str] = []
     if not horizons:
         return notes
 
     best = max(horizons, key=lambda snap: snap.total_return_pct)
     worst = min(horizons, key=lambda snap: snap.total_return_pct)
-    notes.append(
-        f"Best horizon: {best.label} ({best.total_return_pct:+.2f}% return)."
-    )
+    notes.append(f"Best horizon: {best.label} ({best.total_return_pct:+.2f}% return).")
     if best.label != worst.label:
         notes.append(
             f"Most pressured horizon: {worst.label} ({worst.total_return_pct:+.2f}% return)."
         )
     else:
-        notes.append("Performance is even across horizons; monitor macro catalysts for differentiation.")
+        notes.append(
+            "Performance is even across horizons; monitor macro catalysts for differentiation."
+        )
 
     if macro:
-        bias_descriptor = "supportive" if macro.bias_score > 0 else "defensive" if macro.bias_score < 0 else "balanced"
+        bias_descriptor = (
+            "supportive"
+            if macro.bias_score > 0
+            else "defensive"
+            if macro.bias_score < 0
+            else "balanced"
+        )
         notes.append(
             f"Macro stance is {bias_descriptor} (bias {macro.bias_score:+.2f}, confidence {macro.confidence:.2f})."
         )
@@ -296,7 +322,9 @@ def _build_asset_playbook(
             continue
 
         equity_curve, trade_returns = backtest_strategy(enriched, config)
-        total_return, sharpe, win_rate, _max_dd, trades = calculate_metrics(equity_curve, trade_returns)
+        total_return, sharpe, win_rate, _max_dd, trades = calculate_metrics(
+            equity_curve, trade_returns
+        )
         final_balance = starting_balance * (1 + total_return / 100)
         annualised = _annualised_return(total_return, len(equity_curve), horizon.timeframe)
 
@@ -413,9 +441,7 @@ def build_portfolio_playbook(
                 )
             )
         avg_macro = sum(asset.macro_bias for asset in all_assets) / len(all_assets)
-        highlights.append(
-            f"Average macro bias across tracked assets: {avg_macro:+.2f}."
-        )
+        highlights.append(f"Average macro bias across tracked assets: {avg_macro:+.2f}.")
 
     return PortfolioPlaybook(
         generated_at=_utcnow_iso(),

@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 class ExecutionMode(Enum):
     """Execution mode enumeration"""
+
     BACKTEST = "backtest"
     PAPER = "paper"
     LIVE = "live"
@@ -36,12 +37,14 @@ class ExecutionMode(Enum):
 
 class OrderSide(Enum):
     """Order side"""
+
     BUY = "buy"
     SELL = "sell"
 
 
 class OrderType(Enum):
     """Order type"""
+
     MARKET = "market"
     LIMIT = "limit"
     STOP_LOSS = "stop_loss"
@@ -51,6 +54,7 @@ class OrderType(Enum):
 
 class OrderStatus(Enum):
     """Order status"""
+
     PENDING = "pending"
     SUBMITTED = "submitted"
     PARTIALLY_FILLED = "partially_filled"
@@ -63,6 +67,7 @@ class OrderStatus(Enum):
 
 class PositionSide(Enum):
     """Position side"""
+
     LONG = "long"
     SHORT = "short"
     FLAT = "flat"
@@ -71,6 +76,7 @@ class PositionSide(Enum):
 @dataclass
 class FeeStructure:
     """Fee structure for execution"""
+
     maker_fee_pct: float = 0.02  # 0.02% maker fee
     taker_fee_pct: float = 0.04  # 0.04% taker fee
     funding_rate_pct: float = 0.01  # 0.01% per 8 hours (for perpetuals)
@@ -86,6 +92,7 @@ class FeeStructure:
 @dataclass
 class SlippageModel:
     """Slippage model for realistic fills"""
+
     base_slippage_pct: float = 0.02  # Base slippage 0.02%
     volume_impact_factor: float = 0.1  # Additional slippage per 1% of ADV
     volatility_factor: float = 0.5  # Multiplier for high volatility
@@ -97,7 +104,7 @@ class SlippageModel:
         avg_daily_volume: float,
         current_volatility: float,
         baseline_volatility: float = 0.02,
-        is_buy: bool = True
+        is_buy: bool = True,
     ) -> float:
         """
         Calculate expected slippage for an order.
@@ -110,7 +117,11 @@ class SlippageModel:
 
         # Volatility impact
         vol_ratio = current_volatility / baseline_volatility if baseline_volatility > 0 else 1.0
-        vol_slippage = (vol_ratio - 1) * self.volatility_factor * self.base_slippage_pct if vol_ratio > 1 else 0
+        vol_slippage = (
+            (vol_ratio - 1) * self.volatility_factor * self.base_slippage_pct
+            if vol_ratio > 1
+            else 0
+        )
 
         # Spread cost (half spread)
         spread_cost = self.spread_pct / 2
@@ -124,6 +135,7 @@ class SlippageModel:
 @dataclass
 class Order:
     """Order object"""
+
     order_id: str
     symbol: str
     side: OrderSide
@@ -162,7 +174,7 @@ class Order:
             OrderStatus.CANCELLED,
             OrderStatus.REJECTED,
             OrderStatus.EXPIRED,
-            OrderStatus.FAILED
+            OrderStatus.FAILED,
         ]
 
     @property
@@ -179,6 +191,7 @@ class Order:
 @dataclass
 class Fill:
     """Fill/execution object"""
+
     fill_id: str
     order_id: str
     symbol: str
@@ -202,6 +215,7 @@ class Fill:
 @dataclass
 class Position:
     """Position tracking"""
+
     symbol: str
     side: PositionSide = PositionSide.FLAT
     quantity: float = 0.0
@@ -249,6 +263,7 @@ class Position:
 @dataclass
 class ExecutionResult:
     """Result of order execution"""
+
     success: bool
     order: Order
     fills: List[Fill] = field(default_factory=list)
@@ -289,7 +304,7 @@ class ExecutionEngine(ABC):
         mode: ExecutionMode,
         fee_structure: Optional[FeeStructure] = None,
         slippage_model: Optional[SlippageModel] = None,
-        risk_guardian: Optional[Any] = None
+        risk_guardian: Optional[Any] = None,
     ):
         self.mode = mode
         self.fee_structure = fee_structure or FeeStructure()
@@ -323,7 +338,9 @@ class ExecutionEngine(ABC):
         """Generate unique fill ID"""
         return f"fill_{uuid.uuid4().hex[:12]}"
 
-    def generate_idempotency_key(self, symbol: str, side: OrderSide, quantity: float, timestamp: float) -> str:
+    def generate_idempotency_key(
+        self, symbol: str, side: OrderSide, quantity: float, timestamp: float
+    ) -> str:
         """Generate idempotency key for an order"""
         data = f"{symbol}:{side.value}:{quantity}:{timestamp}"
         return hashlib.sha256(data.encode()).hexdigest()[:16]
@@ -367,7 +384,7 @@ class ExecutionEngine(ABC):
                 side="long" if order.side == OrderSide.BUY else "short",
                 size_pct=0.0,  # Will be calculated from order
                 leverage=order.leverage,
-                current_equity=current_equity
+                current_equity=current_equity,
             )
 
             # Check with Risk Guardian
@@ -378,11 +395,12 @@ class ExecutionEngine(ABC):
 
             return True, ""
         except ImportError:
-            logger.warning("Risk Guardian not available")
+            logger.warning("Risk Guardian not available - allowing order (module not installed)")
             return True, ""
         except Exception as e:
             logger.error(f"Risk Guardian check failed: {e}")
-            return True, ""  # Fail open for now
+            # Fail CLOSED - reject orders when risk checks fail for safety
+            return False, f"Risk check failed: {e}"
 
     @abstractmethod
     async def execute_order(self, order: Order, market_data: Dict[str, Any]) -> ExecutionResult:
@@ -412,7 +430,7 @@ class ExecutionEngine(ABC):
         idempotency_key: Optional[str] = None,
         market_data: Optional[Dict[str, Any]] = None,
         current_equity: float = 0.0,
-        tags: Optional[Dict[str, Any]] = None
+        tags: Optional[Dict[str, Any]] = None,
     ) -> ExecutionResult:
         """
         Submit an order for execution.
@@ -429,7 +447,7 @@ class ExecutionEngine(ABC):
                     return ExecutionResult(
                         success=True,
                         order=existing_order,
-                        fills=[f for f in self.fills if f.order_id == existing_order_id]
+                        fills=[f for f in self.fills if f.order_id == existing_order_id],
                     )
 
         # Create order
@@ -444,7 +462,7 @@ class ExecutionEngine(ABC):
             leverage=leverage,
             reduce_only=reduce_only,
             idempotency_key=idempotency_key,
-            tags=tags or {}
+            tags=tags or {},
         )
 
         # Check Risk Guardian
@@ -454,11 +472,7 @@ class ExecutionEngine(ABC):
                 order.status = OrderStatus.REJECTED
                 self.orders[order.order_id] = order
                 self.failed_orders += 1
-                return ExecutionResult(
-                    success=False,
-                    order=order,
-                    error_message=rejection_reason
-                )
+                return ExecutionResult(success=False, order=order, error_message=rejection_reason)
 
         # Track order
         self.orders[order.order_id] = order
@@ -490,11 +504,13 @@ class ExecutionEngine(ABC):
             "total_orders": self.total_orders,
             "successful_orders": self.successful_orders,
             "failed_orders": self.failed_orders,
-            "success_rate": self.successful_orders / self.total_orders if self.total_orders > 0 else 0,
+            "success_rate": self.successful_orders / self.total_orders
+            if self.total_orders > 0
+            else 0,
             "total_volume": self.total_volume,
             "total_fees": self.total_fees,
             "open_orders": len([o for o in self.orders.values() if not o.is_complete]),
-            "total_fills": len(self.fills)
+            "total_fills": len(self.fills),
         }
 
 
@@ -512,13 +528,13 @@ class BacktestExecutionEngine(ExecutionEngine):
         slippage_model: Optional[SlippageModel] = None,
         risk_guardian: Optional[Any] = None,
         fill_probability: float = 1.0,  # For limit orders
-        partial_fill_enabled: bool = False
+        partial_fill_enabled: bool = False,
     ):
         super().__init__(
             mode=ExecutionMode.BACKTEST,
             fee_structure=fee_structure,
             slippage_model=slippage_model,
-            risk_guardian=risk_guardian
+            risk_guardian=risk_guardian,
         )
         self.fill_probability = fill_probability
         self.partial_fill_enabled = partial_fill_enabled
@@ -543,9 +559,7 @@ class BacktestExecutionEngine(ExecutionEngine):
         if current_price <= 0:
             order.status = OrderStatus.FAILED
             return ExecutionResult(
-                success=False,
-                order=order,
-                error_message="Invalid market data: no price available"
+                success=False, order=order, error_message="Invalid market data: no price available"
             )
 
         fills = []
@@ -553,9 +567,7 @@ class BacktestExecutionEngine(ExecutionEngine):
         # Handle different order types
         if order.order_type == OrderType.MARKET:
             # Market orders always fill (in backtest)
-            fill_price = self._calculate_fill_price(
-                order, current_price, volume, volatility
-            )
+            fill_price = self._calculate_fill_price(order, current_price, volume, volatility)
             fill = self._create_fill(order, fill_price, order.quantity)
             fills.append(fill)
 
@@ -583,9 +595,7 @@ class BacktestExecutionEngine(ExecutionEngine):
                 triggered = True
 
             if triggered:
-                fill_price = self._calculate_fill_price(
-                    order, order.stop_price, volume, volatility
-                )
+                fill_price = self._calculate_fill_price(order, order.stop_price, volume, volatility)
                 fill = self._create_fill(order, fill_price, order.quantity)
                 fills.append(fill)
             else:
@@ -595,7 +605,9 @@ class BacktestExecutionEngine(ExecutionEngine):
         # Update order with fills
         if fills:
             order.filled_quantity = sum(f.quantity for f in fills)
-            order.average_fill_price = sum(f.quantity * f.price for f in fills) / order.filled_quantity
+            order.average_fill_price = (
+                sum(f.quantity * f.price for f in fills) / order.filled_quantity
+            )
             order.total_fees = sum(f.fee for f in fills)
             order.filled_at = self.current_timestamp or datetime.now()
             order.status = OrderStatus.FILLED
@@ -614,18 +626,14 @@ class BacktestExecutionEngine(ExecutionEngine):
         return ExecutionResult(success=True, order=order, fills=fills)
 
     def _calculate_fill_price(
-        self,
-        order: Order,
-        base_price: float,
-        volume: float,
-        volatility: float
+        self, order: Order, base_price: float, volume: float, volatility: float
     ) -> float:
         """Calculate fill price with slippage"""
         slippage_pct = self.slippage_model.calculate_slippage(
             order_size=order.quantity * base_price,
             avg_daily_volume=volume * base_price,
             current_volatility=volatility,
-            is_buy=order.side == OrderSide.BUY
+            is_buy=order.side == OrderSide.BUY,
         )
 
         # Apply slippage (adverse direction)
@@ -639,8 +647,7 @@ class BacktestExecutionEngine(ExecutionEngine):
     def _create_fill(self, order: Order, price: float, quantity: float) -> Fill:
         """Create a fill object"""
         fee = self.fee_structure.calculate_fee(
-            notional_value=quantity * price,
-            is_maker=order.order_type == OrderType.LIMIT
+            notional_value=quantity * price, is_maker=order.order_type == OrderType.LIMIT
         )
 
         return Fill(
@@ -653,7 +660,7 @@ class BacktestExecutionEngine(ExecutionEngine):
             fee=fee,
             timestamp=self.current_timestamp or datetime.now(),
             is_maker=order.order_type == OrderType.LIMIT,
-            expected_price=order.price or price
+            expected_price=order.price or price,
         )
 
     def _update_position(self, order: Order, fills: List[Fill]):
@@ -717,7 +724,9 @@ class BacktestExecutionEngine(ExecutionEngine):
                         pos.opened_at = fill.timestamp
                     else:
                         # Average entry price
-                        total_cost = pos.entry_price * abs(pos.quantity) + fill.price * fill.quantity
+                        total_cost = (
+                            pos.entry_price * abs(pos.quantity) + fill.price * fill.quantity
+                        )
                         pos.entry_price = total_cost / (abs(pos.quantity) + fill.quantity)
                     pos.quantity -= fill.quantity
                     pos.side = PositionSide.SHORT
@@ -757,13 +766,13 @@ class PaperExecutionEngine(ExecutionEngine):
         fee_structure: Optional[FeeStructure] = None,
         slippage_model: Optional[SlippageModel] = None,
         risk_guardian: Optional[Any] = None,
-        latency_ms: float = 50.0  # Simulated latency
+        latency_ms: float = 50.0,  # Simulated latency
     ):
         super().__init__(
             mode=ExecutionMode.PAPER,
             fee_structure=fee_structure,
             slippage_model=slippage_model,
-            risk_guardian=risk_guardian
+            risk_guardian=risk_guardian,
         )
         self.latency_ms = latency_ms
 
@@ -787,9 +796,7 @@ class PaperExecutionEngine(ExecutionEngine):
         if current_price <= 0:
             order.status = OrderStatus.FAILED
             return ExecutionResult(
-                success=False,
-                order=order,
-                error_message="No market data available"
+                success=False, order=order, error_message="No market data available"
             )
 
         fills = []
@@ -835,7 +842,9 @@ class PaperExecutionEngine(ExecutionEngine):
         # Process fills
         if fills:
             order.filled_quantity = sum(f.quantity for f in fills)
-            order.average_fill_price = sum(f.quantity * f.price for f in fills) / order.filled_quantity
+            order.average_fill_price = (
+                sum(f.quantity * f.price for f in fills) / order.filled_quantity
+            )
             order.total_fees = sum(f.fee for f in fills)
             order.filled_at = datetime.now()
             order.status = OrderStatus.FILLED
@@ -849,13 +858,15 @@ class PaperExecutionEngine(ExecutionEngine):
 
         return ExecutionResult(success=True, order=order, fills=fills)
 
-    def _calculate_fill_price(self, order: Order, base_price: float, volume: float, volatility: float) -> float:
+    def _calculate_fill_price(
+        self, order: Order, base_price: float, volume: float, volatility: float
+    ) -> float:
         """Calculate fill price with slippage"""
         slippage_pct = self.slippage_model.calculate_slippage(
             order_size=order.quantity * base_price,
             avg_daily_volume=volume * base_price,
             current_volatility=volatility,
-            is_buy=order.side == OrderSide.BUY
+            is_buy=order.side == OrderSide.BUY,
         )
 
         if order.side == OrderSide.BUY:
@@ -866,8 +877,7 @@ class PaperExecutionEngine(ExecutionEngine):
     def _create_fill(self, order: Order, price: float, quantity: float) -> Fill:
         """Create a fill object"""
         fee = self.fee_structure.calculate_fee(
-            notional_value=quantity * price,
-            is_maker=order.order_type == OrderType.LIMIT
+            notional_value=quantity * price, is_maker=order.order_type == OrderType.LIMIT
         )
 
         return Fill(
@@ -879,7 +889,7 @@ class PaperExecutionEngine(ExecutionEngine):
             price=price,
             fee=fee,
             timestamp=datetime.now(),
-            is_maker=order.order_type == OrderType.LIMIT
+            is_maker=order.order_type == OrderType.LIMIT,
         )
 
     def _update_position(self, order: Order, fills: List[Fill]):
@@ -935,7 +945,9 @@ class PaperExecutionEngine(ExecutionEngine):
                         pos.entry_price = fill.price
                         pos.opened_at = fill.timestamp
                     else:
-                        total_cost = pos.entry_price * abs(pos.quantity) + fill.price * fill.quantity
+                        total_cost = (
+                            pos.entry_price * abs(pos.quantity) + fill.price * fill.quantity
+                        )
                         pos.entry_price = total_cost / (abs(pos.quantity) + fill.quantity)
                     pos.quantity -= fill.quantity
                     pos.side = PositionSide.SHORT
@@ -975,7 +987,9 @@ class PaperExecutionEngine(ExecutionEngine):
 
             if fills:
                 order.filled_quantity = sum(f.quantity for f in fills)
-                order.average_fill_price = sum(f.quantity * f.price for f in fills) / order.filled_quantity
+                order.average_fill_price = (
+                    sum(f.quantity * f.price for f in fills) / order.filled_quantity
+                )
                 order.total_fees = sum(f.fee for f in fills)
                 order.filled_at = datetime.now()
                 order.status = OrderStatus.FILLED
@@ -1034,13 +1048,13 @@ class LiveExecutionEngine(ExecutionEngine):
         slippage_model: Optional[SlippageModel] = None,
         risk_guardian: Optional[Any] = None,
         max_retries: int = 3,
-        retry_delay_ms: float = 1000.0
+        retry_delay_ms: float = 1000.0,
     ):
         super().__init__(
             mode=ExecutionMode.LIVE,
             fee_structure=fee_structure,
             slippage_model=slippage_model,
-            risk_guardian=risk_guardian
+            risk_guardian=risk_guardian,
         )
         self.exchange_client = exchange_client
         self.max_retries = max_retries
@@ -1077,7 +1091,11 @@ class LiveExecutionEngine(ExecutionEngine):
                     order.filled_quantity = result.get("filled", 0)
                     order.average_fill_price = result.get("average", result.get("price", 0))
                     order.total_fees = result.get("fee", {}).get("cost", 0)
-                    order.status = OrderStatus.FILLED if order.filled_quantity >= order.quantity else OrderStatus.PARTIALLY_FILLED
+                    order.status = (
+                        OrderStatus.FILLED
+                        if order.filled_quantity >= order.quantity
+                        else OrderStatus.PARTIALLY_FILLED
+                    )
                     order.filled_at = datetime.now()
 
                     self.fills.extend(fills)
@@ -1087,12 +1105,7 @@ class LiveExecutionEngine(ExecutionEngine):
                         self._notify_fill(fill)
                     self._notify_order_update(order)
 
-                    return ExecutionResult(
-                        success=True,
-                        order=order,
-                        fills=fills,
-                        retries=retries
-                    )
+                    return ExecutionResult(success=True, order=order, fills=fills, retries=retries)
                 else:
                     # Order submitted but not filled yet
                     order.exchange_order_id = result.get("id")
@@ -1112,7 +1125,7 @@ class LiveExecutionEngine(ExecutionEngine):
             success=False,
             order=order,
             error_message=f"Execution failed after {retries} retries: {last_error}",
-            retries=retries
+            retries=retries,
         )
 
     def _prepare_order_params(self, order: Order) -> Dict[str, Any]:
@@ -1142,9 +1155,7 @@ class LiveExecutionEngine(ExecutionEngine):
         """Execute market order on exchange"""
         if hasattr(self.exchange_client, "create_market_order"):
             return await self.exchange_client.create_market_order(
-                params["symbol"],
-                params["side"],
-                params["amount"]
+                params["symbol"], params["side"], params["amount"]
             )
         else:
             return await self.exchange_client.create_order(**params)
@@ -1153,10 +1164,7 @@ class LiveExecutionEngine(ExecutionEngine):
         """Execute limit order on exchange"""
         if hasattr(self.exchange_client, "create_limit_order"):
             return await self.exchange_client.create_limit_order(
-                params["symbol"],
-                params["side"],
-                params["amount"],
-                params["price"]
+                params["symbol"], params["side"], params["amount"], params["price"]
             )
         else:
             return await self.exchange_client.create_order(**params)
@@ -1181,8 +1189,10 @@ class LiveExecutionEngine(ExecutionEngine):
                     quantity=trade.get("amount", 0),
                     price=trade.get("price", 0),
                     fee=trade.get("fee", {}).get("cost", 0),
-                    timestamp=datetime.fromisoformat(trade.get("datetime", datetime.now().isoformat())),
-                    is_maker=trade.get("takerOrMaker") == "maker"
+                    timestamp=datetime.fromisoformat(
+                        trade.get("datetime", datetime.now().isoformat())
+                    ),
+                    is_maker=trade.get("takerOrMaker") == "maker",
                 )
                 fills.append(fill)
         else:
@@ -1195,7 +1205,7 @@ class LiveExecutionEngine(ExecutionEngine):
                 quantity=result.get("filled", order.quantity),
                 price=result.get("average", result.get("price", 0)),
                 fee=result.get("fee", {}).get("cost", 0),
-                timestamp=datetime.now()
+                timestamp=datetime.now(),
             )
             fills.append(fill)
 
@@ -1251,7 +1261,9 @@ class LiveExecutionEngine(ExecutionEngine):
                     if pos.quantity == 0:
                         pos.entry_price = fill.price
                     else:
-                        total_cost = pos.entry_price * abs(pos.quantity) + fill.price * fill.quantity
+                        total_cost = (
+                            pos.entry_price * abs(pos.quantity) + fill.price * fill.quantity
+                        )
                         pos.entry_price = total_cost / (abs(pos.quantity) + fill.quantity)
                     pos.quantity -= fill.quantity
                     pos.side = PositionSide.SHORT
@@ -1314,7 +1326,7 @@ def create_execution_engine(
     exchange_client: Optional[Any] = None,
     fee_structure: Optional[FeeStructure] = None,
     slippage_model: Optional[SlippageModel] = None,
-    risk_guardian: Optional[Any] = None
+    risk_guardian: Optional[Any] = None,
 ) -> ExecutionEngine:
     """
     Factory function to create execution engine.
@@ -1323,30 +1335,21 @@ def create_execution_engine(
     """
     # Use same fee structure for all modes
     fees = fee_structure or FeeStructure(
-        maker_fee_pct=0.02,
-        taker_fee_pct=0.04,
-        funding_rate_pct=0.01
+        maker_fee_pct=0.02, taker_fee_pct=0.04, funding_rate_pct=0.01
     )
 
     # Use same slippage model for all modes
     slippage = slippage_model or SlippageModel(
-        base_slippage_pct=0.02,
-        volume_impact_factor=0.1,
-        volatility_factor=0.5,
-        spread_pct=0.01
+        base_slippage_pct=0.02, volume_impact_factor=0.1, volatility_factor=0.5, spread_pct=0.01
     )
 
     if mode == ExecutionMode.BACKTEST:
         return BacktestExecutionEngine(
-            fee_structure=fees,
-            slippage_model=slippage,
-            risk_guardian=risk_guardian
+            fee_structure=fees, slippage_model=slippage, risk_guardian=risk_guardian
         )
     elif mode == ExecutionMode.PAPER:
         return PaperExecutionEngine(
-            fee_structure=fees,
-            slippage_model=slippage,
-            risk_guardian=risk_guardian
+            fee_structure=fees, slippage_model=slippage, risk_guardian=risk_guardian
         )
     elif mode == ExecutionMode.LIVE:
         if exchange_client is None:
@@ -1355,7 +1358,7 @@ def create_execution_engine(
             exchange_client=exchange_client,
             fee_structure=fees,
             slippage_model=slippage,
-            risk_guardian=risk_guardian
+            risk_guardian=risk_guardian,
         )
     else:
         raise ValueError(f"Unknown execution mode: {mode}")

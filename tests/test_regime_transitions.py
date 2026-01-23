@@ -111,9 +111,21 @@ class TestRegimeTransitionAnalyzer:
     def sample_regimes(self) -> List[str]:
         """Create sample regime history."""
         return [
-            "BULL", "BULL", "BULL", "VOLATILE", "VOLATILE",
-            "BEAR", "BEAR", "BEAR", "BEAR", "ACCUMULATION",
-            "ACCUMULATION", "BULL", "BULL", "BULL", "NEUTRAL",
+            "BULL",
+            "BULL",
+            "BULL",
+            "VOLATILE",
+            "VOLATILE",
+            "BEAR",
+            "BEAR",
+            "BEAR",
+            "BEAR",
+            "ACCUMULATION",
+            "ACCUMULATION",
+            "BULL",
+            "BULL",
+            "BULL",
+            "NEUTRAL",
         ]
 
     @pytest.fixture
@@ -126,9 +138,21 @@ class TestRegimeTransitionAnalyzer:
     def sample_prices(self) -> List[float]:
         """Create sample prices."""
         return [
-            50000, 51000, 52000, 51500, 50500,
-            49000, 48000, 47000, 46500, 47000,
-            47500, 49000, 50000, 51000, 51000,
+            50000,
+            51000,
+            52000,
+            51500,
+            50500,
+            49000,
+            48000,
+            47000,
+            46500,
+            47000,
+            47500,
+            49000,
+            50000,
+            51000,
+            51000,
         ]
 
     def test_init(self, analyzer):
@@ -156,9 +180,7 @@ class TestRegimeTransitionAnalyzer:
 
         assert len(analyzer._regime_history) == len(sample_regimes)
 
-    def test_load_regime_history_with_timestamps(
-        self, analyzer, sample_regimes, sample_timestamps
-    ):
+    def test_load_regime_history_with_timestamps(self, analyzer, sample_regimes, sample_timestamps):
         """Test loading regime history with timestamps."""
         analyzer.load_regime_history(sample_regimes, sample_timestamps)
 
@@ -197,9 +219,7 @@ class TestRegimeTransitionAnalyzer:
         for entry in analyzer._regime_history:
             assert entry[2] == 0.0
 
-    def test_detect_transitions(
-        self, analyzer, sample_regimes, sample_timestamps, sample_prices
-    ):
+    def test_detect_transitions(self, analyzer, sample_regimes, sample_timestamps, sample_prices):
         """Test transition detection."""
         analyzer.load_regime_history(sample_regimes, sample_timestamps, sample_prices)
 
@@ -233,9 +253,7 @@ class TestRegimeTransitionAnalyzer:
         """Test regime frequency calculation."""
         analyzer.load_regime_history(sample_regimes, sample_timestamps, sample_prices)
 
-        total_frequency = sum(
-            state.frequency for state in analyzer._regime_states.values()
-        )
+        total_frequency = sum(state.frequency for state in analyzer._regime_states.values())
 
         # Total frequency should be ~100%
         assert 99 <= total_frequency <= 101
@@ -272,9 +290,7 @@ class TestRegimeTransitionAnalyzer:
         assert len(matrix.regimes) > 0
         assert matrix.total_transitions == 0
 
-    def test_get_current_regime(
-        self, analyzer, sample_regimes, sample_timestamps, sample_prices
-    ):
+    def test_get_current_regime(self, analyzer, sample_regimes, sample_timestamps, sample_prices):
         """Test getting current regime."""
         analyzer.load_regime_history(sample_regimes, sample_timestamps, sample_prices)
 
@@ -314,9 +330,7 @@ class TestRegimeTransitionAnalyzer:
 
         assert len(history) <= 2
 
-    def test_predict_next_regime(
-        self, analyzer, sample_regimes, sample_timestamps, sample_prices
-    ):
+    def test_predict_next_regime(self, analyzer, sample_regimes, sample_timestamps, sample_prices):
         """Test regime prediction."""
         analyzer.load_regime_history(sample_regimes, sample_timestamps, sample_prices)
 
@@ -354,9 +368,7 @@ class TestRegimeTransitionAnalyzer:
 
         assert predictions == {}
 
-    def test_get_regime_timeline(
-        self, analyzer, sample_regimes, sample_timestamps, sample_prices
-    ):
+    def test_get_regime_timeline(self, analyzer, sample_regimes, sample_timestamps, sample_prices):
         """Test getting regime timeline."""
         analyzer.load_regime_history(sample_regimes, sample_timestamps, sample_prices)
 
@@ -395,9 +407,7 @@ class TestRegimeTransitionAnalyzer:
             assert "frequency_pct" in info
             assert "avg_duration_hours" in info
 
-    def test_to_api_response(
-        self, analyzer, sample_regimes, sample_timestamps, sample_prices
-    ):
+    def test_to_api_response(self, analyzer, sample_regimes, sample_timestamps, sample_prices):
         """Test API response generation."""
         analyzer.load_regime_history(sample_regimes, sample_timestamps, sample_prices)
 
@@ -433,7 +443,7 @@ class TestJSONLoading:
         """Test loading from JSON list format."""
         analyzer = RegimeTransitionAnalyzer()
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             data = [
                 {"regime": "BULL", "timestamp": "2024-01-01T10:00:00", "price": 50000},
                 {"regime": "BEAR", "timestamp": "2024-01-01T11:00:00", "price": 49000},
@@ -454,7 +464,7 @@ class TestJSONLoading:
         """Test loading from JSON dict format."""
         analyzer = RegimeTransitionAnalyzer()
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             data = {
                 "regimes": ["BULL", "VOLATILE", "BEAR"],
                 "timestamps": ["2024-01-01T10:00:00", "2024-01-01T11:00:00", "2024-01-01T12:00:00"],
@@ -482,7 +492,7 @@ class TestJSONLoading:
         """Test loading from invalid JSON file."""
         analyzer = RegimeTransitionAnalyzer()
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             f.write("not valid json {")
             temp_path = f.name
 
@@ -496,7 +506,7 @@ class TestJSONLoading:
         """Test loading from JSON with missing timestamps."""
         analyzer = RegimeTransitionAnalyzer()
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             data = [
                 {"regime": "BULL", "price": 50000},
                 {"regime": "BEAR", "price": 49000},
@@ -564,6 +574,7 @@ class TestEdgeCases:
         analyzer = RegimeTransitionAnalyzer()
 
         import numpy as np
+
         np.random.seed(42)
         choices = ["BULL", "BEAR", "VOLATILE", "NEUTRAL"]
         regimes = [choices[np.random.randint(0, len(choices))] for _ in range(1000)]

@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 class CostBasisMethod(Enum):
     """Cost basis calculation methods."""
+
     FIFO = "fifo"  # First In, First Out
     LIFO = "lifo"  # Last In, First Out
     HIFO = "hifo"  # Highest In, First Out (tax optimal for gains)
@@ -32,6 +33,7 @@ class CostBasisMethod(Enum):
 
 class GainType(Enum):
     """Type of capital gain/loss."""
+
     SHORT_TERM = "short_term"  # Held <= 1 year
     LONG_TERM = "long_term"  # Held > 1 year
 
@@ -39,6 +41,7 @@ class GainType(Enum):
 @dataclass
 class TaxLot:
     """A tax lot representing acquired assets."""
+
     id: str
     symbol: str
     quantity: Decimal
@@ -72,6 +75,7 @@ class TaxLot:
 @dataclass
 class DisposalEvent:
     """An asset disposal (sale) event."""
+
     id: str
     symbol: str
     quantity: Decimal
@@ -97,6 +101,7 @@ class DisposalEvent:
 @dataclass
 class CapitalGain:
     """A realized capital gain/loss."""
+
     id: str
     symbol: str
     quantity: Decimal
@@ -138,6 +143,7 @@ class CapitalGain:
 @dataclass
 class TaxSummary:
     """Tax summary for a period."""
+
     start_date: datetime
     end_date: datetime
     total_proceeds: Decimal
@@ -201,7 +207,7 @@ class TaxLotTracker:
         quantity: float,
         cost_per_unit: float,
         acquisition_date: datetime,
-        acquisition_type: str = "buy"
+        acquisition_type: str = "buy",
     ) -> TaxLot:
         """Add a tax lot for acquired assets."""
         qty = Decimal(str(quantity))
@@ -231,7 +237,7 @@ class TaxLotTracker:
         proceeds_per_unit: float,
         disposal_date: datetime,
         disposal_type: str = "sell",
-        fees: float = 0.0
+        fees: float = 0.0,
     ) -> List[CapitalGain]:
         """
         Dispose of assets and calculate gains/losses.
@@ -310,18 +316,13 @@ class TaxLotTracker:
         return gains
 
     def _get_lots_for_disposal(
-        self,
-        symbol: str,
-        quantity: Decimal
+        self, symbol: str, quantity: Decimal
     ) -> List[Tuple[TaxLot, Decimal]]:
         """Get lots to use for disposal based on cost basis method."""
         if symbol not in self._lots:
             raise ValueError(f"No lots found for {symbol}")
 
-        available_lots = [
-            lot for lot in self._lots[symbol]
-            if lot.remaining_quantity > 0
-        ]
+        available_lots = [lot for lot in self._lots[symbol] if lot.remaining_quantity > 0]
 
         if not available_lots:
             raise ValueError(f"Insufficient lots for {symbol}")
@@ -350,8 +351,7 @@ class TaxLotTracker:
 
         if remaining > 0:
             raise ValueError(
-                f"Insufficient quantity for {symbol}: "
-                f"need {quantity}, have {quantity - remaining}"
+                f"Insufficient quantity for {symbol}: need {quantity}, have {quantity - remaining}"
             )
 
         return result
@@ -374,11 +374,7 @@ class TaxLotTracker:
 
         return (total_cost / total_qty).quantize(Decimal("0.01"), ROUND_HALF_UP)
 
-    def get_unrealized_gains(
-        self,
-        symbol: str,
-        current_price: float
-    ) -> Dict[str, Decimal]:
+    def get_unrealized_gains(self, symbol: str, current_price: float) -> Dict[str, Decimal]:
         """Calculate unrealized gains for a symbol."""
         if symbol not in self._lots:
             return {"unrealized_gain": Decimal("0"), "quantity": Decimal("0")}
@@ -412,7 +408,7 @@ class TaxLotTracker:
         self,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
-        symbol: Optional[str] = None
+        symbol: Optional[str] = None,
     ) -> List[CapitalGain]:
         """Get capital gains, optionally filtered."""
         gains = self._gains
@@ -435,11 +431,7 @@ class TaxReportGenerator:
     def __init__(self, tracker: TaxLotTracker):
         self.tracker = tracker
 
-    def generate_summary(
-        self,
-        year: int,
-        month: Optional[int] = None
-    ) -> TaxSummary:
+    def generate_summary(self, year: int, month: Optional[int] = None) -> TaxSummary:
         """Generate tax summary for a period."""
         if month:
             start_date = datetime(year, month, 1)
@@ -484,10 +476,7 @@ class TaxReportGenerator:
             symbols_traded=symbols,
         )
 
-    def generate_form_8949(
-        self,
-        year: int
-    ) -> List[Dict]:
+    def generate_form_8949(self, year: int) -> List[Dict]:
         """
         Generate data for IRS Form 8949.
 
@@ -506,71 +495,78 @@ class TaxReportGenerator:
 
         rows = []
         for gain in gains:
-            rows.append({
-                "description": f"{gain.quantity} {gain.symbol}",
-                "date_acquired": gain.acquisition_date.strftime("%m/%d/%Y"),
-                "date_sold": gain.disposal_date.strftime("%m/%d/%Y"),
-                "proceeds": float(gain.proceeds.quantize(Decimal("0.01"))),
-                "cost_basis": float(gain.cost_basis.quantize(Decimal("0.01"))),
-                "adjustment_code": "",
-                "adjustment_amount": 0,
-                "gain_loss": float(gain.gain_loss.quantize(Decimal("0.01"))),
-                "term": "S" if gain.gain_type == GainType.SHORT_TERM else "L",
-            })
+            rows.append(
+                {
+                    "description": f"{gain.quantity} {gain.symbol}",
+                    "date_acquired": gain.acquisition_date.strftime("%m/%d/%Y"),
+                    "date_sold": gain.disposal_date.strftime("%m/%d/%Y"),
+                    "proceeds": float(gain.proceeds.quantize(Decimal("0.01"))),
+                    "cost_basis": float(gain.cost_basis.quantize(Decimal("0.01"))),
+                    "adjustment_code": "",
+                    "adjustment_amount": 0,
+                    "gain_loss": float(gain.gain_loss.quantize(Decimal("0.01"))),
+                    "term": "S" if gain.gain_type == GainType.SHORT_TERM else "L",
+                }
+            )
 
         return rows
 
-    def export_csv(
-        self,
-        year: int,
-        include_lots: bool = False
-    ) -> str:
+    def export_csv(self, year: int, include_lots: bool = False) -> str:
         """Export tax data to CSV format."""
         output = io.StringIO()
 
         # Gains/Losses
-        gains = self.tracker.get_gains(
-            datetime(year, 1, 1),
-            datetime(year, 12, 31, 23, 59, 59)
-        )
+        gains = self.tracker.get_gains(datetime(year, 1, 1), datetime(year, 12, 31, 23, 59, 59))
 
         writer = csv.writer(output)
-        writer.writerow([
-            "Symbol", "Quantity", "Acquisition Date", "Disposal Date",
-            "Cost Basis", "Proceeds", "Gain/Loss", "Type", "Holding Days"
-        ])
+        writer.writerow(
+            [
+                "Symbol",
+                "Quantity",
+                "Acquisition Date",
+                "Disposal Date",
+                "Cost Basis",
+                "Proceeds",
+                "Gain/Loss",
+                "Type",
+                "Holding Days",
+            ]
+        )
 
         for gain in gains:
-            writer.writerow([
-                gain.symbol,
-                str(gain.quantity),
-                gain.acquisition_date.strftime("%Y-%m-%d"),
-                gain.disposal_date.strftime("%Y-%m-%d"),
-                str(gain.cost_basis.quantize(Decimal("0.01"))),
-                str(gain.proceeds.quantize(Decimal("0.01"))),
-                str(gain.gain_loss.quantize(Decimal("0.01"))),
-                gain.gain_type.value,
-                gain.holding_period_days,
-            ])
+            writer.writerow(
+                [
+                    gain.symbol,
+                    str(gain.quantity),
+                    gain.acquisition_date.strftime("%Y-%m-%d"),
+                    gain.disposal_date.strftime("%Y-%m-%d"),
+                    str(gain.cost_basis.quantize(Decimal("0.01"))),
+                    str(gain.proceeds.quantize(Decimal("0.01"))),
+                    str(gain.gain_loss.quantize(Decimal("0.01"))),
+                    gain.gain_type.value,
+                    gain.holding_period_days,
+                ]
+            )
 
         if include_lots:
             writer.writerow([])
             writer.writerow(["=== Open Tax Lots ==="])
-            writer.writerow([
-                "Symbol", "Quantity", "Remaining", "Cost Basis",
-                "Total Cost", "Acquisition Date"
-            ])
+            writer.writerow(
+                ["Symbol", "Quantity", "Remaining", "Cost Basis", "Total Cost", "Acquisition Date"]
+            )
 
             for lot in self.tracker.get_lots():
                 if lot.remaining_quantity > 0:
-                    writer.writerow([
-                        lot.symbol,
-                        str(lot.quantity),
-                        str(lot.remaining_quantity),
-                        str(lot.cost_basis),
-                        str(lot.total_cost),
-                        lot.acquisition_date.strftime("%Y-%m-%d"),
-                    ])
+                    writer.writerow(
+                        [
+                            lot.symbol,
+                            str(lot.quantity),
+                            str(lot.remaining_quantity),
+                            str(lot.cost_basis),
+                            str(lot.total_cost),
+                            lot.acquisition_date.strftime("%Y-%m-%d"),
+                        ]
+                    )
 
         return output.getvalue()
 
@@ -589,15 +585,11 @@ class TaxReportGenerator:
         return json.dumps(data, indent=2)
 
 
-def create_tax_lot_tracker(
-    method: CostBasisMethod = CostBasisMethod.FIFO
-) -> TaxLotTracker:
+def create_tax_lot_tracker(method: CostBasisMethod = CostBasisMethod.FIFO) -> TaxLotTracker:
     """Factory function to create tax lot tracker."""
     return TaxLotTracker(method=method)
 
 
-def create_tax_report_generator(
-    tracker: TaxLotTracker
-) -> TaxReportGenerator:
+def create_tax_report_generator(tracker: TaxLotTracker) -> TaxReportGenerator:
     """Factory function to create tax report generator."""
     return TaxReportGenerator(tracker)

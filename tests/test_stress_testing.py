@@ -362,8 +362,7 @@ class TestStressTestEngine:
 
         # Should warn about concentration
         has_concentration_warning = any(
-            "concentration" in r.lower()
-            for r in report.recommendations
+            "concentration" in r.lower() for r in report.recommendations
         )
         # May or may not warn depending on other factors
         assert len(report.recommendations) > 0

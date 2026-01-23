@@ -69,19 +69,13 @@ class PortfolioConfig:
             assets=assets,
             portfolio_capital=float(payload.get("portfolio_capital", 100_000.0)),
             default_timeframe=payload.get("default_timeframe", "1h"),
-            default_loop_interval_seconds=int(
-                payload.get("default_loop_interval_seconds", 60)
-            ),
+            default_loop_interval_seconds=int(payload.get("default_loop_interval_seconds", 60)),
             default_lookback=int(payload.get("default_lookback", 500)),
             default_paper_mode=bool(payload.get("default_paper_mode", True)),
             default_exchange_id=payload.get("default_exchange_id", "binance"),
-            default_risk_per_trade_pct=float(
-                payload.get("default_risk_per_trade_pct", 0.5)
-            ),
+            default_risk_per_trade_pct=float(payload.get("default_risk_per_trade_pct", 0.5)),
             default_stop_loss_pct=float(payload.get("default_stop_loss_pct", 0.01)),
-            default_take_profit_pct=float(
-                payload.get("default_take_profit_pct", 0.02)
-            ),
+            default_take_profit_pct=float(payload.get("default_take_profit_pct", 0.02)),
             macro_events_path=macro_path,
             macro_refresh_seconds=int(payload.get("macro_refresh_seconds", 300)),
             data_dir=Path(data_dir_value).expanduser(),
@@ -145,7 +139,9 @@ class PortfolioRunner:
 
     def stop(self) -> None:
         self._stop_event.set()
-        logger.info("Portfolio runner stop requested. Threads set to daemon=True, exiting main loop.")
+        logger.info(
+            "Portfolio runner stop requested. Threads set to daemon=True, exiting main loop."
+        )
 
     def _build_bot_config(self, asset: PortfolioAssetConfig) -> BotConfig:
         data_dir = (
@@ -198,9 +194,7 @@ class PortfolioRunner:
         )
         return bot_config
 
-    def _resolve_allocations(
-        self, assets: Iterable[PortfolioAssetConfig]
-    ) -> Dict[str, float]:
+    def _resolve_allocations(self, assets: Iterable[PortfolioAssetConfig]) -> Dict[str, float]:
         allocations: Dict[str, float] = {}
         explicit_total = 0.0
         empty_symbols: List[str] = []

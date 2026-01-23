@@ -42,6 +42,7 @@ logger = logging.getLogger(__name__)
 
 class ExchangeStatus(Enum):
     """Exchange connection status."""
+
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"
@@ -50,6 +51,7 @@ class ExchangeStatus(Enum):
 
 class RoutingStrategy(Enum):
     """Order routing strategies."""
+
     BEST_PRICE = "best_price"  # Route to exchange with best price
     SPLIT = "split"  # Split order across exchanges
     PRIMARY = "primary"  # Use primary exchange, failover if needed
@@ -60,6 +62,7 @@ class RoutingStrategy(Enum):
 @dataclass
 class ExchangeQuote:
     """Price quote from an exchange."""
+
     exchange: str
     symbol: str
     bid: float
@@ -85,6 +88,7 @@ class ExchangeQuote:
 @dataclass
 class AggregatedBook:
     """Aggregated order book across exchanges."""
+
     symbol: str
     bids: List[Tuple[str, float, float]]  # (exchange, price, size)
     asks: List[Tuple[str, float, float]]
@@ -102,6 +106,7 @@ class AggregatedBook:
 @dataclass
 class RouteDecision:
     """Decision on how to route an order."""
+
     primary_exchange: str
     secondary_exchanges: List[str]
     allocation: Dict[str, float]  # exchange -> quantity
@@ -113,6 +118,7 @@ class RouteDecision:
 @dataclass
 class ExecutionResult:
     """Result of a multi-exchange execution."""
+
     order_id: str
     symbol: str
     side: str
@@ -155,6 +161,7 @@ class ExecutionResult:
 @dataclass
 class ArbitrageOpportunity:
     """Cross-exchange arbitrage opportunity."""
+
     symbol: str
     buy_exchange: str
     sell_exchange: str
@@ -537,10 +544,7 @@ class MultiExchangeCoordinator:
         elif strategy == RoutingStrategy.SPLIT:
             # Split across exchanges based on available liquidity
             allocation = {}
-            total_liquidity = sum(
-                q.ask_size if side == "buy" else q.bid_size
-                for q in quotes
-            )
+            total_liquidity = sum(q.ask_size if side == "buy" else q.bid_size for q in quotes)
 
             if total_liquidity == 0:
                 # Fallback to equal split
@@ -582,7 +586,9 @@ class MultiExchangeCoordinator:
             primary = self.primary_exchange
             if primary not in [q.exchange for q in quotes]:
                 # Failover to best available
-                return self._decide_route(symbol, side, quantity, quotes, RoutingStrategy.BEST_PRICE)
+                return self._decide_route(
+                    symbol, side, quantity, quotes, RoutingStrategy.BEST_PRICE
+                )
 
             quote = next(q for q in quotes if q.exchange == primary)
             price = quote.ask if side == "buy" else quote.bid
@@ -787,8 +793,12 @@ class MultiExchangeCoordinator:
             max_qty = min(best_bid_quote.bid_size, best_ask_quote.ask_size)
 
             # Account for fees
-            buy_fees = max_qty * best_ask_quote.ask * self._exchanges[best_ask_quote.exchange].fee_rate
-            sell_fees = max_qty * best_bid_quote.bid * self._exchanges[best_bid_quote.exchange].fee_rate
+            buy_fees = (
+                max_qty * best_ask_quote.ask * self._exchanges[best_ask_quote.exchange].fee_rate
+            )
+            sell_fees = (
+                max_qty * best_bid_quote.bid * self._exchanges[best_bid_quote.exchange].fee_rate
+            )
             profit = (spread * max_qty) - buy_fees - sell_fees
 
             if profit <= 0:

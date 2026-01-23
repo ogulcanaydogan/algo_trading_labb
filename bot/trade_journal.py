@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TradeEntry:
     """Single trade entry for the journal."""
+
     trade_id: str
     timestamp: datetime
     symbol: str
@@ -127,7 +128,9 @@ class TradeJournal:
             for row in rows:
                 trade = TradeEntry(
                     trade_id=str(row.get("id", "")),
-                    timestamp=datetime.fromisoformat(row["timestamp"]) if row.get("timestamp") else datetime.now(),
+                    timestamp=datetime.fromisoformat(row["timestamp"])
+                    if row.get("timestamp")
+                    else datetime.now(),
                     symbol=row.get("symbol", ""),
                     side=row.get("side", "BUY"),
                     entry_price=float(row.get("entry_price", 0)),
@@ -172,7 +175,9 @@ class TradeJournal:
             for item in trade_list:
                 trade = TradeEntry(
                     trade_id=str(item.get("id", item.get("trade_id", ""))),
-                    timestamp=datetime.fromisoformat(item["timestamp"]) if item.get("timestamp") else datetime.now(),
+                    timestamp=datetime.fromisoformat(item["timestamp"])
+                    if item.get("timestamp")
+                    else datetime.now(),
                     symbol=item.get("symbol", ""),
                     side=item.get("side", "BUY"),
                     entry_price=float(item.get("entry_price", 0)),
@@ -231,12 +236,31 @@ class TradeJournal:
 
         # Define columns
         columns = [
-            "Trade ID", "Timestamp", "Symbol", "Side", "Market Type",
-            "Entry Price", "Exit Price", "Quantity", "PnL ($)", "PnL (%)",
-            "Fees", "Strategy", "Model", "Regime", "Confidence",
-            "Signal Strength", "Holding Period (hrs)", "Exit Reason",
-            "Stop Loss", "Take Profit", "Risk/Reward", "Slippage",
-            "Max Drawdown During", "Notes", "Tags"
+            "Trade ID",
+            "Timestamp",
+            "Symbol",
+            "Side",
+            "Market Type",
+            "Entry Price",
+            "Exit Price",
+            "Quantity",
+            "PnL ($)",
+            "PnL (%)",
+            "Fees",
+            "Strategy",
+            "Model",
+            "Regime",
+            "Confidence",
+            "Signal Strength",
+            "Holding Period (hrs)",
+            "Exit Reason",
+            "Stop Loss",
+            "Take Profit",
+            "Risk/Reward",
+            "Slippage",
+            "Max Drawdown During",
+            "Notes",
+            "Tags",
         ]
 
         with open(filepath, "w", newline="", encoding="utf-8") as f:
@@ -247,33 +271,35 @@ class TradeJournal:
 
             # Trades
             for trade in trades:
-                writer.writerow([
-                    trade.trade_id,
-                    trade.timestamp.isoformat() if trade.timestamp else "",
-                    trade.symbol,
-                    trade.side,
-                    trade.market_type,
-                    f"{trade.entry_price:.8f}",
-                    f"{trade.exit_price:.8f}" if trade.exit_price else "",
-                    f"{trade.quantity:.8f}",
-                    f"{trade.pnl:.2f}",
-                    f"{trade.pnl_percent:.2f}",
-                    f"{trade.fees:.4f}",
-                    trade.strategy,
-                    trade.model,
-                    trade.regime,
-                    f"{trade.confidence:.2f}",
-                    f"{trade.signal_strength:.2f}",
-                    f"{trade.holding_period_hours:.1f}",
-                    trade.exit_reason,
-                    f"{trade.stop_loss:.8f}" if trade.stop_loss else "",
-                    f"{trade.take_profit:.8f}" if trade.take_profit else "",
-                    f"{trade.risk_reward_ratio:.2f}",
-                    f"{trade.slippage:.4f}",
-                    f"{trade.max_drawdown_during:.2f}",
-                    trade.notes,
-                    ";".join(trade.tags) if trade.tags else "",
-                ])
+                writer.writerow(
+                    [
+                        trade.trade_id,
+                        trade.timestamp.isoformat() if trade.timestamp else "",
+                        trade.symbol,
+                        trade.side,
+                        trade.market_type,
+                        f"{trade.entry_price:.8f}",
+                        f"{trade.exit_price:.8f}" if trade.exit_price else "",
+                        f"{trade.quantity:.8f}",
+                        f"{trade.pnl:.2f}",
+                        f"{trade.pnl_percent:.2f}",
+                        f"{trade.fees:.4f}",
+                        trade.strategy,
+                        trade.model,
+                        trade.regime,
+                        f"{trade.confidence:.2f}",
+                        f"{trade.signal_strength:.2f}",
+                        f"{trade.holding_period_hours:.1f}",
+                        trade.exit_reason,
+                        f"{trade.stop_loss:.8f}" if trade.stop_loss else "",
+                        f"{trade.take_profit:.8f}" if trade.take_profit else "",
+                        f"{trade.risk_reward_ratio:.2f}",
+                        f"{trade.slippage:.4f}",
+                        f"{trade.max_drawdown_during:.2f}",
+                        trade.notes,
+                        ";".join(trade.tags) if trade.tags else "",
+                    ]
+                )
 
             if include_summary and trades:
                 # Add summary section
@@ -294,36 +320,52 @@ class TradeJournal:
         output = io.StringIO()
 
         columns = [
-            "Trade ID", "Timestamp", "Symbol", "Side", "Market Type",
-            "Entry Price", "Exit Price", "Quantity", "PnL ($)", "PnL (%)",
-            "Fees", "Strategy", "Model", "Regime", "Confidence",
-            "Signal Strength", "Exit Reason", "Notes"
+            "Trade ID",
+            "Timestamp",
+            "Symbol",
+            "Side",
+            "Market Type",
+            "Entry Price",
+            "Exit Price",
+            "Quantity",
+            "PnL ($)",
+            "PnL (%)",
+            "Fees",
+            "Strategy",
+            "Model",
+            "Regime",
+            "Confidence",
+            "Signal Strength",
+            "Exit Reason",
+            "Notes",
         ]
 
         writer = csv.writer(output)
         writer.writerow(columns)
 
         for trade in trades:
-            writer.writerow([
-                trade.trade_id,
-                trade.timestamp.isoformat() if trade.timestamp else "",
-                trade.symbol,
-                trade.side,
-                trade.market_type,
-                f"{trade.entry_price:.8f}",
-                f"{trade.exit_price:.8f}" if trade.exit_price else "",
-                f"{trade.quantity:.8f}",
-                f"{trade.pnl:.2f}",
-                f"{trade.pnl_percent:.2f}",
-                f"{trade.fees:.4f}",
-                trade.strategy,
-                trade.model,
-                trade.regime,
-                f"{trade.confidence:.2f}",
-                f"{trade.signal_strength:.2f}",
-                trade.exit_reason,
-                trade.notes,
-            ])
+            writer.writerow(
+                [
+                    trade.trade_id,
+                    trade.timestamp.isoformat() if trade.timestamp else "",
+                    trade.symbol,
+                    trade.side,
+                    trade.market_type,
+                    f"{trade.entry_price:.8f}",
+                    f"{trade.exit_price:.8f}" if trade.exit_price else "",
+                    f"{trade.quantity:.8f}",
+                    f"{trade.pnl:.2f}",
+                    f"{trade.pnl_percent:.2f}",
+                    f"{trade.fees:.4f}",
+                    trade.strategy,
+                    trade.model,
+                    trade.regime,
+                    f"{trade.confidence:.2f}",
+                    f"{trade.signal_strength:.2f}",
+                    trade.exit_reason,
+                    trade.notes,
+                ]
+            )
 
         return output.getvalue()
 
@@ -380,10 +422,23 @@ class TradeJournal:
 
         # Headers
         headers = [
-            "Trade ID", "Timestamp", "Symbol", "Side", "Market Type",
-            "Entry Price", "Exit Price", "Quantity", "PnL ($)", "PnL (%)",
-            "Fees", "Strategy", "Model", "Regime", "Confidence",
-            "Signal Strength", "Exit Reason"
+            "Trade ID",
+            "Timestamp",
+            "Symbol",
+            "Side",
+            "Market Type",
+            "Entry Price",
+            "Exit Price",
+            "Quantity",
+            "PnL ($)",
+            "PnL (%)",
+            "Fees",
+            "Strategy",
+            "Model",
+            "Regime",
+            "Confidence",
+            "Signal Strength",
+            "Exit Reason",
         ]
 
         for col, header in enumerate(headers, 1):
@@ -435,7 +490,9 @@ class TradeJournal:
         ws_summary = wb.create_sheet("Summary")
         summary = self.calculate_summary(trades)
 
-        ws_summary.cell(row=1, column=1, value="Trade Journal Summary").font = Font(bold=True, size=14)
+        ws_summary.cell(row=1, column=1, value="Trade Journal Summary").font = Font(
+            bold=True, size=14
+        )
 
         row = 3
         for key, value in summary.items():
@@ -447,9 +504,18 @@ class TradeJournal:
         ws_strategy = wb.create_sheet("By Strategy")
         strategy_stats = self.calculate_by_strategy(trades)
 
-        ws_strategy.cell(row=1, column=1, value="Performance by Strategy").font = Font(bold=True, size=14)
+        ws_strategy.cell(row=1, column=1, value="Performance by Strategy").font = Font(
+            bold=True, size=14
+        )
 
-        strategy_headers = ["Strategy", "Trades", "Win Rate", "Total PnL", "Avg PnL", "Profit Factor"]
+        strategy_headers = [
+            "Strategy",
+            "Trades",
+            "Win Rate",
+            "Total PnL",
+            "Avg PnL",
+            "Profit Factor",
+        ]
         for col, header in enumerate(strategy_headers, 1):
             cell = ws_strategy.cell(row=3, column=col, value=header)
             cell.font = header_font
@@ -512,7 +578,11 @@ class TradeJournal:
 
         # Date range
         dates = [t.timestamp for t in trades if t.timestamp]
-        date_range = f"{min(dates).strftime('%Y-%m-%d')} to {max(dates).strftime('%Y-%m-%d')}" if dates else "N/A"
+        date_range = (
+            f"{min(dates).strftime('%Y-%m-%d')} to {max(dates).strftime('%Y-%m-%d')}"
+            if dates
+            else "N/A"
+        )
 
         # Average holding period
         holding_periods = [t.holding_period_hours for t in trades if t.holding_period_hours > 0]
@@ -601,7 +671,9 @@ class TradeJournal:
             {"format": "json", "description": "JSON format", "extension": ".json"},
         ]
 
-    def export_to_json(self, filename: Optional[str] = None, trades: Optional[List[TradeEntry]] = None) -> str:
+    def export_to_json(
+        self, filename: Optional[str] = None, trades: Optional[List[TradeEntry]] = None
+    ) -> str:
         """Export trades to JSON format."""
         trades = trades or self._trades
 

@@ -26,17 +26,20 @@ from bot.execution.execution_algos import (
 @pytest.fixture
 def mock_order_executor():
     """Create mock order executor."""
+
     async def executor(**kwargs):
         return {
             "fill_price": kwargs.get("price", 100.0),
             "filled_quantity": kwargs.get("quantity", 1.0),
         }
+
     return executor
 
 
 @pytest.fixture
 def mock_market_data_provider():
     """Create mock market data provider."""
+
     async def provider(symbol):
         return {
             "mid_price": 100.0,
@@ -52,6 +55,7 @@ def mock_market_data_provider():
             "spread": 0.001,
             "spread_bps": 10,
         }
+
     return provider
 
 
@@ -95,6 +99,93 @@ class TestAlgoOrder:
             limit_price=2500.0,
         )
         assert order.limit_price == 2500.0
+
+    def test_order_validation_empty_order_id(self):
+        """Test that empty order_id raises ValueError."""
+        with pytest.raises(ValueError, match="order_id must be a non-empty string"):
+            AlgoOrder(
+                order_id="",
+                symbol="BTC/USDT",
+                side="buy",
+                total_quantity=10.0,
+            )
+
+    def test_order_validation_empty_symbol(self):
+        """Test that empty symbol raises ValueError."""
+        with pytest.raises(ValueError, match="symbol must be a non-empty string"):
+            AlgoOrder(
+                order_id="order_1",
+                symbol="",
+                side="buy",
+                total_quantity=10.0,
+            )
+
+    def test_order_validation_negative_quantity(self):
+        """Test that negative quantity raises ValueError."""
+        with pytest.raises(ValueError, match="total_quantity must be positive"):
+            AlgoOrder(
+                order_id="order_1",
+                symbol="BTC/USDT",
+                side="buy",
+                total_quantity=-10.0,
+            )
+
+    def test_order_validation_zero_quantity(self):
+        """Test that zero quantity raises ValueError."""
+        with pytest.raises(ValueError, match="total_quantity must be positive"):
+            AlgoOrder(
+                order_id="order_1",
+                symbol="BTC/USDT",
+                side="buy",
+                total_quantity=0,
+            )
+
+    def test_order_validation_negative_limit_price(self):
+        """Test that negative limit_price raises ValueError."""
+        with pytest.raises(ValueError, match="limit_price must be positive"):
+            AlgoOrder(
+                order_id="order_1",
+                symbol="BTC/USDT",
+                side="buy",
+                total_quantity=10.0,
+                limit_price=-100.0,
+            )
+
+    def test_order_validation_invalid_min_fill_rate(self):
+        """Test that min_fill_rate outside [0,1] raises ValueError."""
+        with pytest.raises(ValueError, match="min_fill_rate must be between 0 and 1"):
+            AlgoOrder(
+                order_id="order_1",
+                symbol="BTC/USDT",
+                side="buy",
+                total_quantity=10.0,
+                min_fill_rate=1.5,
+            )
+
+    def test_order_validation_invalid_max_participation(self):
+        """Test that max_participation outside (0,1] raises ValueError."""
+        with pytest.raises(ValueError, match="max_participation must be between 0 and 1"):
+            AlgoOrder(
+                order_id="order_1",
+                symbol="BTC/USDT",
+                side="buy",
+                total_quantity=10.0,
+                max_participation=0,
+            )
+
+    def test_order_validation_end_before_start(self):
+        """Test that end_time before start_time raises ValueError."""
+        start = datetime.now()
+        end = start - timedelta(hours=1)
+        with pytest.raises(ValueError, match="end_time must be after start_time"):
+            AlgoOrder(
+                order_id="order_1",
+                symbol="BTC/USDT",
+                side="buy",
+                total_quantity=10.0,
+                start_time=start,
+                end_time=end,
+            )
 
 
 class TestAlgoSlice:
@@ -209,9 +300,7 @@ class TestTWAPAlgorithm:
         assert abs(total_qty - sample_order.total_quantity) < 0.01
 
     @pytest.mark.asyncio
-    async def test_twap_execution(
-        self, mock_order_executor, mock_market_data_provider
-    ):
+    async def test_twap_execution(self, mock_order_executor, mock_market_data_provider):
         algo = TWAPAlgorithm(
             mock_order_executor,
             mock_market_data_provider,
@@ -253,9 +342,7 @@ class TestVWAPAlgorithm:
         assert abs(total_qty - sample_order.total_quantity) < 0.01
 
     @pytest.mark.asyncio
-    async def test_vwap_with_custom_profile(
-        self, mock_order_executor, mock_market_data_provider
-    ):
+    async def test_vwap_with_custom_profile(self, mock_order_executor, mock_market_data_provider):
         custom_profile = [0.1, 0.2, 0.3, 0.2, 0.1, 0.1]
         algo = VWAPAlgorithm(
             mock_order_executor,
@@ -311,9 +398,7 @@ class TestIcebergAlgorithm:
     """Tests for Iceberg algorithm."""
 
     @pytest.mark.asyncio
-    async def test_iceberg_visible_quantity(
-        self, mock_order_executor, mock_market_data_provider
-    ):
+    async def test_iceberg_visible_quantity(self, mock_order_executor, mock_market_data_provider):
         algo = IcebergAlgorithm(
             mock_order_executor,
             mock_market_data_provider,

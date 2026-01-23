@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class WindowSummary:
     """Summary of a single walk-forward window for UI display."""
+
     window_id: int
     train_period: str
     test_period: str
@@ -35,6 +36,7 @@ class WindowSummary:
 @dataclass
 class WalkForwardUIData:
     """Complete walk-forward data formatted for UI consumption."""
+
     model_type: str
     symbol: str
     total_windows: int
@@ -77,7 +79,9 @@ class WalkForwardUIProvider:
         """
         # Find result files
         pattern = f"{symbol.replace('/', '_')}*.json" if symbol else "*.json"
-        result_files = sorted(self.results_dir.glob(pattern), key=lambda p: p.stat().st_mtime, reverse=True)
+        result_files = sorted(
+            self.results_dir.glob(pattern), key=lambda p: p.stat().st_mtime, reverse=True
+        )
 
         if not result_files:
             logger.warning(f"No walk-forward results found in {self.results_dir}")
@@ -90,23 +94,27 @@ class WalkForwardUIProvider:
         """Get summary of all available walk-forward results."""
         results = []
 
-        for path in sorted(self.results_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
+        for path in sorted(
+            self.results_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True
+        ):
             try:
                 with open(path) as f:
                     data = json.load(f)
 
                 summary = data.get("summary", {})
-                results.append({
-                    "filename": path.name,
-                    "model_type": summary.get("model_type", "unknown"),
-                    "symbol": summary.get("symbol", "unknown"),
-                    "total_windows": summary.get("total_windows", 0),
-                    "profitable_windows": summary.get("profitable_windows", 0),
-                    "is_robust": summary.get("is_robust", False),
-                    "robustness_score": summary.get("robustness_score", 0),
-                    "timestamp": path.stat().st_mtime,
-                    "date": datetime.fromtimestamp(path.stat().st_mtime).isoformat(),
-                })
+                results.append(
+                    {
+                        "filename": path.name,
+                        "model_type": summary.get("model_type", "unknown"),
+                        "symbol": summary.get("symbol", "unknown"),
+                        "total_windows": summary.get("total_windows", 0),
+                        "profitable_windows": summary.get("profitable_windows", 0),
+                        "is_robust": summary.get("is_robust", False),
+                        "robustness_score": summary.get("robustness_score", 0),
+                        "timestamp": path.stat().st_mtime,
+                        "date": datetime.fromtimestamp(path.stat().st_mtime).isoformat(),
+                    }
+                )
             except Exception as e:
                 logger.error(f"Error reading {path}: {e}")
 
@@ -145,53 +153,63 @@ class WalkForwardUIProvider:
             train_metrics = w.get("train_metrics", {})
 
             # Window summary
-            window_summaries.append(WindowSummary(
-                window_id=window_id,
-                train_period=f"{w.get('train_start', 'N/A')[:10]} to {w.get('train_end', 'N/A')[:10]}",
-                test_period=f"{w.get('test_start', 'N/A')[:10]} to {w.get('test_end', 'N/A')[:10]}",
-                train_accuracy=train_metrics.get("accuracy", 0),
-                test_accuracy=test_metrics.get("accuracy", 0),
-                sharpe_ratio=test_metrics.get("sharpe_ratio", 0),
-                profit_factor=test_metrics.get("profit_factor", 0),
-                win_rate=test_metrics.get("win_rate", 0),
-                is_profitable=w.get("is_profitable", False),
-                training_time=w.get("training_time_seconds", 0),
-            ))
+            window_summaries.append(
+                WindowSummary(
+                    window_id=window_id,
+                    train_period=f"{w.get('train_start', 'N/A')[:10]} to {w.get('train_end', 'N/A')[:10]}",
+                    test_period=f"{w.get('test_start', 'N/A')[:10]} to {w.get('test_end', 'N/A')[:10]}",
+                    train_accuracy=train_metrics.get("accuracy", 0),
+                    test_accuracy=test_metrics.get("accuracy", 0),
+                    sharpe_ratio=test_metrics.get("sharpe_ratio", 0),
+                    profit_factor=test_metrics.get("profit_factor", 0),
+                    win_rate=test_metrics.get("win_rate", 0),
+                    is_profitable=w.get("is_profitable", False),
+                    training_time=w.get("training_time_seconds", 0),
+                )
+            )
 
             # Equity curve (simulated based on Sharpe ratio direction)
             sharpe = test_metrics.get("sharpe_ratio", 0)
             pnl_estimate = sharpe * 0.02  # Rough estimate
             cumulative_pnl += pnl_estimate
 
-            equity_curve.append({
-                "window": window_id + 1,
-                "period": w.get("test_end", "")[:10],
-                "pnl": round(pnl_estimate * 100, 2),
-                "cumulative": round(cumulative_pnl * 100, 2),
-            })
+            equity_curve.append(
+                {
+                    "window": window_id + 1,
+                    "period": w.get("test_end", "")[:10],
+                    "pnl": round(pnl_estimate * 100, 2),
+                    "cumulative": round(cumulative_pnl * 100, 2),
+                }
+            )
 
             # Accuracy progression
-            accuracy_progression.append({
-                "window": window_id + 1,
-                "train_accuracy": round(train_metrics.get("accuracy", 0) * 100, 1),
-                "test_accuracy": round(test_metrics.get("accuracy", 0) * 100, 1),
-            })
+            accuracy_progression.append(
+                {
+                    "window": window_id + 1,
+                    "train_accuracy": round(train_metrics.get("accuracy", 0) * 100, 1),
+                    "test_accuracy": round(test_metrics.get("accuracy", 0) * 100, 1),
+                }
+            )
 
             # Sharpe progression
-            sharpe_progression.append({
-                "window": window_id + 1,
-                "sharpe": round(test_metrics.get("sharpe_ratio", 0), 2),
-            })
+            sharpe_progression.append(
+                {
+                    "window": window_id + 1,
+                    "sharpe": round(test_metrics.get("sharpe_ratio", 0), 2),
+                }
+            )
 
             # Train vs Test comparison
-            train_vs_test.append({
-                "window": window_id + 1,
-                "train_f1": round(train_metrics.get("f1_score", 0), 3),
-                "test_f1": round(test_metrics.get("f1_score", 0), 3),
-                "overfitting_gap": round(
-                    train_metrics.get("accuracy", 0) - test_metrics.get("accuracy", 0), 3
-                ),
-            })
+            train_vs_test.append(
+                {
+                    "window": window_id + 1,
+                    "train_f1": round(train_metrics.get("f1_score", 0), 3),
+                    "test_f1": round(test_metrics.get("f1_score", 0), 3),
+                    "overfitting_gap": round(
+                        train_metrics.get("accuracy", 0) - test_metrics.get("accuracy", 0), 3
+                    ),
+                }
+            )
 
         return WalkForwardUIData(
             model_type=summary.get("model_type", "unknown"),
@@ -248,7 +266,11 @@ class WalkForwardUIProvider:
             comparison["models"].append(f"{result['symbol']}_{result['model_type']}")
             comparison["robustness_scores"].append(result["robustness_score"])
 
-            ratio = result["profitable_windows"] / result["total_windows"] if result["total_windows"] > 0 else 0
+            ratio = (
+                result["profitable_windows"] / result["total_windows"]
+                if result["total_windows"] > 0
+                else 0
+            )
             comparison["profitable_ratios"].append(round(ratio * 100, 1))
             comparison["timestamps"].append(result["date"])
 

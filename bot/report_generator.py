@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ReportConfig:
     """Configuration for report generation."""
+
     title: str = "Trading Performance Report"
     period: Literal["daily", "weekly", "monthly", "quarterly", "yearly", "custom"] = "weekly"
     include_charts: bool = True
@@ -38,6 +39,7 @@ class ReportConfig:
 @dataclass
 class ReportSection:
     """A section of the report."""
+
     title: str
     content: str  # HTML content
     order: int = 0
@@ -139,7 +141,9 @@ class ReportGenerator:
         win_rate = (winning_trades / total_trades * 100) if total_trades > 0 else 0
 
         total_pnl = sum(t.get("pnl", 0) for t in trades)
-        total_return = ((equity[-1] / equity[0] - 1) * 100) if len(equity) > 1 and equity[0] > 0 else 0
+        total_return = (
+            ((equity[-1] / equity[0] - 1) * 100) if len(equity) > 1 and equity[0] > 0 else 0
+        )
 
         sharpe = risk.get("sharpe_ratio", 0)
         max_dd = risk.get("max_drawdown", 0)
@@ -150,7 +154,7 @@ class ReportGenerator:
                 <div class="summary-value">${total_pnl:,.2f}</div>
                 <div class="summary-label">Total P&L</div>
             </div>
-            <div class="summary-card {'positive' if total_return > 0 else 'negative'}">
+            <div class="summary-card {"positive" if total_return > 0 else "negative"}">
                 <div class="summary-value">{total_return:+.2f}%</div>
                 <div class="summary-label">Total Return</div>
             </div>
@@ -180,21 +184,20 @@ class ReportGenerator:
         </div>
         """
 
-        self._sections.append(ReportSection(
-            title="Executive Summary",
-            content=content,
-            order=1,
-        ))
+        self._sections.append(
+            ReportSection(
+                title="Executive Summary",
+                content=content,
+                order=1,
+            )
+        )
 
     def _add_performance_section(self) -> None:
         """Add performance charts section."""
         equity = self._data.get("equity_curve", [])
 
         # Generate equity curve data for chart
-        equity_data = [
-            {"x": i, "y": round(v, 2)}
-            for i, v in enumerate(equity)
-        ]
+        equity_data = [{"x": i, "y": round(v, 2)} for i, v in enumerate(equity)]
 
         content = f"""
         <div class="chart-container">
@@ -226,11 +229,13 @@ class ReportGenerator:
         </div>
         """
 
-        self._sections.append(ReportSection(
-            title="Performance Analysis",
-            content=content,
-            order=2,
-        ))
+        self._sections.append(
+            ReportSection(
+                title="Performance Analysis",
+                content=content,
+                order=2,
+            )
+        )
 
     def _add_risk_section(self) -> None:
         """Add risk metrics section."""
@@ -242,48 +247,50 @@ class ReportGenerator:
             <div class="metrics-grid">
                 <div class="metric">
                     <span class="metric-label">VaR (95%)</span>
-                    <span class="metric-value">{risk.get('var_95', 0):.2f}%</span>
+                    <span class="metric-value">{risk.get("var_95", 0):.2f}%</span>
                 </div>
                 <div class="metric">
                     <span class="metric-label">CVaR (95%)</span>
-                    <span class="metric-value">{risk.get('cvar_95', 0):.2f}%</span>
+                    <span class="metric-value">{risk.get("cvar_95", 0):.2f}%</span>
                 </div>
                 <div class="metric">
                     <span class="metric-label">Sortino Ratio</span>
-                    <span class="metric-value">{risk.get('sortino_ratio', 0):.2f}</span>
+                    <span class="metric-value">{risk.get("sortino_ratio", 0):.2f}</span>
                 </div>
                 <div class="metric">
                     <span class="metric-label">Calmar Ratio</span>
-                    <span class="metric-value">{risk.get('calmar_ratio', 0):.2f}</span>
+                    <span class="metric-value">{risk.get("calmar_ratio", 0):.2f}</span>
                 </div>
                 <div class="metric">
                     <span class="metric-label">Profit Factor</span>
-                    <span class="metric-value">{risk.get('profit_factor', 0):.2f}</span>
+                    <span class="metric-value">{risk.get("profit_factor", 0):.2f}</span>
                 </div>
                 <div class="metric">
                     <span class="metric-label">Expectancy</span>
-                    <span class="metric-value">{risk.get('expectancy', 0):.2f}%</span>
+                    <span class="metric-value">{risk.get("expectancy", 0):.2f}%</span>
                 </div>
             </div>
         </div>
 
         <div class="drawdown-analysis">
             <h3>Drawdown Analysis</h3>
-            <p>Maximum Drawdown: <strong>{risk.get('max_drawdown', 0):.2f}%</strong></p>
-            <p>Average Drawdown: <strong>{risk.get('avg_drawdown', 0):.2f}%</strong></p>
-            <p>Time in Drawdown: <strong>{risk.get('time_in_drawdown', 0):.1f}%</strong> of the period</p>
+            <p>Maximum Drawdown: <strong>{risk.get("max_drawdown", 0):.2f}%</strong></p>
+            <p>Average Drawdown: <strong>{risk.get("avg_drawdown", 0):.2f}%</strong></p>
+            <p>Time in Drawdown: <strong>{risk.get("time_in_drawdown", 0):.1f}%</strong> of the period</p>
         </div>
         """
 
-        self._sections.append(ReportSection(
-            title="Risk Analysis",
-            content=content,
-            order=3,
-        ))
+        self._sections.append(
+            ReportSection(
+                title="Risk Analysis",
+                content=content,
+                order=3,
+            )
+        )
 
     def _add_trades_section(self) -> None:
         """Add trade history section."""
-        trades = self._data.get("trades", [])[:self.config.max_trades_to_show]
+        trades = self._data.get("trades", [])[: self.config.max_trades_to_show]
 
         trade_rows = ""
         for trade in trades:
@@ -292,13 +299,13 @@ class ReportGenerator:
 
             trade_rows += f"""
             <tr class="{pnl_class}">
-                <td>{trade.get('timestamp', 'N/A')[:10]}</td>
-                <td>{trade.get('symbol', 'N/A')}</td>
-                <td>{trade.get('side', 'N/A')}</td>
-                <td>${trade.get('entry_price', 0):.4f}</td>
-                <td>${trade.get('exit_price', 0):.4f}</td>
+                <td>{trade.get("timestamp", "N/A")[:10]}</td>
+                <td>{trade.get("symbol", "N/A")}</td>
+                <td>{trade.get("side", "N/A")}</td>
+                <td>${trade.get("entry_price", 0):.4f}</td>
+                <td>${trade.get("exit_price", 0):.4f}</td>
                 <td class="{pnl_class}">${pnl:.2f}</td>
-                <td>{trade.get('strategy', 'N/A')}</td>
+                <td>{trade.get("strategy", "N/A")}</td>
             </tr>
             """
 
@@ -329,11 +336,13 @@ class ReportGenerator:
         </div>
         """
 
-        self._sections.append(ReportSection(
-            title="Trade History",
-            content=content,
-            order=4,
-        ))
+        self._sections.append(
+            ReportSection(
+                title="Trade History",
+                content=content,
+                order=4,
+            )
+        )
 
     def _add_regime_section(self) -> None:
         """Add regime analysis section."""
@@ -349,10 +358,10 @@ class ReportGenerator:
         for name, data in distribution.items():
             dist_rows += f"""
             <tr>
-                <td><span class="regime-badge" style="background: {data.get('color', '#666')}">{name}</span></td>
-                <td>{data.get('frequency_pct', 0):.1f}%</td>
-                <td>{data.get('avg_duration_hours', 0):.1f}h</td>
-                <td>{data.get('avg_return_pct', 0):.2f}%</td>
+                <td><span class="regime-badge" style="background: {data.get("color", "#666")}">{name}</span></td>
+                <td>{data.get("frequency_pct", 0):.1f}%</td>
+                <td>{data.get("avg_duration_hours", 0):.1f}h</td>
+                <td>{data.get("avg_return_pct", 0):.2f}%</td>
             </tr>
             """
 
@@ -380,11 +389,13 @@ class ReportGenerator:
         </div>
         """
 
-        self._sections.append(ReportSection(
-            title="Regime Analysis",
-            content=content,
-            order=5,
-        ))
+        self._sections.append(
+            ReportSection(
+                title="Regime Analysis",
+                content=content,
+                order=5,
+            )
+        )
 
     def _add_factor_section(self) -> None:
         """Add factor analysis section."""
@@ -400,19 +411,19 @@ class ReportGenerator:
             sig_class = "significant" if f.get("is_significant") else ""
             factor_rows += f"""
             <tr class="{sig_class}">
-                <td>{f.get('name', 'N/A')}</td>
-                <td>{f.get('beta', 0):.4f}</td>
-                <td>{f.get('contribution', 0):.2f}%</td>
-                <td>{f.get('t_stat', 0):.2f}</td>
-                <td>{'Yes' if f.get('is_significant') else 'No'}</td>
+                <td>{f.get("name", "N/A")}</td>
+                <td>{f.get("beta", 0):.4f}</td>
+                <td>{f.get("contribution", 0):.2f}%</td>
+                <td>{f.get("t_stat", 0):.2f}</td>
+                <td>{"Yes" if f.get("is_significant") else "No"}</td>
             </tr>
             """
 
         content = f"""
         <div class="factor-summary">
             <h3>Factor Attribution</h3>
-            <p>Alpha: <strong>{factors.get('summary', {}).get('alpha', 0):.4f}%</strong></p>
-            <p>R-Squared: <strong>{factors.get('summary', {}).get('r_squared', 0):.2%}</strong></p>
+            <p>Alpha: <strong>{factors.get("summary", {}).get("alpha", 0):.4f}%</strong></p>
+            <p>R-Squared: <strong>{factors.get("summary", {}).get("r_squared", 0):.2%}</strong></p>
         </div>
 
         <div class="factor-table">
@@ -433,11 +444,13 @@ class ReportGenerator:
         </div>
         """
 
-        self._sections.append(ReportSection(
-            title="Factor Analysis",
-            content=content,
-            order=6,
-        ))
+        self._sections.append(
+            ReportSection(
+                title="Factor Analysis",
+                content=content,
+                order=6,
+            )
+        )
 
     def _add_recommendations_section(self) -> None:
         """Add AI-generated recommendations section."""
@@ -462,11 +475,13 @@ class ReportGenerator:
         </div>
         """
 
-        self._sections.append(ReportSection(
-            title="Recommendations",
-            content=content,
-            order=7,
-        ))
+        self._sections.append(
+            ReportSection(
+                title="Recommendations",
+                content=content,
+                order=7,
+            )
+        )
 
     def _generate_insights(self) -> str:
         """Generate key insights from data."""
@@ -479,17 +494,25 @@ class ReportGenerator:
             if win_rate > 60:
                 insights.append(f"<li class='positive'>Strong win rate at {win_rate:.1f}%</li>")
             elif win_rate < 40:
-                insights.append(f"<li class='negative'>Win rate needs improvement at {win_rate:.1f}%</li>")
+                insights.append(
+                    f"<li class='negative'>Win rate needs improvement at {win_rate:.1f}%</li>"
+                )
 
         sharpe = risk.get("sharpe_ratio", 0)
         if sharpe > 1.5:
-            insights.append(f"<li class='positive'>Excellent risk-adjusted returns (Sharpe: {sharpe:.2f})</li>")
+            insights.append(
+                f"<li class='positive'>Excellent risk-adjusted returns (Sharpe: {sharpe:.2f})</li>"
+            )
         elif sharpe < 0.5:
-            insights.append(f"<li class='negative'>Risk-adjusted returns below target (Sharpe: {sharpe:.2f})</li>")
+            insights.append(
+                f"<li class='negative'>Risk-adjusted returns below target (Sharpe: {sharpe:.2f})</li>"
+            )
 
         max_dd = risk.get("max_drawdown", 0)
         if max_dd > 20:
-            insights.append(f"<li class='negative'>High drawdown risk ({max_dd:.1f}%) - consider reducing position sizes</li>")
+            insights.append(
+                f"<li class='negative'>High drawdown risk ({max_dd:.1f}%) - consider reducing position sizes</li>"
+            )
 
         if not insights:
             insights.append("<li>Performance within normal parameters</li>")
@@ -516,15 +539,16 @@ class ReportGenerator:
         wins = [p for p in pnls if p > 0]
         losses = [p for p in pnls if p < 0]
 
-        return f"""
+        return (
+            f"""
         <div class="stats-grid">
             <div class="stat">
                 <span class="stat-label">Avg Win</span>
-                <span class="stat-value positive">${sum(wins)/len(wins):.2f}</span>
+                <span class="stat-value positive">${sum(wins) / len(wins):.2f}</span>
             </div>
             <div class="stat">
                 <span class="stat-label">Avg Loss</span>
-                <span class="stat-value negative">${sum(losses)/len(losses):.2f}</span>
+                <span class="stat-value negative">${sum(losses) / len(losses):.2f}</span>
             </div>
             <div class="stat">
                 <span class="stat-label">Largest Win</span>
@@ -535,7 +559,10 @@ class ReportGenerator:
                 <span class="stat-value negative">${min(pnls):.2f}</span>
             </div>
         </div>
-        """ if wins and losses else "<p>Insufficient trade data</p>"
+        """
+            if wins and losses
+            else "<p>Insufficient trade data</p>"
+        )
 
     def _generate_recommendations(self) -> str:
         """Generate actionable recommendations."""
@@ -546,18 +573,24 @@ class ReportGenerator:
         # Check Sharpe ratio
         sharpe = risk.get("sharpe_ratio", 0)
         if sharpe < 1.0:
-            recommendations.append("<li>Consider strategies with better risk-adjusted returns to improve Sharpe ratio</li>")
+            recommendations.append(
+                "<li>Consider strategies with better risk-adjusted returns to improve Sharpe ratio</li>"
+            )
 
         # Check drawdown
         max_dd = risk.get("max_drawdown", 0)
         if max_dd > 15:
-            recommendations.append("<li>Implement stricter stop-losses to reduce maximum drawdown</li>")
+            recommendations.append(
+                "<li>Implement stricter stop-losses to reduce maximum drawdown</li>"
+            )
 
         # Check win rate vs payoff
         if trades:
             win_rate = len([t for t in trades if t.get("pnl", 0) > 0]) / len(trades)
             if win_rate < 0.45:
-                recommendations.append("<li>Review entry criteria - win rate below optimal levels</li>")
+                recommendations.append(
+                    "<li>Review entry criteria - win rate below optimal levels</li>"
+                )
 
         # Default recommendations
         if not recommendations:
@@ -744,7 +777,7 @@ class ReportGenerator:
     <div class="report-container">
         <header class="report-header">
             <h1>{self.config.title}</h1>
-            <p class="date">Generated: {datetime.now().strftime('%B %d, %Y %H:%M')}</p>
+            <p class="date">Generated: {datetime.now().strftime("%B %d, %Y %H:%M")}</p>
             <p class="date">Period: {self.config.period.capitalize()}</p>
         </header>
 

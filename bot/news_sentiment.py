@@ -24,18 +24,21 @@ logger = logging.getLogger(__name__)
 # Optional imports
 try:
     import requests
+
     HAS_REQUESTS = True
 except ImportError:
     HAS_REQUESTS = False
 
 try:
     from textblob import TextBlob
+
     HAS_TEXTBLOB = True
 except ImportError:
     HAS_TEXTBLOB = False
 
 try:
     from transformers import pipeline
+
     HAS_TRANSFORMERS = True
 except ImportError:
     HAS_TRANSFORMERS = False
@@ -43,6 +46,7 @@ except ImportError:
 
 class SentimentType(Enum):
     """Sentiment classification types."""
+
     VERY_BULLISH = "very_bullish"
     BULLISH = "bullish"
     NEUTRAL = "neutral"
@@ -52,6 +56,7 @@ class SentimentType(Enum):
 
 class NewsSource(Enum):
     """Supported news sources."""
+
     NEWSAPI = "newsapi"
     ALPHA_VANTAGE = "alpha_vantage"
     CRYPTO_PANIC = "crypto_panic"
@@ -62,6 +67,7 @@ class NewsSource(Enum):
 @dataclass
 class NewsArticle:
     """Represents a news article."""
+
     title: str
     description: str
     source: str
@@ -90,6 +96,7 @@ class NewsArticle:
 @dataclass
 class SentimentSignal:
     """Sentiment-based trading signal."""
+
     symbol: str
     sentiment_score: float  # -1 to 1
     sentiment_type: SentimentType
@@ -248,9 +255,7 @@ class NewsFetcher:
         articles = []
         for item in data.get("articles", []):
             try:
-                pub_at = datetime.fromisoformat(
-                    item.get("publishedAt", "").replace("Z", "+00:00")
-                )
+                pub_at = datetime.fromisoformat(item.get("publishedAt", "").replace("Z", "+00:00"))
             except (ValueError, TypeError):
                 pub_at = datetime.now()
 
@@ -293,9 +298,7 @@ class NewsFetcher:
         articles = []
         for item in data.get("results", [])[:limit]:
             try:
-                pub_at = datetime.fromisoformat(
-                    item.get("published_at", "").replace("Z", "+00:00")
-                )
+                pub_at = datetime.fromisoformat(item.get("published_at", "").replace("Z", "+00:00"))
             except (ValueError, TypeError):
                 pub_at = datetime.now()
 
@@ -310,7 +313,9 @@ class NewsFetcher:
                 url=item.get("url", ""),
                 published_at=pub_at,
                 symbols=[symbol],
-                sentiment_score=sentiment_hint / (abs(sentiment_hint) + 1) if sentiment_hint else None,
+                sentiment_score=sentiment_hint / (abs(sentiment_hint) + 1)
+                if sentiment_hint
+                else None,
                 raw_data=item,
             )
             articles.append(article)
@@ -389,10 +394,7 @@ class NewsFetcher:
         articles = []
         for item in data.get("feed", [])[:limit]:
             try:
-                pub_at = datetime.strptime(
-                    item.get("time_published", ""),
-                    "%Y%m%dT%H%M%S"
-                )
+                pub_at = datetime.strptime(item.get("time_published", ""), "%Y%m%dT%H%M%S")
             except (ValueError, TypeError):
                 pub_at = datetime.now()
 
@@ -431,14 +433,41 @@ class SentimentAnalyzer:
 
         # Sentiment keywords for rule-based fallback
         self.bullish_keywords = [
-            "surge", "soar", "rally", "bullish", "breakout", "all-time high",
-            "adoption", "partnership", "approval", "upgrade", "growth",
-            "buy", "accumulate", "outperform", "beat", "strong",
+            "surge",
+            "soar",
+            "rally",
+            "bullish",
+            "breakout",
+            "all-time high",
+            "adoption",
+            "partnership",
+            "approval",
+            "upgrade",
+            "growth",
+            "buy",
+            "accumulate",
+            "outperform",
+            "beat",
+            "strong",
         ]
         self.bearish_keywords = [
-            "crash", "plunge", "dump", "bearish", "breakdown", "low",
-            "hack", "scam", "fraud", "ban", "regulation", "sell",
-            "decline", "loss", "weak", "underperform", "miss",
+            "crash",
+            "plunge",
+            "dump",
+            "bearish",
+            "breakdown",
+            "low",
+            "hack",
+            "scam",
+            "fraud",
+            "ban",
+            "regulation",
+            "sell",
+            "decline",
+            "loss",
+            "weak",
+            "underperform",
+            "miss",
         ]
 
     def _get_transformer_model(self):

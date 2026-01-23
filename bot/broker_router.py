@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 class AssetType(Enum):
     """Asset type classification."""
+
     CRYPTO = "crypto"
     STOCK = "stock"
     COMMODITY = "commodity"
@@ -31,21 +32,21 @@ class AssetType(Enum):
 class BrokerRouter:
     """
     Routes orders to appropriate brokers based on asset type.
-    
+
     Asset Type Detection:
     - /USDT, /USD, /BUSD -> Crypto
     - AAPL, MSFT, GOOGL -> Stocks
     - XAU/USD, XAGUSD, USOIL -> Commodities
     - EUR/USD, GBP/USD -> Forex
     """
-    
+
     def __init__(
         self,
         crypto_adapter: Optional[ExecutionAdapter] = None,
         stock_adapter: Optional[AlpacaAdapter] = None,
         commodity_adapter: Optional[ExecutionAdapter] = None,
         forex_adapter: Optional[ExecutionAdapter] = None,
-        index_adapter: Optional[ExecutionAdapter] = None
+        index_adapter: Optional[ExecutionAdapter] = None,
     ):
         self.adapters: Dict[AssetType, ExecutionAdapter] = {}
 
@@ -61,73 +62,149 @@ class BrokerRouter:
             self.adapters[AssetType.INDEX] = index_adapter
 
         logger.info(f"Broker router initialized with {len(self.adapters)} adapters")
-    
+
     def detect_asset_type(self, symbol: str) -> AssetType:
         """Detect asset type from symbol."""
         symbol_upper = symbol.upper()
 
         # Index patterns (check first to avoid misclassification)
-        index_patterns = ['SPX500', 'NAS100', 'US30', 'UK100', 'DE30', 'JP225', '^GSPC', '^DJI', '^IXIC', 'SPX', 'DJX']
+        index_patterns = [
+            "SPX500",
+            "NAS100",
+            "US30",
+            "UK100",
+            "DE30",
+            "JP225",
+            "^GSPC",
+            "^DJI",
+            "^IXIC",
+            "SPX",
+            "DJX",
+        ]
         if any(index in symbol_upper for index in index_patterns):
             return AssetType.INDEX
 
         # Commodity patterns (precious metals, oil, gas)
-        commodity_patterns = ['XAU', 'XAG', 'WTICO', 'BCO', 'NATGAS', 'XCU', 'WHEAT', 'CORN', 'SOYBN', 'SUGAR',
-                             'GOLD', 'SILVER', 'OIL', 'GAS', 'CL=', 'GC=', 'SI=', 'NG=']
+        commodity_patterns = [
+            "XAU",
+            "XAG",
+            "WTICO",
+            "BCO",
+            "NATGAS",
+            "XCU",
+            "WHEAT",
+            "CORN",
+            "SOYBN",
+            "SUGAR",
+            "GOLD",
+            "SILVER",
+            "OIL",
+            "GAS",
+            "CL=",
+            "GC=",
+            "SI=",
+            "NG=",
+        ]
         if any(name in symbol_upper for name in commodity_patterns):
             return AssetType.COMMODITY
 
         # Forex patterns (major and cross currency pairs)
-        forex_currencies = ['EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'NZD']
-        if '/' in symbol:
-            parts = symbol_upper.split('/')
+        forex_currencies = ["EUR", "GBP", "JPY", "AUD", "CAD", "CHF", "NZD"]
+        if "/" in symbol:
+            parts = symbol_upper.split("/")
             # Check if both parts are forex currencies or USD
             if len(parts) == 2:
                 base, quote = parts
-                if (base in forex_currencies or quote in forex_currencies) and 'USDT' not in symbol_upper:
+                if (
+                    base in forex_currencies or quote in forex_currencies
+                ) and "USDT" not in symbol_upper:
                     # Make sure it's not crypto
-                    crypto_bases = ['BTC', 'ETH', 'SOL', 'AVAX', 'XRP', 'ADA', 'MATIC', 'DOT', 'LINK', 'ATOM']
+                    crypto_bases = [
+                        "BTC",
+                        "ETH",
+                        "SOL",
+                        "AVAX",
+                        "XRP",
+                        "ADA",
+                        "MATIC",
+                        "DOT",
+                        "LINK",
+                        "ATOM",
+                    ]
                     if base not in crypto_bases:
                         return AssetType.FOREX
 
         # Crypto patterns
-        if any(suffix in symbol_upper for suffix in ['/USDT', '/BUSD', '/BTC', '/ETH']):
+        if any(suffix in symbol_upper for suffix in ["/USDT", "/BUSD", "/BTC", "/ETH"]):
             return AssetType.CRYPTO
 
         # Stock patterns (US equities)
-        stock_symbols = ['AAPL', 'NVDA', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'AMD', 'NFLX', 'UBER',
-                        'DIS', 'BA', 'JPM', 'V', 'MA', 'PYPL', 'INTC', 'CRM', 'ORCL', 'CSCO']
-        if '/USD' in symbol_upper:
-            base = symbol_upper.split('/')[0]
+        stock_symbols = [
+            "AAPL",
+            "NVDA",
+            "MSFT",
+            "GOOGL",
+            "AMZN",
+            "TSLA",
+            "META",
+            "AMD",
+            "NFLX",
+            "UBER",
+            "DIS",
+            "BA",
+            "JPM",
+            "V",
+            "MA",
+            "PYPL",
+            "INTC",
+            "CRM",
+            "ORCL",
+            "CSCO",
+        ]
+        if "/USD" in symbol_upper:
+            base = symbol_upper.split("/")[0]
             if base in stock_symbols:
                 return AssetType.STOCK
 
         # Crypto with /USD (but not forex or stocks)
-        if '/USD' in symbol_upper:
-            crypto_bases = ['BTC', 'ETH', 'SOL', 'AVAX', 'XRP', 'ADA', 'MATIC', 'DOT', 'LINK', 'ATOM', 'DOGE', 'SHIB']
+        if "/USD" in symbol_upper:
+            crypto_bases = [
+                "BTC",
+                "ETH",
+                "SOL",
+                "AVAX",
+                "XRP",
+                "ADA",
+                "MATIC",
+                "DOT",
+                "LINK",
+                "ATOM",
+                "DOGE",
+                "SHIB",
+            ]
             for crypto in crypto_bases:
                 if symbol_upper.startswith(crypto):
                     return AssetType.CRYPTO
 
         # Default to stock if it's a simple ticker (1-5 letters, no slash)
-        if '/' not in symbol and symbol.replace('.', '').isalpha() and 1 <= len(symbol) <= 5:
+        if "/" not in symbol and symbol.replace(".", "").isalpha() and 1 <= len(symbol) <= 5:
             return AssetType.STOCK
 
         # Fallback
         logger.warning(f"Could not detect asset type for {symbol}, defaulting to CRYPTO")
         return AssetType.CRYPTO
-    
+
     def get_adapter(self, symbol: str) -> Optional[ExecutionAdapter]:
         """Get the appropriate adapter for a symbol."""
         asset_type = self.detect_asset_type(symbol)
         adapter = self.adapters.get(asset_type)
-        
+
         if not adapter:
             logger.warning(f"No adapter for {asset_type.value} (symbol: {symbol})")
             return None
-        
+
         return adapter
-    
+
     async def initialize_all(self) -> Dict[AssetType, bool]:
         """Initialize all adapters."""
         results = {}
@@ -135,9 +212,9 @@ class BrokerRouter:
             try:
                 # Try connect() first (standard ExecutionAdapter interface)
                 # then fall back to initialize() for adapters that use that name
-                if hasattr(adapter, 'connect'):
+                if hasattr(adapter, "connect"):
                     success = await adapter.connect()
-                elif hasattr(adapter, 'initialize'):
+                elif hasattr(adapter, "initialize"):
                     success = await adapter.initialize()
                 else:
                     success = True  # No init needed
@@ -147,11 +224,11 @@ class BrokerRouter:
                 logger.error(f"Failed to initialize {asset_type.value}: {e}")
                 results[asset_type] = False
         return results
-    
+
     async def get_balance(self, asset_type: Optional[AssetType] = None) -> Dict[AssetType, float]:
         """Get balance from all adapters or specific asset type."""
         balances = {}
-        
+
         if asset_type:
             adapter = self.adapters.get(asset_type)
             if adapter:
@@ -165,13 +242,13 @@ class BrokerRouter:
                 except Exception as e:
                     logger.error(f"Failed to get {asset_type.value} balance: {e}")
                     balances[asset_type] = 0.0
-        
+
         return balances
-    
+
     async def get_all_positions(self) -> Dict[AssetType, List[Position]]:
         """Get positions from all adapters."""
         all_positions = {}
-        
+
         for asset_type, adapter in self.adapters.items():
             try:
                 positions = await adapter.get_positions()
@@ -180,32 +257,34 @@ class BrokerRouter:
                     logger.info(f"{asset_type.value}: {len(positions)} positions")
             except Exception as e:
                 logger.error(f"Failed to get {asset_type.value} positions: {e}")
-        
+
         return all_positions
-    
+
     async def execute_order(self, order: Order) -> bool:
         """Route order to appropriate adapter."""
         adapter = self.get_adapter(order.symbol)
-        
+
         if not adapter:
             logger.error(f"No adapter available for {order.symbol}")
             return False
-        
+
         asset_type = self.detect_asset_type(order.symbol)
-        logger.info(f"Routing {order.side.value} order for {order.symbol} to {asset_type.value} adapter")
-        
+        logger.info(
+            f"Routing {order.side.value} order for {order.symbol} to {asset_type.value} adapter"
+        )
+
         return await adapter.execute_order(order)
-    
+
     async def close_position(self, symbol: str) -> bool:
         """Close position via appropriate adapter."""
         adapter = self.get_adapter(symbol)
-        
+
         if not adapter:
             logger.error(f"No adapter available for {symbol}")
             return False
-        
+
         return await adapter.close_position(symbol)
-    
+
     async def get_market_price(self, symbol: str) -> Optional[float]:
         """Get market price via appropriate adapter."""
         adapter = self.get_adapter(symbol)
@@ -214,9 +293,9 @@ class BrokerRouter:
             return None
 
         # Use get_current_price which is the standard ExecutionAdapter method
-        if hasattr(adapter, 'get_current_price'):
+        if hasattr(adapter, "get_current_price"):
             return await adapter.get_current_price(symbol)
-        elif hasattr(adapter, 'get_market_price'):
+        elif hasattr(adapter, "get_market_price"):
             return await adapter.get_market_price(symbol)
         return None
 
@@ -229,7 +308,7 @@ class MultiAssetAdapter(ExecutionAdapter):
     while maintaining the standard ExecutionAdapter interface.
     """
 
-    def __init__(self, router: 'BrokerRouter', mode: str = "paper"):
+    def __init__(self, router: "BrokerRouter", mode: str = "paper"):
         self._router = router
         self._mode = mode
         self._connected = False
@@ -263,7 +342,7 @@ class MultiAssetAdapter(ExecutionAdapter):
                 balance = await adapter.get_balance()
                 if balance is None:
                     continue
-                if hasattr(balance, 'total') and balance.total is not None:
+                if hasattr(balance, "total") and balance.total is not None:
                     total += balance.total or 0.0
                     available += balance.available or 0.0
                     in_positions += balance.in_positions or 0.0
@@ -284,7 +363,7 @@ class MultiAssetAdapter(ExecutionAdapter):
             available=available,
             in_positions=in_positions,
             unrealized_pnl=unrealized_pnl,
-            currency="USD"
+            currency="USD",
         )
 
     async def get_current_price(self, symbol: str) -> Optional[float]:
@@ -303,7 +382,7 @@ class MultiAssetAdapter(ExecutionAdapter):
                 status=OrderStatus.FAILED,
                 filled_quantity=0.0,
                 average_price=0.0,
-                error_message=f"No adapter for {order.symbol}"
+                error_message=f"No adapter for {order.symbol}",
             )
 
         return await adapter.place_order(order)
@@ -344,45 +423,46 @@ class MultiAssetAdapter(ExecutionAdapter):
         return await adapter.get_order_status(order_id, symbol)
 
 
-def create_broker_router(
-    mode: str = "paper",
-    config: Optional[Dict] = None
-) -> BrokerRouter:
+def create_broker_router(mode: str = "paper", config: Optional[Dict] = None) -> BrokerRouter:
     """
     Factory function to create broker router with configured adapters.
-    
+
     Args:
         mode: Trading mode (paper, testnet, live)
         config: Configuration dict with broker settings
-    
+
     Returns:
         Configured BrokerRouter instance
     """
     from bot.execution_adapter import create_execution_adapter
-    
+
     # Create crypto adapter (Binance)
     crypto_adapter = create_execution_adapter(mode, config)
-    
+
     # Create stock adapter (Alpaca) - paper mode by default
     # Always try to create if credentials exist
     stock_adapter = None
     try:
         import os
-        if os.getenv('ALPACA_API_KEY') and os.getenv('ALPACA_API_SECRET'):
-            is_paper = mode in ['paper', 'paper_live_data'] or (config and config.get('stocks', {}).get('alpaca', {}).get('paper_mode', True))
+
+        if os.getenv("ALPACA_API_KEY") and os.getenv("ALPACA_API_SECRET"):
+            is_paper = mode in ["paper", "paper_live_data"] or (
+                config and config.get("stocks", {}).get("alpaca", {}).get("paper_mode", True)
+            )
             stock_adapter = create_alpaca_adapter(is_paper=is_paper)
             logger.info(f"Alpaca adapter created ({'paper' if is_paper else 'live'} mode)")
     except Exception as e:
         logger.warning(f"Alpaca adapter not available: {e}")
-    
+
     # Create OANDA adapter for commodities and forex
     oanda_adapter = None
     try:
         import os
-        if os.getenv('OANDA_API_KEY') and os.getenv('OANDA_ACCOUNT_ID'):
+
+        if os.getenv("OANDA_API_KEY") and os.getenv("OANDA_ACCOUNT_ID"):
             # Use environment setting from .env - don't override based on trading mode
             # OANDA API key type must match environment (live key -> live env)
-            env = os.getenv('OANDA_ENVIRONMENT', 'live')
+            env = os.getenv("OANDA_ENVIRONMENT", "live")
             oanda_adapter = create_oanda_adapter(environment=env)
             logger.info(f"OANDA adapter created ({env} mode)")
     except Exception as e:
@@ -398,15 +478,14 @@ def create_broker_router(
         stock_adapter=stock_adapter,
         commodity_adapter=commodity_adapter,
         forex_adapter=forex_adapter,
-        index_adapter=index_adapter
+        index_adapter=index_adapter,
     )
 
     return router
 
 
 def create_multi_asset_adapter(
-    mode: str = "paper",
-    config: Optional[Dict] = None
+    mode: str = "paper", config: Optional[Dict] = None
 ) -> MultiAssetAdapter:
     """
     Factory function to create a MultiAssetAdapter.

@@ -290,8 +290,7 @@ class TestAlertConfigManager:
     def test_filter_thresholds_by_type(self, manager):
         """Test filtering thresholds by type."""
         drawdown_thresholds = [
-            t for t in manager.thresholds.values()
-            if t.alert_type == AlertType.DRAWDOWN
+            t for t in manager.thresholds.values() if t.alert_type == AlertType.DRAWDOWN
         ]
         assert len(drawdown_thresholds) > 0
         for t in drawdown_thresholds:
@@ -299,10 +298,7 @@ class TestAlertConfigManager:
 
     def test_filter_thresholds_by_priority(self, manager):
         """Test filtering thresholds by priority."""
-        high_priority = [
-            t for t in manager.thresholds.values()
-            if t.priority == AlertPriority.HIGH
-        ]
+        high_priority = [t for t in manager.thresholds.values() if t.priority == AlertPriority.HIGH]
         for t in high_priority:
             assert t.priority == AlertPriority.HIGH
 

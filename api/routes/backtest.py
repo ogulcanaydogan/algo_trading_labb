@@ -25,6 +25,7 @@ router = APIRouter(prefix="/backtest", tags=["Backtesting"])
 # Request/Response Models
 class BacktestRequest(BaseModel):
     """Backtest request parameters."""
+
     symbol: str = Field(..., description="Trading symbol")
     strategy: str = Field(..., description="Strategy name")
     start_date: str = Field(..., description="Start date (YYYY-MM-DD)")
@@ -38,6 +39,7 @@ class BacktestRequest(BaseModel):
 
 class BacktestResult(BaseModel):
     """Backtest result summary."""
+
     backtest_id: str
     symbol: str
     strategy: str
@@ -62,6 +64,7 @@ class BacktestResult(BaseModel):
 
 class TradeRecord(BaseModel):
     """Individual trade record."""
+
     trade_id: int
     entry_date: str
     exit_date: str
@@ -77,6 +80,7 @@ class TradeRecord(BaseModel):
 
 class OptimizationRequest(BaseModel):
     """Strategy optimization request."""
+
     symbol: str
     strategy: str
     start_date: str
@@ -88,6 +92,7 @@ class OptimizationRequest(BaseModel):
 
 class WalkForwardRequest(BaseModel):
     """Walk-forward analysis request."""
+
     symbol: str
     strategy: str
     start_date: str
@@ -161,19 +166,21 @@ class BacktestEngine:
 
                 self.capital += pnl
 
-                self.trades.append({
-                    "trade_id": len(self.trades) + 1,
-                    "entry_date": entry_date.isoformat() if entry_date else "",
-                    "exit_date": date.isoformat() if hasattr(date, "isoformat") else str(date),
-                    "side": "long" if position > 0 else "short",
-                    "entry_price": entry_price,
-                    "exit_price": exit_price,
-                    "quantity": abs(position),
-                    "pnl": pnl,
-                    "return_pct": pnl / (entry_price * abs(position)),
-                    "holding_period": i - entry_idx,
-                    "exit_reason": "signal_reversal" if signal != 0 else "signal_flat",
-                })
+                self.trades.append(
+                    {
+                        "trade_id": len(self.trades) + 1,
+                        "entry_date": entry_date.isoformat() if entry_date else "",
+                        "exit_date": date.isoformat() if hasattr(date, "isoformat") else str(date),
+                        "side": "long" if position > 0 else "short",
+                        "entry_price": entry_price,
+                        "exit_price": exit_price,
+                        "quantity": abs(position),
+                        "pnl": pnl,
+                        "return_pct": pnl / (entry_price * abs(position)),
+                        "holding_period": i - entry_idx,
+                        "exit_reason": "signal_reversal" if signal != 0 else "signal_flat",
+                    }
+                )
 
                 position = 0
 
@@ -322,18 +329,22 @@ def generate_dummy_prices(
     returns = np.random.normal(0.0002, 0.02, len(dates))
     prices = 100 * np.exp(np.cumsum(returns))
 
-    df = pd.DataFrame({
-        "open": prices * (1 + np.random.uniform(-0.005, 0.005, len(dates))),
-        "high": prices * (1 + np.abs(np.random.normal(0, 0.01, len(dates)))),
-        "low": prices * (1 - np.abs(np.random.normal(0, 0.01, len(dates)))),
-        "close": prices,
-        "volume": np.random.uniform(1000000, 5000000, len(dates)),
-    }, index=dates)
+    df = pd.DataFrame(
+        {
+            "open": prices * (1 + np.random.uniform(-0.005, 0.005, len(dates))),
+            "high": prices * (1 + np.abs(np.random.normal(0, 0.01, len(dates)))),
+            "low": prices * (1 - np.abs(np.random.normal(0, 0.01, len(dates)))),
+            "close": prices,
+            "volume": np.random.uniform(1000000, 5000000, len(dates)),
+        },
+        index=dates,
+    )
 
     return df
 
 
 # API Endpoints
+
 
 @router.post("/run", response_model=BacktestResult)
 async def run_backtest(request: BacktestRequest):
@@ -452,21 +463,25 @@ async def compare_strategies(requests: List[BacktestRequest]):
 
             result = engine.run(prices, signals, req.position_size_pct)
 
-            results.append({
-                "strategy": req.strategy,
-                "symbol": req.symbol,
-                "total_return_pct": result["total_return_pct"],
-                "sharpe_ratio": result["sharpe_ratio"],
-                "max_drawdown": result["max_drawdown"],
-                "win_rate": result["win_rate"],
-                "total_trades": result["total_trades"],
-            })
+            results.append(
+                {
+                    "strategy": req.strategy,
+                    "symbol": req.symbol,
+                    "total_return_pct": result["total_return_pct"],
+                    "sharpe_ratio": result["sharpe_ratio"],
+                    "max_drawdown": result["max_drawdown"],
+                    "win_rate": result["win_rate"],
+                    "total_trades": result["total_trades"],
+                }
+            )
         except Exception as e:
-            results.append({
-                "strategy": req.strategy,
-                "symbol": req.symbol,
-                "error": str(e),
-            })
+            results.append(
+                {
+                    "strategy": req.strategy,
+                    "symbol": req.symbol,
+                    "error": str(e),
+                }
+            )
 
     # Sort by Sharpe ratio
     results.sort(key=lambda x: x.get("sharpe_ratio", -999), reverse=True)
@@ -491,7 +506,10 @@ async def run_walk_forward(request: WalkForwardRequest):
         results = []
         current_start = start
 
-        while current_start + timedelta(days=request.train_period_days + request.test_period_days) <= end:
+        while (
+            current_start + timedelta(days=request.train_period_days + request.test_period_days)
+            <= end
+        ):
             train_end = current_start + timedelta(days=request.train_period_days)
             test_end = train_end + timedelta(days=request.test_period_days)
 
@@ -507,14 +525,16 @@ async def run_walk_forward(request: WalkForwardRequest):
             engine = BacktestEngine()
             result = engine.run(prices, signals)
 
-            results.append({
-                "period_start": train_end.strftime("%Y-%m-%d"),
-                "period_end": test_end.strftime("%Y-%m-%d"),
-                "return_pct": result["total_return_pct"],
-                "sharpe_ratio": result["sharpe_ratio"],
-                "max_drawdown": result["max_drawdown"],
-                "trades": result["total_trades"],
-            })
+            results.append(
+                {
+                    "period_start": train_end.strftime("%Y-%m-%d"),
+                    "period_end": test_end.strftime("%Y-%m-%d"),
+                    "return_pct": result["total_return_pct"],
+                    "sharpe_ratio": result["sharpe_ratio"],
+                    "max_drawdown": result["max_drawdown"],
+                    "trades": result["total_trades"],
+                }
+            )
 
             current_start = train_end
 
@@ -532,7 +552,7 @@ async def run_walk_forward(request: WalkForwardRequest):
                     "avg_sharpe_ratio": avg_sharpe,
                     "consistency": consistency,
                     "total_trades": sum(r["trades"] for r in results),
-                }
+                },
             }
 
         return {"periods": [], "summary": {"error": "Insufficient data"}}

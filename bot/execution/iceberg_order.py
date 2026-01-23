@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 class IcebergState(Enum):
     """Iceberg order states."""
+
     PENDING = "pending"
     ACTIVE = "active"
     PAUSED = "paused"
@@ -32,6 +33,7 @@ class IcebergState(Enum):
 @dataclass
 class IcebergSlice:
     """Single slice of an iceberg order."""
+
     slice_id: str
     quantity: float
     price: float
@@ -59,6 +61,7 @@ class IcebergSlice:
 @dataclass
 class IcebergOrder:
     """Iceberg order with hidden size."""
+
     order_id: str
     symbol: str
     side: Literal["buy", "sell"]
@@ -105,6 +108,7 @@ class IcebergOrder:
 @dataclass
 class IcebergConfig:
     """Iceberg order configuration."""
+
     # Slice sizing
     default_visible_pct: float = 0.05  # 5% visible by default
     min_slice_value: float = 10.0  # Minimum slice value in quote currency
@@ -237,12 +241,14 @@ class IcebergExecutor:
 
             slice_id = f"{order.order_id}_s{slice_num}"
 
-            order.slices.append(IcebergSlice(
-                slice_id=slice_id,
-                quantity=slice_size,
-                price=order.limit_price or 0,
-                status="pending",
-            ))
+            order.slices.append(
+                IcebergSlice(
+                    slice_id=slice_id,
+                    quantity=slice_size,
+                    price=order.limit_price or 0,
+                    status="pending",
+                )
+            )
 
             remaining -= slice_size
             slice_num += 1
@@ -279,9 +285,13 @@ class IcebergExecutor:
                     try:
                         current_price = await get_current_price(order.symbol)
                         if order.side == "buy":
-                            slice_order.price = min(order.limit_price or current_price, current_price)
+                            slice_order.price = min(
+                                order.limit_price or current_price, current_price
+                            )
                         else:
-                            slice_order.price = max(order.limit_price or current_price, current_price)
+                            slice_order.price = max(
+                                order.limit_price or current_price, current_price
+                            )
                     except Exception:
                         pass
 
@@ -290,7 +300,7 @@ class IcebergExecutor:
 
                 if success:
                     logger.debug(
-                        f"Slice {i+1}/{len(order.slices)} filled: "
+                        f"Slice {i + 1}/{len(order.slices)} filled: "
                         f"{slice_order.fill_quantity} @ {slice_order.fill_price}"
                     )
 
@@ -340,7 +350,9 @@ class IcebergExecutor:
                 slice_order.filled_at = datetime.now()
                 slice_order.fill_quantity = slice_order.quantity
                 slice_order.fill_price = slice_order.price
-                slice_order.order_id = result.get("order_id") if isinstance(result, dict) else str(result)
+                slice_order.order_id = (
+                    result.get("order_id") if isinstance(result, dict) else str(result)
+                )
 
                 # Update order totals
                 order.filled_quantity += slice_order.fill_quantity

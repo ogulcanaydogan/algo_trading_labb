@@ -241,9 +241,7 @@ class TestLeverageState:
             "win_rate_recent": 0.4,
         }
 
-        state = LeverageState.from_market_data(
-            indicators, risk_info=risk_info
-        )
+        state = LeverageState.from_market_data(indicators, risk_info=risk_info)
 
         assert state.drawdown_current == 10.0
         assert state.consecutive_losses == 3
@@ -262,15 +260,11 @@ class TestLeverageState:
     def test_from_market_data_high_volatility_flag(self):
         """Test high volatility flag is set."""
         # Low volatility
-        state_low = LeverageState.from_market_data({
-            "volatility_ratio": 1.0
-        })
+        state_low = LeverageState.from_market_data({"volatility_ratio": 1.0})
         assert state_low.high_volatility == 0.0
 
         # High volatility
-        state_high = LeverageState.from_market_data({
-            "volatility_ratio": 2.5
-        })
+        state_high = LeverageState.from_market_data({"volatility_ratio": 2.5})
         assert state_high.high_volatility == 1.0
 
 
@@ -301,18 +295,41 @@ class TestLeverageRLAgent:
     def sample_state(self):
         """Create sample state for testing."""
         return LeverageState(
-            price_change_1h=0.5, price_change_4h=1.0, price_change_24h=2.0,
-            price_vs_ema20=0.01, price_vs_ema50=0.02, price_vs_vwap=0.005,
-            rsi=55.0, rsi_change=3.0, macd_hist=0.001, macd_signal_cross=0.0,
-            momentum_5=1.5, momentum_20=2.5,
-            atr_ratio=0.9, bb_position=0.6, bb_width=0.025, volatility_ratio=1.1,
+            price_change_1h=0.5,
+            price_change_4h=1.0,
+            price_change_24h=2.0,
+            price_vs_ema20=0.01,
+            price_vs_ema50=0.02,
+            price_vs_vwap=0.005,
+            rsi=55.0,
+            rsi_change=3.0,
+            macd_hist=0.001,
+            macd_signal_cross=0.0,
+            momentum_5=1.5,
+            momentum_20=2.5,
+            atr_ratio=0.9,
+            bb_position=0.6,
+            bb_width=0.025,
+            volatility_ratio=1.1,
             high_volatility=0.0,
-            adx=30.0, trend_direction=0.5, trend_strength=0.6, ema_alignment=0.5,
-            volume_ratio=1.2, buy_volume_ratio=0.55,
-            funding_rate=0.0001, open_interest_change=0.02, long_short_ratio=1.1,
-            current_position=0.0, current_leverage=1.0, position_pnl=0.0,
-            position_duration=0.0, unrealized_pnl=0.0, margin_ratio=0.0,
-            drawdown_current=3.0, consecutive_losses=0, win_rate_recent=0.55,
+            adx=30.0,
+            trend_direction=0.5,
+            trend_strength=0.6,
+            ema_alignment=0.5,
+            volume_ratio=1.2,
+            buy_volume_ratio=0.55,
+            funding_rate=0.0001,
+            open_interest_change=0.02,
+            long_short_ratio=1.1,
+            current_position=0.0,
+            current_leverage=1.0,
+            position_pnl=0.0,
+            position_duration=0.0,
+            unrealized_pnl=0.0,
+            margin_ratio=0.0,
+            drawdown_current=3.0,
+            consecutive_losses=0,
+            win_rate_recent=0.55,
         )
 
     def test_initialization(self, agent):
@@ -391,18 +408,41 @@ class TestLeverageRLAgent:
     def test_remember(self, agent, sample_state):
         """Test storing experiences in memory."""
         next_state = LeverageState(
-            price_change_1h=0.6, price_change_4h=1.1, price_change_24h=2.1,
-            price_vs_ema20=0.015, price_vs_ema50=0.025, price_vs_vwap=0.008,
-            rsi=58.0, rsi_change=3.0, macd_hist=0.0015, macd_signal_cross=0.0,
-            momentum_5=1.6, momentum_20=2.6,
-            atr_ratio=0.85, bb_position=0.65, bb_width=0.024, volatility_ratio=1.05,
+            price_change_1h=0.6,
+            price_change_4h=1.1,
+            price_change_24h=2.1,
+            price_vs_ema20=0.015,
+            price_vs_ema50=0.025,
+            price_vs_vwap=0.008,
+            rsi=58.0,
+            rsi_change=3.0,
+            macd_hist=0.0015,
+            macd_signal_cross=0.0,
+            momentum_5=1.6,
+            momentum_20=2.6,
+            atr_ratio=0.85,
+            bb_position=0.65,
+            bb_width=0.024,
+            volatility_ratio=1.05,
             high_volatility=0.0,
-            adx=32.0, trend_direction=0.6, trend_strength=0.65, ema_alignment=0.55,
-            volume_ratio=1.3, buy_volume_ratio=0.58,
-            funding_rate=0.0001, open_interest_change=0.025, long_short_ratio=1.15,
-            current_position=1.0, current_leverage=3.0, position_pnl=1.0,
-            position_duration=1.0, unrealized_pnl=1.0, margin_ratio=0.1,
-            drawdown_current=2.0, consecutive_losses=0, win_rate_recent=0.6,
+            adx=32.0,
+            trend_direction=0.6,
+            trend_strength=0.65,
+            ema_alignment=0.55,
+            volume_ratio=1.3,
+            buy_volume_ratio=0.58,
+            funding_rate=0.0001,
+            open_interest_change=0.025,
+            long_short_ratio=1.15,
+            current_position=1.0,
+            current_leverage=3.0,
+            position_pnl=1.0,
+            position_duration=1.0,
+            unrealized_pnl=1.0,
+            margin_ratio=0.1,
+            drawdown_current=2.0,
+            consecutive_losses=0,
+            win_rate_recent=0.6,
         )
 
         agent.remember(
@@ -418,7 +458,7 @@ class TestLeverageRLAgent:
     def test_calculate_reward(self, agent):
         """Test reward calculation."""
         # Check if calculate_reward method exists and test it
-        if hasattr(agent, 'calculate_reward'):
+        if hasattr(agent, "calculate_reward"):
             # Try different signatures
             try:
                 reward = agent.calculate_reward(pnl_pct=5.0)
@@ -430,7 +470,7 @@ class TestLeverageRLAgent:
     def test_reward_by_leverage_tracking(self, agent):
         """Test reward by leverage tracking structure."""
         # Verify the tracking structure exists
-        assert hasattr(agent, 'reward_by_leverage')
+        assert hasattr(agent, "reward_by_leverage")
         assert 1 in agent.reward_by_leverage or isinstance(agent.reward_by_leverage, dict)
 
     def test_get_stats(self, agent):
@@ -469,6 +509,7 @@ class TestGetLeverageRLAgent:
     def test_get_leverage_rl_agent_creates_instance(self):
         """Test getter creates instance."""
         import bot.ai_engine.leverage_rl_agent as lra
+
         lra._leverage_rl_agent = None
 
         with patch.object(lra, "get_learning_db"):
@@ -537,18 +578,41 @@ class TestLeverageStateEdgeCases:
     def test_state_with_zeros(self):
         """Test state with all zeros."""
         state = LeverageState(
-            price_change_1h=0, price_change_4h=0, price_change_24h=0,
-            price_vs_ema20=0, price_vs_ema50=0, price_vs_vwap=0,
-            rsi=0, rsi_change=0, macd_hist=0, macd_signal_cross=0,
-            momentum_5=0, momentum_20=0,
-            atr_ratio=0, bb_position=0, bb_width=0, volatility_ratio=0,
+            price_change_1h=0,
+            price_change_4h=0,
+            price_change_24h=0,
+            price_vs_ema20=0,
+            price_vs_ema50=0,
+            price_vs_vwap=0,
+            rsi=0,
+            rsi_change=0,
+            macd_hist=0,
+            macd_signal_cross=0,
+            momentum_5=0,
+            momentum_20=0,
+            atr_ratio=0,
+            bb_position=0,
+            bb_width=0,
+            volatility_ratio=0,
             high_volatility=0,
-            adx=0, trend_direction=0, trend_strength=0, ema_alignment=0,
-            volume_ratio=0, buy_volume_ratio=0,
-            funding_rate=0, open_interest_change=0, long_short_ratio=0,
-            current_position=0, current_leverage=0, position_pnl=0,
-            position_duration=0, unrealized_pnl=0, margin_ratio=0,
-            drawdown_current=0, consecutive_losses=0, win_rate_recent=0,
+            adx=0,
+            trend_direction=0,
+            trend_strength=0,
+            ema_alignment=0,
+            volume_ratio=0,
+            buy_volume_ratio=0,
+            funding_rate=0,
+            open_interest_change=0,
+            long_short_ratio=0,
+            current_position=0,
+            current_leverage=0,
+            position_pnl=0,
+            position_duration=0,
+            unrealized_pnl=0,
+            margin_ratio=0,
+            drawdown_current=0,
+            consecutive_losses=0,
+            win_rate_recent=0,
         )
 
         arr = state.to_array()

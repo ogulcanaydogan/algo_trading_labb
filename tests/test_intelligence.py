@@ -15,6 +15,7 @@ import tempfile
 # LLM Router Tests
 # ============================================================================
 
+
 class TestLLMRouter:
     """Tests for the LLM Router."""
 
@@ -73,6 +74,7 @@ class TestLLMRouter:
 # Regime Adapter Tests
 # ============================================================================
 
+
 class TestRegimeAdapter:
     """Tests for Regime Detection and Adaptation."""
 
@@ -103,7 +105,12 @@ class TestRegimeAdapter:
         # trend_strength is abs(trend), so always positive
         assert result.trend_strength >= 0
         # For a strong downtrend, expect bear-ish regime
-        assert result.regime in (MarketRegime.BEAR, MarketRegime.STRONG_BEAR, MarketRegime.VOLATILE, MarketRegime.SIDEWAYS)
+        assert result.regime in (
+            MarketRegime.BEAR,
+            MarketRegime.STRONG_BEAR,
+            MarketRegime.VOLATILE,
+            MarketRegime.SIDEWAYS,
+        )
 
     def test_get_strategy(self):
         """Test getting strategy for a regime."""
@@ -113,7 +120,7 @@ class TestRegimeAdapter:
         strategy = adapter.get_strategy(MarketRegime.BULL)
 
         assert strategy is not None
-        assert hasattr(strategy, 'position_size_multiplier')
+        assert hasattr(strategy, "position_size_multiplier")
 
     def test_strategy_for_bear(self):
         """Test bear market strategy is conservative."""
@@ -130,6 +137,7 @@ class TestRegimeAdapter:
 # Pattern Memory Tests
 # ============================================================================
 
+
 class TestPatternMemory:
     """Tests for Pattern Memory storage."""
 
@@ -143,7 +151,7 @@ class TestPatternMemory:
 
             stats = memory.get_pattern_stats()
             # PatternStats is a dataclass with total_patterns attribute
-            assert hasattr(stats, 'total_patterns')
+            assert hasattr(stats, "total_patterns")
             assert stats.total_patterns >= 0
 
     def test_get_summary(self):
@@ -161,6 +169,7 @@ class TestPatternMemory:
 # ============================================================================
 # Real-Time Learner Tests
 # ============================================================================
+
 
 class TestRealTimeLearner:
     """Tests for Real-Time Learning."""
@@ -204,6 +213,7 @@ class TestRealTimeLearner:
 # News Reasoner Tests
 # ============================================================================
 
+
 class TestNewsReasoner:
     """Tests for News Sentiment Analysis."""
 
@@ -228,6 +238,7 @@ class TestNewsReasoner:
 # ============================================================================
 # Integration Tests
 # ============================================================================
+
 
 class TestIntelligentBrainIntegration:
     """Integration tests for the complete brain."""

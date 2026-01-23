@@ -27,6 +27,7 @@ from .risk_manager import RiskManager, RiskConfig, RiskLevel, TradingStatus
 @dataclass
 class PortfolioRiskConfig:
     """Configuration for portfolio-level risk management."""
+
     # VaR settings
     var_confidence_level: float = 0.95  # 95% VaR
     var_lookback_days: int = 252  # 1 year of daily returns
@@ -58,6 +59,7 @@ class PortfolioRiskConfig:
 @dataclass
 class PortfolioMetrics:
     """Portfolio-level risk metrics."""
+
     total_value: float
     var_95: float  # 95% daily Value at Risk
     var_99: float  # 99% daily Value at Risk
@@ -87,6 +89,7 @@ class PortfolioMetrics:
 @dataclass
 class Position:
     """Portfolio position."""
+
     symbol: str
     quantity: float
     current_price: float
@@ -131,6 +134,7 @@ class Position:
 @dataclass
 class RebalanceRecommendation:
     """Rebalancing recommendation."""
+
     symbol: str
     current_weight: float
     target_weight: float
@@ -315,7 +319,7 @@ class PortfolioRiskManager:
         div_ratio = self._calculate_diversification_ratio(weights)
 
         # HHI concentration
-        hhi = sum(w ** 2 for w in weights.values())
+        hhi = sum(w**2 for w in weights.values())
 
         # Max correlation
         max_corr = self._get_max_correlation()
@@ -352,7 +356,9 @@ class PortfolioRiskManager:
 
         # VaR check
         if metrics.var_95 > metrics.total_value * (self.config.max_var_pct / 100):
-            warnings.append(f"VaR exceeds limit: ${metrics.var_95:.2f} > {self.config.max_var_pct}%")
+            warnings.append(
+                f"VaR exceeds limit: ${metrics.var_95:.2f} > {self.config.max_var_pct}%"
+            )
             risk_level = RiskLevel.ELEVATED
 
         # Concentration check
@@ -428,14 +434,16 @@ class PortfolioRiskManager:
             else:
                 continue
 
-            recommendations.append(RebalanceRecommendation(
-                symbol=symbol,
-                current_weight=current,
-                target_weight=target,
-                action=action,
-                amount=abs(amount),
-                reason=reason,
-            ))
+            recommendations.append(
+                RebalanceRecommendation(
+                    symbol=symbol,
+                    current_weight=current,
+                    target_weight=target,
+                    action=action,
+                    amount=abs(amount),
+                    reason=reason,
+                )
+            )
 
         # Sort by absolute drift
         recommendations.sort(key=lambda x: abs(x.current_weight - x.target_weight), reverse=True)
@@ -464,17 +472,20 @@ class PortfolioRiskManager:
         # Single position limit
         position_weight = value / new_total if new_total > 0 else 1.0
         if position_weight > self.config.max_single_asset_weight:
-            reasons.append(f"Position would exceed max weight ({position_weight:.1%} > {self.config.max_single_asset_weight:.1%})")
+            reasons.append(
+                f"Position would exceed max weight ({position_weight:.1%} > {self.config.max_single_asset_weight:.1%})"
+            )
 
         # Sector limit
         sector = self.config.sector_mappings.get(symbol, "other")
         current_sector_value = sum(
-            p.market_value for p in self.positions.values()
-            if p.sector == sector
+            p.market_value for p in self.positions.values() if p.sector == sector
         )
         new_sector_weight = (current_sector_value + value) / new_total if new_total > 0 else 1.0
         if new_sector_weight > self.config.max_sector_weight:
-            reasons.append(f"Would exceed {sector} sector limit ({new_sector_weight:.1%} > {self.config.max_sector_weight:.1%})")
+            reasons.append(
+                f"Would exceed {sector} sector limit ({new_sector_weight:.1%} > {self.config.max_sector_weight:.1%})"
+            )
 
         # Correlation check
         max_corr = self._get_correlation_with_portfolio(symbol)
@@ -497,10 +508,7 @@ class PortfolioRiskManager:
         total = self.get_total_value()
         if total <= 0:
             return {}
-        return {
-            symbol: pos.market_value / total
-            for symbol, pos in self.positions.items()
-        }
+        return {symbol: pos.market_value / total for symbol, pos in self.positions.items()}
 
     def get_positions_summary(self) -> List[Dict]:
         """Get summary of all positions."""
@@ -517,9 +525,11 @@ class PortfolioRiskManager:
 
         # Get portfolio returns
         portfolio_returns = []
-        min_len = min(
-            len(returns) for returns in self._returns_history.values()
-        ) if self._returns_history else 0
+        min_len = (
+            min(len(returns) for returns in self._returns_history.values())
+            if self._returns_history
+            else 0
+        )
 
         if min_len < 20:  # Need at least 20 data points
             return 0.0, 0.0
@@ -555,19 +565,13 @@ class PortfolioRiskManager:
             return 0.0
 
         # Simple weighted average (ignoring correlations for speed)
-        portfolio_vol = sum(
-            weights.get(symbol, 0) * vol
-            for symbol, vol in volatilities.items()
-        )
+        portfolio_vol = sum(weights.get(symbol, 0) * vol for symbol, vol in volatilities.items())
 
         return portfolio_vol
 
     def _calculate_portfolio_beta(self, weights: Dict[str, float]) -> float:
         """Calculate portfolio beta."""
-        return sum(
-            weights.get(symbol, 0) * pos.beta
-            for symbol, pos in self.positions.items()
-        )
+        return sum(weights.get(symbol, 0) * pos.beta for symbol, pos in self.positions.items())
 
     def _calculate_portfolio_expected_return(self, weights: Dict[str, float]) -> float:
         """Calculate expected return based on historical average."""
@@ -625,10 +629,7 @@ class PortfolioRiskManager:
             return
 
         # Build returns DataFrame
-        data = {
-            symbol: returns[-min_len:]
-            for symbol, returns in self._returns_history.items()
-        }
+        data = {symbol: returns[-min_len:] for symbol, returns in self._returns_history.items()}
         df = pd.DataFrame(data)
 
         self._correlation_matrix = df.corr()
@@ -652,14 +653,14 @@ class PortfolioRiskManager:
         if self._correlation_matrix is None or symbol not in self._correlation_matrix.columns:
             return 0.0
 
-        existing_symbols = [s for s in self.positions.keys() if s in self._correlation_matrix.columns]
+        existing_symbols = [
+            s for s in self.positions.keys() if s in self._correlation_matrix.columns
+        ]
         if not existing_symbols:
             return 0.0
 
         correlations = [
-            abs(self._correlation_matrix.loc[symbol, s])
-            for s in existing_symbols
-            if s != symbol
+            abs(self._correlation_matrix.loc[symbol, s]) for s in existing_symbols if s != symbol
         ]
 
         return max(correlations) if correlations else 0.0

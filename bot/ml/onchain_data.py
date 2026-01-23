@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class OnChainMetrics:
     """On-chain metrics for a crypto asset."""
+
     symbol: str
     timestamp: datetime
 
@@ -62,17 +63,17 @@ class OnChainMetrics:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'symbol': self.symbol,
-            'timestamp': self.timestamp.isoformat(),
-            'funding_rate': self.funding_rate,
-            'predicted_funding': self.predicted_funding,
-            'funding_sentiment': self.funding_sentiment,
-            'open_interest': self.open_interest,
-            'oi_change_24h': self.oi_change_24h,
-            'exchange_netflow': self.exchange_netflow,
-            'whale_transactions': self.whale_transactions,
-            'accumulation_score': self.accumulation_score,
-            'smart_money_signal': self.smart_money_signal,
+            "symbol": self.symbol,
+            "timestamp": self.timestamp.isoformat(),
+            "funding_rate": self.funding_rate,
+            "predicted_funding": self.predicted_funding,
+            "funding_sentiment": self.funding_sentiment,
+            "open_interest": self.open_interest,
+            "oi_change_24h": self.oi_change_24h,
+            "exchange_netflow": self.exchange_netflow,
+            "whale_transactions": self.whale_transactions,
+            "accumulation_score": self.accumulation_score,
+            "smart_money_signal": self.smart_money_signal,
         }
 
 
@@ -131,53 +132,56 @@ class OnChainDataFetcher:
 
     async def get_funding_rates(self, symbol: str = "BTC") -> Dict[str, float]:
         """Get funding rates from Coinglass."""
-        await self._rate_limit('coinglass')
+        await self._rate_limit("coinglass")
 
         # Map symbol
         symbol_map = {
-            'BTC': 'BTC', 'ETH': 'ETH', 'SOL': 'SOL',
-            'DOGE': 'DOGE', 'XRP': 'XRP', 'AVAX': 'AVAX'
+            "BTC": "BTC",
+            "ETH": "ETH",
+            "SOL": "SOL",
+            "DOGE": "DOGE",
+            "XRP": "XRP",
+            "AVAX": "AVAX",
         }
-        cg_symbol = symbol_map.get(symbol.split('/')[0].upper(), 'BTC')
+        cg_symbol = symbol_map.get(symbol.split("/")[0].upper(), "BTC")
 
         url = f"https://open-api.coinglass.com/public/v2/funding?symbol={cg_symbol}"
 
         data = await self._fetch_json(url)
 
-        if data and data.get('success') and data.get('data'):
-            rates = data['data']
+        if data and data.get("success") and data.get("data"):
+            rates = data["data"]
             # Average across exchanges
-            avg_rate = np.mean([r.get('rate', 0) for r in rates if r.get('rate')])
-            predicted = np.mean([r.get('predictedRate', 0) for r in rates if r.get('predictedRate')])
+            avg_rate = np.mean([r.get("rate", 0) for r in rates if r.get("rate")])
+            predicted = np.mean(
+                [r.get("predictedRate", 0) for r in rates if r.get("predictedRate")]
+            )
 
             return {
-                'funding_rate': avg_rate,
-                'predicted_funding': predicted,
-                'exchanges': len(rates)
+                "funding_rate": avg_rate,
+                "predicted_funding": predicted,
+                "exchanges": len(rates),
             }
 
-        return {'funding_rate': 0.0, 'predicted_funding': 0.0, 'exchanges': 0}
+        return {"funding_rate": 0.0, "predicted_funding": 0.0, "exchanges": 0}
 
     async def get_open_interest(self, symbol: str = "BTC") -> Dict[str, float]:
         """Get open interest data."""
-        await self._rate_limit('coinglass_oi')
+        await self._rate_limit("coinglass_oi")
 
-        symbol_map = {'BTC': 'BTC', 'ETH': 'ETH', 'SOL': 'SOL'}
-        cg_symbol = symbol_map.get(symbol.split('/')[0].upper(), 'BTC')
+        symbol_map = {"BTC": "BTC", "ETH": "ETH", "SOL": "SOL"}
+        cg_symbol = symbol_map.get(symbol.split("/")[0].upper(), "BTC")
 
         url = f"https://open-api.coinglass.com/public/v2/open_interest?symbol={cg_symbol}"
 
         data = await self._fetch_json(url)
 
-        if data and data.get('success') and data.get('data'):
-            oi_data = data['data']
-            total_oi = sum(item.get('openInterest', 0) for item in oi_data)
-            return {
-                'open_interest': total_oi,
-                'exchanges': len(oi_data)
-            }
+        if data and data.get("success") and data.get("data"):
+            oi_data = data["data"]
+            total_oi = sum(item.get("openInterest", 0) for item in oi_data)
+            return {"open_interest": total_oi, "exchanges": len(oi_data)}
 
-        return {'open_interest': 0.0, 'exchanges': 0}
+        return {"open_interest": 0.0, "exchanges": 0}
 
     async def get_exchange_flows(self, symbol: str = "BTC") -> Dict[str, float]:
         """
@@ -194,11 +198,7 @@ class OnChainDataFetcher:
             pass
 
         # Return neutral values if no API key
-        return {
-            'exchange_netflow': 0.0,
-            'exchange_reserve': 0.0,
-            'reserve_change_24h': 0.0
-        }
+        return {"exchange_netflow": 0.0, "exchange_reserve": 0.0, "reserve_change_24h": 0.0}
 
     async def get_whale_activity(self, symbol: str = "BTC") -> Dict[str, Any]:
         """
@@ -210,11 +210,7 @@ class OnChainDataFetcher:
         - On-chain transaction monitoring
         """
         # Placeholder - in production, integrate with whale tracking APIs
-        return {
-            'whale_transactions': 0,
-            'large_tx_volume': 0.0,
-            'whale_accumulating': None
-        }
+        return {"whale_transactions": 0, "large_tx_volume": 0.0, "whale_accumulating": None}
 
     def _calculate_accumulation_score(self, metrics: OnChainMetrics) -> float:
         """
@@ -279,7 +275,7 @@ class OnChainDataFetcher:
 
     async def get_metrics(self, symbol: str) -> OnChainMetrics:
         """Get comprehensive on-chain metrics for a symbol."""
-        base_symbol = symbol.split('/')[0].upper()
+        base_symbol = symbol.split("/")[0].upper()
 
         # Check cache
         cache_key = f"{base_symbol}_{datetime.now().strftime('%Y%m%d%H%M')}"
@@ -299,13 +295,13 @@ class OnChainDataFetcher:
         metrics = OnChainMetrics(
             symbol=symbol,
             timestamp=datetime.now(),
-            funding_rate=funding.get('funding_rate', 0),
-            predicted_funding=funding.get('predicted_funding', 0),
-            open_interest=oi.get('open_interest', 0),
-            exchange_netflow=flows.get('exchange_netflow', 0),
-            exchange_reserve=flows.get('exchange_reserve', 0),
-            whale_transactions=whales.get('whale_transactions', 0),
-            large_tx_volume=whales.get('large_tx_volume', 0),
+            funding_rate=funding.get("funding_rate", 0),
+            predicted_funding=funding.get("predicted_funding", 0),
+            open_interest=oi.get("open_interest", 0),
+            exchange_netflow=flows.get("exchange_netflow", 0),
+            exchange_reserve=flows.get("exchange_reserve", 0),
+            whale_transactions=whales.get("whale_transactions", 0),
+            large_tx_volume=whales.get("large_tx_volume", 0),
         )
 
         # Determine funding sentiment
@@ -330,13 +326,13 @@ class OnChainDataFetcher:
         metrics = await self.get_metrics(symbol)
 
         return {
-            'onchain_funding_rate': metrics.funding_rate,
-            'onchain_predicted_funding': metrics.predicted_funding,
-            'onchain_funding_bullish': 1.0 if metrics.funding_sentiment == 'bullish' else 0.0,
-            'onchain_funding_bearish': 1.0 if metrics.funding_sentiment == 'bearish' else 0.0,
-            'onchain_accumulation_score': metrics.accumulation_score,
-            'onchain_smart_money_bullish': 1.0 if metrics.smart_money_signal == 'bullish' else 0.0,
-            'onchain_smart_money_bearish': 1.0 if metrics.smart_money_signal == 'bearish' else 0.0,
+            "onchain_funding_rate": metrics.funding_rate,
+            "onchain_predicted_funding": metrics.predicted_funding,
+            "onchain_funding_bullish": 1.0 if metrics.funding_sentiment == "bullish" else 0.0,
+            "onchain_funding_bearish": 1.0 if metrics.funding_sentiment == "bearish" else 0.0,
+            "onchain_accumulation_score": metrics.accumulation_score,
+            "onchain_smart_money_bullish": 1.0 if metrics.smart_money_signal == "bullish" else 0.0,
+            "onchain_smart_money_bearish": 1.0 if metrics.smart_money_signal == "bearish" else 0.0,
         }
 
 

@@ -188,7 +188,6 @@ class TrendFollowingStrategy(RegimeStrategy):
         df: pd.DataFrame,
         regime_state: RegimeState,
     ) -> Optional[StrategySignal]:
-
         if len(df) < self.config.ma_slow + 10:
             return None
 
@@ -298,7 +297,6 @@ class MeanReversionStrategy(RegimeStrategy):
         df: pd.DataFrame,
         regime_state: RegimeState,
     ) -> Optional[StrategySignal]:
-
         if len(df) < self.config.bb_period + 10:
             return None
 
@@ -398,7 +396,6 @@ class DefensiveStrategy(RegimeStrategy):
         df: pd.DataFrame,
         regime_state: RegimeState,
     ) -> Optional[StrategySignal]:
-
         # Default: stay flat
         if not self.allow_short:
             return StrategySignal(
@@ -426,7 +423,9 @@ class DefensiveStrategy(RegimeStrategy):
         current_atr = atr[-1]
 
         # Short conditions for different regimes
-        regime_name = regime_state.regime.value if regime_state and regime_state.regime else "unknown"
+        regime_name = (
+            regime_state.regime.value if regime_state and regime_state.regime else "unknown"
+        )
 
         # Strong bear / crash: short on overbought bounces (RSI > 60)
         # High vol: short only on extreme overbought (RSI > 75)
@@ -529,8 +528,12 @@ class RegimeStrategySelector:
             MarketRegime.STRONG_BULL: TrendFollowingStrategy("long", self.config),
             MarketRegime.BULL: TrendFollowingStrategy("long", self.config),
             # Bearish regimes - short ONLY if user enabled shorting
-            MarketRegime.BEAR: TrendFollowingStrategy("short" if allow_short else "flat", self.config),
-            MarketRegime.STRONG_BEAR: TrendFollowingStrategy("short" if allow_short else "flat", self.config),
+            MarketRegime.BEAR: TrendFollowingStrategy(
+                "short" if allow_short else "flat", self.config
+            ),
+            MarketRegime.STRONG_BEAR: TrendFollowingStrategy(
+                "short" if allow_short else "flat", self.config
+            ),
             # Crisis regimes - defensive with shorting based on user setting
             MarketRegime.CRASH: DefensiveStrategy(allow_short=allow_short, config=self.config),
             MarketRegime.HIGH_VOL: DefensiveStrategy(allow_short=allow_short, config=self.config),
@@ -641,9 +644,7 @@ class RegimeStrategySelector:
             "direction_distribution": {k: round(v / total * 100, 1) for k, v in directions.items()},
             "strategy_distribution": {k: round(v / total * 100, 1) for k, v in strategies.items()},
             "regime_distribution": {k: round(v / total * 100, 1) for k, v in regimes.items()},
-            "avg_confidence": round(
-                sum(s.confidence for s in self._signal_history) / total, 3
-            ),
+            "avg_confidence": round(sum(s.confidence for s in self._signal_history) / total, 3),
         }
 
     @property

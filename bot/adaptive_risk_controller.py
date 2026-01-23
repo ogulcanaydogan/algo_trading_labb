@@ -28,15 +28,17 @@ logger = logging.getLogger(__name__)
 
 class RiskProfile(Enum):
     """Risk profile levels."""
+
     CONSERVATIVE = "conservative"  # No shorting, no leverage, safe strategies
-    MODERATE = "moderate"          # Some shorting allowed, no leverage
-    AGGRESSIVE = "aggressive"      # Shorting + leverage allowed
-    MAXIMUM = "maximum"            # All features enabled for max opportunity
+    MODERATE = "moderate"  # Some shorting allowed, no leverage
+    AGGRESSIVE = "aggressive"  # Shorting + leverage allowed
+    MAXIMUM = "maximum"  # All features enabled for max opportunity
 
 
 @dataclass
 class RiskDecision:
     """A risk adjustment decision."""
+
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     # What changed
@@ -69,13 +71,14 @@ class RiskDecision:
                 "volatility": self.volatility,
                 "trend": self.trend,
                 "confidence": self.confidence,
-            }
+            },
         }
 
 
 @dataclass
 class CurrentStrategy:
     """Current active strategy for display."""
+
     name: str = "Conservative Hold"
     description: str = "Waiting for clear opportunity"
 
@@ -160,7 +163,7 @@ class AdaptiveRiskController:
         """Save decision to history."""
         self.decision_history.append(decision)
         if len(self.decision_history) > self.max_history:
-            self.decision_history = self.decision_history[-self.max_history:]
+            self.decision_history = self.decision_history[-self.max_history :]
 
         # Save to file
         try:
@@ -222,7 +225,9 @@ class AdaptiveRiskController:
         if market_regime in ("strong_bear", "bear", "crash"):
             if regime_confidence > 0.6 and rsi > 55:
                 should_short = True
-                short_reason = f"Bear market ({market_regime}) with RSI={rsi:.0f} - shorting opportunities"
+                short_reason = (
+                    f"Bear market ({market_regime}) with RSI={rsi:.0f} - shorting opportunities"
+                )
                 reasoning.append(f"SHORTING ENABLED: {short_reason}")
 
         elif market_regime == "sideways" and rsi > 70:
@@ -280,7 +285,9 @@ class AdaptiveRiskController:
         if self.current_drawdown > 15:
             should_leverage = False
             if self.current_settings["leverage"]:
-                reasoning.append(f"LEVERAGE DISABLED: In {self.current_drawdown:.1f}% drawdown - reducing risk")
+                reasoning.append(
+                    f"LEVERAGE DISABLED: In {self.current_drawdown:.1f}% drawdown - reducing risk"
+                )
 
         if market_regime in ("crash", "unknown"):
             should_leverage = False
@@ -315,7 +322,9 @@ class AdaptiveRiskController:
             if regime_confidence > 0.7 and self.recent_win_rate > 0.6:
                 if self.recent_pnl > 0 and self.current_drawdown < 5:
                     should_aggressive = True
-                    aggressive_reason = f"High confidence {market_regime} + {self.recent_win_rate:.0%} win rate"
+                    aggressive_reason = (
+                        f"High confidence {market_regime} + {self.recent_win_rate:.0%} win rate"
+                    )
                     reasoning.append(f"AGGRESSIVE ENABLED: {aggressive_reason}")
 
         # Aggressive for momentum plays
@@ -430,11 +439,7 @@ class AdaptiveRiskController:
         return self.current_strategy
 
     def _determine_strategy_name(
-        self,
-        regime: str,
-        shorting: bool,
-        leverage: bool,
-        aggressive: bool
+        self, regime: str, shorting: bool, leverage: bool, aggressive: bool
     ) -> str:
         """Determine human-readable strategy name."""
         if regime in ("strong_bull", "bull"):
@@ -468,15 +473,14 @@ class AdaptiveRiskController:
         else:
             return "Cautious Observer"
 
-    def _get_strategy_description(
-        self,
-        regime: str,
-        direction: str,
-        action: str
-    ) -> str:
+    def _get_strategy_description(self, regime: str, direction: str, action: str) -> str:
         """Get strategy description."""
         descriptions = {
-            ("strong_bull", "bullish", "buy"): "Strong uptrend detected. Actively seeking long entries.",
+            (
+                "strong_bull",
+                "bullish",
+                "buy",
+            ): "Strong uptrend detected. Actively seeking long entries.",
             ("strong_bull", "bullish", "hold"): "Strong uptrend but overbought. Holding positions.",
             ("bull", "bullish", "buy"): "Uptrend confirmed. Looking for pullback entries.",
             ("bull", "bullish", "hold"): "Uptrend intact. Managing existing positions.",
@@ -511,6 +515,7 @@ class AdaptiveRiskController:
 # =============================================================================
 
 _controller: Optional[AdaptiveRiskController] = None
+
 
 def get_adaptive_risk_controller() -> AdaptiveRiskController:
     """Get or create the global adaptive risk controller."""

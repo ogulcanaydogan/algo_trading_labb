@@ -17,6 +17,7 @@ import pandas as pd
 @dataclass
 class TradingEnvConfig:
     """Configuration for the trading environment."""
+
     initial_balance: float = 10000.0
     max_position_size: float = 1.0  # Max position as fraction of balance
     trading_fee: float = 0.001  # 0.1% fee
@@ -105,8 +106,9 @@ class TradingEnvironment:
         self._data = data.copy()
 
         # Extract features
-        feature_cols = [col for col in data.columns
-                       if col not in ["open", "high", "low", "close", "volume"]]
+        feature_cols = [
+            col for col in data.columns if col not in ["open", "high", "low", "close", "volume"]
+        ]
 
         if feature_cols:
             self._features = data[feature_cols].values
@@ -135,10 +137,7 @@ class TradingEnvironment:
         if self._features is not None:
             max_start = len(self._features) - self.config.episode_length - 1
             if max_start > self.config.lookback_window:
-                self._current_step = np.random.randint(
-                    self.config.lookback_window,
-                    max_start
-                )
+                self._current_step = np.random.randint(self.config.lookback_window, max_start)
             else:
                 self._current_step = self.config.lookback_window
         else:
@@ -235,12 +234,24 @@ class TradingEnvironment:
 
         # Calculate PnL
         if self._position > 0:  # Long
-            pnl = (current_price - self._position_entry_price) * abs(self._position) * self._balance / self._position_entry_price
+            pnl = (
+                (current_price - self._position_entry_price)
+                * abs(self._position)
+                * self._balance
+                / self._position_entry_price
+            )
         else:  # Short
-            pnl = (self._position_entry_price - current_price) * abs(self._position) * self._balance / self._position_entry_price
+            pnl = (
+                (self._position_entry_price - current_price)
+                * abs(self._position)
+                * self._balance
+                / self._position_entry_price
+            )
 
         # Apply fees and slippage
-        fees = abs(self._position) * self._balance * (self.config.trading_fee + self.config.slippage)
+        fees = (
+            abs(self._position) * self._balance * (self.config.trading_fee + self.config.slippage)
+        )
         pnl -= fees
 
         # Update balance
@@ -318,7 +329,9 @@ class TradingEnvironment:
 
         # Pad if needed
         if len(market_features) < self.config.lookback_window:
-            padding = np.zeros((self.config.lookback_window - len(market_features), market_features.shape[1]))
+            padding = np.zeros(
+                (self.config.lookback_window - len(market_features), market_features.shape[1])
+            )
             market_features = np.vstack([padding, market_features])
 
         # Flatten market features
@@ -326,14 +339,20 @@ class TradingEnvironment:
 
         # Portfolio state
         current_price = self._get_current_price()
-        portfolio_features = np.array([
-            self._balance / self.config.initial_balance,  # Normalized balance
-            self._position,  # Current position
-            self._unrealized_pnl / self.config.initial_balance,  # Normalized unrealized PnL
-            self._realized_pnl / self.config.initial_balance,  # Normalized realized PnL
-            (self._current_step - self._position_entry_step) / 100 if self._position != 0 else 0,  # Position duration
-            (current_price - self._position_entry_price) / self._position_entry_price if self._position_entry_price > 0 else 0,  # Position return
-        ])
+        portfolio_features = np.array(
+            [
+                self._balance / self.config.initial_balance,  # Normalized balance
+                self._position,  # Current position
+                self._unrealized_pnl / self.config.initial_balance,  # Normalized unrealized PnL
+                self._realized_pnl / self.config.initial_balance,  # Normalized realized PnL
+                (self._current_step - self._position_entry_step) / 100
+                if self._position != 0
+                else 0,  # Position duration
+                (current_price - self._position_entry_price) / self._position_entry_price
+                if self._position_entry_price > 0
+                else 0,  # Position return
+            ]
+        )
 
         # Combine
         state = np.concatenate([market_flat, portfolio_features])
@@ -411,12 +430,15 @@ class TradingEnvironment:
         print(f"Balance: ${self._balance:.2f}")
         print(f"Position: {self._position:.2f}")
         print(f"Unrealized PnL: ${self._unrealized_pnl:.2f}")
-        print(f"Total PnL: ${self._balance + self._unrealized_pnl - self.config.initial_balance:.2f}")
+        print(
+            f"Total PnL: ${self._balance + self._unrealized_pnl - self.config.initial_balance:.2f}"
+        )
 
 
 # Simple space classes (gym-compatible interface without full gym dependency)
 class DiscreteSpace:
     """Discrete action space."""
+
     def __init__(self, n: int):
         self.n = n
 
@@ -429,6 +451,7 @@ class DiscreteSpace:
 
 class BoxSpace:
     """Continuous observation space."""
+
     def __init__(
         self,
         low: float,

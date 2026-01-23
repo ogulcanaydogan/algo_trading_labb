@@ -72,15 +72,11 @@ def validate_target_alignment(
 
     corr = aligned.iloc[:, 0].corr(aligned.iloc[:, 1])
     if corr is None or np.isnan(corr):
-        warnings.append(
-            f"Target alignment check failed: correlation undefined for {target_col}."
-        )
+        warnings.append(f"Target alignment check failed: correlation undefined for {target_col}.")
         return warnings
 
     if corr < min_corr:
-        warnings.append(
-            f"Target alignment low: corr={corr:.2f} for {target_col} (min {min_corr})."
-        )
+        warnings.append(f"Target alignment low: corr={corr:.2f} for {target_col} (min {min_corr}).")
     return warnings
 
 
@@ -113,9 +109,7 @@ def _psi(expected: np.ndarray, actual: np.ndarray, buckets: int = 10) -> float:
     actual_perc = actual_counts / max(1, actual_counts.sum())
 
     eps = 1e-6
-    psi_vals = (actual_perc - expected_perc) * np.log(
-        (actual_perc + eps) / (expected_perc + eps)
-    )
+    psi_vals = (actual_perc - expected_perc) * np.log((actual_perc + eps) / (expected_perc + eps))
     return float(np.sum(psi_vals))
 
 
@@ -133,24 +127,22 @@ def build_quality_report(
     leakage = validate_feature_leakage(feature_cols)
 
     numeric_features = (
-        df[feature_cols].select_dtypes(include=[np.number]).columns.tolist()
-        if feature_cols
-        else []
+        df[feature_cols].select_dtypes(include=[np.number]).columns.tolist() if feature_cols else []
     )
 
-    missing_pct = df[feature_cols].isna().mean().sort_values(ascending=False) if feature_cols else pd.Series(dtype=float)
+    missing_pct = (
+        df[feature_cols].isna().mean().sort_values(ascending=False)
+        if feature_cols
+        else pd.Series(dtype=float)
+    )
     top_missing = (
-        missing_pct[missing_pct > 0].head(max_items).to_dict()
-        if not missing_pct.empty
-        else {}
+        missing_pct[missing_pct > 0].head(max_items).to_dict() if not missing_pct.empty else {}
     )
 
     outlier_rates: Dict[str, float] = {}
     for col in numeric_features:
         outlier_rates[col] = _robust_outlier_rate(df[col])
-    top_outliers = dict(
-        sorted(outlier_rates.items(), key=lambda x: x[1], reverse=True)[:max_items]
-    )
+    top_outliers = dict(sorted(outlier_rates.items(), key=lambda x: x[1], reverse=True)[:max_items])
 
     class_balance: Dict[str, Any] = {}
     if target_col and target_col in df.columns:
@@ -171,9 +163,7 @@ def build_quality_report(
                 continue
             drift_scores[col] = _psi(baseline_vals, recent_vals)
 
-    top_drift = dict(
-        sorted(drift_scores.items(), key=lambda x: x[1], reverse=True)[:max_items]
-    )
+    top_drift = dict(sorted(drift_scores.items(), key=lambda x: x[1], reverse=True)[:max_items])
 
     time_range: Dict[str, Any] = {}
     if isinstance(df.index, pd.DatetimeIndex) and not df.empty:

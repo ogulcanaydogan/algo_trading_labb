@@ -161,7 +161,7 @@ class RiskConfig:
 
         return cls(
             regime_limits=regime_limits,
-            **{k: v for k, v in config.items() if k != "regime_limits" and hasattr(cls, k)}
+            **{k: v for k, v in config.items() if k != "regime_limits" and hasattr(cls, k)},
         )
 
 
@@ -320,7 +320,9 @@ class RegimeRiskEngine:
                     {
                         "kill_switch_active": self._kill_switch_active,
                         "kill_switch_reason": self._kill_switch_reason,
-                        "kill_switch_until": self._kill_switch_until.isoformat() if self._kill_switch_until else None,
+                        "kill_switch_until": self._kill_switch_until.isoformat()
+                        if self._kill_switch_until
+                        else None,
                         "timestamp": datetime.now().isoformat(),
                     },
                     f,
@@ -413,8 +415,9 @@ class RegimeRiskEngine:
                 result.decision = RiskDecision.BLOCKED
                 result.block_reasons.append(BlockReason.DAILY_LOSS_LIMIT)
                 self._log_decision(
-                    request, result,
-                    f"Daily loss {self._portfolio.daily_loss_pct:.2%} >= {self.config.max_daily_loss_pct:.2%}"
+                    request,
+                    result,
+                    f"Daily loss {self._portfolio.daily_loss_pct:.2%} >= {self.config.max_daily_loss_pct:.2%}",
                 )
                 return result
 
@@ -423,8 +426,9 @@ class RegimeRiskEngine:
                 result.decision = RiskDecision.BLOCKED
                 result.block_reasons.append(BlockReason.DRAWDOWN_LIMIT)
                 self._log_decision(
-                    request, result,
-                    f"Drawdown {self._portfolio.current_drawdown_pct:.2%} >= {self.config.max_drawdown_pct:.2%}"
+                    request,
+                    result,
+                    f"Drawdown {self._portfolio.current_drawdown_pct:.2%} >= {self.config.max_drawdown_pct:.2%}",
                 )
                 return result
 
@@ -433,8 +437,9 @@ class RegimeRiskEngine:
                 result.decision = RiskDecision.BLOCKED
                 result.block_reasons.append(BlockReason.CONSECUTIVE_LOSSES)
                 self._log_decision(
-                    request, result,
-                    f"Consecutive losses {self._portfolio.consecutive_losses} >= {self.config.max_consecutive_losses}"
+                    request,
+                    result,
+                    f"Consecutive losses {self._portfolio.consecutive_losses} >= {self.config.max_consecutive_losses}",
                 )
                 return result
 
@@ -445,8 +450,9 @@ class RegimeRiskEngine:
                     result.decision = RiskDecision.BLOCKED
                     result.block_reasons.append(BlockReason.TIME_BETWEEN_TRADES)
                     self._log_decision(
-                        request, result,
-                        f"Only {time_since:.0f}s since last trade (min: {self.config.min_time_between_trades_sec}s)"
+                        request,
+                        result,
+                        f"Only {time_since:.0f}s since last trade (min: {self.config.min_time_between_trades_sec}s)",
                     )
                     return result
 
@@ -455,8 +461,9 @@ class RegimeRiskEngine:
                 result.decision = RiskDecision.BLOCKED
                 result.block_reasons.append(BlockReason.MAX_TRADES_PER_DAY)
                 self._log_decision(
-                    request, result,
-                    f"Daily trades {self._portfolio.daily_trades} >= {self.config.max_trades_per_day}"
+                    request,
+                    result,
+                    f"Daily trades {self._portfolio.daily_trades} >= {self.config.max_trades_per_day}",
                 )
                 return result
 
@@ -467,8 +474,9 @@ class RegimeRiskEngine:
                     result.decision = RiskDecision.BLOCKED
                     result.block_reasons.append(BlockReason.VOLATILITY_CIRCUIT_BREAKER)
                     self._log_decision(
-                        request, result,
-                        f"Volatility spike {vol_ratio:.1f}x >= {self.config.volatility_spike_multiplier}x"
+                        request,
+                        result,
+                        f"Volatility spike {vol_ratio:.1f}x >= {self.config.volatility_spike_multiplier}x",
                     )
                     return result
 
@@ -477,8 +485,7 @@ class RegimeRiskEngine:
                 result.decision = RiskDecision.BLOCKED
                 result.block_reasons.append(BlockReason.SPREAD_CIRCUIT_BREAKER)
                 self._log_decision(
-                    request, result,
-                    f"Spread {spread_pct:.4%} > {self.config.max_spread_pct:.4%}"
+                    request, result, f"Spread {spread_pct:.4%} > {self.config.max_spread_pct:.4%}"
                 )
                 return result
 
@@ -487,8 +494,7 @@ class RegimeRiskEngine:
                 result.decision = RiskDecision.BLOCKED
                 result.block_reasons.append(BlockReason.LIQUIDITY_FILTER)
                 self._log_decision(
-                    request, result,
-                    f"Volume {volume_24h:.0f} < {self.config.min_liquidity_volume}"
+                    request, result, f"Volume {volume_24h:.0f} < {self.config.min_liquidity_volume}"
                 )
                 return result
 
@@ -497,8 +503,9 @@ class RegimeRiskEngine:
                 result.decision = RiskDecision.BLOCKED
                 result.block_reasons.append(BlockReason.REGIME_NOT_ALLOWED)
                 self._log_decision(
-                    request, result,
-                    f"Direction '{request.direction}' not allowed in {regime.value} regime"
+                    request,
+                    result,
+                    f"Direction '{request.direction}' not allowed in {regime.value} regime",
                 )
                 return result
 
@@ -540,8 +547,9 @@ class RegimeRiskEngine:
                     result.decision = RiskDecision.BLOCKED
                     result.block_reasons.append(BlockReason.PORTFOLIO_HEAT_LIMIT)
                     self._log_decision(
-                        request, result,
-                        f"Portfolio heat {current_heat:.2%} + {trade_risk:.2%} > {self.config.max_portfolio_heat:.2%}"
+                        request,
+                        result,
+                        f"Portfolio heat {current_heat:.2%} + {trade_risk:.2%} > {self.config.max_portfolio_heat:.2%}",
                     )
                     return result
                 else:
@@ -549,7 +557,9 @@ class RegimeRiskEngine:
                     reduction = available_heat / limits.risk_per_trade_pct
                     calculated_size *= reduction
                     result.decision = RiskDecision.SIZE_REDUCED
-                    result.warnings.append(f"Size reduced by {(1-reduction):.0%} due to portfolio heat")
+                    result.warnings.append(
+                        f"Size reduced by {(1 - reduction):.0%} due to portfolio heat"
+                    )
 
             # Set final approved quantity
             result.approved_quantity = calculated_size
@@ -654,7 +664,9 @@ class RegimeRiskEngine:
         with self._lock:
             self._kill_switch_active = True
             self._kill_switch_reason = reason
-            self._kill_switch_until = datetime.now() + timedelta(hours=self.config.cooldown_after_kill_hours)
+            self._kill_switch_until = datetime.now() + timedelta(
+                hours=self.config.cooldown_after_kill_hours
+            )
             self._save_state()
 
         logger.critical(f"KILL SWITCH ACTIVATED: {reason}")
@@ -662,6 +674,7 @@ class RegimeRiskEngine:
         # Send notification
         try:
             from bot.notifications import NotificationManager
+
             notifier = NotificationManager()
             notifier.send_critical(f"KILL SWITCH: {reason}")
         except Exception:
@@ -739,8 +752,12 @@ class RegimeRiskEngine:
             return {
                 "kill_switch_active": self._kill_switch_active,
                 "kill_switch_reason": self._kill_switch_reason,
-                "kill_switch_until": self._kill_switch_until.isoformat() if self._kill_switch_until else None,
-                "current_regime": self._current_regime.regime.value if self._current_regime else "unknown",
+                "kill_switch_until": self._kill_switch_until.isoformat()
+                if self._kill_switch_until
+                else None,
+                "current_regime": self._current_regime.regime.value
+                if self._current_regime
+                else "unknown",
                 "portfolio": {
                     "equity": self._portfolio.equity,
                     "available_balance": self._portfolio.available_balance,

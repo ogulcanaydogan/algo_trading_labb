@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+
 # Connection manager
 class ConnectionManager:
     """Manages WebSocket connections."""
@@ -110,7 +111,7 @@ async def get_dashboard_data() -> Dict[str, Any]:
             "recent_trades": trades,
             "mode": state.get("mode", "paper"),
             "running": state.get("running", False),
-        }
+        },
     }
 
 
@@ -118,7 +119,8 @@ async def get_prices() -> Dict[str, float]:
     """Get current prices for tracked symbols."""
     try:
         import ccxt
-        exchange = ccxt.binance({'enableRateLimit': True})
+
+        exchange = ccxt.binance({"enableRateLimit": True})
 
         symbols = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "AVAX/USDT"]
         prices = {}
@@ -126,7 +128,7 @@ async def get_prices() -> Dict[str, float]:
         for symbol in symbols:
             try:
                 ticker = exchange.fetch_ticker(symbol)
-                prices[symbol] = ticker['last']
+                prices[symbol] = ticker["last"]
             except (KeyError, TypeError) as e:
                 logger.debug(f"Failed to get price for {symbol}: {e}")
 
@@ -161,10 +163,7 @@ async def websocket_dashboard(websocket: WebSocket):
             try:
                 # Wait for message or timeout
                 try:
-                    data = await asyncio.wait_for(
-                        websocket.receive_text(),
-                        timeout=1.0
-                    )
+                    data = await asyncio.wait_for(websocket.receive_text(), timeout=1.0)
                     # Handle client messages
                     msg = json.loads(data)
                     if msg.get("type") == "ping":
@@ -204,11 +203,14 @@ async def websocket_prices(websocket: WebSocket):
         while True:
             try:
                 prices = await get_prices()
-                await manager.send_personal(websocket, {
-                    "type": "prices",
-                    "timestamp": datetime.now().isoformat(),
-                    "prices": prices,
-                })
+                await manager.send_personal(
+                    websocket,
+                    {
+                        "type": "prices",
+                        "timestamp": datetime.now().isoformat(),
+                        "prices": prices,
+                    },
+                )
                 await asyncio.sleep(2)
 
             except WebSocketDisconnect:
@@ -251,11 +253,14 @@ async def websocket_trades(websocket: WebSocket):
                         new_trades = trades[last_trade_count:]
                         last_trade_count = len(trades)
 
-                        await manager.send_personal(websocket, {
-                            "type": "new_trades",
-                            "timestamp": datetime.now().isoformat(),
-                            "trades": new_trades,
-                        })
+                        await manager.send_personal(
+                            websocket,
+                            {
+                                "type": "new_trades",
+                                "timestamp": datetime.now().isoformat(),
+                                "trades": new_trades,
+                            },
+                        )
 
                 await asyncio.sleep(1)
 
@@ -272,28 +277,34 @@ async def websocket_trades(websocket: WebSocket):
 # Broadcast functions for external use
 async def broadcast_trade(trade: Dict[str, Any]):
     """Broadcast new trade to all connected clients."""
-    await manager.broadcast({
-        "type": "trade",
-        "timestamp": datetime.now().isoformat(),
-        "trade": trade,
-    })
+    await manager.broadcast(
+        {
+            "type": "trade",
+            "timestamp": datetime.now().isoformat(),
+            "trade": trade,
+        }
+    )
 
 
 async def broadcast_position_update(position: Dict[str, Any]):
     """Broadcast position update to all connected clients."""
-    await manager.broadcast({
-        "type": "position_update",
-        "timestamp": datetime.now().isoformat(),
-        "position": position,
-    })
+    await manager.broadcast(
+        {
+            "type": "position_update",
+            "timestamp": datetime.now().isoformat(),
+            "position": position,
+        }
+    )
 
 
 async def broadcast_alert(alert_type: str, message: str, data: Dict[str, Any] = None):
     """Broadcast alert to all connected clients."""
-    await manager.broadcast({
-        "type": "alert",
-        "alert_type": alert_type,
-        "message": message,
-        "timestamp": datetime.now().isoformat(),
-        "data": data or {},
-    })
+    await manager.broadcast(
+        {
+            "type": "alert",
+            "alert_type": alert_type,
+            "message": message,
+            "timestamp": datetime.now().isoformat(),
+            "data": data or {},
+        }
+    )

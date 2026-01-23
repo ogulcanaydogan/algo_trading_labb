@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TradeExperience:
     """A single trade experience for learning."""
+
     timestamp: datetime
     symbol: str
     features: np.ndarray  # Feature vector at entry
@@ -291,7 +292,9 @@ class ExperienceBuffer:
             "experiences": [
                 {
                     **exp.to_dict(),
-                    "features_shape": list(exp.features.shape) if exp.features is not None else None,
+                    "features_shape": list(exp.features.shape)
+                    if exp.features is not None
+                    else None,
                 }
                 for exp in self._buffer
             ],
@@ -485,25 +488,29 @@ class OnlineLearningManager:
             if improvement >= self.improvement_threshold:
                 self.update_count += 1
                 self._last_update = datetime.now()
-                self._performance_history.append({
-                    "timestamp": self._last_update.isoformat(),
-                    "baseline_accuracy": baseline_accuracy,
-                    "new_accuracy": new_accuracy,
-                    "improvement": improvement,
-                    "accepted": True,
-                })
+                self._performance_history.append(
+                    {
+                        "timestamp": self._last_update.isoformat(),
+                        "baseline_accuracy": baseline_accuracy,
+                        "new_accuracy": new_accuracy,
+                        "improvement": improvement,
+                        "accepted": True,
+                    }
+                )
                 self._save_state()
                 logger.info("Update accepted")
                 return True
             else:
                 self._rollback_model()
-                self._performance_history.append({
-                    "timestamp": datetime.now().isoformat(),
-                    "baseline_accuracy": baseline_accuracy,
-                    "new_accuracy": new_accuracy,
-                    "improvement": improvement,
-                    "accepted": False,
-                })
+                self._performance_history.append(
+                    {
+                        "timestamp": datetime.now().isoformat(),
+                        "baseline_accuracy": baseline_accuracy,
+                        "new_accuracy": new_accuracy,
+                        "improvement": improvement,
+                        "accepted": False,
+                    }
+                )
                 logger.info("Update rejected, model rolled back")
                 return False
 
@@ -717,7 +724,9 @@ class StreamingFeatureEngineer:
             self._ema_states[period] = value
         else:
             multiplier = 2 / (period + 1)
-            self._ema_states[period] = (value - self._ema_states[period]) * multiplier + self._ema_states[period]
+            self._ema_states[period] = (
+                value - self._ema_states[period]
+            ) * multiplier + self._ema_states[period]
 
     def _calculate_features(self) -> np.ndarray:
         """Calculate current feature vector."""

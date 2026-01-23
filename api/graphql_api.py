@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 try:
     from ariadne import QueryType, MutationType, SubscriptionType, make_executable_schema
     from ariadne.asgi import GraphQL
+
     HAS_ARIADNE = True
 except ImportError:
     HAS_ARIADNE = False

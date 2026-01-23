@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 class EventType(Enum):
     """Types of system events."""
+
     # System events
     SYSTEM_START = "system_start"
     SYSTEM_STOP = "system_stop"
@@ -70,6 +71,7 @@ class EventType(Enum):
 
 class Severity(Enum):
     """Event severity levels."""
+
     DEBUG = "debug"
     INFO = "info"
     WARNING = "warning"
@@ -80,6 +82,7 @@ class Severity(Enum):
 @dataclass
 class SystemEvent:
     """A single system event."""
+
     timestamp: str
     event_type: str
     severity: str
@@ -94,7 +97,7 @@ class SystemEvent:
             "severity": self.severity,
             "component": self.component,
             "message": self.message,
-            "details": self.details or {}
+            "details": self.details or {},
         }
 
 
@@ -174,7 +177,7 @@ class SystemLogger:
         message: str,
         component: str = "system",
         severity: Severity = Severity.INFO,
-        details: Optional[Dict] = None
+        details: Optional[Dict] = None,
     ) -> int:
         """Log a system event."""
         timestamp = datetime.now().isoformat()
@@ -185,24 +188,27 @@ class SystemLogger:
             severity=severity.value,
             component=component,
             message=message,
-            details=details
+            details=details,
         )
 
         with self._lock:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO events (timestamp, event_type, severity, component, message, details)
                 VALUES (?, ?, ?, ?, ?, ?)
-            """, (
-                event.timestamp,
-                event.event_type,
-                event.severity,
-                event.component,
-                event.message,
-                json.dumps(event.details) if event.details else None
-            ))
+            """,
+                (
+                    event.timestamp,
+                    event.event_type,
+                    event.severity,
+                    event.component,
+                    event.message,
+                    json.dumps(event.details) if event.details else None,
+                ),
+            )
 
             event_id = cursor.lastrowid
             conn.commit()
@@ -215,10 +221,7 @@ class SystemLogger:
         return event_id
 
     def register_component(
-        self,
-        component_id: str,
-        component_type: str,
-        details: Optional[Dict] = None
+        self, component_id: str, component_type: str, details: Optional[Dict] = None
     ):
         """Register an active component (bot, AI, etc.)."""
         timestamp = datetime.now().isoformat()
@@ -227,33 +230,30 @@ class SystemLogger:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT OR REPLACE INTO active_components
                 (component_id, component_type, status, started_at, last_heartbeat, details)
                 VALUES (?, ?, ?, ?, ?, ?)
-            """, (
-                component_id,
-                component_type,
-                "running",
-                timestamp,
-                timestamp,
-                json.dumps(details) if details else None
-            ))
+            """,
+                (
+                    component_id,
+                    component_type,
+                    "running",
+                    timestamp,
+                    timestamp,
+                    json.dumps(details) if details else None,
+                ),
+            )
 
             conn.commit()
             conn.close()
 
         # Track in memory too
         if component_type == "bot":
-            self._active_bots[component_id] = {
-                "started_at": timestamp,
-                "details": details
-            }
+            self._active_bots[component_id] = {"started_at": timestamp, "details": details}
         elif component_type in ("ai_brain", "ml_model"):
-            self._active_ai[component_id] = {
-                "started_at": timestamp,
-                "details": details
-            }
+            self._active_ai[component_id] = {"started_at": timestamp, "details": details}
 
     def update_heartbeat(self, component_id: str):
         """Update the heartbeat for an active component."""
@@ -263,11 +263,14 @@ class SystemLogger:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 UPDATE active_components
                 SET last_heartbeat = ?
                 WHERE component_id = ?
-            """, (timestamp, component_id))
+            """,
+                (timestamp, component_id),
+            )
 
             conn.commit()
             conn.close()
@@ -278,11 +281,14 @@ class SystemLogger:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 UPDATE active_components
                 SET status = ?
                 WHERE component_id = ?
-            """, (reason, component_id))
+            """,
+                (reason, component_id),
+            )
 
             conn.commit()
             conn.close()
@@ -300,20 +306,19 @@ class SystemLogger:
             # Consider components stale if no heartbeat in 5 minutes
             stale_threshold = (datetime.now() - timedelta(minutes=5)).isoformat()
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT component_id, component_type, status, started_at, last_heartbeat, details
                 FROM active_components
                 WHERE status = 'running' AND last_heartbeat > ?
-            """, (stale_threshold,))
+            """,
+                (stale_threshold,),
+            )
 
             rows = cursor.fetchall()
             conn.close()
 
-        result = {
-            "bots": [],
-            "ai": [],
-            "other": []
-        }
+        result = {"bots": [], "ai": [], "other": []}
 
         for row in rows:
             component = {
@@ -322,7 +327,7 @@ class SystemLogger:
                 "status": row[2],
                 "started_at": row[3],
                 "last_heartbeat": row[4],
-                "details": json.loads(row[5]) if row[5] else {}
+                "details": json.loads(row[5]) if row[5] else {},
             }
 
             if row[1] == "bot":
@@ -340,7 +345,7 @@ class SystemLogger:
         event_type: Optional[str] = None,
         component: Optional[str] = None,
         severity: Optional[str] = None,
-        since: Optional[str] = None
+        since: Optional[str] = None,
     ) -> List[Dict]:
         """Get recent events with optional filtering."""
         with self._lock:
@@ -375,15 +380,17 @@ class SystemLogger:
 
         events = []
         for row in rows:
-            events.append({
-                "id": row[0],
-                "timestamp": row[1],
-                "event_type": row[2],
-                "severity": row[3],
-                "component": row[4],
-                "message": row[5],
-                "details": json.loads(row[6]) if row[6] else {}
-            })
+            events.append(
+                {
+                    "id": row[0],
+                    "timestamp": row[1],
+                    "event_type": row[2],
+                    "severity": row[3],
+                    "component": row[4],
+                    "message": row[5],
+                    "details": json.loads(row[6]) if row[6] else {},
+                }
+            )
 
         return events
 
@@ -392,14 +399,17 @@ class SystemLogger:
         active = self.get_active_components()
 
         # Get recent errors
-        recent_errors = self.get_recent_events(
-            limit=10,
-            severity="error"
-        )
+        recent_errors = self.get_recent_events(limit=10, severity="error")
 
         # Get last events by type
         last_events = {}
-        for event_type in ["system_start", "bot_start", "ai_brain_init", "trade_open", "trade_close"]:
+        for event_type in [
+            "system_start",
+            "bot_start",
+            "ai_brain_init",
+            "trade_open",
+            "trade_close",
+        ]:
             events = self.get_recent_events(limit=1, event_type=event_type)
             if events:
                 last_events[event_type] = events[0]
@@ -422,7 +432,7 @@ class SystemLogger:
             "recent_errors": recent_errors,
             "last_events": last_events,
             "hourly_event_counts": event_counts,
-            "status": "healthy" if len(active["bots"]) > 0 else "no_bots_running"
+            "status": "healthy" if len(active["bots"]) > 0 else "no_bots_running",
         }
 
     def get_summary(self, hours: int = 24) -> Dict[str, Any]:
@@ -451,7 +461,7 @@ class SystemLogger:
             "by_severity": by_severity,
             "by_component": by_component,
             "errors": by_severity.get("error", 0),
-            "warnings": by_severity.get("warning", 0)
+            "warnings": by_severity.get("warning", 0),
         }
 
 
@@ -473,7 +483,7 @@ def log_event(
     message: str,
     component: str = "system",
     severity: Severity = Severity.INFO,
-    details: Optional[Dict] = None
+    details: Optional[Dict] = None,
 ) -> int:
     """Log a system event."""
     return get_system_logger().log(event_type, message, component, severity, details)
@@ -487,7 +497,7 @@ def log_bot_start(bot_name: str, market: str, details: Optional[Dict] = None):
         EventType.BOT_START,
         f"Bot started: {bot_name} for {market}",
         component=bot_name,
-        details={"market": market, **(details or {})}
+        details={"market": market, **(details or {})},
     )
 
 
@@ -499,7 +509,7 @@ def log_bot_stop(bot_name: str, reason: str = "normal"):
         EventType.BOT_STOP,
         f"Bot stopped: {bot_name} ({reason})",
         component=bot_name,
-        details={"reason": reason}
+        details={"reason": reason},
     )
 
 
@@ -510,7 +520,7 @@ def log_trade(
     price: float,
     quantity: float,
     pnl: Optional[float] = None,
-    component: str = "trading"
+    component: str = "trading",
 ):
     """Log a trade event."""
     event_type = EventType.TRADE_OPEN if action == "open" else EventType.TRADE_CLOSE
@@ -522,13 +532,7 @@ def log_trade(
         event_type,
         message,
         component=component,
-        details={
-            "symbol": symbol,
-            "side": side,
-            "price": price,
-            "quantity": quantity,
-            "pnl": pnl
-        }
+        details={"symbol": symbol, "side": side, "price": price, "quantity": quantity, "pnl": pnl},
     )
 
 
@@ -539,7 +543,7 @@ def log_error(message: str, component: str = "system", details: Optional[Dict] =
         message,
         component=component,
         severity=Severity.ERROR,
-        details=details
+        details=details,
     )
 
 

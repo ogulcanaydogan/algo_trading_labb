@@ -34,9 +34,7 @@ class OptimizationResult:
         base["params"] = {
             key: (
                 int(value)
-                if not isinstance(value, bool)
-                and isinstance(value, float)
-                and value.is_integer()
+                if not isinstance(value, bool) and isinstance(value, float) and value.is_integer()
                 else value
             )
             for key, value in self.params.items()
@@ -177,9 +175,7 @@ def random_search_optimize(
 
     if best is None:
         hint = f" Last error: {last_error!r}" if last_error else ""
-        raise RuntimeError(
-            "Optimization produced no valid results. Check data and ranges." + hint
-        )
+        raise RuntimeError("Optimization produced no valid results. Check data and ranges." + hint)
 
     # sort results by objective descending
     results.sort(

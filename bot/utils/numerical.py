@@ -104,8 +104,12 @@ def safe_compare(a: any, b: any, op: str = ">=") -> bool:
         return False
 
 
-def clip_value(value: Number, min_val: Optional[Number] = None,
-               max_val: Optional[Number] = None, default: Number = 0.0) -> float:
+def clip_value(
+    value: Number,
+    min_val: Optional[Number] = None,
+    max_val: Optional[Number] = None,
+    default: Number = 0.0,
+) -> float:
     """
     Clip a value to a range, handling invalid inputs.
 
@@ -183,8 +187,9 @@ def profit_factor(gross_profit: Number, gross_loss: Number) -> float:
     return min(safe_divide(gross_profit, gross_loss, 1.0), 100.0)
 
 
-def sharpe_ratio(returns: np.ndarray, risk_free_rate: float = 0.0,
-                 periods_per_year: int = 252) -> float:
+def sharpe_ratio(
+    returns: np.ndarray, risk_free_rate: float = 0.0, periods_per_year: int = 252
+) -> float:
     """
     Calculate Sharpe ratio safely.
 

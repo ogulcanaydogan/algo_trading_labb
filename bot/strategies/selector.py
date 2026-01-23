@@ -26,6 +26,7 @@ from ..ml.regime_classifier import MarketRegimeClassifier, MarketRegime, RegimeA
 @dataclass
 class SelectedStrategy:
     """Result of strategy selection."""
+
     strategy: BaseStrategy
     regime: MarketRegime
     regime_confidence: float
@@ -35,6 +36,7 @@ class SelectedStrategy:
 @dataclass
 class CombinedSignal:
     """Combined signal from multiple strategies."""
+
     primary_signal: StrategySignal
     regime_analysis: RegimeAnalysis
     selected_strategy: str
@@ -75,12 +77,29 @@ class StrategySelector:
 
     # Strategy classes for each regime
     REGIME_STRATEGIES: Dict[MarketRegime, List[Type[BaseStrategy]]] = {
-        MarketRegime.STRONG_BULL: [EMACrossoverStrategy, KeltnerChannelStrategy, MACDDivergenceStrategy],
+        MarketRegime.STRONG_BULL: [
+            EMACrossoverStrategy,
+            KeltnerChannelStrategy,
+            MACDDivergenceStrategy,
+        ],
         MarketRegime.BULL: [EMACrossoverStrategy, KeltnerChannelStrategy, MACDDivergenceStrategy],
-        MarketRegime.SIDEWAYS: [GridTradingStrategy, RSIMeanReversionStrategy, BollingerBandStrategy, StochasticDivergenceStrategy],
-        MarketRegime.BEAR: [EMACrossoverStrategy, StochasticDivergenceStrategy, MACDDivergenceStrategy],
+        MarketRegime.SIDEWAYS: [
+            GridTradingStrategy,
+            RSIMeanReversionStrategy,
+            BollingerBandStrategy,
+            StochasticDivergenceStrategy,
+        ],
+        MarketRegime.BEAR: [
+            EMACrossoverStrategy,
+            StochasticDivergenceStrategy,
+            MACDDivergenceStrategy,
+        ],
         MarketRegime.STRONG_BEAR: [EMACrossoverStrategy, StochasticDivergenceStrategy],
-        MarketRegime.VOLATILE: [KeltnerChannelStrategy, BollingerBandStrategy, MACDDivergenceStrategy],
+        MarketRegime.VOLATILE: [
+            KeltnerChannelStrategy,
+            BollingerBandStrategy,
+            MACDDivergenceStrategy,
+        ],
     }
 
     def __init__(
@@ -107,9 +126,7 @@ class StrategySelector:
             "bollinger_mean_reversion": BollingerBandStrategy(
                 BollingerBandConfig(mode="mean_reversion")
             ),
-            "bollinger_breakout": BollingerBandStrategy(
-                BollingerBandConfig(mode="breakout")
-            ),
+            "bollinger_breakout": BollingerBandStrategy(BollingerBandConfig(mode="breakout")),
             "macd_divergence": MACDDivergenceStrategy(),
             "rsi_mean_reversion": RSIMeanReversionStrategy(),
             "stochastic_divergence": StochasticDivergenceStrategy(),
@@ -227,8 +244,18 @@ class StrategySelector:
         """Get strategy names suitable for the regime."""
         regime_map = {
             MarketRegime.STRONG_BULL: ["ema_crossover", "keltner_channel", "macd_divergence"],
-            MarketRegime.BULL: ["ema_crossover", "keltner_channel", "macd_divergence", "bollinger_breakout"],
-            MarketRegime.SIDEWAYS: ["grid_trading", "rsi_mean_reversion", "bollinger_mean_reversion", "stochastic_divergence"],
+            MarketRegime.BULL: [
+                "ema_crossover",
+                "keltner_channel",
+                "macd_divergence",
+                "bollinger_breakout",
+            ],
+            MarketRegime.SIDEWAYS: [
+                "grid_trading",
+                "rsi_mean_reversion",
+                "bollinger_mean_reversion",
+                "stochastic_divergence",
+            ],
             MarketRegime.BEAR: ["ema_crossover", "stochastic_divergence", "macd_divergence"],
             MarketRegime.STRONG_BEAR: ["ema_crossover", "stochastic_divergence"],
             MarketRegime.VOLATILE: ["keltner_channel", "bollinger_breakout", "macd_divergence"],

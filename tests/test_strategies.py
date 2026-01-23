@@ -20,6 +20,7 @@ from bot.strategies.bollinger_bands import (
 # RSI Mean Reversion Strategy Tests
 # ============================================================================
 
+
 class TestRSIMeanReversionConfig:
     """Test RSIMeanReversionConfig."""
 
@@ -51,13 +52,15 @@ class TestRSIMeanReversionStrategy:
         close = 100 - np.arange(n) * 0.8 + np.random.randn(n) * 0.5
         close = np.maximum(close, 20)  # Floor at 20
 
-        return pd.DataFrame({
-            "open": close + np.random.rand(n) * 0.5,
-            "high": close + np.random.rand(n) * 1,
-            "low": close - np.random.rand(n) * 1,
-            "close": close,
-            "volume": np.random.randint(1000, 10000, n),
-        })
+        return pd.DataFrame(
+            {
+                "open": close + np.random.rand(n) * 0.5,
+                "high": close + np.random.rand(n) * 1,
+                "low": close - np.random.rand(n) * 1,
+                "close": close,
+                "volume": np.random.randint(1000, 10000, n),
+            }
+        )
 
     @pytest.fixture
     def overbought_data(self):
@@ -67,24 +70,28 @@ class TestRSIMeanReversionStrategy:
         # Create rising prices to generate overbought RSI
         close = 100 + np.arange(n) * 0.8 + np.random.randn(n) * 0.5
 
-        return pd.DataFrame({
-            "open": close - np.random.rand(n) * 0.5,
-            "high": close + np.random.rand(n) * 1,
-            "low": close - np.random.rand(n) * 1,
-            "close": close,
-            "volume": np.random.randint(1000, 10000, n),
-        })
+        return pd.DataFrame(
+            {
+                "open": close - np.random.rand(n) * 0.5,
+                "high": close + np.random.rand(n) * 1,
+                "low": close - np.random.rand(n) * 1,
+                "close": close,
+                "volume": np.random.randint(1000, 10000, n),
+            }
+        )
 
     @pytest.fixture
     def short_data(self):
         """Create insufficient data."""
-        return pd.DataFrame({
-            "open": [100, 101, 102],
-            "high": [102, 103, 104],
-            "low": [99, 100, 101],
-            "close": [101, 102, 103],
-            "volume": [1000, 1000, 1000],
-        })
+        return pd.DataFrame(
+            {
+                "open": [100, 101, 102],
+                "high": [102, 103, 104],
+                "low": [99, 100, 101],
+                "close": [101, 102, 103],
+                "volume": [1000, 1000, 1000],
+            }
+        )
 
     def test_strategy_properties(self, strategy):
         """Test strategy name and description."""
@@ -133,13 +140,15 @@ class TestRSIMeanReversionStrategy:
         # Sideways movement for neutral RSI
         close = 100 + np.sin(np.arange(n) * 0.1) * 5
 
-        df = pd.DataFrame({
-            "open": close - 0.5,
-            "high": close + 1,
-            "low": close - 1,
-            "close": close,
-            "volume": [1000] * n,
-        })
+        df = pd.DataFrame(
+            {
+                "open": close - 0.5,
+                "high": close + 1,
+                "low": close - 1,
+                "close": close,
+                "volume": [1000] * n,
+            }
+        )
 
         signal = strategy.generate_signal(df)
         # Should be FLAT or have signal depending on RSI
@@ -149,6 +158,7 @@ class TestRSIMeanReversionStrategy:
 # ============================================================================
 # Bollinger Bands Strategy Tests
 # ============================================================================
+
 
 class TestBollingerBandConfig:
     """Test BollingerBandConfig."""
@@ -191,13 +201,15 @@ class TestBollingerBandStrategy:
         # Oscillating prices
         close = 100 + np.sin(np.arange(n) * 0.3) * 10 + np.random.randn(n) * 2
 
-        return pd.DataFrame({
-            "open": close - np.random.rand(n) * 0.5,
-            "high": close + np.random.rand(n) * 2,
-            "low": close - np.random.rand(n) * 2,
-            "close": close,
-            "volume": np.random.randint(1000, 10000, n),
-        })
+        return pd.DataFrame(
+            {
+                "open": close - np.random.rand(n) * 0.5,
+                "high": close + np.random.rand(n) * 2,
+                "low": close - np.random.rand(n) * 2,
+                "close": close,
+                "volume": np.random.randint(1000, 10000, n),
+            }
+        )
 
     @pytest.fixture
     def breakout_data(self):
@@ -205,18 +217,22 @@ class TestBollingerBandStrategy:
         np.random.seed(42)
         n = 100
         # Tight range followed by explosive move
-        close = np.concatenate([
-            100 + np.random.randn(80) * 1,  # Tight range (squeeze)
-            100 + np.arange(20) * 2 + np.random.randn(20) * 0.5,  # Breakout up
-        ])
+        close = np.concatenate(
+            [
+                100 + np.random.randn(80) * 1,  # Tight range (squeeze)
+                100 + np.arange(20) * 2 + np.random.randn(20) * 0.5,  # Breakout up
+            ]
+        )
 
-        return pd.DataFrame({
-            "open": close - np.random.rand(n) * 0.5,
-            "high": close + np.random.rand(n) * 1,
-            "low": close - np.random.rand(n) * 1,
-            "close": close,
-            "volume": np.random.randint(1000, 10000, n),
-        })
+        return pd.DataFrame(
+            {
+                "open": close - np.random.rand(n) * 0.5,
+                "high": close + np.random.rand(n) * 1,
+                "low": close - np.random.rand(n) * 1,
+                "close": close,
+                "volume": np.random.randint(1000, 10000, n),
+            }
+        )
 
     def test_mr_strategy_properties(self, mr_strategy):
         """Test mean-reversion strategy properties."""
@@ -251,13 +267,15 @@ class TestBollingerBandStrategy:
 
     def test_insufficient_data(self, mr_strategy):
         """Test flat signal with insufficient data."""
-        short_data = pd.DataFrame({
-            "open": [100, 101, 102],
-            "high": [102, 103, 104],
-            "low": [99, 100, 101],
-            "close": [101, 102, 103],
-            "volume": [1000, 1000, 1000],
-        })
+        short_data = pd.DataFrame(
+            {
+                "open": [100, 101, 102],
+                "high": [102, 103, 104],
+                "low": [99, 100, 101],
+                "close": [101, 102, 103],
+                "volume": [1000, 1000, 1000],
+            }
+        )
         signal = mr_strategy.generate_signal(short_data)
         assert signal.decision == "FLAT"
         assert "Insufficient" in signal.reason
@@ -279,7 +297,7 @@ class TestBollingerBandStrategy:
         # Test long confidence (oversold)
         conf_long = mr_strategy._calculate_mr_confidence(
             bb_pctb=0.02,  # Near lower band
-            rsi=25.0,      # Oversold
+            rsi=25.0,  # Oversold
             is_long=True,
         )
         assert 0 <= conf_long <= 1
@@ -287,7 +305,7 @@ class TestBollingerBandStrategy:
         # Test short confidence (overbought)
         conf_short = mr_strategy._calculate_mr_confidence(
             bb_pctb=0.98,  # Near upper band
-            rsi=75.0,      # Overbought
+            rsi=75.0,  # Overbought
             is_long=False,
         )
         assert 0 <= conf_short <= 1
@@ -304,6 +322,7 @@ class TestBollingerBandStrategy:
 # ============================================================================
 # Edge Cases
 # ============================================================================
+
 
 class TestStrategyEdgeCases:
     """Test edge cases for strategies."""
@@ -326,13 +345,15 @@ class TestStrategyEdgeCases:
         """Test RSI strategy with constant prices."""
         strategy = RSIMeanReversionStrategy()
         n = 80
-        df = pd.DataFrame({
-            "open": [100.0] * n,
-            "high": [100.0] * n,
-            "low": [100.0] * n,
-            "close": [100.0] * n,
-            "volume": [1000] * n,
-        })
+        df = pd.DataFrame(
+            {
+                "open": [100.0] * n,
+                "high": [100.0] * n,
+                "low": [100.0] * n,
+                "close": [100.0] * n,
+                "volume": [1000] * n,
+            }
+        )
         signal = strategy.generate_signal(df)
         # Should handle gracefully
         assert signal.decision in ["FLAT", "LONG", "SHORT"]
@@ -341,13 +362,15 @@ class TestStrategyEdgeCases:
         """Test BB strategy with constant prices."""
         strategy = BollingerBandStrategy()
         n = 50
-        df = pd.DataFrame({
-            "open": [100.0] * n,
-            "high": [100.0] * n,
-            "low": [100.0] * n,
-            "close": [100.0] * n,
-            "volume": [1000] * n,
-        })
+        df = pd.DataFrame(
+            {
+                "open": [100.0] * n,
+                "high": [100.0] * n,
+                "low": [100.0] * n,
+                "close": [100.0] * n,
+                "volume": [1000] * n,
+            }
+        )
         signal = strategy.generate_signal(df)
         assert signal.decision in ["FLAT", "LONG", "SHORT"]
 

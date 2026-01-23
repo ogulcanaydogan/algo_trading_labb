@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 class PromotionStatus(Enum):
     """Status of a challenger in the promotion pipeline"""
+
     PENDING = "pending"  # Waiting to start evaluation
     SHADOW = "shadow"  # Running in shadow mode
     EVALUATION = "evaluation"  # Being evaluated against champion
@@ -38,6 +39,7 @@ class PromotionStatus(Enum):
 
 class ComparisonResult(Enum):
     """Result of champion vs challenger comparison"""
+
     CHALLENGER_BETTER = "challenger_better"
     CHAMPION_BETTER = "champion_better"
     NO_DIFFERENCE = "no_difference"
@@ -47,6 +49,7 @@ class ComparisonResult(Enum):
 @dataclass
 class PromotionCriteria:
     """Criteria for promoting a challenger"""
+
     # Minimum requirements
     min_shadow_days: int = 14
     min_shadow_trades: int = 50
@@ -73,6 +76,7 @@ class PromotionCriteria:
 @dataclass
 class ChallengerPerformance:
     """Performance metrics for a challenger"""
+
     # Identity
     challenger_id: str
     strategy_name: str
@@ -135,6 +139,7 @@ class ChallengerPerformance:
 @dataclass
 class ChampionRecord:
     """Record of the current champion"""
+
     strategy_name: str
     strategy_version: str
     promoted_at: datetime
@@ -178,7 +183,7 @@ class PromotionGate:
     def __init__(
         self,
         criteria: Optional[PromotionCriteria] = None,
-        state_file: str = "data/promotion_state.json"
+        state_file: str = "data/promotion_state.json",
     ):
         self.criteria = criteria or PromotionCriteria()
         self.state_file = Path(state_file)
@@ -228,13 +233,9 @@ class PromotionGate:
 
             state = {
                 "champions": {
-                    name: champion.to_dict()
-                    for name, champion in self.champions.items()
+                    name: champion.to_dict() for name, champion in self.champions.items()
                 },
-                "challengers": {
-                    cid: c.to_dict()
-                    for cid, c in self.challengers.items()
-                },
+                "challengers": {cid: c.to_dict() for cid, c in self.challengers.items()},
                 "history": self.promotion_history[-100:],  # Keep last 100
                 "saved_at": datetime.now().isoformat(),
             }
@@ -246,10 +247,7 @@ class PromotionGate:
             logger.error(f"Failed to save promotion state: {e}")
 
     def register_challenger(
-        self,
-        strategy_name: str,
-        strategy_version: str,
-        challenger_id: Optional[str] = None
+        self, strategy_name: str, strategy_version: str, challenger_id: Optional[str] = None
     ) -> str:
         """
         Register a new challenger for evaluation.
@@ -263,7 +261,9 @@ class PromotionGate:
             Challenger ID
         """
         if challenger_id is None:
-            challenger_id = f"{strategy_name}_v{strategy_version}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            challenger_id = (
+                f"{strategy_name}_v{strategy_version}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            )
 
         challenger = ChallengerPerformance(
             challenger_id=challenger_id,
@@ -294,10 +294,7 @@ class PromotionGate:
         return True
 
     def record_shadow_trade(
-        self,
-        challenger_id: str,
-        pnl_pct: float,
-        trade_details: Optional[Dict[str, Any]] = None
+        self, challenger_id: str, pnl_pct: float, trade_details: Optional[Dict[str, Any]] = None
     ):
         """Record a trade result from shadow mode"""
         if challenger_id not in self.challengers:
@@ -337,19 +334,21 @@ class PromotionGate:
         challenger = self.challengers[challenger_id]
 
         if (
-            challenger.shadow_days >= self.criteria.min_shadow_days and
-            challenger.shadow_trades >= self.criteria.min_shadow_trades
+            challenger.shadow_days >= self.criteria.min_shadow_days
+            and challenger.shadow_trades >= self.criteria.min_shadow_trades
         ):
             # Check if meets minimum quality
             if challenger.shadow_max_drawdown > self.criteria.max_acceptable_drawdown:
                 self._reject_challenger(
                     challenger_id,
-                    f"Shadow mode drawdown {challenger.shadow_max_drawdown:.1f}% exceeds max {self.criteria.max_acceptable_drawdown}%"
+                    f"Shadow mode drawdown {challenger.shadow_max_drawdown:.1f}% exceeds max {self.criteria.max_acceptable_drawdown}%",
                 )
             else:
                 # Ready for evaluation
                 logger.info(f"Challenger {challenger_id} ready for evaluation")
-                challenger.notes.append(f"Shadow mode complete: {challenger.shadow_trades} trades, {challenger.shadow_days} days")
+                challenger.notes.append(
+                    f"Shadow mode complete: {challenger.shadow_trades} trades, {challenger.shadow_days} days"
+                )
 
     def start_evaluation(self, challenger_id: str) -> bool:
         """Start formal evaluation against champion"""
@@ -372,9 +371,7 @@ class PromotionGate:
         return True
 
     def evaluate_challenger(
-        self,
-        challenger_id: str,
-        champion_name: Optional[str] = None
+        self, challenger_id: str, champion_name: Optional[str] = None
     ) -> Tuple[ComparisonResult, Dict[str, Any]]:
         """
         Evaluate challenger against champion.
@@ -422,17 +419,24 @@ class PromotionGate:
             "champion_recent_pnl": champion.recent_pnl_pct,
             "t_statistic": t_stat,
             "p_value": p_value,
-            "sharpe_improvement": (challenger.shadow_sharpe - champion.sharpe_ratio) / champion.sharpe_ratio if champion.sharpe_ratio else 0,
+            "sharpe_improvement": (challenger.shadow_sharpe - champion.sharpe_ratio)
+            / champion.sharpe_ratio
+            if champion.sharpe_ratio
+            else 0,
         }
 
         # Determine result
         sharpe_improvement = analysis["sharpe_improvement"]
-        significant = p_value < (1 - self.criteria.confidence_level) and t_stat > self.criteria.min_t_statistic
+        significant = (
+            p_value < (1 - self.criteria.confidence_level)
+            and t_stat > self.criteria.min_t_statistic
+        )
 
         if (
-            sharpe_improvement >= self.criteria.min_sharpe_improvement and
-            challenger.shadow_max_drawdown <= champion.max_drawdown * (1 + self.criteria.max_drawdown_increase) and
-            significant
+            sharpe_improvement >= self.criteria.min_sharpe_improvement
+            and challenger.shadow_max_drawdown
+            <= champion.max_drawdown * (1 + self.criteria.max_drawdown_increase)
+            and significant
         ):
             result = ComparisonResult.CHALLENGER_BETTER
             analysis["decision"] = "Challenger shows statistically significant improvement"
@@ -448,9 +452,7 @@ class PromotionGate:
 
         return result, analysis
 
-    def _welch_t_test(
-        self, sample1: np.ndarray, sample2: np.ndarray
-    ) -> Tuple[float, float]:
+    def _welch_t_test(self, sample1: np.ndarray, sample2: np.ndarray) -> Tuple[float, float]:
         """
         Perform Welch's t-test for samples with unequal variances.
 
@@ -540,7 +542,11 @@ class PromotionGate:
 
         # Compare canary performance to shadow
         canary_avg = challenger.canary_pnl_pct / challenger.canary_trades
-        shadow_avg = challenger.shadow_pnl_pct / challenger.shadow_trades if challenger.shadow_trades > 0 else 0
+        shadow_avg = (
+            challenger.shadow_pnl_pct / challenger.shadow_trades
+            if challenger.shadow_trades > 0
+            else 0
+        )
 
         # Canary should be at least threshold % as good as shadow
         if shadow_avg > 0:
@@ -570,12 +576,14 @@ class PromotionGate:
         # Archive old champion
         old_champion = self.champions.get(challenger.strategy_name)
         if old_champion:
-            self.promotion_history.append({
-                "event": "champion_replaced",
-                "old_champion": old_champion.to_dict(),
-                "new_champion": challenger.to_dict(),
-                "timestamp": datetime.now().isoformat(),
-            })
+            self.promotion_history.append(
+                {
+                    "event": "champion_replaced",
+                    "old_champion": old_champion.to_dict(),
+                    "new_champion": challenger.to_dict(),
+                    "timestamp": datetime.now().isoformat(),
+                }
+            )
 
         # Promote
         self.champions[challenger.strategy_name] = ChampionRecord(
@@ -611,12 +619,14 @@ class PromotionGate:
         challenger.rejection_reason = reason
         challenger.notes.append(f"Rejected: {reason}")
 
-        self.promotion_history.append({
-            "event": "challenger_rejected",
-            "challenger": challenger.to_dict(),
-            "reason": reason,
-            "timestamp": datetime.now().isoformat(),
-        })
+        self.promotion_history.append(
+            {
+                "event": "challenger_rejected",
+                "challenger": challenger.to_dict(),
+                "reason": reason,
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
 
         logger.warning(f"Challenger {challenger_id} rejected: {reason}")
         self._save_state()
@@ -641,13 +651,15 @@ class PromotionGate:
 
         # Record rollback
         current = self.champions[strategy_name]
-        self.promotion_history.append({
-            "event": "champion_rolled_back",
-            "rolled_back_champion": current.to_dict(),
-            "restored_champion": previous,
-            "reason": reason,
-            "timestamp": datetime.now().isoformat(),
-        })
+        self.promotion_history.append(
+            {
+                "event": "champion_rolled_back",
+                "rolled_back_champion": current.to_dict(),
+                "restored_champion": previous,
+                "reason": reason,
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
 
         # Restore previous
         self.champions[strategy_name] = ChampionRecord(
@@ -663,11 +675,7 @@ class PromotionGate:
         self._save_state()
         return True
 
-    def update_champion_performance(
-        self,
-        strategy_name: str,
-        trade_pnl_pct: float
-    ):
+    def update_champion_performance(self, strategy_name: str, trade_pnl_pct: float):
         """Update champion's recent performance"""
         if strategy_name not in self.champions:
             return
@@ -702,7 +710,9 @@ class PromotionGate:
                 "current_shadow_days": challenger.shadow_days,
                 "current_shadow_trades": challenger.shadow_trades,
                 "days_remaining": max(0, self.criteria.min_shadow_days - challenger.shadow_days),
-                "trades_remaining": max(0, self.criteria.min_shadow_trades - challenger.shadow_trades),
+                "trades_remaining": max(
+                    0, self.criteria.min_shadow_trades - challenger.shadow_trades
+                ),
             },
         }
 
@@ -714,10 +724,7 @@ class PromotionGate:
 
     def get_all_champions(self) -> Dict[str, Dict[str, Any]]:
         """Get all current champions"""
-        return {
-            name: champion.to_dict()
-            for name, champion in self.champions.items()
-        }
+        return {name: champion.to_dict() for name, champion in self.champions.items()}
 
     def get_active_challengers(self) -> List[Dict[str, Any]]:
         """Get all active challengers"""

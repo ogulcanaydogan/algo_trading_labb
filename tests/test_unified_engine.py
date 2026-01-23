@@ -142,9 +142,7 @@ class TestTransitionRequirements:
 
     def test_paper_to_testnet_requirements(self):
         """Test requirements for paper to testnet transition."""
-        req = get_transition_requirements(
-            TradingMode.PAPER_LIVE_DATA, TradingMode.TESTNET
-        )
+        req = get_transition_requirements(TradingMode.PAPER_LIVE_DATA, TradingMode.TESTNET)
 
         assert req is not None
         assert req.min_days_in_current_mode == 14
@@ -355,9 +353,7 @@ class TestTransitionValidator:
         state.winning_trades = 75
         state.max_drawdown_pct = 0.08
 
-        result = validator.can_transition(
-            TradingMode.PAPER_LIVE_DATA, TradingMode.TESTNET, state
-        )
+        result = validator.can_transition(TradingMode.PAPER_LIVE_DATA, TradingMode.TESTNET, state)
 
         # Should pass most requirements
         assert result.from_mode == TradingMode.PAPER_LIVE_DATA

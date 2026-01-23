@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 class MarketPhase(Enum):
     """Market cycle phases."""
+
     ACCUMULATION = "accumulation"  # Smart money buying
     MARKUP = "markup"  # Uptrend
     DISTRIBUTION = "distribution"  # Smart money selling
@@ -37,6 +38,7 @@ class MarketPhase(Enum):
 
 class ExitReason(Enum):
     """Reasons for exit signals."""
+
     TAKE_PROFIT = "take_profit"
     STOP_LOSS = "stop_loss"
     TRAILING_STOP = "trailing_stop"
@@ -51,6 +53,7 @@ class ExitReason(Enum):
 @dataclass
 class ExitSignal:
     """Signal to exit a position."""
+
     should_exit: bool
     urgency: float  # 0-1, how urgent
     reason: ExitReason
@@ -64,6 +67,7 @@ class ExitSignal:
 @dataclass
 class LeverageRecommendation:
     """Leverage recommendation with risk analysis."""
+
     recommended_leverage: float
     max_safe_leverage: float
     position_size_usd: float
@@ -77,6 +81,7 @@ class LeverageRecommendation:
 @dataclass
 class ShortOpportunity:
     """Short selling opportunity analysis."""
+
     symbol: str
     score: float  # 0-100, higher = better short
     entry_price: float
@@ -99,6 +104,7 @@ class ShortOpportunity:
 @dataclass
 class ProfitTarget:
     """Dynamic profit target."""
+
     target_price: float
     target_pct: float
     probability: float  # Probability of reaching
@@ -139,7 +145,7 @@ class ExitOptimizer:
         stop_loss: float,
         take_profit: float,
         leverage: float,
-        market_data: Dict[str, Any]
+        market_data: Dict[str, Any],
     ) -> ExitSignal:
         """
         Analyze if position should be exited.
@@ -147,7 +153,7 @@ class ExitOptimizer:
         Returns detailed exit signal with reasoning.
         """
         # Calculate current P&L
-        if side == 'long':
+        if side == "long":
             pnl_pct = (current_price - entry_price) / entry_price
         else:
             pnl_pct = (entry_price - current_price) / entry_price
@@ -158,12 +164,12 @@ class ExitOptimizer:
         hold_hours = (datetime.now() - entry_time).total_seconds() / 3600
 
         # Get indicators from market data
-        rsi = market_data.get('rsi', 50)
-        macd = market_data.get('macd', 0)
-        macd_signal = market_data.get('macd_signal', 0)
-        volume_ratio = market_data.get('volume_ratio', 1.0)
-        atr = market_data.get('atr', current_price * 0.02)
-        trend = market_data.get('trend', 'neutral')
+        rsi = market_data.get("rsi", 50)
+        macd = market_data.get("macd", 0)
+        macd_signal = market_data.get("macd_signal", 0)
+        volume_ratio = market_data.get("volume_ratio", 1.0)
+        atr = market_data.get("atr", current_price * 0.02)
+        trend = market_data.get("trend", "neutral")
 
         # Initialize exit analysis
         should_exit = False
@@ -173,13 +179,13 @@ class ExitOptimizer:
         reasoning_parts = []
 
         # 1. Check stop loss
-        if side == 'long' and current_price <= stop_loss:
+        if side == "long" and current_price <= stop_loss:
             should_exit = True
             urgency = 1.0
             reason = ExitReason.STOP_LOSS
             confidence = 0.95
             reasoning_parts.append(f"Price hit stop loss ({stop_loss})")
-        elif side == 'short' and current_price >= stop_loss:
+        elif side == "short" and current_price >= stop_loss:
             should_exit = True
             urgency = 1.0
             reason = ExitReason.STOP_LOSS
@@ -187,13 +193,13 @@ class ExitOptimizer:
             reasoning_parts.append(f"Price hit stop loss ({stop_loss})")
 
         # 2. Check take profit
-        if side == 'long' and current_price >= take_profit:
+        if side == "long" and current_price >= take_profit:
             should_exit = True
             urgency = 0.8
             reason = ExitReason.TAKE_PROFIT
             confidence = 0.9
             reasoning_parts.append(f"Price hit take profit ({take_profit})")
-        elif side == 'short' and current_price <= take_profit:
+        elif side == "short" and current_price <= take_profit:
             should_exit = True
             urgency = 0.8
             reason = ExitReason.TAKE_PROFIT
@@ -202,22 +208,22 @@ class ExitOptimizer:
 
         # 3. Momentum reversal detection
         momentum_reversal = self._detect_momentum_reversal(side, rsi, macd, macd_signal, trend)
-        if momentum_reversal['detected'] and pnl_pct > 0:
+        if momentum_reversal["detected"] and pnl_pct > 0:
             if not should_exit:
                 should_exit = True
                 urgency = 0.7
                 reason = ExitReason.MOMENTUM_REVERSAL
-            confidence = max(confidence, momentum_reversal['confidence'])
-            reasoning_parts.append(momentum_reversal['reason'])
+            confidence = max(confidence, momentum_reversal["confidence"])
+            reasoning_parts.append(momentum_reversal["reason"])
 
         # 4. Volume divergence (price up but volume down = weakness)
         volume_divergence = self._detect_volume_divergence(side, pnl_pct, volume_ratio)
-        if volume_divergence['detected'] and pnl_pct > 0.02:
+        if volume_divergence["detected"] and pnl_pct > 0.02:
             if not should_exit and pnl_pct > 0.03:  # Take profit on divergence if in profit
                 should_exit = True
                 urgency = 0.6
                 reason = ExitReason.VOLUME_DIVERGENCE
-            reasoning_parts.append(volume_divergence['reason'])
+            reasoning_parts.append(volume_divergence["reason"])
 
         # 5. Time decay for leveraged positions
         if leverage > 1 and hold_hours > self.max_hold_hours:
@@ -226,7 +232,9 @@ class ExitOptimizer:
                     should_exit = True
                     urgency = 0.5
                     reason = ExitReason.TIME_DECAY
-                reasoning_parts.append(f"Position held {hold_hours:.1f}h (max recommended: {self.max_hold_hours}h)")
+                reasoning_parts.append(
+                    f"Position held {hold_hours:.1f}h (max recommended: {self.max_hold_hours}h)"
+                )
 
         # 6. Risk limit check (for high leverage)
         if leverage >= 10 and pnl_pct_leveraged < -0.3:  # -30% leveraged loss
@@ -234,7 +242,7 @@ class ExitOptimizer:
             urgency = 0.9
             reason = ExitReason.RISK_LIMIT
             confidence = 0.95
-            reasoning_parts.append(f"Risk limit hit: {pnl_pct_leveraged*100:.1f}% leveraged loss")
+            reasoning_parts.append(f"Risk limit hit: {pnl_pct_leveraged * 100:.1f}% leveraged loss")
 
         # 7. Pattern completion (extended move)
         if abs(pnl_pct) > 0.1:  # 10% move
@@ -244,13 +252,19 @@ class ExitOptimizer:
                     should_exit = True
                     urgency = 0.6
                     reason = ExitReason.PATTERN_COMPLETION
-                reasoning_parts.append(f"Extended move ({pnl_pct*100:.1f}%), reversal risk: {extension_risk:.0%}")
+                reasoning_parts.append(
+                    f"Extended move ({pnl_pct * 100:.1f}%), reversal risk: {extension_risk:.0%}"
+                )
 
         # Calculate remaining potential
-        if side == 'long':
-            remaining_to_tp = (take_profit - current_price) / current_price if current_price < take_profit else 0
+        if side == "long":
+            remaining_to_tp = (
+                (take_profit - current_price) / current_price if current_price < take_profit else 0
+            )
         else:
-            remaining_to_tp = (current_price - take_profit) / current_price if current_price > take_profit else 0
+            remaining_to_tp = (
+                (current_price - take_profit) / current_price if current_price > take_profit else 0
+            )
 
         # Risk of reversal
         risk_of_reversal = self._calculate_reversal_risk(side, rsi, trend, pnl_pct, volume_ratio)
@@ -263,16 +277,18 @@ class ExitOptimizer:
             confidence=confidence,
             potential_remaining=remaining_to_tp,
             risk_of_reversal=risk_of_reversal,
-            reasoning=" | ".join(reasoning_parts) if reasoning_parts else "No exit signal"
+            reasoning=" | ".join(reasoning_parts) if reasoning_parts else "No exit signal",
         )
 
-    def _detect_momentum_reversal(self, side: str, rsi: float, macd: float, macd_signal: float, trend: str) -> Dict:
+    def _detect_momentum_reversal(
+        self, side: str, rsi: float, macd: float, macd_signal: float, trend: str
+    ) -> Dict:
         """Detect momentum reversal signals."""
         detected = False
         confidence = 0.5
         reason = ""
 
-        if side == 'long':
+        if side == "long":
             # For longs, bearish signals are reversals
             if rsi > 70:
                 detected = True
@@ -282,7 +298,7 @@ class ExitOptimizer:
                 detected = True
                 confidence = max(confidence, 0.65)
                 reason = f"MACD bearish crossover"
-            if trend == 'down':
+            if trend == "down":
                 confidence += 0.1
         else:  # short
             # For shorts, bullish signals are reversals
@@ -294,28 +310,28 @@ class ExitOptimizer:
                 detected = True
                 confidence = max(confidence, 0.65)
                 reason = f"MACD bullish crossover"
-            if trend == 'up':
+            if trend == "up":
                 confidence += 0.1
 
-        return {'detected': detected, 'confidence': min(0.9, confidence), 'reason': reason}
+        return {"detected": detected, "confidence": min(0.9, confidence), "reason": reason}
 
     def _detect_volume_divergence(self, side: str, pnl_pct: float, volume_ratio: float) -> Dict:
         """Detect volume divergence (price/volume disagreement)."""
         detected = False
         reason = ""
 
-        if side == 'long' and pnl_pct > 0:
+        if side == "long" and pnl_pct > 0:
             # Long in profit but volume declining = bearish divergence
             if volume_ratio < 0.7:
                 detected = True
                 reason = f"Bearish volume divergence (ratio: {volume_ratio:.2f})"
-        elif side == 'short' and pnl_pct > 0:
+        elif side == "short" and pnl_pct > 0:
             # Short in profit but selling volume declining
             if volume_ratio < 0.7:
                 detected = True
                 reason = f"Bullish volume divergence (ratio: {volume_ratio:.2f})"
 
-        return {'detected': detected, 'reason': reason}
+        return {"detected": detected, "reason": reason}
 
     def _calculate_extension_risk(self, pnl_pct: float, atr: float, price: float) -> float:
         """Calculate risk of mean reversion after extended move."""
@@ -331,12 +347,14 @@ class ExitOptimizer:
             return 0.5
         return 0.3
 
-    def _calculate_reversal_risk(self, side: str, rsi: float, trend: str, pnl_pct: float, volume_ratio: float) -> float:
+    def _calculate_reversal_risk(
+        self, side: str, rsi: float, trend: str, pnl_pct: float, volume_ratio: float
+    ) -> float:
         """Calculate probability of adverse price reversal."""
         risk = 0.3  # Base risk
 
         # RSI extremes increase reversal risk
-        if side == 'long':
+        if side == "long":
             if rsi > 80:
                 risk += 0.3
             elif rsi > 70:
@@ -358,7 +376,7 @@ class ExitOptimizer:
             risk += 0.15
 
         # Trend against position
-        if (side == 'long' and trend == 'down') or (side == 'short' and trend == 'up'):
+        if (side == "long" and trend == "down") or (side == "short" and trend == "up"):
             risk += 0.1
 
         return min(0.95, risk)
@@ -378,7 +396,7 @@ class LeverageManager:
         self,
         max_leverage: float = 20.0,
         base_risk_per_trade: float = 0.02,  # 2% of account
-        max_account_risk: float = 0.10  # 10% total exposure
+        max_account_risk: float = 0.10,  # 10% total exposure
     ):
         self.max_leverage = max_leverage
         self.base_risk_per_trade = base_risk_per_trade
@@ -396,7 +414,7 @@ class LeverageManager:
         current_exposure: float,  # Current open positions value
         win_rate: float,  # Recent win rate
         regime: str,
-        is_short: bool = False
+        is_short: bool = False,
     ) -> LeverageRecommendation:
         """
         Calculate optimal leverage for a trade.
@@ -430,29 +448,29 @@ class LeverageManager:
 
         # 4. Regime adjustments
         regime_multiplier = 1.0
-        if regime in ['crash', 'capitulation']:
+        if regime in ["crash", "capitulation"]:
             regime_multiplier = 0.3
             warnings.append(f"Dangerous regime ({regime}) - leverage heavily reduced")
-        elif regime in ['volatile', 'bear']:
+        elif regime in ["volatile", "bear"]:
             regime_multiplier = 0.5
-        elif regime == 'bull':
+        elif regime == "bull":
             regime_multiplier = 1.2
 
         # 5. Short positions can use slightly higher leverage in downtrends
         short_bonus = 1.0
-        if is_short and regime in ['bear', 'markdown', 'distribution']:
+        if is_short and regime in ["bear", "markdown", "distribution"]:
             short_bonus = 1.3
-        elif is_short and regime in ['bull', 'markup']:
+        elif is_short and regime in ["bull", "markup"]:
             short_bonus = 0.7  # Reduce leverage for shorts in uptrend
             warnings.append("Shorting in uptrend - leverage reduced")
 
         # 6. Calculate final leverage
         calculated_leverage = (
-            confidence_leverage *
-            vol_multiplier *
-            kelly_multiplier *
-            regime_multiplier *
-            short_bonus
+            confidence_leverage
+            * vol_multiplier
+            * kelly_multiplier
+            * regime_multiplier
+            * short_bonus
         )
 
         # 7. Apply maximum limits
@@ -487,28 +505,25 @@ class LeverageManager:
             risk_reward_ratio=round(risk_reward, 2),
             confidence=signal_confidence,
             reasoning=f"Base {confidence_leverage:.1f}x × Vol {vol_multiplier:.1f} × Kelly {kelly_multiplier:.1f} × Regime {regime_multiplier:.1f}",
-            warnings=warnings
+            warnings=warnings,
         )
 
     def record_trade_result(self, leverage: float, pnl: float, won: bool):
         """Record trade result for leverage optimization."""
-        self.trade_history.append({
-            'leverage': leverage,
-            'pnl': pnl,
-            'won': won,
-            'timestamp': datetime.now().isoformat()
-        })
+        self.trade_history.append(
+            {"leverage": leverage, "pnl": pnl, "won": won, "timestamp": datetime.now().isoformat()}
+        )
 
         # Update leverage performance stats
         lev_bucket = round(leverage)
         if lev_bucket not in self.leverage_performance:
-            self.leverage_performance[lev_bucket] = {'wins': 0, 'losses': 0, 'pnl': 0}
+            self.leverage_performance[lev_bucket] = {"wins": 0, "losses": 0, "pnl": 0}
 
-        self.leverage_performance[lev_bucket]['pnl'] += pnl
+        self.leverage_performance[lev_bucket]["pnl"] += pnl
         if won:
-            self.leverage_performance[lev_bucket]['wins'] += 1
+            self.leverage_performance[lev_bucket]["wins"] += 1
         else:
-            self.leverage_performance[lev_bucket]['losses'] += 1
+            self.leverage_performance[lev_bucket]["losses"] += 1
 
     def get_best_leverage_range(self) -> Tuple[float, float]:
         """Get the leverage range with best historical performance."""
@@ -516,15 +531,15 @@ class LeverageManager:
             return (2.0, 5.0)  # Default
 
         best_lev = None
-        best_score = -float('inf')
+        best_score = -float("inf")
 
         for lev, stats in self.leverage_performance.items():
-            total = stats['wins'] + stats['losses']
+            total = stats["wins"] + stats["losses"]
             if total < 5:
                 continue
 
-            win_rate = stats['wins'] / total
-            avg_pnl = stats['pnl'] / total
+            win_rate = stats["wins"] / total
+            avg_pnl = stats["pnl"] / total
             score = win_rate * 0.5 + (avg_pnl / 100) * 0.5
 
             if score > best_score:
@@ -557,7 +572,7 @@ class ShortSellingSpecialist:
         symbol: str,
         current_price: float,
         market_data: Dict[str, Any],
-        orderbook_data: Optional[Dict] = None
+        orderbook_data: Optional[Dict] = None,
     ) -> ShortOpportunity:
         """
         Analyze if symbol presents good short opportunity.
@@ -570,17 +585,17 @@ class ShortSellingSpecialist:
         - Squeeze risk
         """
         # Extract market data
-        rsi = market_data.get('rsi', 50)
-        macd = market_data.get('macd', 0)
-        macd_signal = market_data.get('macd_signal', 0)
-        trend = market_data.get('trend', 'neutral')
-        volatility = market_data.get('volatility', 0.02)
-        volume_ratio = market_data.get('volume_ratio', 1.0)
+        rsi = market_data.get("rsi", 50)
+        macd = market_data.get("macd", 0)
+        macd_signal = market_data.get("macd_signal", 0)
+        trend = market_data.get("trend", "neutral")
+        volatility = market_data.get("volatility", 0.02)
+        volume_ratio = market_data.get("volume_ratio", 1.0)
 
         # Recent price action
-        high_24h = market_data.get('high_24h', current_price * 1.02)
-        low_24h = market_data.get('low_24h', current_price * 0.98)
-        change_24h = market_data.get('change_24h', 0)
+        high_24h = market_data.get("high_24h", current_price * 1.02)
+        low_24h = market_data.get("low_24h", current_price * 0.98)
+        change_24h = market_data.get("change_24h", 0)
 
         # Calculate scores
         scores = {}
@@ -588,67 +603,69 @@ class ShortSellingSpecialist:
         reasoning_parts = []
 
         # 1. Trend Score (bearish trend = good for shorts)
-        if trend == 'down':
-            scores['trend'] = 80
+        if trend == "down":
+            scores["trend"] = 80
             catalysts.append("Bearish trend")
-        elif trend == 'neutral':
-            scores['trend'] = 50
+        elif trend == "neutral":
+            scores["trend"] = 50
         else:
-            scores['trend'] = 20
+            scores["trend"] = 20
 
         # 2. Momentum Score (overbought = short opportunity)
         if rsi > 70:
-            scores['momentum'] = 70 + (rsi - 70)
+            scores["momentum"] = 70 + (rsi - 70)
             catalysts.append(f"Overbought RSI ({rsi:.0f})")
             reasoning_parts.append(f"RSI overbought at {rsi:.1f}")
         elif rsi > 60:
-            scores['momentum'] = 50 + (rsi - 60) * 2
+            scores["momentum"] = 50 + (rsi - 60) * 2
         else:
-            scores['momentum'] = 30
+            scores["momentum"] = 30
 
         # 3. MACD Score (bearish crossover)
         if macd < macd_signal:
-            scores['macd'] = 70
+            scores["macd"] = 70
             if macd > 0:  # Crossover from above
-                scores['macd'] = 85
+                scores["macd"] = 85
                 catalysts.append("MACD bearish crossover")
         else:
-            scores['macd'] = 30
+            scores["macd"] = 30
 
         # 4. Price Action Score (failed rally, lower highs)
-        price_position = (current_price - low_24h) / (high_24h - low_24h) if high_24h != low_24h else 0.5
+        price_position = (
+            (current_price - low_24h) / (high_24h - low_24h) if high_24h != low_24h else 0.5
+        )
         if price_position > 0.8:  # Near highs
-            scores['price_action'] = 75  # Good short entry
+            scores["price_action"] = 75  # Good short entry
             reasoning_parts.append("Price near 24h high - potential reversal zone")
         elif price_position < 0.3:
-            scores['price_action'] = 30  # Already dropped
+            scores["price_action"] = 30  # Already dropped
         else:
-            scores['price_action'] = 50
+            scores["price_action"] = 50
 
         # 5. Volume Score (declining on rallies = distribution)
         if change_24h > 0 and volume_ratio < 0.8:
-            scores['volume'] = 75
+            scores["volume"] = 75
             catalysts.append("Rising price on declining volume (distribution)")
         elif change_24h < 0 and volume_ratio > 1.2:
-            scores['volume'] = 80
+            scores["volume"] = 80
             catalysts.append("High volume selling")
         else:
-            scores['volume'] = 50
+            scores["volume"] = 50
 
         # 6. Squeeze Risk Score (lower = better)
         squeeze_risk = self.squeeze_detector.assess_risk(symbol, market_data, orderbook_data)
-        scores['squeeze_safety'] = 100 - squeeze_risk * 100
+        scores["squeeze_safety"] = 100 - squeeze_risk * 100
         if squeeze_risk > 0.6:
             reasoning_parts.append(f"Warning: High squeeze risk ({squeeze_risk:.0%})")
 
         # Calculate overall score
         weights = {
-            'trend': 0.25,
-            'momentum': 0.2,
-            'macd': 0.15,
-            'price_action': 0.15,
-            'volume': 0.15,
-            'squeeze_safety': 0.1
+            "trend": 0.25,
+            "momentum": 0.2,
+            "macd": 0.15,
+            "price_action": 0.15,
+            "volume": 0.15,
+            "squeeze_safety": 0.1,
         }
 
         overall_score = sum(scores[k] * weights[k] for k in weights)
@@ -695,30 +712,32 @@ class ShortSellingSpecialist:
             risk_reward=risk_reward,
             leverage_suggestion=leverage,
             confidence=confidence,
-            trend_strength=-1 if trend == 'down' else (0 if trend == 'neutral' else 1),
+            trend_strength=-1 if trend == "down" else (0 if trend == "neutral" else 1),
             volume_confirmation=volume_ratio > 1.0 or (change_24h > 0 and volume_ratio < 0.8),
             resistance_levels=resistance_levels,
             support_levels=support_levels,
             catalysts=catalysts,
-            reasoning=" | ".join(reasoning_parts) if reasoning_parts else f"Score: {overall_score:.0f}/100"
+            reasoning=" | ".join(reasoning_parts)
+            if reasoning_parts
+            else f"Score: {overall_score:.0f}/100",
         )
 
     def detect_market_phase(self, market_data: Dict[str, Any]) -> MarketPhase:
         """Detect current market cycle phase."""
-        trend = market_data.get('trend', 'neutral')
-        volume_trend = market_data.get('volume_trend', 'stable')
-        rsi = market_data.get('rsi', 50)
+        trend = market_data.get("trend", "neutral")
+        volume_trend = market_data.get("volume_trend", "stable")
+        rsi = market_data.get("rsi", 50)
 
         # Simplified phase detection
-        if trend == 'up' and volume_trend == 'increasing':
+        if trend == "up" and volume_trend == "increasing":
             return MarketPhase.MARKUP
-        elif trend == 'up' and volume_trend == 'decreasing':
+        elif trend == "up" and volume_trend == "decreasing":
             return MarketPhase.DISTRIBUTION  # Smart money selling
-        elif trend == 'down' and volume_trend == 'increasing':
+        elif trend == "down" and volume_trend == "increasing":
             return MarketPhase.MARKDOWN  # Best for shorts
-        elif trend == 'down' and rsi < 20:
+        elif trend == "down" and rsi < 20:
             return MarketPhase.CAPITULATION  # End of shorts
-        elif trend == 'neutral' and volume_trend == 'decreasing':
+        elif trend == "neutral" and volume_trend == "decreasing":
             return MarketPhase.ACCUMULATION
         else:
             return MarketPhase.ACCUMULATION
@@ -728,10 +747,7 @@ class SqueezeDetector:
     """Detects short squeeze potential."""
 
     def assess_risk(
-        self,
-        symbol: str,
-        market_data: Dict[str, Any],
-        orderbook_data: Optional[Dict] = None
+        self, symbol: str, market_data: Dict[str, Any], orderbook_data: Optional[Dict] = None
     ) -> float:
         """
         Assess short squeeze risk (0-1).
@@ -745,17 +761,17 @@ class SqueezeDetector:
         risk = 0.3  # Base risk
 
         # Funding rate (if available)
-        funding_rate = market_data.get('funding_rate', 0)
+        funding_rate = market_data.get("funding_rate", 0)
         if funding_rate < -0.01:  # Negative funding = shorts paying longs
             risk += 0.2
 
         # Volume surge can trigger squeezes
-        volume_ratio = market_data.get('volume_ratio', 1.0)
+        volume_ratio = market_data.get("volume_ratio", 1.0)
         if volume_ratio > 2.0:
             risk += 0.15
 
         # RSI oversold can trigger bounces
-        rsi = market_data.get('rsi', 50)
+        rsi = market_data.get("rsi", 50)
         if rsi < 25:
             risk += 0.2
         elif rsi < 30:
@@ -763,8 +779,8 @@ class SqueezeDetector:
 
         # Order book imbalance (more bids = squeeze risk)
         if orderbook_data:
-            bid_volume = orderbook_data.get('bid_volume', 0)
-            ask_volume = orderbook_data.get('ask_volume', 0)
+            bid_volume = orderbook_data.get("bid_volume", 0)
+            ask_volume = orderbook_data.get("ask_volume", 0)
             if bid_volume > ask_volume * 1.5:
                 risk += 0.15
 
@@ -793,7 +809,7 @@ class ProfitMaximizer:
         volatility: float,
         regime: str,
         support_levels: List[float],
-        resistance_levels: List[float]
+        resistance_levels: List[float],
     ) -> List[ProfitTarget]:
         """
         Calculate multiple profit targets.
@@ -809,36 +825,40 @@ class ProfitMaximizer:
         confidence_multiplier = 1 + (confidence - 0.5) * 0.5  # 0.75 to 1.25
 
         # Adjust for regime
-        if regime == 'bull' and side == 'long':
+        if regime == "bull" and side == "long":
             regime_multiplier = 1.3
-        elif regime == 'bear' and side == 'short':
+        elif regime == "bear" and side == "short":
             regime_multiplier = 1.3
-        elif regime in ['crash', 'volatile']:
+        elif regime in ["crash", "volatile"]:
             regime_multiplier = 0.7
         else:
             regime_multiplier = 1.0
 
         # Target levels
-        if side == 'long':
+        if side == "long":
             # Conservative target (1 ATR)
             tp1 = entry_price + atr * 1.0 * confidence_multiplier * regime_multiplier
-            targets.append(ProfitTarget(
-                target_price=tp1,
-                target_pct=(tp1 - entry_price) / entry_price,
-                probability=0.7,
-                time_estimate_hours=4,
-                is_aggressive=False
-            ))
+            targets.append(
+                ProfitTarget(
+                    target_price=tp1,
+                    target_pct=(tp1 - entry_price) / entry_price,
+                    probability=0.7,
+                    time_estimate_hours=4,
+                    is_aggressive=False,
+                )
+            )
 
             # Standard target (2 ATR)
             tp2 = entry_price + atr * 2.0 * confidence_multiplier * regime_multiplier
-            targets.append(ProfitTarget(
-                target_price=tp2,
-                target_pct=(tp2 - entry_price) / entry_price,
-                probability=0.5,
-                time_estimate_hours=12,
-                is_aggressive=False
-            ))
+            targets.append(
+                ProfitTarget(
+                    target_price=tp2,
+                    target_pct=(tp2 - entry_price) / entry_price,
+                    probability=0.5,
+                    time_estimate_hours=12,
+                    is_aggressive=False,
+                )
+            )
 
             # Aggressive target (3 ATR or next resistance)
             tp3 = entry_price + atr * 3.0 * confidence_multiplier * regime_multiplier
@@ -848,34 +868,40 @@ class ProfitMaximizer:
                     tp3 = res * 0.99  # Just below resistance
                     break
 
-            targets.append(ProfitTarget(
-                target_price=tp3,
-                target_pct=(tp3 - entry_price) / entry_price,
-                probability=0.3,
-                time_estimate_hours=24,
-                is_aggressive=True
-            ))
+            targets.append(
+                ProfitTarget(
+                    target_price=tp3,
+                    target_pct=(tp3 - entry_price) / entry_price,
+                    probability=0.3,
+                    time_estimate_hours=24,
+                    is_aggressive=True,
+                )
+            )
 
         else:  # short
             # Conservative target (1 ATR down)
             tp1 = entry_price - atr * 1.0 * confidence_multiplier * regime_multiplier
-            targets.append(ProfitTarget(
-                target_price=tp1,
-                target_pct=(entry_price - tp1) / entry_price,
-                probability=0.7,
-                time_estimate_hours=4,
-                is_aggressive=False
-            ))
+            targets.append(
+                ProfitTarget(
+                    target_price=tp1,
+                    target_pct=(entry_price - tp1) / entry_price,
+                    probability=0.7,
+                    time_estimate_hours=4,
+                    is_aggressive=False,
+                )
+            )
 
             # Standard target (2 ATR down)
             tp2 = entry_price - atr * 2.0 * confidence_multiplier * regime_multiplier
-            targets.append(ProfitTarget(
-                target_price=tp2,
-                target_pct=(entry_price - tp2) / entry_price,
-                probability=0.5,
-                time_estimate_hours=12,
-                is_aggressive=False
-            ))
+            targets.append(
+                ProfitTarget(
+                    target_price=tp2,
+                    target_pct=(entry_price - tp2) / entry_price,
+                    probability=0.5,
+                    time_estimate_hours=12,
+                    is_aggressive=False,
+                )
+            )
 
             # Aggressive target (3 ATR or next support)
             tp3 = entry_price - atr * 3.0 * confidence_multiplier * regime_multiplier
@@ -884,21 +910,20 @@ class ProfitMaximizer:
                     tp3 = sup * 1.01  # Just above support
                     break
 
-            targets.append(ProfitTarget(
-                target_price=tp3,
-                target_pct=(entry_price - tp3) / entry_price,
-                probability=0.3,
-                time_estimate_hours=24,
-                is_aggressive=True
-            ))
+            targets.append(
+                ProfitTarget(
+                    target_price=tp3,
+                    target_pct=(entry_price - tp3) / entry_price,
+                    probability=0.3,
+                    time_estimate_hours=24,
+                    is_aggressive=True,
+                )
+            )
 
         return targets
 
     def get_trailing_stop_params(
-        self,
-        current_profit_pct: float,
-        volatility: float,
-        side: str
+        self, current_profit_pct: float, volatility: float, side: str
     ) -> Dict[str, float]:
         """
         Get dynamic trailing stop parameters.
@@ -926,9 +951,9 @@ class ProfitMaximizer:
             activation_pct = 0.05
 
         return {
-            'trailing_pct': trailing_pct,
-            'activation_pct': activation_pct,
-            'step_pct': atr_pct * 0.25  # Move stop every 0.25 ATR
+            "trailing_pct": trailing_pct,
+            "activation_pct": activation_pct,
+            "step_pct": atr_pct * 0.25,  # Move stop every 0.25 ATR
         }
 
 
@@ -954,7 +979,7 @@ class DeepReasoningEngine:
         market_data: Dict[str, Any],
         intelligence_data: Dict[str, Any],
         ml_signal: Dict[str, Any],
-        existing_positions: List[Dict]
+        existing_positions: List[Dict],
     ) -> Dict[str, Any]:
         """
         Perform deep multi-step analysis.
@@ -964,151 +989,141 @@ class DeepReasoningEngine:
         reasoning_steps = []
 
         # Step 1: Data Gathering
-        step1 = {
-            'step': 'Data Collection',
-            'findings': []
-        }
+        step1 = {"step": "Data Collection", "findings": []}
 
         # Technical data
-        rsi = market_data.get('rsi', 50)
-        trend = market_data.get('trend', 'neutral')
-        volatility = market_data.get('volatility', 0.02)
-        regime = market_data.get('regime', 'unknown')
+        rsi = market_data.get("rsi", 50)
+        trend = market_data.get("trend", "neutral")
+        volatility = market_data.get("volatility", 0.02)
+        regime = market_data.get("regime", "unknown")
 
-        step1['findings'].append(f"RSI: {rsi:.1f}")
-        step1['findings'].append(f"Trend: {trend}")
-        step1['findings'].append(f"Volatility: {volatility*100:.1f}%")
-        step1['findings'].append(f"Regime: {regime}")
+        step1["findings"].append(f"RSI: {rsi:.1f}")
+        step1["findings"].append(f"Trend: {trend}")
+        step1["findings"].append(f"Volatility: {volatility * 100:.1f}%")
+        step1["findings"].append(f"Regime: {regime}")
 
         # Intelligence data
-        sentiment = intelligence_data.get('sentiment', {})
-        fear_greed = sentiment.get('fear_greed', 50)
-        news_sentiment = sentiment.get('news', 0)
+        sentiment = intelligence_data.get("sentiment", {})
+        fear_greed = sentiment.get("fear_greed", 50)
+        news_sentiment = sentiment.get("news", 0)
 
-        step1['findings'].append(f"Fear/Greed: {fear_greed}")
-        step1['findings'].append(f"News Sentiment: {news_sentiment:.2f}")
+        step1["findings"].append(f"Fear/Greed: {fear_greed}")
+        step1["findings"].append(f"News Sentiment: {news_sentiment:.2f}")
 
         reasoning_steps.append(step1)
 
         # Step 2: Pattern Recognition
-        step2 = {
-            'step': 'Pattern Recognition',
-            'patterns': []
-        }
+        step2 = {"step": "Pattern Recognition", "patterns": []}
 
         # Identify patterns
-        if rsi > 70 and trend == 'up':
-            step2['patterns'].append("Overbought in uptrend - potential reversal")
-        elif rsi < 30 and trend == 'down':
-            step2['patterns'].append("Oversold in downtrend - potential bounce")
+        if rsi > 70 and trend == "up":
+            step2["patterns"].append("Overbought in uptrend - potential reversal")
+        elif rsi < 30 and trend == "down":
+            step2["patterns"].append("Oversold in downtrend - potential bounce")
 
         if fear_greed < 25:
-            step2['patterns'].append("Extreme fear - contrarian buy signal")
+            step2["patterns"].append("Extreme fear - contrarian buy signal")
         elif fear_greed > 75:
-            step2['patterns'].append("Extreme greed - contrarian sell signal")
+            step2["patterns"].append("Extreme greed - contrarian sell signal")
 
         if news_sentiment < -0.5:
-            step2['patterns'].append("Very negative news sentiment")
+            step2["patterns"].append("Very negative news sentiment")
         elif news_sentiment > 0.5:
-            step2['patterns'].append("Very positive news sentiment")
+            step2["patterns"].append("Very positive news sentiment")
 
         reasoning_steps.append(step2)
 
         # Step 3: Hypothesis Generation
-        step3 = {
-            'step': 'Hypothesis Generation',
-            'hypotheses': []
-        }
+        step3 = {"step": "Hypothesis Generation", "hypotheses": []}
 
         # Generate hypotheses based on patterns
         bullish_points = 0
         bearish_points = 0
 
         # Trend following
-        if trend == 'up':
+        if trend == "up":
             bullish_points += 2
-            step3['hypotheses'].append("H1: Trend continuation (bullish)")
-        elif trend == 'down':
+            step3["hypotheses"].append("H1: Trend continuation (bullish)")
+        elif trend == "down":
             bearish_points += 2
-            step3['hypotheses'].append("H1: Trend continuation (bearish)")
+            step3["hypotheses"].append("H1: Trend continuation (bearish)")
 
         # Mean reversion at extremes
         if rsi > 70:
             bearish_points += 1
-            step3['hypotheses'].append("H2: RSI overbought - mean reversion likely")
+            step3["hypotheses"].append("H2: RSI overbought - mean reversion likely")
         elif rsi < 30:
             bullish_points += 1
-            step3['hypotheses'].append("H2: RSI oversold - bounce likely")
+            step3["hypotheses"].append("H2: RSI oversold - bounce likely")
 
         # Sentiment contrarian
         if fear_greed < 30:
             bullish_points += 1
-            step3['hypotheses'].append("H3: Extreme fear - contrarian opportunity")
+            step3["hypotheses"].append("H3: Extreme fear - contrarian opportunity")
         elif fear_greed > 70:
             bearish_points += 1
-            step3['hypotheses'].append("H3: Extreme greed - caution warranted")
+            step3["hypotheses"].append("H3: Extreme greed - caution warranted")
 
         reasoning_steps.append(step3)
 
         # Step 4: Decision Synthesis
-        step4 = {
-            'step': 'Decision Synthesis',
-            'analysis': []
-        }
+        step4 = {"step": "Decision Synthesis", "analysis": []}
 
         # Calculate net score
         net_score = bullish_points - bearish_points
 
         if net_score > 2:
-            action = 'BUY'
+            action = "BUY"
             confidence = 0.6 + min(0.3, net_score * 0.05)
-            step4['analysis'].append(f"Strong bullish case ({bullish_points} vs {bearish_points})")
+            step4["analysis"].append(f"Strong bullish case ({bullish_points} vs {bearish_points})")
         elif net_score < -2:
-            action = 'SELL'
+            action = "SELL"
             confidence = 0.6 + min(0.3, abs(net_score) * 0.05)
-            step4['analysis'].append(f"Strong bearish case ({bearish_points} vs {bullish_points})")
+            step4["analysis"].append(f"Strong bearish case ({bearish_points} vs {bullish_points})")
         elif net_score > 0:
-            action = 'BUY'
+            action = "BUY"
             confidence = 0.5 + net_score * 0.05
-            step4['analysis'].append(f"Slight bullish bias ({bullish_points} vs {bearish_points})")
+            step4["analysis"].append(f"Slight bullish bias ({bullish_points} vs {bearish_points})")
         elif net_score < 0:
-            action = 'SELL'
+            action = "SELL"
             confidence = 0.5 + abs(net_score) * 0.05
-            step4['analysis'].append(f"Slight bearish bias ({bearish_points} vs {bullish_points})")
+            step4["analysis"].append(f"Slight bearish bias ({bearish_points} vs {bullish_points})")
         else:
-            action = 'HOLD'
+            action = "HOLD"
             confidence = 0.5
-            step4['analysis'].append("Neutral - no clear edge")
+            step4["analysis"].append("Neutral - no clear edge")
 
         # Adjust for ML signal agreement
-        ml_action = ml_signal.get('action', 'HOLD')
-        ml_confidence = ml_signal.get('confidence', 0.5)
+        ml_action = ml_signal.get("action", "HOLD")
+        ml_confidence = ml_signal.get("confidence", 0.5)
 
         if ml_action == action:
             confidence = min(0.95, confidence + 0.1)
-            step4['analysis'].append(f"ML agrees ({ml_action} @ {ml_confidence:.0%})")
-        elif ml_action != 'HOLD' and action != 'HOLD':
+            step4["analysis"].append(f"ML agrees ({ml_action} @ {ml_confidence:.0%})")
+        elif ml_action != "HOLD" and action != "HOLD":
             confidence = max(0.3, confidence - 0.15)
-            step4['analysis'].append(f"ML disagrees ({ml_action} @ {ml_confidence:.0%})")
+            step4["analysis"].append(f"ML disagrees ({ml_action} @ {ml_confidence:.0%})")
 
         # Check existing positions
         for pos in existing_positions:
-            if pos.get('symbol') == symbol:
-                pos_side = pos.get('side', 'long')
-                if (pos_side == 'long' and action == 'SELL') or (pos_side == 'short' and action == 'BUY'):
-                    step4['analysis'].append("Consider closing existing position")
+            if pos.get("symbol") == symbol:
+                pos_side = pos.get("side", "long")
+                if (pos_side == "long" and action == "SELL") or (
+                    pos_side == "short" and action == "BUY"
+                ):
+                    step4["analysis"].append("Consider closing existing position")
 
         reasoning_steps.append(step4)
 
         # Final decision
         return {
-            'symbol': symbol,
-            'action': action,
-            'confidence': confidence,
-            'reasoning_steps': reasoning_steps,
-            'bullish_points': bullish_points,
-            'bearish_points': bearish_points,
-            'summary': f"{action} with {confidence:.0%} confidence based on {len(step2['patterns'])} patterns"
+            "symbol": symbol,
+            "action": action,
+            "confidence": confidence,
+            "reasoning_steps": reasoning_steps,
+            "bullish_points": bullish_points,
+            "bearish_points": bearish_points,
+            "summary": f"{action} with {confidence:.0%} confidence based on {len(step2['patterns'])} patterns",
         }
 
 
@@ -1142,31 +1157,30 @@ class AdvancedTradingBrain:
         market_data: Dict[str, Any],
         intelligence_data: Dict[str, Any],
         ml_signal: Dict[str, Any],
-        existing_positions: List[Dict]
+        existing_positions: List[Dict],
     ) -> Dict[str, Any]:
         """
         Generate complete trade plan with all parameters.
         """
         # Deep reasoning analysis
         analysis = await self.reasoning_engine.deep_analyze(
-            symbol, current_price, market_data, intelligence_data,
-            ml_signal, existing_positions
+            symbol, current_price, market_data, intelligence_data, ml_signal, existing_positions
         )
 
-        action = analysis['action']
-        confidence = analysis['confidence']
+        action = analysis["action"]
+        confidence = analysis["confidence"]
 
         # If no trade, return early
-        if action == 'HOLD':
+        if action == "HOLD":
             return {
-                'action': 'HOLD',
-                'confidence': confidence,
-                'reasoning': analysis['summary'],
-                'reasoning_steps': analysis['reasoning_steps']
+                "action": "HOLD",
+                "confidence": confidence,
+                "reasoning": analysis["summary"],
+                "reasoning_steps": analysis["reasoning_steps"],
             }
 
         # Determine if this is a short
-        is_short = action in ['SELL', 'SHORT']
+        is_short = action in ["SELL", "SHORT"]
 
         # For shorts, get specialized analysis
         short_analysis = None
@@ -1180,27 +1194,35 @@ class AdvancedTradingBrain:
         # Get leverage recommendation
         leverage_rec = self.leverage_manager.calculate_optimal_leverage(
             signal_confidence=confidence,
-            volatility=market_data.get('volatility', 0.02),
+            volatility=market_data.get("volatility", 0.02),
             account_balance=account_balance,
             current_exposure=current_exposure,
-            win_rate=market_data.get('recent_win_rate', 0.5),
-            regime=market_data.get('regime', 'unknown'),
-            is_short=is_short
+            win_rate=market_data.get("recent_win_rate", 0.5),
+            regime=market_data.get("regime", "unknown"),
+            is_short=is_short,
         )
 
         # Calculate profit targets
-        volatility = market_data.get('volatility', 0.02)
-        support_levels = short_analysis.support_levels if short_analysis else [current_price * 0.95, current_price * 0.9]
-        resistance_levels = short_analysis.resistance_levels if short_analysis else [current_price * 1.05, current_price * 1.1]
+        volatility = market_data.get("volatility", 0.02)
+        support_levels = (
+            short_analysis.support_levels
+            if short_analysis
+            else [current_price * 0.95, current_price * 0.9]
+        )
+        resistance_levels = (
+            short_analysis.resistance_levels
+            if short_analysis
+            else [current_price * 1.05, current_price * 1.1]
+        )
 
         targets = self.profit_maximizer.calculate_targets(
             entry_price=current_price,
-            side='short' if is_short else 'long',
+            side="short" if is_short else "long",
             confidence=confidence,
             volatility=volatility,
-            regime=market_data.get('regime', 'unknown'),
+            regime=market_data.get("regime", "unknown"),
             support_levels=support_levels,
-            resistance_levels=resistance_levels
+            resistance_levels=resistance_levels,
         )
 
         # Calculate stop loss
@@ -1213,29 +1235,34 @@ class AdvancedTradingBrain:
             stop_loss = current_price - atr * 1.5
 
         return {
-            'action': action,
-            'confidence': confidence,
-            'entry_price': current_price,
-            'stop_loss': stop_loss,
-            'targets': [
+            "action": action,
+            "confidence": confidence,
+            "entry_price": current_price,
+            "stop_loss": stop_loss,
+            "targets": [
                 {
-                    'price': t.target_price,
-                    'pct': t.target_pct * 100,
-                    'probability': t.probability,
-                    'aggressive': t.is_aggressive
-                } for t in targets
+                    "price": t.target_price,
+                    "pct": t.target_pct * 100,
+                    "probability": t.probability,
+                    "aggressive": t.is_aggressive,
+                }
+                for t in targets
             ],
-            'leverage': leverage_rec.recommended_leverage,
-            'position_size_usd': leverage_rec.position_size_usd,
-            'leverage_warnings': leverage_rec.warnings,
-            'risk_reward': leverage_rec.risk_reward_ratio,
-            'reasoning': analysis['summary'],
-            'reasoning_steps': analysis['reasoning_steps'],
-            'short_analysis': {
-                'score': short_analysis.score,
-                'catalysts': short_analysis.catalysts,
-                'squeeze_risk': self.short_specialist.squeeze_detector.assess_risk(symbol, market_data, None)
-            } if short_analysis else None
+            "leverage": leverage_rec.recommended_leverage,
+            "position_size_usd": leverage_rec.position_size_usd,
+            "leverage_warnings": leverage_rec.warnings,
+            "risk_reward": leverage_rec.risk_reward_ratio,
+            "reasoning": analysis["summary"],
+            "reasoning_steps": analysis["reasoning_steps"],
+            "short_analysis": {
+                "score": short_analysis.score,
+                "catalysts": short_analysis.catalysts,
+                "squeeze_risk": self.short_specialist.squeeze_detector.assess_risk(
+                    symbol, market_data, None
+                ),
+            }
+            if short_analysis
+            else None,
         }
 
     def check_exit(
@@ -1248,12 +1275,19 @@ class AdvancedTradingBrain:
         stop_loss: float,
         take_profit: float,
         leverage: float,
-        market_data: Dict[str, Any]
+        market_data: Dict[str, Any],
     ) -> ExitSignal:
         """Check if position should be exited."""
         return self.exit_optimizer.analyze_exit(
-            symbol, side, entry_price, current_price,
-            entry_time, stop_loss, take_profit, leverage, market_data
+            symbol,
+            side,
+            entry_price,
+            current_price,
+            entry_time,
+            stop_loss,
+            take_profit,
+            leverage,
+            market_data,
         )
 
     def record_trade(self, leverage: float, pnl: float, won: bool):
@@ -1263,6 +1297,7 @@ class AdvancedTradingBrain:
 
 # Global instance
 _advanced_brain: Optional[AdvancedTradingBrain] = None
+
 
 def get_advanced_trading_brain(max_leverage: float = 20.0) -> AdvancedTradingBrain:
     """Get or create the Advanced Trading Brain instance."""

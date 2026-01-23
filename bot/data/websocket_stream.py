@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 class StreamType(Enum):
     """Types of data streams."""
+
     TICKER = "ticker"
     TRADES = "trades"
     ORDERBOOK = "orderbook"
@@ -32,6 +33,7 @@ class StreamType(Enum):
 @dataclass
 class TickerUpdate:
     """Real-time ticker update."""
+
     symbol: str
     price: float
     bid: float
@@ -55,6 +57,7 @@ class TickerUpdate:
 @dataclass
 class TradeUpdate:
     """Real-time trade update."""
+
     symbol: str
     price: float
     quantity: float
@@ -76,6 +79,7 @@ class TradeUpdate:
 @dataclass
 class OrderbookUpdate:
     """Real-time orderbook update."""
+
     symbol: str
     bids: List[List[float]]  # [[price, qty], ...]
     asks: List[List[float]]
@@ -99,6 +103,7 @@ class OrderbookUpdate:
 @dataclass
 class StreamConfig:
     """WebSocket stream configuration."""
+
     # Connection settings
     reconnect_delay: float = 1.0
     max_reconnect_delay: float = 60.0
@@ -272,10 +277,7 @@ class BinanceWebSocket(WebSocketStream):
         """Handle incoming WebSocket messages."""
         while self._running and self._ws:
             try:
-                message = await asyncio.wait_for(
-                    self._ws.recv(),
-                    timeout=self.config.ping_interval
-                )
+                message = await asyncio.wait_for(self._ws.recv(), timeout=self.config.ping_interval)
                 data = json.loads(message)
                 self._process_message(data)
 
@@ -346,11 +348,15 @@ class BinanceWebSocket(WebSocketStream):
 
                 # Resubscribe
                 for stream in self._subscriptions.copy():
-                    await self._ws.send(json.dumps({
-                        "method": "SUBSCRIBE",
-                        "params": [stream],
-                        "id": self._stream_id,
-                    }))
+                    await self._ws.send(
+                        json.dumps(
+                            {
+                                "method": "SUBSCRIBE",
+                                "params": [stream],
+                                "id": self._stream_id,
+                            }
+                        )
+                    )
                     self._stream_id += 1
 
                 return
@@ -464,8 +470,7 @@ class StreamManager:
 
 
 def create_binance_stream(
-    config: Optional[StreamConfig] = None,
-    use_futures: bool = False
+    config: Optional[StreamConfig] = None, use_futures: bool = False
 ) -> BinanceWebSocket:
     """Factory function to create Binance WebSocket stream."""
     return BinanceWebSocket(config=config, use_futures=use_futures)

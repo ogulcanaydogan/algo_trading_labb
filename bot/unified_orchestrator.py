@@ -31,14 +31,16 @@ logger = logging.getLogger(__name__)
 
 class TradingMode(Enum):
     """Operating modes for the trading system."""
-    LIVE = "live"           # Real money trading
-    PAPER = "paper"         # Paper trading with simulated execution
-    BACKTEST = "backtest"   # Historical backtesting
-    SHADOW = "shadow"       # Shadow mode - signals only, no execution
+
+    LIVE = "live"  # Real money trading
+    PAPER = "paper"  # Paper trading with simulated execution
+    BACKTEST = "backtest"  # Historical backtesting
+    SHADOW = "shadow"  # Shadow mode - signals only, no execution
 
 
 class SystemState(Enum):
     """Overall system state."""
+
     INITIALIZING = "initializing"
     RUNNING = "running"
     PAUSED = "paused"
@@ -54,6 +56,7 @@ SystemStatus = SystemState
 @dataclass
 class OrchestratorConfig:
     """Configuration for the orchestrator."""
+
     initial_capital: float = 10000.0
     max_positions: int = 10
     enable_notifications: bool = True
@@ -67,6 +70,7 @@ class OrchestratorConfig:
 @dataclass
 class TradingDecision:
     """A trading decision with full context."""
+
     decision_id: str
     timestamp: datetime
     symbol: str
@@ -104,6 +108,7 @@ class TradingDecision:
 @dataclass
 class SystemHealth:
     """System health metrics."""
+
     state: SystemState
     uptime_seconds: float
     last_heartbeat: datetime
@@ -143,9 +148,7 @@ class UnifiedOrchestrator:
     """
 
     def __init__(
-        self,
-        mode: TradingMode = TradingMode.PAPER,
-        config: Optional["OrchestratorConfig"] = None
+        self, mode: TradingMode = TradingMode.PAPER, config: Optional["OrchestratorConfig"] = None
     ):
         """
         Initialize the orchestrator.
@@ -195,7 +198,7 @@ class UnifiedOrchestrator:
             "decisions_approved": 0,
             "decisions_rejected": 0,
             "trades_executed": 0,
-            "errors_total": 0
+            "errors_total": 0,
         }
 
         logger.info(f"UnifiedOrchestrator initialized in {mode.value} mode")
@@ -217,7 +220,7 @@ class UnifiedOrchestrator:
         trade_ledger=None,
         execution_engine=None,
         websocket_hub=None,
-        data_streamer=None
+        data_streamer=None,
     ):
         """
         Inject component dependencies.
@@ -358,7 +361,7 @@ class UnifiedOrchestrator:
         price: float,
         volume: float,
         timestamp: Optional[datetime] = None,
-        additional_data: Optional[Dict] = None
+        additional_data: Optional[Dict] = None,
     ):
         """
         Process a market data update through the full pipeline.
@@ -400,8 +403,7 @@ class UnifiedOrchestrator:
             ai_decisions = None
             if self.ai_integration:
                 ai_decisions = self.ai_integration.aggregate_decisions(
-                    market_state,
-                    include_shadow=True
+                    market_state, include_shadow=True
                 )
 
             # Apply meta-allocation weights
@@ -428,7 +430,7 @@ class UnifiedOrchestrator:
         price: float,
         volume: float,
         timestamp: datetime,
-        additional_data: Optional[Dict]
+        additional_data: Optional[Dict],
     ) -> Dict[str, Any]:
         """Build a market state dictionary for strategies."""
         state = {
@@ -436,7 +438,7 @@ class UnifiedOrchestrator:
             "price": price,
             "volume": volume,
             "timestamp": timestamp,
-            "regime": self.current_regime
+            "regime": self.current_regime,
         }
 
         if additional_data:
@@ -444,10 +446,7 @@ class UnifiedOrchestrator:
 
         return state
 
-    async def _collect_strategy_signals(
-        self,
-        market_state: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+    async def _collect_strategy_signals(self, market_state: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Collect signals from all active strategies."""
         signals = []
 
@@ -466,7 +465,7 @@ class UnifiedOrchestrator:
                     continue
 
                 # Check if strategy is suitable for current regime
-                if hasattr(strategy, 'suitable_regimes'):
+                if hasattr(strategy, "suitable_regimes"):
                     if self.current_regime not in strategy.suitable_regimes:
                         continue
 
@@ -474,16 +473,18 @@ class UnifiedOrchestrator:
                 signal = strategy.predict(market_state)
 
                 if signal and signal.action != "hold":
-                    signals.append({
-                        "strategy_name": strategy_name,
-                        "symbol": symbol,
-                        "action": signal.action,
-                        "strength": signal.strength,
-                        "confidence": signal.confidence,
-                        "quantity": signal.suggested_quantity,
-                        "price": market_state["price"],
-                        "reasons": signal.reasons if hasattr(signal, 'reasons') else []
-                    })
+                    signals.append(
+                        {
+                            "strategy_name": strategy_name,
+                            "symbol": symbol,
+                            "action": signal.action,
+                            "strength": signal.strength,
+                            "confidence": signal.confidence,
+                            "quantity": signal.suggested_quantity,
+                            "price": market_state["price"],
+                            "reasons": signal.reasons if hasattr(signal, "reasons") else [],
+                        }
+                    )
 
                     # Stream signal to clients
                     if self.data_streamer:
@@ -493,7 +494,7 @@ class UnifiedOrchestrator:
                             signal=signal.action,
                             strength=signal.strength,
                             confidence=signal.confidence,
-                            reasons=signal.reasons if hasattr(signal, 'reasons') else []
+                            reasons=signal.reasons if hasattr(signal, "reasons") else [],
                         )
 
             except Exception as e:
@@ -501,10 +502,7 @@ class UnifiedOrchestrator:
 
         return signals
 
-    def _apply_allocation_weights(
-        self,
-        signals: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+    def _apply_allocation_weights(self, signals: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Apply meta-allocation weights to signals."""
         if not self.meta_allocator:
             return signals
@@ -531,13 +529,15 @@ class UnifiedOrchestrator:
         signals: List[Dict[str, Any]],
         market_state: Dict[str, Any],
         news_features: Optional[Any],
-        ai_decisions: Optional[Dict]
+        ai_decisions: Optional[Dict],
     ) -> List[TradingDecision]:
         """Create trading decisions from signals."""
         decisions = []
 
         for signal in signals:
-            decision_id = f"dec_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{signal['strategy_name'][:3]}"
+            decision_id = (
+                f"dec_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{signal['strategy_name'][:3]}"
+            )
 
             # Get news sentiment if available
             news_sentiment = None
@@ -565,7 +565,7 @@ class UnifiedOrchestrator:
                 ai_recommendation=ai_recommendation,
                 news_sentiment=news_sentiment,
                 allocation_weight=signal.get("allocation_weight", 1.0),
-                regime=self.current_regime
+                regime=self.current_regime,
             )
 
             decisions.append(decision)
@@ -614,10 +614,7 @@ class UnifiedOrchestrator:
         if len(self.recent_decisions) > 1000:
             self.recent_decisions = self.recent_decisions[-500:]
 
-    async def _check_risk(
-        self,
-        decision: TradingDecision
-    ) -> Tuple[bool, str, float]:
+    async def _check_risk(self, decision: TradingDecision) -> Tuple[bool, str, float]:
         """
         Check decision with Risk Guardian.
 
@@ -636,22 +633,26 @@ class UnifiedOrchestrator:
                 "quantity": decision.quantity,
                 "price": decision.price,
                 "strategy": decision.strategy_name,
-                "regime": decision.regime
+                "regime": decision.regime,
             }
 
             # Check with risk guardian
             result = self.risk_guardian.check_trade(context)
 
-            if hasattr(result, 'approved'):
+            if hasattr(result, "approved"):
                 return result.approved, result.reason, result.adjusted_quantity
             elif isinstance(result, dict):
                 return (
                     result.get("approved", False),
                     result.get("reason", "Unknown"),
-                    result.get("adjusted_quantity", decision.quantity)
+                    result.get("adjusted_quantity", decision.quantity),
                 )
             else:
-                return bool(result), "Risk check passed" if result else "Risk check failed", decision.quantity
+                return (
+                    bool(result),
+                    "Risk check passed" if result else "Risk check failed",
+                    decision.quantity,
+                )
 
         except Exception as e:
             logger.error(f"Risk check error: {e}")
@@ -670,7 +671,7 @@ class UnifiedOrchestrator:
                 side=decision.action,
                 quantity=decision.quantity,
                 order_type="market",
-                price=decision.price
+                price=decision.price,
             )
 
             if result and result.get("success"):
@@ -679,7 +680,8 @@ class UnifiedOrchestrator:
                 decision.execution_time = datetime.now()
                 decision.slippage = (
                     (decision.execution_price - decision.price) / decision.price
-                    if decision.execution_price else None
+                    if decision.execution_price
+                    else None
                 )
 
                 self.metrics["trades_executed"] += 1
@@ -692,7 +694,7 @@ class UnifiedOrchestrator:
                         side=decision.action,
                         quantity=decision.quantity,
                         price=decision.execution_price or decision.price,
-                        strategy=decision.strategy_name
+                        strategy=decision.strategy_name,
                     )
 
                 # Notify callbacks
@@ -724,9 +726,7 @@ class UnifiedOrchestrator:
             # Stream regime change
             if self.data_streamer:
                 await self.data_streamer.stream_regime_change(
-                    previous_regime=old_regime,
-                    new_regime=new_regime,
-                    confidence=confidence
+                    previous_regime=old_regime, new_regime=new_regime, confidence=confidence
                 )
 
             # Notify callbacks
@@ -760,12 +760,13 @@ class UnifiedOrchestrator:
         # Stream alert
         if self.data_streamer:
             from bot.websocket_streaming import AlertLevel
+
             await self.data_streamer.stream_alert(
                 title="Kill Switch Activated",
                 message=reason,
                 level=AlertLevel.EMERGENCY,
                 category="kill_switch",
-                action_required=True
+                action_required=True,
             )
 
     async def adjust_risk_limit(self, limit_type: str, value: float) -> bool:
@@ -784,7 +785,7 @@ class UnifiedOrchestrator:
             return False
 
         try:
-            if hasattr(self.risk_guardian, 'update_limit'):
+            if hasattr(self.risk_guardian, "update_limit"):
                 self.risk_guardian.update_limit(limit_type, value)
                 logger.info(f"Risk limit updated: {limit_type} = {value}")
                 return True
@@ -843,11 +844,12 @@ class UnifiedOrchestrator:
                 if health.current_drawdown > 0.08:  # 8% drawdown warning
                     if self.data_streamer:
                         from bot.websocket_streaming import AlertLevel
+
                         await self.data_streamer.stream_risk_alert(
                             alert_type="drawdown_warning",
                             level=AlertLevel.WARNING,
                             message=f"Drawdown at {health.current_drawdown:.1%}",
-                            metrics={"current_drawdown": health.current_drawdown}
+                            metrics={"current_drawdown": health.current_drawdown},
                         )
 
             except asyncio.CancelledError:
@@ -857,7 +859,7 @@ class UnifiedOrchestrator:
 
     async def _rebalance_loop(self):
         """Periodic portfolio rebalancing."""
-        rebalance_interval = getattr(self.config, 'rebalance_interval_hours', 24)
+        rebalance_interval = getattr(self.config, "rebalance_interval_hours", 24)
 
         while self.state != SystemState.STOPPED:
             try:
@@ -884,7 +886,7 @@ class UnifiedOrchestrator:
             trading_enabled=self.state == SystemState.RUNNING,
             connected_exchanges=["binance"],  # Would be dynamic
             active_strategies=active_strats,
-            warnings=[]
+            warnings=[],
         )
 
     async def _handle_error(self, error: Exception, context: Optional[Dict] = None):
@@ -893,7 +895,7 @@ class UnifiedOrchestrator:
             "error": str(error),
             "traceback": traceback.format_exc(),
             "context": context,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
         logger.error(f"Error handled: {error_info}")
@@ -908,11 +910,9 @@ class UnifiedOrchestrator:
         # Stream error alert for critical errors
         if self.data_streamer:
             from bot.websocket_streaming import AlertLevel
+
             await self.data_streamer.stream_alert(
-                title="System Error",
-                message=str(error),
-                level=AlertLevel.WARNING,
-                category="error"
+                title="System Error", message=str(error), level=AlertLevel.WARNING, category="error"
             )
 
     def get_health(self) -> SystemHealth:
@@ -927,7 +927,7 @@ class UnifiedOrchestrator:
             websocket_clients=len(self.websocket_hub.clients) if self.websocket_hub else 0,
             decisions_today=self.metrics["decisions_total"],
             trades_today=self.metrics["trades_executed"],
-            errors_today=self.metrics["errors_total"]
+            errors_today=self.metrics["errors_total"],
         )
 
     def get_status(self) -> Dict[str, Any]:
@@ -949,9 +949,9 @@ class UnifiedOrchestrator:
                 "ai_integration": self.ai_integration is not None,
                 "news_extractor": self.news_extractor is not None,
                 "execution_engine": self.execution_engine is not None,
-                "websocket_hub": self.websocket_hub is not None
+                "websocket_hub": self.websocket_hub is not None,
             },
-            "recent_decisions_count": len(self.recent_decisions)
+            "recent_decisions_count": len(self.recent_decisions),
         }
 
     def on_trade(self, callback: Callable):
@@ -973,8 +973,7 @@ class UnifiedOrchestrator:
 
 # Factory function for creating orchestrator with all components
 def create_orchestrator(
-    mode: TradingMode = TradingMode.PAPER,
-    config: Optional[Dict[str, Any]] = None
+    mode: TradingMode = TradingMode.PAPER, config: Optional[Dict[str, Any]] = None
 ) -> UnifiedOrchestrator:
     """
     Create an orchestrator with default component initialization.
@@ -997,6 +996,7 @@ def create_orchestrator(
 if __name__ == "__main__":
     # Demo usage
     import asyncio
+
     logging.basicConfig(level=logging.INFO)
 
     async def demo():

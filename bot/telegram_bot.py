@@ -35,14 +35,16 @@ logger = logging.getLogger(__name__)
 
 class BotCommandAccess(Enum):
     """Access levels for commands."""
-    PUBLIC = "public"      # Anyone can use
-    USER = "user"          # Registered users only
-    ADMIN = "admin"        # Admins only
+
+    PUBLIC = "public"  # Anyone can use
+    USER = "user"  # Registered users only
+    ADMIN = "admin"  # Admins only
 
 
 @dataclass
 class BotCommand:
     """Definition of a bot command."""
+
     command: str
     description: str
     access: BotCommandAccess
@@ -68,7 +70,7 @@ class TelegramTradingBot:
         admin_chat_ids: List[str],
         allowed_chat_ids: Optional[List[str]] = None,
         orchestrator=None,
-        notification_manager=None
+        notification_manager=None,
     ):
         """
         Initialize the Telegram trading bot.
@@ -82,7 +84,9 @@ class TelegramTradingBot:
         """
         self.bot_token = bot_token
         self.admin_chat_ids = set(str(cid).strip() for cid in admin_chat_ids if cid)
-        self.allowed_chat_ids = set(str(cid).strip() for cid in (allowed_chat_ids or [])) | self.admin_chat_ids
+        self.allowed_chat_ids = (
+            set(str(cid).strip() for cid in (allowed_chat_ids or [])) | self.admin_chat_ids
+        )
 
         self.orchestrator = orchestrator
         self.notification_manager = notification_manager
@@ -196,11 +200,7 @@ class TelegramTradingBot:
         import aiohttp
 
         url = f"https://api.telegram.org/bot{self.bot_token}/getUpdates"
-        params = {
-            "offset": self._last_update_id + 1,
-            "timeout": 30,
-            "allowed_updates": ["message"]
-        }
+        params = {"offset": self._last_update_id + 1, "timeout": 30, "allowed_updates": ["message"]}
 
         async with aiohttp.ClientSession() as session:
             async with session.get(url, params=params) as response:
@@ -278,13 +278,15 @@ class TelegramTradingBot:
         command: str,
         args: List[str],
         access_level: BotCommandAccess,
-        username: str
+        username: str,
     ):
         """Handle a command."""
         cmd_def = self.commands.get(command)
 
         if not cmd_def:
-            await self._send_message(chat_id, f"Unknown command: {command}\nUse /help to see available commands.")
+            await self._send_message(
+                chat_id, f"Unknown command: {command}\nUse /help to see available commands."
+            )
             return
 
         # Check access level
@@ -314,7 +316,7 @@ class TelegramTradingBot:
             "chat_id": chat_id,
             "text": text,
             "parse_mode": parse_mode,
-            "disable_web_page_preview": True
+            "disable_web_page_preview": True,
         }
 
         async with aiohttp.ClientSession() as session:
@@ -388,35 +390,30 @@ This bot allows you to monitor and control your algorithmic trading system.
         status = self.orchestrator.get_status()
         health = self.orchestrator.get_health()
 
-        state_emoji = {
-            "running": "🟢",
-            "paused": "🟡",
-            "stopped": "🔴",
-            "error": "❌"
-        }
+        state_emoji = {"running": "🟢", "paused": "🟡", "stopped": "🔴", "error": "❌"}
 
         emoji = state_emoji.get(status["state"], "⚪")
 
         message = f"""
 {emoji} <b>System Status</b>
 
-<b>State:</b> {status['state'].upper()}
-<b>Mode:</b> {status['mode']}
+<b>State:</b> {status["state"].upper()}
+<b>Mode:</b> {status["mode"]}
 <b>Uptime:</b> {health.uptime_seconds / 3600:.1f} hours
-<b>Regime:</b> {status['current_regime']}
+<b>Regime:</b> {status["current_regime"]}
 
 <b>Today's Activity:</b>
 • Decisions: {health.decisions_today}
 • Trades: {health.trades_today}
 • Errors: {health.errors_today}
 
-<b>Active Strategies:</b> {len(status['active_strategies'])}
-{', '.join(status['active_strategies'][:5]) or 'None'}
+<b>Active Strategies:</b> {len(status["active_strategies"])}
+{", ".join(status["active_strategies"][:5]) or "None"}
 
 <b>Components:</b>
-• Risk Guardian: {'✅' if status['components']['risk_guardian'] else '❌'}
-• Execution: {'✅' if status['components']['execution_engine'] else '❌'}
-• AI Integration: {'✅' if status['components']['ai_integration'] else '❌'}
+• Risk Guardian: {"✅" if status["components"]["risk_guardian"] else "❌"}
+• Execution: {"✅" if status["components"]["execution_engine"] else "❌"}
+• AI Integration: {"✅" if status["components"]["ai_integration"] else "❌"}
         """
         await self._send_message(chat_id, message.strip())
 
@@ -504,7 +501,7 @@ This bot allows you to monitor and control your algorithmic trading system.
             "mean_reverting": "↔️",
             "high_volatility": "⚡",
             "low_volatility": "😴",
-            "crisis": "🚨"
+            "crisis": "🚨",
         }
 
         emoji = regime_emoji.get(regime, "❓")
@@ -512,7 +509,7 @@ This bot allows you to monitor and control your algorithmic trading system.
         message = f"""
 {emoji} <b>Market Regime</b>
 
-<b>Current:</b> {regime.replace('_', ' ').title()}
+<b>Current:</b> {regime.replace("_", " ").title()}
 
 <b>Strategy Recommendations:</b>
 {self._get_regime_recommendations(regime)}
@@ -527,7 +524,7 @@ This bot allows you to monitor and control your algorithmic trading system.
             "mean_reverting": "• Mean reversion strategies\n• Range trading\n• Standard position sizes",
             "high_volatility": "• Reduce position sizes\n• Wider stops\n• Consider options hedging",
             "low_volatility": "• Breakout strategies\n• Normal position sizes\n• Watch for regime change",
-            "crisis": "• Minimum exposure\n• Cash is king\n• Wait for stability"
+            "crisis": "• Minimum exposure\n• Cash is king\n• Wait for stability",
         }
         return recommendations.get(regime, "• Monitor closely\n• Use caution")
 
@@ -540,7 +537,13 @@ This bot allows you to monitor and control your algorithmic trading system.
         health = self.orchestrator.get_health()
 
         # Risk level indicators
-        dd_level = "🟢" if health.current_drawdown < 0.03 else "🟡" if health.current_drawdown < 0.07 else "🔴"
+        dd_level = (
+            "🟢"
+            if health.current_drawdown < 0.03
+            else "🟡"
+            if health.current_drawdown < 0.07
+            else "🔴"
+        )
 
         message = f"""
 🛡️ <b>Risk Metrics</b>
@@ -549,10 +552,10 @@ This bot allows you to monitor and control your algorithmic trading system.
 <b>Open Positions:</b> {health.open_positions}
 <b>Daily P&L:</b> ${health.daily_pnl:+,.2f}
 
-<b>Risk Guardian:</b> {'✅ Active' if health.risk_guardian_active else '❌ Inactive'}
+<b>Risk Guardian:</b> {"✅ Active" if health.risk_guardian_active else "❌ Inactive"}
 
 <b>Warnings:</b>
-{chr(10).join(['• ' + w for w in health.warnings]) or '• None'}
+{chr(10).join(["• " + w for w in health.warnings]) or "• None"}
         """
         await self._send_message(chat_id, message.strip())
 
@@ -648,14 +651,16 @@ This bot allows you to monitor and control your algorithmic trading system.
                 chat_id,
                 "⚠️ <b>WARNING: Emergency Kill Switch</b>\n\n"
                 "This will immediately stop all trading.\n\n"
-                "To confirm, type: /kill confirm"
+                "To confirm, type: /kill confirm",
             )
             return
 
         reason = f"Kill switch activated by {username} via Telegram"
         await self.orchestrator.kill_switch(action="stop", reason=reason)
 
-        await self._send_message(chat_id, "🛑 <b>KILL SWITCH ACTIVATED</b>\n\nAll trading has been stopped.")
+        await self._send_message(
+            chat_id, "🛑 <b>KILL SWITCH ACTIVATED</b>\n\nAll trading has been stopped."
+        )
         await self._notify_admins(f"🚨 KILL SWITCH activated by {username}")
 
         if self.notification_manager:
@@ -674,7 +679,7 @@ This bot allows you to monitor and control your algorithmic trading system.
         message = f"""
 📋 <b>Performance Report</b>
 
-<b>System:</b> {status['state'].upper()} | {status['mode']}
+<b>System:</b> {status["state"].upper()} | {status["mode"]}
 <b>Uptime:</b> {health.uptime_seconds / 3600:.1f} hours
 
 <b>Today's Activity:</b>
@@ -688,9 +693,9 @@ This bot allows you to monitor and control your algorithmic trading system.
 • Daily P&L: ${health.daily_pnl:+,.2f}
 • Open Positions: {health.open_positions}
 
-<b>Active Strategies:</b> {len(status['active_strategies'])}
+<b>Active Strategies:</b> {len(status["active_strategies"])}
 
-<i>Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</i>
+<i>Generated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</i>
         """
         await self._send_message(chat_id, message.strip())
 
@@ -756,14 +761,14 @@ Explanations are sent automatically via Telegram when trades execute.
                 message = f"""
 🧠 <b>Trade Explanation System</b>
 
-<b>Trades Analyzed:</b> {pattern_stats.get('total_patterns', 0)}
+<b>Trades Analyzed:</b> {pattern_stats.get("total_patterns", 0)}
 <b>Win Rate:</b> {win_rate:.1%}
-<b>Avg P&L:</b> {pattern_stats.get('average_pnl_pct', 0):.2f}%
+<b>Avg P&L:</b> {pattern_stats.get("average_pnl_pct", 0):.2f}%
 
 <b>LLM Usage:</b>
-• Claude: {llm_stats.get('claude_requests', 0)} requests
-• Ollama: {llm_stats.get('ollama_requests', 0)} requests
-• Cost Today: ${llm_stats.get('claude_cost_today', 0):.4f}
+• Claude: {llm_stats.get("claude_requests", 0)} requests
+• Ollama: {llm_stats.get("ollama_requests", 0)} requests
+• Cost Today: ${llm_stats.get("claude_cost_today", 0):.4f}
 
 <i>Trade explanations are sent automatically when trades execute.</i>
                 """
@@ -810,16 +815,16 @@ Explanations are sent automatically via Telegram when trades execute.
 • Rule-based: ✅
 
 <b>Market Regime:</b>
-• Current: {regime.replace('_', ' ').title()}
+• Current: {regime.replace("_", " ").title()}
 • Confidence: {confidence:.1%}
 
 <b>News Sentiment:</b> {sentiment_emoji} {sentiment:+.2f}
 
 <b>Learning Status:</b>
-• Patterns Stored: {health.get('pattern_memory', {}).get('total_patterns', 0)}
-• Win Rate: {health.get('pattern_memory', {}).get('overall_win_rate', 0):.1%}
+• Patterns Stored: {health.get("pattern_memory", {}).get("total_patterns", 0)}
+• Win Rate: {health.get("pattern_memory", {}).get("overall_win_rate", 0):.1%}
 
-<b>Telegram:</b> {'✅ Connected' if health.get('trade_explainer', {}).get('telegram_connected') else '❌ Disconnected'}
+<b>Telegram:</b> {"✅ Connected" if health.get("trade_explainer", {}).get("telegram_connected") else "❌ Disconnected"}
             """
             await self._send_message(chat_id, message.strip())
 
@@ -858,15 +863,15 @@ Explanations are sent automatically via Telegram when trades execute.
 • Avg P&L: {avg_pnl:+.2f}%
 
 <b>Confidence Adjustments:</b>
-• Active: {learner_stats.get('confidence_adjustments', 0)}
-• Learning Rate: {learner_stats.get('learning_rate', 0.1)}
+• Active: {learner_stats.get("confidence_adjustments", 0)}
+• Learning Rate: {learner_stats.get("learning_rate", 0.1)}
 
 <b>Coverage:</b>
-• Symbols: {pattern_stats.get('unique_symbols', 0)}
-• Regimes: {pattern_stats.get('unique_regimes', 0)}
+• Symbols: {pattern_stats.get("unique_symbols", 0)}
+• Regimes: {pattern_stats.get("unique_regimes", 0)}
 
 <b>Recent Performance:</b>
-{learner_stats.get('recent_performance', {}).get('message', 'No recent trades')}
+{learner_stats.get("recent_performance", {}).get("message", "No recent trades")}
 
 <i>The brain learns from every trade and adjusts confidence thresholds based on pattern success rates.</i>
             """
@@ -879,8 +884,7 @@ Explanations are sent automatically via Telegram when trades execute.
 
 
 def create_telegram_bot(
-    orchestrator=None,
-    notification_manager=None
+    orchestrator=None, notification_manager=None
 ) -> Optional[TelegramTradingBot]:
     """
     Create a Telegram trading bot from environment variables.
@@ -901,13 +905,14 @@ def create_telegram_bot(
         admin_chat_ids=admin_ids,
         allowed_chat_ids=allowed_ids,
         orchestrator=orchestrator,
-        notification_manager=notification_manager
+        notification_manager=notification_manager,
     )
 
 
 if __name__ == "__main__":
     # Demo - would need actual bot token to run
     import asyncio
+
     logging.basicConfig(level=logging.INFO)
 
     async def demo():

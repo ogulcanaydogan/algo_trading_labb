@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class OrderBookLevel:
     """Single price level in the order book."""
+
     price: float
     quantity: float
     total: float  # Cumulative quantity
@@ -30,6 +31,7 @@ class OrderBookLevel:
 @dataclass
 class OrderBookSnapshot:
     """Snapshot of the order book at a point in time."""
+
     timestamp: datetime
     symbol: str
     bids: List[OrderBookLevel]
@@ -47,6 +49,7 @@ class OrderBookSnapshot:
 @dataclass
 class LiquidityMetrics:
     """Liquidity analysis metrics."""
+
     bid_depth_1pct: float  # Volume within 1% of best bid
     ask_depth_1pct: float
     bid_depth_5pct: float
@@ -127,8 +130,8 @@ class OrderBookAnalyzer:
         """Process raw order book into structured snapshot."""
         timestamp = datetime.now()
 
-        raw_bids = raw_book.get("bids", [])[:self.depth]
-        raw_asks = raw_book.get("asks", [])[:self.depth]
+        raw_bids = raw_book.get("bids", [])[: self.depth]
+        raw_asks = raw_book.get("asks", [])[: self.depth]
 
         # Calculate totals
         total_bid_vol = sum(b[1] for b in raw_bids)
@@ -139,24 +142,28 @@ class OrderBookAnalyzer:
         cumulative = 0
         for price, qty in raw_bids:
             cumulative += qty
-            bids.append(OrderBookLevel(
-                price=float(price),
-                quantity=float(qty),
-                total=cumulative,
-                percentage=(qty / total_bid_vol * 100) if total_bid_vol > 0 else 0,
-            ))
+            bids.append(
+                OrderBookLevel(
+                    price=float(price),
+                    quantity=float(qty),
+                    total=cumulative,
+                    percentage=(qty / total_bid_vol * 100) if total_bid_vol > 0 else 0,
+                )
+            )
 
         # Process asks (sorted low to high)
         asks = []
         cumulative = 0
         for price, qty in raw_asks:
             cumulative += qty
-            asks.append(OrderBookLevel(
-                price=float(price),
-                quantity=float(qty),
-                total=cumulative,
-                percentage=(qty / total_ask_vol * 100) if total_ask_vol > 0 else 0,
-            ))
+            asks.append(
+                OrderBookLevel(
+                    price=float(price),
+                    quantity=float(qty),
+                    total=cumulative,
+                    percentage=(qty / total_ask_vol * 100) if total_ask_vol > 0 else 0,
+                )
+            )
 
         # Best prices
         best_bid = float(raw_bids[0][0]) if raw_bids else 0
@@ -242,8 +249,16 @@ class OrderBookAnalyzer:
         weighted_ask = self._calculate_vwap(snapshot.asks, trade_size)
 
         # Market impact (slippage for trade_size)
-        impact_buy = ((weighted_ask - snapshot.best_ask) / snapshot.best_ask * 100) if snapshot.best_ask > 0 else 0
-        impact_sell = ((snapshot.best_bid - weighted_bid) / snapshot.best_bid * 100) if snapshot.best_bid > 0 else 0
+        impact_buy = (
+            ((weighted_ask - snapshot.best_ask) / snapshot.best_ask * 100)
+            if snapshot.best_ask > 0
+            else 0
+        )
+        impact_sell = (
+            ((snapshot.best_bid - weighted_bid) / snapshot.best_bid * 100)
+            if snapshot.best_bid > 0
+            else 0
+        )
 
         # Liquidity score (0-100)
         liquidity_score = self._calculate_liquidity_score(
@@ -314,19 +329,23 @@ class OrderBookAnalyzer:
 
         # Bids (cumulative from best bid down)
         for level in snapshot.bids:
-            bid_data.append({
-                "price": level.price,
-                "quantity": level.quantity,
-                "total": level.total,
-            })
+            bid_data.append(
+                {
+                    "price": level.price,
+                    "quantity": level.quantity,
+                    "total": level.total,
+                }
+            )
 
         # Asks (cumulative from best ask up)
         for level in snapshot.asks:
-            ask_data.append({
-                "price": level.price,
-                "quantity": level.quantity,
-                "total": level.total,
-            })
+            ask_data.append(
+                {
+                    "price": level.price,
+                    "quantity": level.quantity,
+                    "total": level.total,
+                }
+            )
 
         return {
             "bids": bid_data,
@@ -347,21 +366,25 @@ class OrderBookAnalyzer:
 
         # Add bids
         for level in reversed(snapshot.bids):
-            levels.append({
-                "price": level.price,
-                "quantity": level.quantity,
-                "side": "bid",
-                "intensity": level.percentage / 100,
-            })
+            levels.append(
+                {
+                    "price": level.price,
+                    "quantity": level.quantity,
+                    "side": "bid",
+                    "intensity": level.percentage / 100,
+                }
+            )
 
         # Add asks
         for level in snapshot.asks:
-            levels.append({
-                "price": level.price,
-                "quantity": level.quantity,
-                "side": "ask",
-                "intensity": level.percentage / 100,
-            })
+            levels.append(
+                {
+                    "price": level.price,
+                    "quantity": level.quantity,
+                    "side": "ask",
+                    "intensity": level.percentage / 100,
+                }
+            )
 
         return {
             "levels": levels,
@@ -402,7 +425,9 @@ class OrderBookAnalyzer:
             "imbalance": round(imbalance, 3),
             "bid_volume": snapshot.total_bid_volume,
             "ask_volume": snapshot.total_ask_volume,
-            "ratio": round(snapshot.total_bid_volume / snapshot.total_ask_volume, 2) if snapshot.total_ask_volume > 0 else 0,
+            "ratio": round(snapshot.total_bid_volume / snapshot.total_ask_volume, 2)
+            if snapshot.total_ask_volume > 0
+            else 0,
         }
 
     def to_api_response(

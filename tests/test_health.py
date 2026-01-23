@@ -147,6 +147,7 @@ class TestHealthChecker:
 
     def test_register_check(self, checker):
         """Test registering a health check."""
+
         async def dummy_check():
             return ComponentHealth(name="test", status=HealthStatus.HEALTHY)
 
@@ -156,6 +157,7 @@ class TestHealthChecker:
 
     def test_unregister_check(self, checker):
         """Test unregistering a health check."""
+
         async def dummy_check():
             return ComponentHealth(name="test", status=HealthStatus.HEALTHY)
 
@@ -176,6 +178,7 @@ class TestHealthChecker:
     @pytest.mark.asyncio
     async def test_check_healthy_component(self, checker):
         """Test checking a healthy component."""
+
         async def healthy_check():
             return ComponentHealth(
                 name="service",
@@ -207,6 +210,7 @@ class TestHealthChecker:
     @pytest.mark.asyncio
     async def test_check_exception(self, checker):
         """Test handling exceptions in health checks."""
+
         async def failing_check():
             raise ValueError("Connection failed")
 
@@ -228,6 +232,7 @@ class TestHealthChecker:
     @pytest.mark.asyncio
     async def test_check_all_healthy(self, checker):
         """Test check_all when all components are healthy."""
+
         async def healthy1():
             return ComponentHealth(name="db", status=HealthStatus.HEALTHY)
 
@@ -245,6 +250,7 @@ class TestHealthChecker:
     @pytest.mark.asyncio
     async def test_check_all_degraded(self, checker):
         """Test check_all when one component is degraded."""
+
         async def healthy():
             return ComponentHealth(name="db", status=HealthStatus.HEALTHY)
 
@@ -261,6 +267,7 @@ class TestHealthChecker:
     @pytest.mark.asyncio
     async def test_check_all_unhealthy(self, checker):
         """Test check_all when one component is unhealthy."""
+
         async def healthy():
             return ComponentHealth(name="db", status=HealthStatus.HEALTHY)
 
@@ -312,6 +319,7 @@ class TestHealthChecker:
     @pytest.mark.asyncio
     async def test_readiness_healthy(self, checker):
         """Test readiness when healthy."""
+
         async def healthy():
             return ComponentHealth(name="db", status=HealthStatus.HEALTHY)
 
@@ -322,6 +330,7 @@ class TestHealthChecker:
     @pytest.mark.asyncio
     async def test_readiness_degraded(self, checker):
         """Test readiness when degraded."""
+
         async def degraded():
             return ComponentHealth(name="db", status=HealthStatus.DEGRADED)
 
@@ -346,6 +355,7 @@ class TestGracefulShutdown:
 
     def test_register_callback(self, shutdown):
         """Test registering a cleanup callback."""
+
         async def cleanup():
             pass
 

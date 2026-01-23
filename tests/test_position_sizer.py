@@ -442,10 +442,7 @@ class TestPositionSizer:
     def test_calculate_portfolio_sizes_scales_down(self, sizer: PositionSizer) -> None:
         """Test portfolio sizing scales down when over-allocated."""
         # Many signals that would exceed max allocation
-        signals = [
-            {"symbol": f"ASSET{i}", "price": 100, "confidence": 0.8}
-            for i in range(10)
-        ]
+        signals = [{"symbol": f"ASSET{i}", "price": 100, "confidence": 0.8} for i in range(10)]
 
         portfolio = sizer.calculate_portfolio_sizes(
             signals=signals,

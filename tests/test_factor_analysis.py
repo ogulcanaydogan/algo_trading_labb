@@ -177,6 +177,7 @@ class TestFactorAnalyzer:
     def test_load_data_with_timestamps(self, sample_returns, sample_factor_data):
         """Test loading data with timestamps."""
         from datetime import timedelta
+
         analyzer = FactorAnalyzer()
         base = datetime(2024, 1, 1)
         timestamps = [base + timedelta(hours=i) for i in range(100)]
@@ -334,6 +335,7 @@ class TestFactorAnalyzer:
     def test_get_rolling_factor_exposure_structure(self, sample_returns, sample_factor_data):
         """Test rolling factor exposure structure."""
         from datetime import timedelta
+
         analyzer = FactorAnalyzer()
         base = datetime(2024, 1, 1)
         timestamps = [base + timedelta(hours=i) for i in range(100)]
@@ -446,10 +448,7 @@ class TestFactorCalculations:
         factors = analyzer.calculate_factors_from_prices(prices)
 
         # Mean reversion should be negative of trend
-        np.testing.assert_array_almost_equal(
-            factors["mean_reversion"],
-            -factors["trend"]
-        )
+        np.testing.assert_array_almost_equal(factors["mean_reversion"], -factors["trend"])
 
     def test_sentiment_factor_placeholder(self):
         """Test sentiment factor is placeholder (zeros)."""
@@ -459,10 +458,7 @@ class TestFactorCalculations:
         factors = analyzer.calculate_factors_from_prices(prices)
 
         # Sentiment is placeholder zeros
-        np.testing.assert_array_equal(
-            factors["sentiment"],
-            np.zeros(len(factors["sentiment"]))
-        )
+        np.testing.assert_array_equal(factors["sentiment"], np.zeros(len(factors["sentiment"])))
 
 
 class TestEdgeCases:
@@ -523,10 +519,7 @@ class TestEdgeCases:
         np.random.seed(42)
         analyzer = FactorAnalyzer()
         returns = list(np.random.normal(0.001, 0.02, 50))
-        factor_data = {
-            f"factor_{i}": list(np.random.normal(0.001, 0.01, 50))
-            for i in range(10)
-        }
+        factor_data = {f"factor_{i}": list(np.random.normal(0.001, 0.01, 50)) for i in range(10)}
         analyzer.load_data(returns, factor_data)
 
         result = analyzer.run_analysis()
@@ -540,7 +533,4 @@ class TestEdgeCases:
         factors = analyzer.calculate_factors_from_prices(prices)
 
         # Volume factor should be zeros when not provided
-        np.testing.assert_array_equal(
-            factors["volume"],
-            np.zeros(len(factors["volume"]))
-        )
+        np.testing.assert_array_equal(factors["volume"], np.zeros(len(factors["volume"])))

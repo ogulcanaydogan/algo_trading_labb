@@ -17,6 +17,7 @@ import pandas as pd
 try:
     from statsmodels.tsa.stattools import coint, adfuller
     from statsmodels.regression.linear_model import OLS
+
     HAS_STATSMODELS = True
 except ImportError:
     HAS_STATSMODELS = False
@@ -27,6 +28,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class PairStats:
     """Statistics for a trading pair."""
+
     asset1: str
     asset2: str
     correlation: float
@@ -58,6 +60,7 @@ class PairStats:
 @dataclass
 class PairsSignal:
     """Trading signal for a pair."""
+
     pair_name: str
     asset1: str
     asset2: str
@@ -87,22 +90,23 @@ class PairsSignal:
 @dataclass
 class PairsConfig:
     """Configuration for pairs trading."""
+
     # Cointegration settings
     cointegration_pvalue: float = 0.05
     min_correlation: float = 0.5
     lookback_days: int = 90
 
     # Trading signals
-    entry_zscore: float = 2.0        # Enter when z-score exceeds this
-    exit_zscore: float = 0.5         # Exit when z-score drops below this
-    stop_loss_zscore: float = 3.5    # Stop loss if z-score exceeds this
+    entry_zscore: float = 2.0  # Enter when z-score exceeds this
+    exit_zscore: float = 0.5  # Exit when z-score drops below this
+    stop_loss_zscore: float = 3.5  # Stop loss if z-score exceeds this
 
     # Position sizing
     max_position_value: float = 1000  # Max value per leg
 
     # Pair selection
-    min_half_life: int = 5           # Min mean reversion half-life (days)
-    max_half_life: int = 30          # Max half-life
+    min_half_life: int = 5  # Min mean reversion half-life (days)
+    max_half_life: int = 30  # Max half-life
 
 
 class PairsTradingStrategy:
@@ -184,7 +188,7 @@ class PairsTradingStrategy:
         spread_diff = spread_diff.dropna()
 
         if len(spread_lag) > 0 and len(spread_diff) > 0:
-            model_hl = OLS(spread_diff, spread_lag.values[:len(spread_diff)]).fit()
+            model_hl = OLS(spread_diff, spread_lag.values[: len(spread_diff)]).fit()
             if model_hl.params[0] < 0:
                 half_life = -np.log(2) / model_hl.params[0]
             else:
@@ -198,9 +202,9 @@ class PairsTradingStrategy:
 
         # Check if cointegrated
         is_cointegrated = (
-            pvalue < self.config.cointegration_pvalue and
-            abs(correlation) > self.config.min_correlation and
-            self.config.min_half_life < half_life < self.config.max_half_life
+            pvalue < self.config.cointegration_pvalue
+            and abs(correlation) > self.config.min_correlation
+            and self.config.min_half_life < half_life < self.config.max_half_life
         )
 
         stats = PairStats(
@@ -242,7 +246,7 @@ class PairsTradingStrategy:
         pairs = []
 
         for i, sym1 in enumerate(symbols):
-            for sym2 in symbols[i+1:]:
+            for sym2 in symbols[i + 1 :]:
                 prices1 = price_data[sym1]["close"]
                 prices2 = price_data[sym2]["close"]
 
@@ -283,7 +287,11 @@ class PairsTradingStrategy:
 
         # Calculate current spread and z-score
         current_spread = prices1.iloc[-1] - pair_stats.hedge_ratio * prices2.iloc[-1]
-        zscore = (current_spread - pair_stats.spread_mean) / pair_stats.spread_std if pair_stats.spread_std > 0 else 0
+        zscore = (
+            (current_spread - pair_stats.spread_mean) / pair_stats.spread_std
+            if pair_stats.spread_std > 0
+            else 0
+        )
 
         # Update stats with current z-score
         pair_stats.current_zscore = zscore

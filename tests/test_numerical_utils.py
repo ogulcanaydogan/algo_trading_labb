@@ -34,8 +34,8 @@ class TestSafeDivide:
 
     def test_inf_denominator(self):
         """Test infinite denominator returns default."""
-        assert safe_divide(10, float('inf')) == 0.0
-        assert safe_divide(10, float('-inf')) == 0.0
+        assert safe_divide(10, float("inf")) == 0.0
+        assert safe_divide(10, float("-inf")) == 0.0
 
     def test_negative_values(self):
         """Test negative values work correctly."""
@@ -111,8 +111,8 @@ class TestSafeCompare:
 
     def test_inf_values(self):
         """Test infinite values return False."""
-        assert not safe_compare(float('inf'), 5, ">=")
-        assert not safe_compare(5, float('inf'), ">=")
+        assert not safe_compare(float("inf"), 5, ">=")
+        assert not safe_compare(5, float("inf"), ">=")
 
 
 class TestClipValue:
@@ -210,13 +210,13 @@ class TestSanitizeArray:
 
     def test_with_nan(self):
         """Test NaN values are handled."""
-        arr = [1, float('nan'), 3, float('nan'), 5]
+        arr = [1, float("nan"), 3, float("nan"), 5]
         result = sanitize_array(arr)
         assert not np.any(np.isnan(result))
 
     def test_with_inf(self):
         """Test infinite values are handled."""
-        arr = [1, float('inf'), 3, float('-inf'), 5]
+        arr = [1, float("inf"), 3, float("-inf"), 5]
         result = sanitize_array(arr)
         assert not np.any(np.isinf(result))
 

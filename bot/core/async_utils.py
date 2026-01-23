@@ -171,9 +171,7 @@ def retry_async(
                     if on_retry:
                         on_retry(e, attempt)
 
-                    logger.debug(
-                        f"Retry {attempt}/{max_attempts} for {func.__name__}: {e}"
-                    )
+                    logger.debug(f"Retry {attempt}/{max_attempts} for {func.__name__}: {e}")
                     await asyncio.sleep(delay)
                     delay = min(delay * backoff_factor, max_delay)
 
@@ -431,10 +429,7 @@ async def run_with_semaphore(
             result = await coro
             return (index, result)
 
-    tasks = [
-        asyncio.create_task(bounded_coro(i, coro))
-        for i, coro in enumerate(coros)
-    ]
+    tasks = [asyncio.create_task(bounded_coro(i, coro)) for i, coro in enumerate(coros)]
 
     completed = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -445,6 +440,215 @@ async def run_with_semaphore(
     )
 
     return [res for _, res in sorted_results]
+
+
+# =============================================================================
+# Async File I/O Utilities
+# =============================================================================
+
+
+async def async_read_json(
+    file_path: Union[str, "Path"],
+    default: Optional[Any] = None,
+) -> Any:
+    """
+    Read JSON file asynchronously (non-blocking).
+
+    Args:
+        file_path: Path to JSON file
+        default: Value to return if file doesn't exist or is invalid
+
+    Returns:
+        Parsed JSON data or default value
+
+    Example:
+        data = await async_read_json("data/state.json", default={})
+    """
+    import json
+    from pathlib import Path
+
+    path = Path(file_path) if isinstance(file_path, str) else file_path
+
+    def _read():
+        if not path.exists():
+            return default
+        try:
+            with open(path, "r") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError) as e:
+            logger.warning(f"Failed to read {path}: {e}")
+            return default
+
+    return await asyncio.to_thread(_read)
+
+
+async def async_write_json(
+    file_path: Union[str, "Path"],
+    data: Any,
+    indent: int = 2,
+    ensure_dir: bool = True,
+) -> bool:
+    """
+    Write JSON file asynchronously (non-blocking).
+
+    Args:
+        file_path: Path to JSON file
+        data: Data to serialize
+        indent: JSON indentation
+        ensure_dir: Create parent directories if needed
+
+    Returns:
+        True if successful, False otherwise
+
+    Example:
+        success = await async_write_json("data/state.json", {"balance": 1000})
+    """
+    import json
+    from pathlib import Path
+
+    path = Path(file_path) if isinstance(file_path, str) else file_path
+
+    def _write():
+        try:
+            if ensure_dir:
+                path.parent.mkdir(parents=True, exist_ok=True)
+            with open(path, "w") as f:
+                json.dump(data, f, indent=indent, default=str)
+            return True
+        except (OSError, TypeError) as e:
+            logger.error(f"Failed to write {path}: {e}")
+            return False
+
+    return await asyncio.to_thread(_write)
+
+
+async def async_read_text(
+    file_path: Union[str, "Path"],
+    default: Optional[str] = None,
+) -> Optional[str]:
+    """
+    Read text file asynchronously (non-blocking).
+
+    Args:
+        file_path: Path to text file
+        default: Value to return if file doesn't exist
+
+    Returns:
+        File contents or default value
+    """
+    from pathlib import Path
+
+    path = Path(file_path) if isinstance(file_path, str) else file_path
+
+    def _read():
+        if not path.exists():
+            return default
+        try:
+            with open(path, "r") as f:
+                return f.read()
+        except OSError as e:
+            logger.warning(f"Failed to read {path}: {e}")
+            return default
+
+    return await asyncio.to_thread(_read)
+
+
+async def async_write_text(
+    file_path: Union[str, "Path"],
+    content: str,
+    ensure_dir: bool = True,
+) -> bool:
+    """
+    Write text file asynchronously (non-blocking).
+
+    Args:
+        file_path: Path to text file
+        content: Text content to write
+        ensure_dir: Create parent directories if needed
+
+    Returns:
+        True if successful, False otherwise
+    """
+    from pathlib import Path
+
+    path = Path(file_path) if isinstance(file_path, str) else file_path
+
+    def _write():
+        try:
+            if ensure_dir:
+                path.parent.mkdir(parents=True, exist_ok=True)
+            with open(path, "w") as f:
+                f.write(content)
+            return True
+        except OSError as e:
+            logger.error(f"Failed to write {path}: {e}")
+            return False
+
+    return await asyncio.to_thread(_write)
+
+
+async def async_append_json(
+    file_path: Union[str, "Path"],
+    item: Any,
+    max_items: Optional[int] = None,
+) -> bool:
+    """
+    Append item to JSON array file asynchronously.
+
+    Args:
+        file_path: Path to JSON file (should contain array)
+        item: Item to append
+        max_items: Optional max items to keep (removes oldest)
+
+    Returns:
+        True if successful, False otherwise
+
+    Example:
+        await async_append_json("data/trades.json", trade_data, max_items=1000)
+    """
+    import json
+    from pathlib import Path
+
+    path = Path(file_path) if isinstance(file_path, str) else file_path
+
+    def _append():
+        try:
+            # Read existing
+            data = []
+            if path.exists():
+                try:
+                    with open(path, "r") as f:
+                        data = json.load(f)
+                except (json.JSONDecodeError, OSError):
+                    data = []
+
+            # Append
+            if not isinstance(data, list):
+                data = []
+            data.append(item)
+
+            # Trim if needed
+            if max_items and len(data) > max_items:
+                data = data[-max_items:]
+
+            # Write back
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with open(path, "w") as f:
+                json.dump(data, f, indent=2, default=str)
+            return True
+        except (OSError, TypeError) as e:
+            logger.error(f"Failed to append to {path}: {e}")
+            return False
+
+    return await asyncio.to_thread(_append)
+
+
+async def async_file_exists(file_path: Union[str, "Path"]) -> bool:
+    """Check if file exists asynchronously."""
+    from pathlib import Path
+
+    path = Path(file_path) if isinstance(file_path, str) else file_path
+    return await asyncio.to_thread(path.exists)
 
 
 def create_safe_callback(

@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Trade:
     """Single trade record."""
+
     price: float
     quantity: float
     side: Literal["buy", "sell"]
@@ -41,6 +42,7 @@ class Trade:
 @dataclass
 class OrderbookLevel:
     """Single orderbook level."""
+
     price: float
     quantity: float
     order_count: int = 1
@@ -49,6 +51,7 @@ class OrderbookLevel:
 @dataclass
 class OrderbookSnapshot:
     """Orderbook snapshot."""
+
     bids: List[OrderbookLevel]
     asks: List[OrderbookLevel]
     timestamp: datetime = field(default_factory=datetime.now)
@@ -80,6 +83,7 @@ class OrderbookSnapshot:
 @dataclass
 class OrderFlowMetrics:
     """Order flow analysis metrics."""
+
     buy_volume: float
     sell_volume: float
     net_volume: float
@@ -111,6 +115,7 @@ class OrderFlowMetrics:
 @dataclass
 class OrderFlowSignal:
     """Order flow trading signal."""
+
     action: Literal["LONG", "SHORT", "FLAT"]
     confidence: float
     signal_type: str  # "imbalance", "absorption", "iceberg", "sweep"
@@ -138,6 +143,7 @@ class OrderFlowSignal:
 @dataclass
 class OrderFlowConfig:
     """Order flow strategy configuration."""
+
     # Trade buffer settings
     trade_buffer_size: int = 1000
     analysis_window_seconds: int = 60
@@ -266,7 +272,7 @@ class OrderFlowStrategy:
         if len(recent_trades) >= 2:
             price_changes = []
             for i in range(1, len(recent_trades)):
-                change = recent_trades[i].price - recent_trades[i-1].price
+                change = recent_trades[i].price - recent_trades[i - 1].price
                 weight = recent_trades[i].quantity
                 price_changes.append(change * weight)
             momentum = np.sum(price_changes) / total_volume if total_volume > 0 else 0

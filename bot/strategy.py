@@ -54,9 +54,7 @@ class StrategyConfig:
             rsi_period=int(os.getenv("RSI_PERIOD", str(cls.rsi_period))),
             rsi_overbought=float(os.getenv("RSI_OVERBOUGHT", str(cls.rsi_overbought))),
             rsi_oversold=float(os.getenv("RSI_OVERSOLD", str(cls.rsi_oversold))),
-            risk_per_trade_pct=float(
-                os.getenv("RISK_PER_TRADE_PCT", str(cls.risk_per_trade_pct))
-            ),
+            risk_per_trade_pct=float(os.getenv("RISK_PER_TRADE_PCT", str(cls.risk_per_trade_pct))),
             stop_loss_pct=float(os.getenv("STOP_LOSS_PCT", str(cls.stop_loss_pct))),
             take_profit_pct=float(os.getenv("TAKE_PROFIT_PCT", str(cls.take_profit_pct))),
             adx_period=int(os.getenv("ADX_PERIOD", str(cls.adx_period))),
@@ -64,7 +62,9 @@ class StrategyConfig:
             volume_ma_period=int(os.getenv("VOLUME_MA_PERIOD", str(cls.volume_ma_period))),
             volume_threshold=float(os.getenv("VOLUME_THRESHOLD", str(cls.volume_threshold))),
             atr_period=int(os.getenv("ATR_PERIOD", str(cls.atr_period))),
-            atr_stop_multiplier=float(os.getenv("ATR_STOP_MULTIPLIER", str(cls.atr_stop_multiplier))),
+            atr_stop_multiplier=float(
+                os.getenv("ATR_STOP_MULTIPLIER", str(cls.atr_stop_multiplier))
+            ),
             atr_tp_multiplier=float(os.getenv("ATR_TP_MULTIPLIER", str(cls.atr_tp_multiplier))),
             use_atr_stops=os.getenv("USE_ATR_STOPS", "true").lower() == "true",
             use_macd_confirmation=os.getenv("USE_MACD_CONFIRMATION", "true").lower() == "true",
@@ -84,7 +84,9 @@ def compute_indicators(
     """
     min_required = max(config.ema_slow, config.adx_period, config.volume_ma_period) + 10
     if len(ohlcv) < min_required:
-        raise ValueError(f"Not enough data for indicator calculation. Need at least {min_required} bars.")
+        raise ValueError(
+            f"Not enough data for indicator calculation. Need at least {min_required} bars."
+        )
 
     copy = ohlcv.copy()
     copy.sort_index(inplace=True)
@@ -372,7 +374,9 @@ def generate_signal(enriched: pd.DataFrame, config: StrategyConfig) -> Dict[str,
         "adx": float(adx_value),
         "adx_pos": float(last["adx_pos"]) if not pd.isna(last["adx_pos"]) else 0,
         "adx_neg": float(last["adx_neg"]) if not pd.isna(last["adx_neg"]) else 0,
-        "macd_histogram": float(last["macd_histogram"]) if not pd.isna(last["macd_histogram"]) else 0,
+        "macd_histogram": float(last["macd_histogram"])
+        if not pd.isna(last["macd_histogram"])
+        else 0,
         "atr": float(atr_value),
         "volume_ratio": float(volume_ratio),
         "close": float(current_price),

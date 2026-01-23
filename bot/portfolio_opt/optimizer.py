@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class OptimizationResult:
     """Portfolio optimization result."""
+
     method: str
     weights: Dict[str, float]
     expected_return: float
@@ -51,6 +52,7 @@ class OptimizationResult:
 @dataclass
 class BlackLittermanView:
     """Investor view for Black-Litterman model."""
+
     asset: str
     expected_return: float  # Absolute view
     confidence: float  # 0 to 1
@@ -68,6 +70,7 @@ class BlackLittermanView:
 @dataclass
 class OptimizationConfig:
     """Portfolio optimization configuration."""
+
     # Risk-free rate
     risk_free_rate: float = 0.05
 
@@ -150,19 +153,20 @@ class PortfolioOptimizer:
         ]
 
         if target_return is not None:
-            constraints.append({
-                "type": "eq",
-                "fun": lambda x: np.dot(x, mean_returns) * 252 - target_return
-            })
+            constraints.append(
+                {"type": "eq", "fun": lambda x: np.dot(x, mean_returns) * 252 - target_return}
+            )
 
         # Bounds
         bounds = [(self.config.min_weight, self.config.max_weight)] * n_assets
 
         # Objective: minimize variance (or negative Sharpe)
         if target_return is not None:
+
             def objective(w):
                 return np.dot(w.T, np.dot(cov, w)) * 252
         else:
+
             def objective(w):
                 ret = np.dot(w, mean_returns) * 252
                 vol = np.sqrt(np.dot(w.T, np.dot(cov, w)) * 252)
@@ -174,7 +178,7 @@ class PortfolioOptimizer:
             method="SLSQP",
             bounds=bounds,
             constraints=constraints,
-            options={"maxiter": self.config.max_iterations}
+            options={"maxiter": self.config.max_iterations},
         )
 
         weights = dict(zip(self._assets, result.x))
@@ -219,10 +223,9 @@ class PortfolioOptimizer:
         # Market equilibrium weights
         if market_caps:
             total_cap = sum(market_caps.values())
-            eq_weights = np.array([
-                market_caps.get(a, total_cap / n_assets) / total_cap
-                for a in self._assets
-            ])
+            eq_weights = np.array(
+                [market_caps.get(a, total_cap / n_assets) / total_cap for a in self._assets]
+            )
         else:
             eq_weights = np.ones(n_assets) / n_assets
 
@@ -282,14 +285,10 @@ class PortfolioOptimizer:
 
         # Black-Litterman formula
         tau_cov = tau * cov
-        M = np.linalg.inv(
-            np.linalg.inv(tau_cov) +
-            np.dot(P.T, np.dot(np.linalg.inv(omega), P))
+        M = np.linalg.inv(np.linalg.inv(tau_cov) + np.dot(P.T, np.dot(np.linalg.inv(omega), P)))
+        bl_returns = np.dot(
+            M, (np.dot(np.linalg.inv(tau_cov), pi) + np.dot(P.T, np.dot(np.linalg.inv(omega), Q)))
         )
-        bl_returns = np.dot(M, (
-            np.dot(np.linalg.inv(tau_cov), pi) +
-            np.dot(P.T, np.dot(np.linalg.inv(omega), Q))
-        ))
 
         # Optimize with BL returns
         def objective(w):
@@ -346,10 +345,7 @@ class PortfolioOptimizer:
 
         # Target risk budget
         if risk_budget:
-            budget = np.array([
-                risk_budget.get(a, 1.0 / n_assets)
-                for a in self._assets
-            ])
+            budget = np.array([risk_budget.get(a, 1.0 / n_assets) for a in self._assets])
             budget = budget / budget.sum()
         else:
             budget = np.ones(n_assets) / n_assets
@@ -377,7 +373,7 @@ class PortfolioOptimizer:
             method="SLSQP",
             bounds=bounds,
             constraints=constraints,
-            options={"maxiter": self.config.max_iterations}
+            options={"maxiter": self.config.max_iterations},
         )
 
         weights = dict(zip(self._assets, result.x))

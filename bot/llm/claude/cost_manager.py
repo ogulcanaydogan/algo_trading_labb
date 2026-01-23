@@ -148,11 +148,7 @@ class CostManager:
     def get_today_usage(self) -> float:
         """Get total spending today."""
         today = date.today()
-        return sum(
-            r.cost
-            for r in self.usage_history
-            if r.timestamp.date() == today
-        )
+        return sum(r.cost for r in self.usage_history if r.timestamp.date() == today)
 
     def get_budget_remaining(self) -> float:
         """Get remaining budget for today."""

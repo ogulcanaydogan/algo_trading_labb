@@ -2,6 +2,7 @@
 """
 Test Binance Demo Trading API with raw HTTP requests
 """
+
 import os
 import time
 import hmac
@@ -34,25 +35,21 @@ try:
     timestamp = int(time.time() * 1000)
     params = f"timestamp={timestamp}"
     signature = hmac.new(
-        API_SECRET.encode('utf-8'),
-        params.encode('utf-8'),
-        hashlib.sha256
+        API_SECRET.encode("utf-8"), params.encode("utf-8"), hashlib.sha256
     ).hexdigest()
-    
+
     url = f"{BASE_URL}/api/v3/account?{params}&signature={signature}"
-    headers = {
-        "X-MBX-APIKEY": API_KEY
-    }
-    
+    headers = {"X-MBX-APIKEY": API_KEY}
+
     response = requests.get(url, headers=headers)
     print(f"Status: {response.status_code}")
     print(f"Response: {response.json()}\n")
-    
+
     if response.status_code == 200:
         print("✅ SUCCESS! Demo Trading API is working!")
     else:
         print("❌ Authentication failed")
-        
+
 except Exception as e:
     print(f"❌ Error: {e}\n")
 

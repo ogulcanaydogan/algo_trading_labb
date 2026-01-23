@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class PerformanceWindow:
     """Rolling window of performance metrics."""
+
     trades: List[Dict] = field(default_factory=list)
     window_size: int = 100
 
@@ -42,20 +43,20 @@ class PerformanceWindow:
     def win_rate(self) -> float:
         if not self.trades:
             return 0.0
-        wins = sum(1 for t in self.trades if t.get('pnl', 0) > 0)
+        wins = sum(1 for t in self.trades if t.get("pnl", 0) > 0)
         return wins / len(self.trades)
 
     @property
     def avg_pnl(self) -> float:
         if not self.trades:
             return 0.0
-        return np.mean([t.get('pnl', 0) for t in self.trades])
+        return np.mean([t.get("pnl", 0) for t in self.trades])
 
     @property
     def sharpe_ratio(self) -> float:
         if len(self.trades) < 10:
             return 0.0
-        returns = [t.get('pnl_pct', 0) for t in self.trades]
+        returns = [t.get("pnl_pct", 0) for t in self.trades]
         if np.std(returns) == 0:
             return 0.0
         return np.mean(returns) / np.std(returns) * np.sqrt(252)  # Annualized
@@ -64,14 +65,15 @@ class PerformanceWindow:
     def profit_factor(self) -> float:
         if not self.trades:
             return 1.0
-        gross_profit = sum(t.get('pnl', 0) for t in self.trades if t.get('pnl', 0) > 0)
-        gross_loss = abs(sum(t.get('pnl', 0) for t in self.trades if t.get('pnl', 0) < 0))
+        gross_profit = sum(t.get("pnl", 0) for t in self.trades if t.get("pnl", 0) > 0)
+        gross_loss = abs(sum(t.get("pnl", 0) for t in self.trades if t.get("pnl", 0) < 0))
         return gross_profit / gross_loss if gross_loss > 0 else gross_profit
 
 
 @dataclass
 class ModelVersion:
     """Tracks a model version and its performance."""
+
     version_id: str
     created_at: datetime
     model_path: str
@@ -100,6 +102,7 @@ class ModelVersion:
 @dataclass
 class ABTest:
     """A/B test between two strategies or models."""
+
     test_id: str
     name: str
     start_time: datetime
@@ -129,7 +132,7 @@ class ABTest:
 
     def record_result(self, variant: str, won: bool, pnl: float):
         """Record a trade result."""
-        if variant == 'A':
+        if variant == "A":
             self.a_trades += 1
             self.a_pnl += pnl
             if won:
@@ -155,10 +158,10 @@ class ABTest:
 
         # Need significant difference (5%)
         if a_score > b_score * 1.05:
-            return 'A'
+            return "A"
         elif b_score > a_score * 1.05:
-            return 'B'
-        return 'TIE'
+            return "B"
+        return "TIE"
 
 
 class ConceptDriftDetector:
@@ -181,10 +184,7 @@ class ConceptDriftDetector:
             self.current_window[symbol] = deque(maxlen=self.window_size)
             self.reference_stats[symbol] = None
 
-        self.current_window[symbol].append({
-            'features': features,
-            'correct': prediction_correct
-        })
+        self.current_window[symbol].append({"features": features, "correct": prediction_correct})
 
         # Check for drift if we have enough data
         if len(self.current_window[symbol]) >= self.window_size:
@@ -195,13 +195,13 @@ class ConceptDriftDetector:
         window = list(self.current_window[symbol])
 
         # Calculate current statistics
-        features = np.array([w['features'] for w in window])
-        accuracy = np.mean([w['correct'] for w in window])
+        features = np.array([w["features"] for w in window])
+        accuracy = np.mean([w["correct"] for w in window])
 
         current_stats = {
-            'mean': features.mean(axis=0),
-            'std': features.std(axis=0),
-            'accuracy': accuracy
+            "mean": features.mean(axis=0),
+            "std": features.std(axis=0),
+            "accuracy": accuracy,
         }
 
         # Initialize reference if needed
@@ -214,18 +214,14 @@ class ConceptDriftDetector:
 
         # Calculate drift score
         # 1. Feature distribution drift (mean shift)
-        mean_shift = np.abs(current_stats['mean'] - ref['mean']).mean()
-        std_shift = np.abs(current_stats['std'] - ref['std']).mean()
+        mean_shift = np.abs(current_stats["mean"] - ref["mean"]).mean()
+        std_shift = np.abs(current_stats["std"] - ref["std"]).mean()
 
         # 2. Performance drift
-        accuracy_drop = max(0, ref['accuracy'] - current_stats['accuracy'])
+        accuracy_drop = max(0, ref["accuracy"] - current_stats["accuracy"])
 
         # Combined drift score (0-1)
-        drift_score = (
-            mean_shift * 0.3 +
-            std_shift * 0.2 +
-            accuracy_drop * 0.5
-        )
+        drift_score = mean_shift * 0.3 + std_shift * 0.2 + accuracy_drop * 0.5
 
         self.drift_scores[symbol] = min(1.0, drift_score * 2)  # Scale to 0-1
 
@@ -268,19 +264,19 @@ class HyperparameterTuner:
         # Default starting params
         if model_type == "random_forest":
             return {
-                'n_estimators': np.random.choice([50, 100, 150, 200]),
-                'max_depth': np.random.choice([5, 8, 10, 15, None]),
-                'min_samples_split': np.random.choice([2, 5, 10]),
-                'min_samples_leaf': np.random.choice([1, 2, 4]),
-                'max_features': np.random.choice(['sqrt', 'log2', 0.5, 0.8])
+                "n_estimators": np.random.choice([50, 100, 150, 200]),
+                "max_depth": np.random.choice([5, 8, 10, 15, None]),
+                "min_samples_split": np.random.choice([2, 5, 10]),
+                "min_samples_leaf": np.random.choice([1, 2, 4]),
+                "max_features": np.random.choice(["sqrt", "log2", 0.5, 0.8]),
             }
         elif model_type == "xgboost":
             return {
-                'n_estimators': np.random.choice([50, 100, 150]),
-                'max_depth': np.random.choice([3, 5, 7, 9]),
-                'learning_rate': np.random.choice([0.01, 0.05, 0.1, 0.2]),
-                'subsample': np.random.choice([0.6, 0.8, 1.0]),
-                'colsample_bytree': np.random.choice([0.6, 0.8, 1.0])
+                "n_estimators": np.random.choice([50, 100, 150]),
+                "max_depth": np.random.choice([3, 5, 7, 9]),
+                "learning_rate": np.random.choice([0.01, 0.05, 0.1, 0.2]),
+                "subsample": np.random.choice([0.6, 0.8, 1.0]),
+                "colsample_bytree": np.random.choice([0.6, 0.8, 1.0]),
             }
         else:
             return {}
@@ -291,9 +287,11 @@ class HyperparameterTuner:
 
         if model_type == "random_forest":
             if np.random.random() < 0.3:
-                mutated['n_estimators'] = max(50, params['n_estimators'] + np.random.randint(-50, 51))
-            if np.random.random() < 0.3 and params['max_depth']:
-                mutated['max_depth'] = max(3, params['max_depth'] + np.random.randint(-2, 3))
+                mutated["n_estimators"] = max(
+                    50, params["n_estimators"] + np.random.randint(-50, 51)
+                )
+            if np.random.random() < 0.3 and params["max_depth"]:
+                mutated["max_depth"] = max(3, params["max_depth"] + np.random.randint(-2, 3))
 
         return mutated
 
@@ -302,16 +300,14 @@ class HyperparameterTuner:
         if symbol not in self.param_history:
             self.param_history[symbol] = []
 
-        self.param_history[symbol].append({
-            'params': params,
-            'score': score,
-            'timestamp': datetime.now().isoformat()
-        })
+        self.param_history[symbol].append(
+            {"params": params, "score": score, "timestamp": datetime.now().isoformat()}
+        )
 
         # Update best if improved
         if symbol not in self.best_params:
             self.best_params[symbol] = params
-        elif score > max(h['score'] for h in self.param_history[symbol][:-1]):
+        elif score > max(h["score"] for h in self.param_history[symbol][:-1]):
             self.best_params[symbol] = params
             logger.info(f"New best params for {symbol}: {params} (score: {score:.4f})")
 
@@ -363,10 +359,9 @@ class ContinuousLearner:
                 with open(state_path) as f:
                     state = json.load(f)
                 self.last_retrain = {
-                    k: datetime.fromisoformat(v)
-                    for k, v in state.get('last_retrain', {}).items()
+                    k: datetime.fromisoformat(v) for k, v in state.get("last_retrain", {}).items()
                 }
-                self.active_versions = state.get('active_versions', {})
+                self.active_versions = state.get("active_versions", {})
                 logger.info(f"Loaded learner state")
             except Exception as e:
                 logger.warning(f"Failed to load state: {e}")
@@ -374,11 +369,11 @@ class ContinuousLearner:
     def _save_state(self):
         """Save learner state."""
         state = {
-            'last_retrain': {k: v.isoformat() for k, v in self.last_retrain.items()},
-            'active_versions': self.active_versions,
-            'timestamp': datetime.now().isoformat()
+            "last_retrain": {k: v.isoformat() for k, v in self.last_retrain.items()},
+            "active_versions": self.active_versions,
+            "timestamp": datetime.now().isoformat(),
         }
-        with open(self.data_dir / "learner_state.json", 'w') as f:
+        with open(self.data_dir / "learner_state.json", "w") as f:
             json.dump(state, f, indent=2)
 
     def set_retrain_callback(self, callback: Callable):
@@ -393,7 +388,7 @@ class ContinuousLearner:
         actual_outcome: str,
         pnl: float,
         pnl_pct: float,
-        model_version: Optional[str] = None
+        model_version: Optional[str] = None,
     ):
         """
         Record a prediction and its outcome.
@@ -404,14 +399,16 @@ class ContinuousLearner:
         if symbol not in self.performance_windows:
             self.performance_windows[symbol] = PerformanceWindow()
 
-        self.performance_windows[symbol].add_trade({
-            'action': predicted_action,
-            'outcome': actual_outcome,
-            'pnl': pnl,
-            'pnl_pct': pnl_pct,
-            'correct': pnl > 0,
-            'timestamp': datetime.now().isoformat()
-        })
+        self.performance_windows[symbol].add_trade(
+            {
+                "action": predicted_action,
+                "outcome": actual_outcome,
+                "pnl": pnl,
+                "pnl_pct": pnl_pct,
+                "correct": pnl > 0,
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
 
         # Update drift detector
         self.drift_detector.update(symbol, features, pnl > 0)
@@ -454,7 +451,9 @@ class ContinuousLearner:
         # Trigger 1: Concept drift detected
         if self.drift_detector.should_retrain(symbol):
             should_retrain = True
-            reason = f"Concept drift detected (level: {self.drift_detector.get_drift_level(symbol)})"
+            reason = (
+                f"Concept drift detected (level: {self.drift_detector.get_drift_level(symbol)})"
+            )
 
         # Trigger 2: Performance degradation
         if window.win_rate < 0.4:  # Below 40% win rate
@@ -480,9 +479,7 @@ class ContinuousLearner:
 
             # Call retraining function
             try:
-                asyncio.create_task(
-                    self._async_retrain(symbol, reason, params)
-                )
+                asyncio.create_task(self._async_retrain(symbol, reason, params))
             except Exception as e:
                 logger.error(f"Retrain trigger failed: {e}")
 
@@ -493,7 +490,7 @@ class ContinuousLearner:
 
             if result:
                 # Record the params and score
-                score = result.get('accuracy', 0) * 0.5 + result.get('cv_accuracy', 0) * 0.5
+                score = result.get("accuracy", 0) * 0.5 + result.get("cv_accuracy", 0) * 0.5
                 self.hyperparameter_tuner.record_result(symbol, params, score)
 
                 # Create new model version
@@ -507,13 +504,13 @@ class ContinuousLearner:
         version = ModelVersion(
             version_id=f"{symbol}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
             created_at=datetime.now(),
-            model_path=train_result.get('model_path', ''),
+            model_path=train_result.get("model_path", ""),
             symbol=symbol,
-            model_type=train_result.get('model_type', 'random_forest'),
-            train_accuracy=train_result.get('accuracy', 0),
-            cv_accuracy=train_result.get('cv_accuracy', 0),
-            features_used=train_result.get('features', []),
-            hyperparameters=train_result.get('params', {})
+            model_type=train_result.get("model_type", "random_forest"),
+            train_accuracy=train_result.get("accuracy", 0),
+            cv_accuracy=train_result.get("cv_accuracy", 0),
+            features_used=train_result.get("features", []),
+            hyperparameters=train_result.get("params", {}),
         )
 
         self.model_versions[symbol].append(version)
@@ -522,12 +519,7 @@ class ContinuousLearner:
         logger.info(f"Registered new model version: {version.version_id}")
 
     def start_ab_test(
-        self,
-        name: str,
-        symbol: str,
-        variant_a: str,
-        variant_b: str,
-        min_trades: int = 50
+        self, name: str, symbol: str, variant_a: str, variant_b: str, min_trades: int = 50
     ) -> str:
         """Start an A/B test between two model/strategy variants."""
         test_id = f"ab_{symbol}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
@@ -538,7 +530,7 @@ class ContinuousLearner:
             start_time=datetime.now(),
             variant_a=variant_a,
             variant_b=variant_b,
-            min_trades=min_trades
+            min_trades=min_trades,
         )
 
         logger.info(f"Started A/B test: {name} ({variant_a} vs {variant_b})")
@@ -563,23 +555,23 @@ class ContinuousLearner:
         """Get performance summary for a symbol."""
         window = self.performance_windows.get(symbol)
         if not window:
-            return {'error': 'No data for symbol'}
+            return {"error": "No data for symbol"}
 
         drift_level = self.drift_detector.get_drift_level(symbol)
         drift_score = self.drift_detector.drift_scores.get(symbol, 0)
 
         return {
-            'symbol': symbol,
-            'trades': len(window.trades),
-            'win_rate': window.win_rate,
-            'avg_pnl': window.avg_pnl,
-            'sharpe_ratio': window.sharpe_ratio,
-            'profit_factor': window.profit_factor,
-            'drift_level': drift_level,
-            'drift_score': drift_score,
-            'should_retrain': drift_score > 0.5 or window.win_rate < 0.4,
-            'last_retrain': self.last_retrain.get(symbol, 'Never'),
-            'active_version': self.active_versions.get(symbol, 'default')
+            "symbol": symbol,
+            "trades": len(window.trades),
+            "win_rate": window.win_rate,
+            "avg_pnl": window.avg_pnl,
+            "sharpe_ratio": window.sharpe_ratio,
+            "profit_factor": window.profit_factor,
+            "drift_level": drift_level,
+            "drift_score": drift_score,
+            "should_retrain": drift_score > 0.5 or window.win_rate < 0.4,
+            "last_retrain": self.last_retrain.get(symbol, "Never"),
+            "active_version": self.active_versions.get(symbol, "default"),
         }
 
     def get_all_summaries(self) -> Dict[str, Any]:
@@ -592,6 +584,7 @@ class ContinuousLearner:
 
 # Global instance
 _continuous_learner: Optional[ContinuousLearner] = None
+
 
 def get_continuous_learner() -> ContinuousLearner:
     """Get or create the ContinuousLearner instance."""

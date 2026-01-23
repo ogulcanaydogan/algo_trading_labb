@@ -128,7 +128,9 @@ class TestDataFreshnessMonitor:
         """Test expired data detection."""
         custom_monitor.update("AVAX/USDT", 50.0, "crypto")
         # Set timestamp beyond expired threshold
-        custom_monitor._symbol_data["AVAX/USDT"].last_update = datetime.now() - timedelta(seconds=120)
+        custom_monitor._symbol_data["AVAX/USDT"].last_update = datetime.now() - timedelta(
+            seconds=120
+        )
 
         result = custom_monitor.check_freshness("AVAX/USDT")
         assert result.status == FreshnessStatus.EXPIRED
@@ -231,6 +233,7 @@ class TestGlobalMonitor:
         """Test get_monitor creates instance."""
         # Reset global
         import bot.data_freshness as df
+
         df._monitor = None
 
         monitor = get_monitor()
@@ -240,6 +243,7 @@ class TestGlobalMonitor:
     def test_get_monitor_returns_same_instance(self):
         """Test get_monitor returns same instance."""
         import bot.data_freshness as df
+
         df._monitor = None
 
         monitor1 = get_monitor()
@@ -249,6 +253,7 @@ class TestGlobalMonitor:
     def test_update_data_convenience(self):
         """Test update_data convenience function."""
         import bot.data_freshness as df
+
         df._monitor = None
 
         update_data("TEST/USDT", 100.0, "crypto")
@@ -257,6 +262,7 @@ class TestGlobalMonitor:
     def test_is_data_fresh_convenience(self):
         """Test is_data_fresh convenience function."""
         import bot.data_freshness as df
+
         df._monitor = None
 
         assert is_data_fresh("NONEXISTENT") is False

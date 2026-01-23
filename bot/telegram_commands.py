@@ -79,14 +79,18 @@ class TelegramCommandBot:
 
         try:
             import aiohttp
+
             url = f"https://api.telegram.org/bot{self.token}/sendMessage"
 
             async with aiohttp.ClientSession() as session:
-                async with session.post(url, json={
-                    "chat_id": self.chat_id,
-                    "text": text,
-                    "parse_mode": parse_mode,
-                }) as resp:
+                async with session.post(
+                    url,
+                    json={
+                        "chat_id": self.chat_id,
+                        "text": text,
+                        "parse_mode": parse_mode,
+                    },
+                ) as resp:
                     return resp.status == 200
         except Exception as e:
             logger.error(f"Telegram send error: {e}")
@@ -113,7 +117,7 @@ Mode: {mode}
 Balance: <b>${balance:,.2f}</b>
 Total P&L: <b>${pnl:+,.2f}</b> ({pnl_pct:+.2f}%)
 Open Positions: {positions}
-Updated: {datetime.now().strftime('%H:%M:%S')}
+Updated: {datetime.now().strftime("%H:%M:%S")}
 """
 
     def handle_balance(self) -> str:
@@ -127,10 +131,7 @@ Updated: {datetime.now().strftime('%H:%M:%S')}
 
         # Calculate position values
         positions = state.get("positions", {})
-        pos_value = sum(
-            p.get("quantity", 0) * p.get("entry_price", 0)
-            for p in positions.values()
-        )
+        pos_value = sum(p.get("quantity", 0) * p.get("entry_price", 0) for p in positions.values())
 
         emoji = "📈" if pnl >= 0 else "📉"
 
@@ -204,10 +205,7 @@ Total: ${balance + pos_value:,.2f}
 
         # Filter today's trades
         today = datetime.now().strftime("%Y-%m-%d")
-        today_trades = [
-            t for t in trades
-            if t.get("timestamp", "").startswith(today)
-        ]
+        today_trades = [t for t in trades if t.get("timestamp", "").startswith(today)]
 
         realized_pnl = sum(t.get("pnl", 0) for t in today_trades)
         wins = sum(1 for t in today_trades if t.get("pnl", 0) > 0)
@@ -215,10 +213,7 @@ Total: ${balance + pos_value:,.2f}
 
         # Unrealized P&L
         positions = state.get("positions", {})
-        unrealized_pnl = sum(
-            p.get("unrealized_pnl", 0)
-            for p in positions.values()
-        )
+        unrealized_pnl = sum(p.get("unrealized_pnl", 0) for p in positions.values())
 
         total_pnl = realized_pnl + unrealized_pnl
         emoji = "📈" if total_pnl >= 0 else "📉"
@@ -302,7 +297,7 @@ Wins: {wins} | Losses: {losses}
 Shorting: {shorting}
 Leverage: {leverage}
 Aggressive: {aggressive}
-Max Leverage: {control.get('max_leverage', 1.0)}x
+Max Leverage: {control.get("max_leverage", 1.0)}x
 """
 
     def process_command(self, text: str) -> str:
@@ -340,6 +335,7 @@ Max Leverage: {control.get('max_leverage', 1.0)}x
             return
 
         import aiohttp
+
         url = f"https://api.telegram.org/bot{self.token}/getUpdates"
 
         logger.info("Starting Telegram command bot polling...")
@@ -373,11 +369,14 @@ Max Leverage: {control.get('max_leverage', 1.0)}x
 
                                 # Send response
                                 send_url = f"https://api.telegram.org/bot{self.token}/sendMessage"
-                                await session.post(send_url, json={
-                                    "chat_id": chat_id,
-                                    "text": response,
-                                    "parse_mode": "HTML",
-                                })
+                                await session.post(
+                                    send_url,
+                                    json={
+                                        "chat_id": chat_id,
+                                        "text": response,
+                                        "parse_mode": "HTML",
+                                    },
+                                )
 
                 except asyncio.TimeoutError:
                     continue
@@ -393,6 +392,7 @@ Max Leverage: {control.get('max_leverage', 1.0)}x
 async def run_telegram_bot():
     """Run the Telegram command bot."""
     from dotenv import load_dotenv
+
     load_dotenv()
 
     bot = TelegramCommandBot()

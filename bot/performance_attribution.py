@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 class AttributionFactor(Enum):
     """Types of attribution factors."""
+
     STRATEGY = "strategy"
     MODEL = "model"
     ASSET = "asset"
@@ -39,6 +40,7 @@ class AttributionFactor(Enum):
 @dataclass
 class TradeRecord:
     """Record of a single trade for attribution."""
+
     trade_id: str
     symbol: str
     market_type: str
@@ -83,6 +85,7 @@ class TradeRecord:
 @dataclass
 class AttributionResult:
     """Attribution analysis result for a specific factor."""
+
     factor: AttributionFactor
     category: str  # e.g., strategy name, model name
     total_pnl: float
@@ -116,6 +119,7 @@ class AttributionResult:
 @dataclass
 class PerformanceReport:
     """Comprehensive performance attribution report."""
+
     period_start: datetime
     period_end: datetime
     total_pnl: float
@@ -368,11 +372,15 @@ class PerformanceAttributor:
             win_rate = len(wins) / len(pnls) if pnls else 0
             avg_win = np.mean(wins) if wins else 0
             avg_loss = abs(np.mean(losses)) if losses else 0
-            profit_factor = (sum(wins) / abs(sum(losses))) if losses and sum(losses) != 0 else float('inf')
+            profit_factor = (
+                (sum(wins) / abs(sum(losses))) if losses and sum(losses) != 0 else float("inf")
+            )
 
             # Sharpe ratio
             if len(returns) > 1 and np.std(returns) > 0:
-                sharpe = np.mean(returns) / np.std(returns) * np.sqrt(252 * 24)  # Annualized for hourly
+                sharpe = (
+                    np.mean(returns) / np.std(returns) * np.sqrt(252 * 24)
+                )  # Annualized for hourly
             else:
                 sharpe = 0
 
@@ -382,20 +390,22 @@ class PerformanceAttributor:
             drawdowns = running_max - cumulative
             max_dd = max(drawdowns) / self.initial_capital if len(drawdowns) > 0 else 0
 
-            results.append(AttributionResult(
-                factor=factor,
-                category=category,
-                total_pnl=group_pnl,
-                pnl_contribution_pct=contribution,
-                trade_count=len(group_trades),
-                win_rate=win_rate,
-                avg_win=avg_win,
-                avg_loss=avg_loss,
-                profit_factor=min(profit_factor, 100),  # Cap at 100
-                sharpe_ratio=sharpe,
-                max_drawdown=max_dd,
-                avg_holding_period=np.mean(holding_periods) if holding_periods else 0,
-            ))
+            results.append(
+                AttributionResult(
+                    factor=factor,
+                    category=category,
+                    total_pnl=group_pnl,
+                    pnl_contribution_pct=contribution,
+                    trade_count=len(group_trades),
+                    win_rate=win_rate,
+                    avg_win=avg_win,
+                    avg_loss=avg_loss,
+                    profit_factor=min(profit_factor, 100),  # Cap at 100
+                    sharpe_ratio=sharpe,
+                    max_drawdown=max_dd,
+                    avg_holding_period=np.mean(holding_periods) if holding_periods else 0,
+                )
+            )
 
         # Sort by contribution
         results.sort(key=lambda x: x.total_pnl, reverse=True)
@@ -423,10 +433,7 @@ class PerformanceAttributor:
         start_date = start_date or (end_date - timedelta(days=days))
 
         # Filter trades by period
-        period_trades = [
-            t for t in self.trades
-            if start_date <= t.entry_time <= end_date
-        ]
+        period_trades = [t for t in self.trades if start_date <= t.entry_time <= end_date]
 
         # Calculate overall metrics
         total_pnl = sum(t.pnl for t in period_trades)
@@ -437,36 +444,32 @@ class PerformanceAttributor:
             overall_win_rate = len(wins) / len(period_trades)
 
             returns = [t.pnl_pct for t in period_trades]
-            overall_sharpe = (np.mean(returns) / np.std(returns) * np.sqrt(252 * 24)
-                           if np.std(returns) > 0 else 0)
+            overall_sharpe = (
+                np.mean(returns) / np.std(returns) * np.sqrt(252 * 24) if np.std(returns) > 0 else 0
+            )
         else:
             overall_win_rate = 0
             overall_sharpe = 0
 
         # Calculate attributions
         attributions_by_strategy = self._calculate_attribution(
-            period_trades, AttributionFactor.STRATEGY,
-            lambda t: t.strategy, total_pnl
+            period_trades, AttributionFactor.STRATEGY, lambda t: t.strategy, total_pnl
         )
 
         attributions_by_model = self._calculate_attribution(
-            period_trades, AttributionFactor.MODEL,
-            lambda t: t.model, total_pnl
+            period_trades, AttributionFactor.MODEL, lambda t: t.model, total_pnl
         )
 
         attributions_by_asset = self._calculate_attribution(
-            period_trades, AttributionFactor.ASSET,
-            lambda t: t.symbol, total_pnl
+            period_trades, AttributionFactor.ASSET, lambda t: t.symbol, total_pnl
         )
 
         attributions_by_market = self._calculate_attribution(
-            period_trades, AttributionFactor.MARKET_TYPE,
-            lambda t: t.market_type, total_pnl
+            period_trades, AttributionFactor.MARKET_TYPE, lambda t: t.market_type, total_pnl
         )
 
         attributions_by_regime = self._calculate_attribution(
-            period_trades, AttributionFactor.REGIME,
-            lambda t: t.regime, total_pnl
+            period_trades, AttributionFactor.REGIME, lambda t: t.regime, total_pnl
         )
 
         # Top and worst performers
@@ -554,10 +557,7 @@ class PerformanceAttributor:
         """Get daily performance summary."""
         target = target_date or date.today()
 
-        day_trades = [
-            t for t in self.trades
-            if t.entry_time.date() == target
-        ]
+        day_trades = [t for t in self.trades if t.entry_time.date() == target]
 
         if not day_trades:
             return {

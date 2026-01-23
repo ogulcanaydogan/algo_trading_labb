@@ -33,17 +33,20 @@ logger = logging.getLogger(__name__)
 # CORE DATA STRUCTURES
 # =============================================================================
 
+
 class LearningMode(Enum):
     """Learning modes for the system."""
+
     OBSERVATION = "observation"  # Just watch and learn, don't act
-    SHADOW = "shadow"            # Generate signals but don't execute
-    VALIDATED = "validated"      # Execute only high-confidence learned actions
-    AUTONOMOUS = "autonomous"    # Full autonomous operation
+    SHADOW = "shadow"  # Generate signals but don't execute
+    VALIDATED = "validated"  # Execute only high-confidence learned actions
+    AUTONOMOUS = "autonomous"  # Full autonomous operation
 
 
 @dataclass
 class PerformanceMetrics:
     """Performance metrics for evaluation."""
+
     total_trades: int = 0
     winning_trades: int = 0
     losing_trades: int = 0
@@ -70,6 +73,7 @@ class PerformanceMetrics:
 @dataclass
 class StrategyCandidate:
     """A strategy being tested in shadow mode."""
+
     id: str
     name: str
     parameters: Dict[str, Any]
@@ -90,6 +94,7 @@ class StrategyCandidate:
 @dataclass
 class MarketCondition:
     """Current market condition snapshot."""
+
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     # Regime
@@ -119,27 +124,36 @@ class MarketCondition:
 
     def to_state_vector(self) -> np.ndarray:
         """Convert to numeric vector for ML."""
-        regime_map = {"strong_bull": 2, "bull": 1, "sideways": 0,
-                      "bear": -1, "strong_bear": -2, "crash": -3}
+        regime_map = {
+            "strong_bull": 2,
+            "bull": 1,
+            "sideways": 0,
+            "bear": -1,
+            "strong_bear": -2,
+            "crash": -3,
+        }
         trend_map = {"up": 1, "neutral": 0, "down": -1}
 
-        return np.array([
-            regime_map.get(self.regime, 0),
-            self.regime_confidence,
-            trend_map.get(self.trend_1h, 0),
-            trend_map.get(self.trend_4h, 0),
-            trend_map.get(self.trend_1d, 0),
-            (self.volatility_percentile - 50) / 50,
-            self.atr_normalized,
-            (self.rsi - 50) / 50,
-            np.tanh(self.macd_histogram),
-            np.log1p(self.volume_ratio) - 0.7,
-        ])
+        return np.array(
+            [
+                regime_map.get(self.regime, 0),
+                self.regime_confidence,
+                trend_map.get(self.trend_1h, 0),
+                trend_map.get(self.trend_4h, 0),
+                trend_map.get(self.trend_1d, 0),
+                (self.volatility_percentile - 50) / 50,
+                self.atr_normalized,
+                (self.rsi - 50) / 50,
+                np.tanh(self.macd_histogram),
+                np.log1p(self.volume_ratio) - 0.7,
+            ]
+        )
 
 
 # =============================================================================
 # SELF-EVALUATION MODULE
 # =============================================================================
+
 
 class SelfEvaluator:
     """
@@ -194,11 +208,7 @@ class SelfEvaluator:
         conn.commit()
         conn.close()
 
-    def evaluate_period(
-        self,
-        trades: List[Dict],
-        period_hours: int = 24
-    ) -> Dict[str, Any]:
+    def evaluate_period(self, trades: List[Dict], period_hours: int = 24) -> Dict[str, Any]:
         """
         Evaluate performance over a period.
 
@@ -323,12 +333,20 @@ class SelfEvaluator:
                     pass
 
         return {
-            "hourly": {h: {"avg": np.mean(pnls) if pnls else 0, "count": len(pnls)}
-                       for h, pnls in hourly.items()},
-            "daily": {d: {"avg": np.mean(pnls) if pnls else 0, "count": len(pnls)}
-                      for d, pnls in daily.items()},
-            "best_hour": max(hourly.keys(), key=lambda h: np.mean(hourly[h]) if hourly[h] else -999),
-            "worst_hour": min(hourly.keys(), key=lambda h: np.mean(hourly[h]) if hourly[h] else 999),
+            "hourly": {
+                h: {"avg": np.mean(pnls) if pnls else 0, "count": len(pnls)}
+                for h, pnls in hourly.items()
+            },
+            "daily": {
+                d: {"avg": np.mean(pnls) if pnls else 0, "count": len(pnls)}
+                for d, pnls in daily.items()
+            },
+            "best_hour": max(
+                hourly.keys(), key=lambda h: np.mean(hourly[h]) if hourly[h] else -999
+            ),
+            "worst_hour": min(
+                hourly.keys(), key=lambda h: np.mean(hourly[h]) if hourly[h] else 999
+            ),
         }
 
     def _identify_failure_patterns(self, trades: List[Dict]) -> List[Dict]:
@@ -348,23 +366,31 @@ class SelfEvaluator:
 
         worst_regime = max(regime_losses.keys(), key=lambda r: regime_losses[r])
         if regime_losses[worst_regime] > len(losing_trades) * 0.3:
-            patterns.append({
-                "type": "regime_concentration",
-                "description": f"Most losses occur in {worst_regime} regime",
-                "regime": worst_regime,
-                "loss_count": regime_losses[worst_regime],
-                "severity": "high" if regime_losses[worst_regime] > len(losing_trades) * 0.5 else "medium",
-            })
+            patterns.append(
+                {
+                    "type": "regime_concentration",
+                    "description": f"Most losses occur in {worst_regime} regime",
+                    "regime": worst_regime,
+                    "loss_count": regime_losses[worst_regime],
+                    "severity": "high"
+                    if regime_losses[worst_regime] > len(losing_trades) * 0.5
+                    else "medium",
+                }
+            )
 
         # Check for volatility-related failures
-        high_vol_losses = [t for t in losing_trades if t.get("volatility", "normal") in ("high", "extreme")]
+        high_vol_losses = [
+            t for t in losing_trades if t.get("volatility", "normal") in ("high", "extreme")
+        ]
         if len(high_vol_losses) > len(losing_trades) * 0.4:
-            patterns.append({
-                "type": "volatility_sensitivity",
-                "description": "High losses during volatile periods",
-                "high_vol_loss_pct": len(high_vol_losses) / len(losing_trades),
-                "severity": "high",
-            })
+            patterns.append(
+                {
+                    "type": "volatility_sensitivity",
+                    "description": "High losses during volatile periods",
+                    "high_vol_loss_pct": len(high_vol_losses) / len(losing_trades),
+                    "severity": "high",
+                }
+            )
 
         # Check for consecutive losses
         consecutive = 0
@@ -377,31 +403,32 @@ class SelfEvaluator:
                 consecutive = 0
 
         if max_consecutive >= 5:
-            patterns.append({
-                "type": "losing_streaks",
-                "description": f"Max {max_consecutive} consecutive losses detected",
-                "max_streak": max_consecutive,
-                "severity": "high" if max_consecutive >= 7 else "medium",
-            })
+            patterns.append(
+                {
+                    "type": "losing_streaks",
+                    "description": f"Max {max_consecutive} consecutive losses detected",
+                    "max_streak": max_consecutive,
+                    "severity": "high" if max_consecutive >= 7 else "medium",
+                }
+            )
 
         # Check for large single losses
         large_losses = [t for t in losing_trades if abs(t.get("pnl_percent", 0)) > 5]
         if large_losses:
-            patterns.append({
-                "type": "large_single_losses",
-                "description": f"{len(large_losses)} trades with >5% loss",
-                "count": len(large_losses),
-                "total_lost": sum(abs(t.get("pnl_percent", 0)) for t in large_losses),
-                "severity": "high",
-            })
+            patterns.append(
+                {
+                    "type": "large_single_losses",
+                    "description": f"{len(large_losses)} trades with >5% loss",
+                    "count": len(large_losses),
+                    "total_lost": sum(abs(t.get("pnl_percent", 0)) for t in large_losses),
+                    "severity": "high",
+                }
+            )
 
         return patterns
 
     def _generate_insights(
-        self,
-        metrics: PerformanceMetrics,
-        regime_analysis: Dict,
-        failure_patterns: List[Dict]
+        self, metrics: PerformanceMetrics, regime_analysis: Dict, failure_patterns: List[Dict]
     ) -> List[str]:
         """Generate human-readable insights."""
         insights = []
@@ -430,7 +457,9 @@ class SelfEvaluator:
         for regime, data in regime_analysis.items():
             if data["count"] >= 5:
                 if data["win_rate"] < 0.3:
-                    insights.append(f"WEAK IN {regime.upper()}: Only {data['win_rate']:.1%} win rate")
+                    insights.append(
+                        f"WEAK IN {regime.upper()}: Only {data['win_rate']:.1%} win rate"
+                    )
                 elif data["win_rate"] > 0.7:
                     insights.append(f"STRONG IN {regime.upper()}: {data['win_rate']:.1%} win rate")
 
@@ -442,45 +471,53 @@ class SelfEvaluator:
         return insights
 
     def _generate_recommendations(
-        self,
-        insights: List[str],
-        failure_patterns: List[Dict]
+        self, insights: List[str], failure_patterns: List[Dict]
     ) -> List[Dict]:
         """Generate actionable recommendations."""
         recommendations = []
 
         for pattern in failure_patterns:
             if pattern["type"] == "regime_concentration":
-                recommendations.append({
-                    "action": "reduce_trading_in_regime",
-                    "regime": pattern["regime"],
-                    "description": f"Reduce position size or avoid trading in {pattern['regime']} regime",
-                    "parameter_change": {"regime_position_multiplier": {pattern["regime"]: 0.5}},
-                })
+                recommendations.append(
+                    {
+                        "action": "reduce_trading_in_regime",
+                        "regime": pattern["regime"],
+                        "description": f"Reduce position size or avoid trading in {pattern['regime']} regime",
+                        "parameter_change": {
+                            "regime_position_multiplier": {pattern["regime"]: 0.5}
+                        },
+                    }
+                )
 
             elif pattern["type"] == "volatility_sensitivity":
-                recommendations.append({
-                    "action": "adjust_volatility_filter",
-                    "description": "Tighten stops and reduce size during high volatility",
-                    "parameter_change": {
-                        "high_vol_position_multiplier": 0.5,
-                        "high_vol_stop_multiplier": 0.7,
-                    },
-                })
+                recommendations.append(
+                    {
+                        "action": "adjust_volatility_filter",
+                        "description": "Tighten stops and reduce size during high volatility",
+                        "parameter_change": {
+                            "high_vol_position_multiplier": 0.5,
+                            "high_vol_stop_multiplier": 0.7,
+                        },
+                    }
+                )
 
             elif pattern["type"] == "losing_streaks":
-                recommendations.append({
-                    "action": "add_streak_breaker",
-                    "description": "Pause trading after consecutive losses",
-                    "parameter_change": {"max_consecutive_losses": 4, "cooldown_minutes": 60},
-                })
+                recommendations.append(
+                    {
+                        "action": "add_streak_breaker",
+                        "description": "Pause trading after consecutive losses",
+                        "parameter_change": {"max_consecutive_losses": 4, "cooldown_minutes": 60},
+                    }
+                )
 
             elif pattern["type"] == "large_single_losses":
-                recommendations.append({
-                    "action": "tighten_risk_limits",
-                    "description": "Reduce max loss per trade",
-                    "parameter_change": {"max_loss_per_trade_pct": 2.0},
-                })
+                recommendations.append(
+                    {
+                        "action": "tighten_risk_limits",
+                        "description": "Reduce max loss per trade",
+                        "parameter_change": {"max_loss_per_trade_pct": 2.0},
+                    }
+                )
 
         return recommendations
 
@@ -489,27 +526,30 @@ class SelfEvaluator:
         metrics: PerformanceMetrics,
         insights: List[str],
         recommendations: List[Dict],
-        period_hours: int
+        period_hours: int,
     ):
         """Save evaluation to database."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
         now = datetime.now(timezone.utc)
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO evaluations
             (timestamp, evaluation_type, period_start, period_end,
              metrics_json, insights_json, recommendations_json)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (
-            now.isoformat(),
-            f"{period_hours}h_review",
-            (now - timedelta(hours=period_hours)).isoformat(),
-            now.isoformat(),
-            json.dumps(asdict(metrics)),
-            json.dumps(insights),
-            json.dumps(recommendations),
-        ))
+        """,
+            (
+                now.isoformat(),
+                f"{period_hours}h_review",
+                (now - timedelta(hours=period_hours)).isoformat(),
+                now.isoformat(),
+                json.dumps(asdict(metrics)),
+                json.dumps(insights),
+                json.dumps(recommendations),
+            ),
+        )
 
         conn.commit()
         conn.close()
@@ -518,6 +558,7 @@ class SelfEvaluator:
 # =============================================================================
 # AUTO-PARAMETER TUNER
 # =============================================================================
+
 
 class AutoParameterTuner:
     """
@@ -583,9 +624,7 @@ class AutoParameterTuner:
         conn.close()
 
     def suggest_parameters(
-        self,
-        current_metrics: PerformanceMetrics,
-        failure_patterns: List[Dict]
+        self, current_metrics: PerformanceMetrics, failure_patterns: List[Dict]
     ) -> Dict[str, Any]:
         """
         Suggest parameter changes based on current performance.
@@ -634,9 +673,7 @@ class AutoParameterTuner:
         return suggestions
 
     def apply_suggestions(
-        self,
-        suggestions: Dict[str, Any],
-        validation_period_hours: int = 24
+        self, suggestions: Dict[str, Any], validation_period_hours: int = 24
     ) -> Dict[str, Any]:
         """
         Apply suggested parameters with validation tracking.
@@ -649,7 +686,7 @@ class AutoParameterTuner:
                 param,
                 suggestion["current"],
                 suggestion["suggested"],
-                suggestion.get("expected_improvement", 0.1)
+                suggestion.get("expected_improvement", 0.1),
             )
 
             # Update current params
@@ -666,24 +703,20 @@ class AutoParameterTuner:
         }
 
     def _record_experiment(
-        self,
-        param: str,
-        old_val: float,
-        new_val: float,
-        expected_improvement: float
+        self, param: str, old_val: float, new_val: float, expected_improvement: float
     ):
         """Record a parameter experiment."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO parameter_experiments
             (timestamp, parameter_name, old_value, new_value, expected_improvement)
             VALUES (?, ?, ?, ?, ?)
-        """, (
-            datetime.now(timezone.utc).isoformat(),
-            param, old_val, new_val, expected_improvement
-        ))
+        """,
+            (datetime.now(timezone.utc).isoformat(), param, old_val, new_val, expected_improvement),
+        )
 
         conn.commit()
         conn.close()
@@ -696,14 +729,13 @@ class AutoParameterTuner:
         # Mark previous as not current
         cursor.execute("UPDATE parameter_history SET is_current = 0")
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO parameter_history (timestamp, parameters_json, score, is_current)
             VALUES (?, ?, ?, 1)
-        """, (
-            datetime.now(timezone.utc).isoformat(),
-            json.dumps(params),
-            score
-        ))
+        """,
+            (datetime.now(timezone.utc).isoformat(), json.dumps(params), score),
+        )
 
         conn.commit()
         conn.close()
@@ -712,6 +744,7 @@ class AutoParameterTuner:
 # =============================================================================
 # STRATEGY EVOLUTION
 # =============================================================================
+
 
 class StrategyEvolver:
     """
@@ -776,9 +809,7 @@ class StrategyEvolver:
         conn.close()
 
     def generate_mutation(
-        self,
-        base_params: Dict[str, Any],
-        mutation_strength: float = 0.2
+        self, base_params: Dict[str, Any], mutation_strength: float = 0.2
     ) -> StrategyCandidate:
         """
         Generate a mutated strategy variation.
@@ -812,33 +843,32 @@ class StrategyEvolver:
         symbol: str,
         action: str,
         entry_price: float,
-        market_condition: MarketCondition
+        market_condition: MarketCondition,
     ):
         """Record a shadow signal from a candidate strategy."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO shadow_signals
             (strategy_id, timestamp, symbol, action, entry_price, market_condition_json)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, (
-            strategy_id,
-            datetime.now(timezone.utc).isoformat(),
-            symbol, action, entry_price,
-            json.dumps(asdict(market_condition))
-        ))
+        """,
+            (
+                strategy_id,
+                datetime.now(timezone.utc).isoformat(),
+                symbol,
+                action,
+                entry_price,
+                json.dumps(asdict(market_condition)),
+            ),
+        )
 
         conn.commit()
         conn.close()
 
-    def update_shadow_outcome(
-        self,
-        strategy_id: str,
-        symbol: str,
-        exit_price: float,
-        pnl: float
-    ):
+    def update_shadow_outcome(self, strategy_id: str, symbol: str, exit_price: float, pnl: float):
         """Update shadow signal with hypothetical outcome."""
         if strategy_id not in self.shadow_strategies:
             return
@@ -867,32 +897,40 @@ class StrategyEvolver:
                 continue
 
             if candidate.shadow_trades < self.min_shadow_trades:
-                recommendations.append({
-                    "strategy_id": strategy_id,
-                    "status": "needs_more_data",
-                    "trades": candidate.shadow_trades,
-                    "required": self.min_shadow_trades,
-                })
+                recommendations.append(
+                    {
+                        "strategy_id": strategy_id,
+                        "status": "needs_more_data",
+                        "trades": candidate.shadow_trades,
+                        "required": self.min_shadow_trades,
+                    }
+                )
                 continue
 
             # Evaluate for promotion
-            if (candidate.shadow_win_rate >= self.min_shadow_win_rate and
-                candidate.shadow_sharpe >= self.min_shadow_sharpe):
-                recommendations.append({
-                    "strategy_id": strategy_id,
-                    "status": "recommend_promotion",
-                    "win_rate": candidate.shadow_win_rate,
-                    "sharpe": candidate.shadow_sharpe,
-                    "total_pnl": candidate.shadow_pnl,
-                })
+            if (
+                candidate.shadow_win_rate >= self.min_shadow_win_rate
+                and candidate.shadow_sharpe >= self.min_shadow_sharpe
+            ):
+                recommendations.append(
+                    {
+                        "strategy_id": strategy_id,
+                        "status": "recommend_promotion",
+                        "win_rate": candidate.shadow_win_rate,
+                        "sharpe": candidate.shadow_sharpe,
+                        "total_pnl": candidate.shadow_pnl,
+                    }
+                )
             else:
-                recommendations.append({
-                    "strategy_id": strategy_id,
-                    "status": "recommend_rejection",
-                    "reason": "Below performance thresholds",
-                    "win_rate": candidate.shadow_win_rate,
-                    "sharpe": candidate.shadow_sharpe,
-                })
+                recommendations.append(
+                    {
+                        "strategy_id": strategy_id,
+                        "status": "recommend_rejection",
+                        "reason": "Below performance thresholds",
+                        "win_rate": candidate.shadow_win_rate,
+                        "sharpe": candidate.shadow_sharpe,
+                    }
+                )
 
         return recommendations
 
@@ -915,20 +953,26 @@ class StrategyEvolver:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT OR REPLACE INTO strategy_candidates
             (id, name, parameters_json, created_at, shadow_trades, shadow_pnl,
              shadow_win_rate, shadow_sharpe, is_promoted, is_rejected)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            candidate.id, candidate.name,
-            json.dumps(candidate.parameters),
-            candidate.created_at.isoformat(),
-            candidate.shadow_trades, candidate.shadow_pnl,
-            candidate.shadow_win_rate, candidate.shadow_sharpe,
-            1 if candidate.is_promoted else 0,
-            1 if candidate.is_rejected else 0,
-        ))
+        """,
+            (
+                candidate.id,
+                candidate.name,
+                json.dumps(candidate.parameters),
+                candidate.created_at.isoformat(),
+                candidate.shadow_trades,
+                candidate.shadow_pnl,
+                candidate.shadow_win_rate,
+                candidate.shadow_sharpe,
+                1 if candidate.is_promoted else 0,
+                1 if candidate.is_rejected else 0,
+            ),
+        )
 
         conn.commit()
         conn.close()
@@ -941,6 +985,7 @@ class StrategyEvolver:
 # =============================================================================
 # MAIN SELF-LEARNING ENGINE
 # =============================================================================
+
 
 class SelfLearningEngine:
     """
@@ -969,6 +1014,7 @@ class SelfLearningEngine:
         # Import optimal action tracker
         try:
             from bot.optimal_action_tracker import get_tracker
+
             self.action_tracker = get_tracker()
         except ImportError:
             self.action_tracker = None
@@ -998,9 +1044,7 @@ class SelfLearningEngine:
         self._maybe_run_evaluation()
 
     def get_optimal_action(
-        self,
-        symbol: str,
-        condition: Optional[MarketCondition] = None
+        self, symbol: str, condition: Optional[MarketCondition] = None
     ) -> Tuple[str, float, Dict]:
         """
         Get the optimal action based on learned knowledge.
@@ -1022,17 +1066,24 @@ class SelfLearningEngine:
                 regime_confidence=cond.regime_confidence,
                 rsi=cond.rsi,
                 trend_direction=cond.trend_1h,
-                volatility_regime="high" if cond.volatility_percentile > 75 else
-                                  "low" if cond.volatility_percentile < 25 else "normal",
+                volatility_regime="high"
+                if cond.volatility_percentile > 75
+                else "low"
+                if cond.volatility_percentile < 25
+                else "normal",
             )
 
             action, expected_value = self.action_tracker.get_optimal_action(state)
 
-            return action.value, abs(expected_value), {
-                "source": "q_table",
-                "state_key": state.to_state_key(),
-                "expected_value": expected_value,
-            }
+            return (
+                action.value,
+                abs(expected_value),
+                {
+                    "source": "q_table",
+                    "state_key": state.to_state_key(),
+                    "expected_value": expected_value,
+                },
+            )
 
         # Fallback to heuristics
         return self._heuristic_action(cond)
@@ -1086,8 +1137,7 @@ class SelfLearningEngine:
         if evaluation.get("metrics"):
             metrics = PerformanceMetrics(**evaluation["metrics"])
             suggestions = self.tuner.suggest_parameters(
-                metrics,
-                evaluation.get("failure_patterns", [])
+                metrics, evaluation.get("failure_patterns", [])
             )
 
             if suggestions:
@@ -1122,6 +1172,7 @@ class SelfLearningEngine:
 # =============================================================================
 
 _engine: Optional[SelfLearningEngine] = None
+
 
 def get_self_learning_engine() -> SelfLearningEngine:
     """Get or create the global self-learning engine."""

@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 class AlertLevel(Enum):
     """Alert severity levels."""
+
     INFO = "info"
     WARNING = "warning"
     ERROR = "error"
@@ -37,6 +38,7 @@ class AlertLevel(Enum):
 
 class AlertType(Enum):
     """Types of alerts."""
+
     TRADE_OPENED = "trade_opened"
     TRADE_CLOSED = "trade_closed"
     SIGNAL_GENERATED = "signal_generated"
@@ -49,6 +51,7 @@ class AlertType(Enum):
 @dataclass
 class Alert:
     """Alert message."""
+
     type: AlertType
     level: AlertLevel
     title: str
@@ -62,12 +65,12 @@ class Alert:
 
     def to_dict(self) -> Dict:
         return {
-            'type': self.type.value,
-            'level': self.level.value,
-            'title': self.title,
-            'message': self.message,
-            'data': self.data,
-            'timestamp': self.timestamp.isoformat(),
+            "type": self.type.value,
+            "level": self.level.value,
+            "title": self.title,
+            "message": self.message,
+            "data": self.data,
+            "timestamp": self.timestamp.isoformat(),
         }
 
 
@@ -89,8 +92,8 @@ class TelegramChannel(NotificationChannel):
     """Telegram notification channel."""
 
     def __init__(self, bot_token: Optional[str] = None, chat_id: Optional[str] = None):
-        self.bot_token = bot_token or os.getenv('TELEGRAM_BOT_TOKEN')
-        self.chat_id = chat_id or os.getenv('TELEGRAM_CHAT_ID')
+        self.bot_token = bot_token or os.getenv("TELEGRAM_BOT_TOKEN")
+        self.chat_id = chat_id or os.getenv("TELEGRAM_CHAT_ID")
         self.api_url = f"https://api.telegram.org/bot{self.bot_token}" if self.bot_token else None
 
     def is_configured(self) -> bool:
@@ -147,12 +150,12 @@ class TelegramChannel(NotificationChannel):
                 async with session.post(
                     f"{self.api_url}/sendMessage",
                     json={
-                        'chat_id': self.chat_id,
-                        'text': message,
-                        'parse_mode': 'Markdown',
-                        'disable_web_page_preview': True,
+                        "chat_id": self.chat_id,
+                        "text": message,
+                        "parse_mode": "Markdown",
+                        "disable_web_page_preview": True,
                     },
-                    timeout=10
+                    timeout=10,
                 ) as response:
                     if response.status == 200:
                         logger.debug(f"Telegram alert sent: {alert.title}")
@@ -171,7 +174,7 @@ class DiscordChannel(NotificationChannel):
     """Discord webhook notification channel."""
 
     def __init__(self, webhook_url: Optional[str] = None):
-        self.webhook_url = webhook_url or os.getenv('DISCORD_WEBHOOK_URL')
+        self.webhook_url = webhook_url or os.getenv("DISCORD_WEBHOOK_URL")
 
     def is_configured(self) -> bool:
         return bool(self.webhook_url)
@@ -179,23 +182,23 @@ class DiscordChannel(NotificationChannel):
     def _format_embed(self, alert: Alert) -> Dict:
         """Format alert as Discord embed."""
         color_map = {
-            AlertLevel.INFO: 0x3498db,  # Blue
-            AlertLevel.WARNING: 0xf39c12,  # Orange
-            AlertLevel.ERROR: 0xe74c3c,  # Red
-            AlertLevel.CRITICAL: 0x9b59b6,  # Purple
+            AlertLevel.INFO: 0x3498DB,  # Blue
+            AlertLevel.WARNING: 0xF39C12,  # Orange
+            AlertLevel.ERROR: 0xE74C3C,  # Red
+            AlertLevel.CRITICAL: 0x9B59B6,  # Purple
         }
 
         embed = {
-            'title': alert.title,
-            'description': alert.message,
-            'color': color_map.get(alert.level, 0x95a5a6),
-            'timestamp': alert.timestamp.isoformat(),
-            'footer': {'text': f"Alert Type: {alert.type.value}"},
+            "title": alert.title,
+            "description": alert.message,
+            "color": color_map.get(alert.level, 0x95A5A6),
+            "timestamp": alert.timestamp.isoformat(),
+            "footer": {"text": f"Alert Type: {alert.type.value}"},
         }
 
         if alert.data:
-            embed['fields'] = [
-                {'name': k, 'value': str(v), 'inline': True}
+            embed["fields"] = [
+                {"name": k, "value": str(v), "inline": True}
                 for k, v in list(alert.data.items())[:25]  # Discord limit
             ]
 
@@ -211,9 +214,7 @@ class DiscordChannel(NotificationChannel):
 
             async with aiohttp.ClientSession() as session:
                 async with session.post(
-                    self.webhook_url,
-                    json={'embeds': [embed]},
-                    timeout=10
+                    self.webhook_url, json={"embeds": [embed]}, timeout=10
                 ) as response:
                     if response.status in [200, 204]:
                         logger.debug(f"Discord alert sent: {alert.title}")
@@ -317,8 +318,7 @@ class NotificationService:
 
         # Send to all channels concurrently
         results = await asyncio.gather(
-            *[channel.send(alert) for channel in self.channels],
-            return_exceptions=True
+            *[channel.send(alert) for channel in self.channels], return_exceptions=True
         )
 
         success = any(r is True for r in results)
@@ -330,13 +330,7 @@ class NotificationService:
     # Convenience methods for common alerts
 
     async def trade_opened(
-        self,
-        symbol: str,
-        side: str,
-        price: float,
-        quantity: float,
-        confidence: float,
-        **kwargs
+        self, symbol: str, side: str, price: float, quantity: float, confidence: float, **kwargs
     ):
         """Send trade opened alert."""
         alert = Alert(
@@ -345,13 +339,13 @@ class NotificationService:
             title=f"Trade Opened: {symbol}",
             message=f"Opened {side.upper()} position",
             data={
-                'symbol': symbol,
-                'side': side,
-                'price': price,
-                'quantity': quantity,
-                'confidence': confidence,
-                **kwargs
-            }
+                "symbol": symbol,
+                "side": side,
+                "price": price,
+                "quantity": quantity,
+                "confidence": confidence,
+                **kwargs,
+            },
         )
         await self.send(alert)
 
@@ -364,7 +358,7 @@ class NotificationService:
         pnl: float,
         pnl_pct: float,
         reason: str,
-        **kwargs
+        **kwargs,
     ):
         """Send trade closed alert."""
         level = AlertLevel.INFO if pnl >= 0 else AlertLevel.WARNING
@@ -375,25 +369,20 @@ class NotificationService:
             title=f"Trade Closed: {symbol}",
             message=f"Closed {side.upper()} - {'Profit' if pnl >= 0 else 'Loss'}: ${pnl:.2f} ({pnl_pct:.2f}%)",
             data={
-                'symbol': symbol,
-                'side': side,
-                'entry_price': entry_price,
-                'exit_price': exit_price,
-                'pnl': pnl,
-                'pnl_pct': pnl_pct,
-                'reason': reason,
-                **kwargs
-            }
+                "symbol": symbol,
+                "side": side,
+                "entry_price": entry_price,
+                "exit_price": exit_price,
+                "pnl": pnl,
+                "pnl_pct": pnl_pct,
+                "reason": reason,
+                **kwargs,
+            },
         )
         await self.send(alert)
 
     async def model_drift(
-        self,
-        symbol: str,
-        metric: str,
-        current_value: float,
-        threshold: float,
-        **kwargs
+        self, symbol: str, metric: str, current_value: float, threshold: float, **kwargs
     ):
         """Send model drift alert."""
         alert = Alert(
@@ -402,29 +391,23 @@ class NotificationService:
             title=f"Model Drift: {symbol}",
             message=f"{metric} degraded: {current_value:.2%} (threshold: {threshold:.2%})",
             data={
-                'symbol': symbol,
-                'metric': metric,
-                'current_value': current_value,
-                'threshold': threshold,
-                **kwargs
-            }
+                "symbol": symbol,
+                "metric": metric,
+                "current_value": current_value,
+                "threshold": threshold,
+                **kwargs,
+            },
         )
         await self.send(alert)
 
-    async def performance_warning(
-        self,
-        metric: str,
-        value: float,
-        message: str,
-        **kwargs
-    ):
+    async def performance_warning(self, metric: str, value: float, message: str, **kwargs):
         """Send performance warning."""
         alert = Alert(
             type=AlertType.PERFORMANCE_WARNING,
             level=AlertLevel.WARNING,
             title=f"Performance Warning: {metric}",
             message=message,
-            data={'metric': metric, 'value': value, **kwargs}
+            data={"metric": metric, "value": value, **kwargs},
         )
         await self.send(alert)
 
@@ -435,7 +418,7 @@ class NotificationService:
             level=AlertLevel.ERROR,
             title="System Error",
             message=error,
-            data={'details': details} if details else None
+            data={"details": details} if details else None,
         )
         await self.send(alert)
 
@@ -446,7 +429,7 @@ class NotificationService:
         daily_pnl: float,
         daily_pnl_pct: float,
         total_equity: float,
-        **kwargs
+        **kwargs,
     ):
         """Send daily summary."""
         win_rate = winning_trades / total_trades if total_trades > 0 else 0
@@ -457,14 +440,14 @@ class NotificationService:
             title="Daily Trading Summary",
             message=f"Trades: {total_trades} | Win Rate: {win_rate:.1%} | P&L: ${daily_pnl:.2f} ({daily_pnl_pct:.2f}%)",
             data={
-                'total_trades': total_trades,
-                'winning_trades': winning_trades,
-                'win_rate': win_rate,
-                'daily_pnl': daily_pnl,
-                'daily_pnl_pct': daily_pnl_pct,
-                'total_equity': total_equity,
-                **kwargs
-            }
+                "total_trades": total_trades,
+                "winning_trades": winning_trades,
+                "win_rate": win_rate,
+                "daily_pnl": daily_pnl,
+                "daily_pnl_pct": daily_pnl_pct,
+                "total_equity": total_equity,
+                **kwargs,
+            },
         )
         await self.send(alert)
 
@@ -482,11 +465,7 @@ def get_notification_service() -> NotificationService:
 
 
 async def send_alert(
-    type: AlertType,
-    level: AlertLevel,
-    title: str,
-    message: str,
-    data: Optional[Dict] = None
+    type: AlertType, level: AlertLevel, title: str, message: str, data: Optional[Dict] = None
 ):
     """Convenience function to send an alert."""
     service = get_notification_service()

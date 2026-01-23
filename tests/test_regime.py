@@ -74,13 +74,15 @@ def generate_ohlcv_data(
         open_price = close * (1 + np.random.uniform(-0.005, 0.005))
         volume = np.random.uniform(1000, 10000)
 
-        data.append({
-            "open": open_price,
-            "high": high,
-            "low": low,
-            "close": close,
-            "volume": volume,
-        })
+        data.append(
+            {
+                "open": open_price,
+                "high": high,
+                "low": low,
+                "close": close,
+                "volume": volume,
+            }
+        )
 
     return pd.DataFrame(data, index=dates)
 
@@ -127,6 +129,7 @@ def risk_engine() -> RegimeRiskEngine:
     # Use a temp path to avoid persisting state between tests
     import tempfile
     from pathlib import Path
+
     temp_dir = tempfile.mkdtemp()
     return RegimeRiskEngine(state_path=Path(temp_dir) / "test_risk_state.json")
 
@@ -175,14 +178,22 @@ class TestRegimeDetector:
         result = regime_detector.detect(bull_market_data, "BTC/USDT", "1h")
 
         # Bull market should have positive trend indicators
-        assert result.indicators.trend_direction >= 0 or result.regime in [MarketRegime.BULL, MarketRegime.HIGH_VOL]
+        assert result.indicators.trend_direction >= 0 or result.regime in [
+            MarketRegime.BULL,
+            MarketRegime.HIGH_VOL,
+        ]
 
     def test_detect_bear_market_has_negative_trend(self, regime_detector, bear_market_data):
         """Test that bear market data shows negative trend direction."""
         result = regime_detector.detect(bear_market_data, "BTC/USDT", "1h")
 
         # Bear market data - checking regime or trend direction
-        assert result.regime in [MarketRegime.BEAR, MarketRegime.CRASH, MarketRegime.HIGH_VOL, MarketRegime.SIDEWAYS]
+        assert result.regime in [
+            MarketRegime.BEAR,
+            MarketRegime.CRASH,
+            MarketRegime.HIGH_VOL,
+            MarketRegime.SIDEWAYS,
+        ]
 
     def test_detect_crash_conditions(self, regime_detector, crash_market_data):
         """Test detection of crash conditions."""
@@ -264,7 +275,9 @@ class TestRiskEngine:
         assert result.is_approved
         assert result.approved_quantity > 0
 
-    def test_kill_switch_blocks_trades(self, risk_engine, default_portfolio_state, bull_regime_state):
+    def test_kill_switch_blocks_trades(
+        self, risk_engine, default_portfolio_state, bull_regime_state
+    ):
         """Test that kill switch blocks all trades."""
         risk_engine.update_portfolio(default_portfolio_state)
         risk_engine.update_regime(bull_regime_state)
@@ -287,6 +300,7 @@ class TestRiskEngine:
         """Test that daily loss limit blocks trades."""
         import tempfile
         from pathlib import Path
+
         temp_dir = tempfile.mkdtemp()
         config = RiskConfig(max_daily_loss_pct=0.02)  # 2%
         risk_engine = RegimeRiskEngine(config, state_path=Path(temp_dir) / "test_state.json")
@@ -309,13 +323,16 @@ class TestRiskEngine:
 
         # Should be blocked due to daily loss or consecutive losses
         if not result.is_approved:
-            assert any(r in [BlockReason.DAILY_LOSS_LIMIT, BlockReason.CONSECUTIVE_LOSSES]
-                       for r in result.block_reasons)
+            assert any(
+                r in [BlockReason.DAILY_LOSS_LIMIT, BlockReason.CONSECUTIVE_LOSSES]
+                for r in result.block_reasons
+            )
 
     def test_drawdown_limit(self, bull_regime_state):
         """Test that max drawdown triggers kill switch."""
         import tempfile
         from pathlib import Path
+
         temp_dir = tempfile.mkdtemp()
         config = RiskConfig(max_drawdown_pct=0.10)  # 10%
         risk_engine = RegimeRiskEngine(config, state_path=Path(temp_dir) / "test_state.json")
@@ -341,13 +358,16 @@ class TestRiskEngine:
 
         # Should be blocked due to drawdown (kill switch triggered)
         assert not result.is_approved
-        assert BlockReason.KILL_SWITCH_ACTIVE in result.block_reasons or \
-               BlockReason.DRAWDOWN_LIMIT in result.block_reasons
+        assert (
+            BlockReason.KILL_SWITCH_ACTIVE in result.block_reasons
+            or BlockReason.DRAWDOWN_LIMIT in result.block_reasons
+        )
 
     def test_consecutive_losses_limit(self, default_portfolio_state, bull_regime_state):
         """Test that consecutive losses trigger blocking."""
         import tempfile
         from pathlib import Path
+
         temp_dir = tempfile.mkdtemp()
         config = RiskConfig(max_consecutive_losses=3)
         risk_engine = RegimeRiskEngine(config, state_path=Path(temp_dir) / "test_state.json")
@@ -370,7 +390,9 @@ class TestRiskEngine:
 
         assert BlockReason.CONSECUTIVE_LOSSES in result.block_reasons
 
-    def test_position_sizing_respects_risk(self, risk_engine, default_portfolio_state, bull_regime_state):
+    def test_position_sizing_respects_risk(
+        self, risk_engine, default_portfolio_state, bull_regime_state
+    ):
         """Test that position sizing respects risk limits."""
         risk_engine.update_portfolio(default_portfolio_state)
         risk_engine.update_regime(bull_regime_state)
@@ -391,7 +413,9 @@ class TestRiskEngine:
             # Check that position is sized reasonably
             assert position_value <= default_portfolio_state.equity
 
-    def test_volatility_circuit_breaker(self, risk_engine, default_portfolio_state, bull_regime_state):
+    def test_volatility_circuit_breaker(
+        self, risk_engine, default_portfolio_state, bull_regime_state
+    ):
         """Test that volatility circuit breaker blocks trades."""
         risk_engine.update_portfolio(default_portfolio_state)
         risk_engine.update_regime(bull_regime_state)
@@ -434,6 +458,7 @@ class TestRiskEngine:
         """Test that low liquidity blocks trades."""
         import tempfile
         from pathlib import Path
+
         temp_dir = tempfile.mkdtemp()
         config = RiskConfig(min_liquidity_volume=1000000.0)
         risk_engine = RegimeRiskEngine(config, state_path=Path(temp_dir) / "test_state.json")
@@ -486,6 +511,7 @@ class TestRiskEngine:
         """Test minimum time between trades."""
         import tempfile
         from pathlib import Path
+
         temp_dir = tempfile.mkdtemp()
         config = RiskConfig(min_time_between_trades_sec=300)  # 5 minutes
         risk_engine = RegimeRiskEngine(config, state_path=Path(temp_dir) / "test_state.json")
@@ -515,6 +541,7 @@ class TestRiskEngine:
         """Test portfolio heat (total risk) limit."""
         import tempfile
         from pathlib import Path
+
         temp_dir = tempfile.mkdtemp()
         config = RiskConfig(max_portfolio_heat=0.06)  # 6%
         risk_engine = RegimeRiskEngine(config, state_path=Path(temp_dir) / "test_state.json")
@@ -528,7 +555,7 @@ class TestRiskEngine:
                 "ETH/USDT": {"risk_pct": 0.02, "value": 2000},
                 "SOL/USDT": {"risk_pct": 0.02, "value": 2000},
                 "DOGE/USDT": {"risk_pct": 0.02, "value": 1000},
-            }
+            },
         )
         risk_engine.update_portfolio(portfolio)
         risk_engine.update_regime(bull_regime_state)
@@ -678,6 +705,7 @@ class TestRegimeRiskIntegration:
         """Test that crash regime significantly reduces position size."""
         import tempfile
         from pathlib import Path
+
         temp_dir = tempfile.mkdtemp()
         risk_engine = RegimeRiskEngine(state_path=Path(temp_dir) / "test_state.json")
 
@@ -726,6 +754,7 @@ class TestRegimeRiskIntegration:
         """Test full pipeline: detection -> strategy -> risk check."""
         import tempfile
         from pathlib import Path
+
         temp_dir = tempfile.mkdtemp()
 
         # Components
@@ -807,12 +836,15 @@ class TestEdgeCases:
         # Should handle gracefully (likely blocked due to invalid stop)
         assert isinstance(result, RiskCheckResult)
         # Invalid stop should be blocked
-        assert BlockReason.INVALID_STOP_LOSS in result.block_reasons or result.approved_quantity == 0
+        assert (
+            BlockReason.INVALID_STOP_LOSS in result.block_reasons or result.approved_quantity == 0
+        )
 
     def test_negative_equity(self):
         """Test handling of negative equity."""
         import tempfile
         from pathlib import Path
+
         temp_dir = tempfile.mkdtemp()
         risk_engine = RegimeRiskEngine(state_path=Path(temp_dir) / "test_state.json")
 

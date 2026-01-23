@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 class Provider(Enum):
     """Supported data providers."""
+
     BINANCE = "binance"
     COINBASE = "coinbase"
     KRAKEN = "kraken"
@@ -38,6 +39,7 @@ class Provider(Enum):
 @dataclass
 class RateLimitConfig:
     """Rate limit configuration for a provider."""
+
     provider: str
     requests_per_minute: int
     requests_per_hour: int
@@ -106,6 +108,7 @@ RATE_LIMITS: Dict[str, RateLimitConfig] = {
 @dataclass
 class FetchProgress:
     """Track fetch progress for a symbol."""
+
     symbol: str
     provider: str
     timeframe: str
@@ -130,6 +133,7 @@ class FetchProgress:
 @dataclass
 class FetchStats:
     """Overall fetching statistics."""
+
     total_requests: int = 0
     total_records: int = 0
     requests_today: int = 0
@@ -194,10 +198,12 @@ class SmartDataFetcher:
     def _init_exchange(self) -> ccxt.Exchange:
         """Initialize CCXT exchange."""
         exchange_class = getattr(ccxt, self.provider, ccxt.binance)
-        return exchange_class({
-            "enableRateLimit": True,
-            "options": {"defaultType": "spot"},
-        })
+        return exchange_class(
+            {
+                "enableRateLimit": True,
+                "options": {"defaultType": "spot"},
+            }
+        )
 
     def _load_progress(self) -> None:
         """Load fetch progress from disk."""
@@ -248,7 +254,8 @@ class SmartDataFetcher:
         with self._lock:
             # Clean old request times
             self._request_times = [
-                t for t in self._request_times
+                t
+                for t in self._request_times
                 if (now - t).total_seconds() < 86400  # Keep last 24h
             ]
 
@@ -326,9 +333,12 @@ class SmartDataFetcher:
             },
             "records_per_request": self.rate_config.max_records_per_request,
             "estimated_records_available": {
-                "this_minute": max(0, self.rate_config.safe_requests_per_minute - requests_minute) * self.rate_config.max_records_per_request,
-                "this_hour": max(0, int(self.rate_config.requests_per_hour * 0.8) - requests_hour) * self.rate_config.max_records_per_request,
-                "today": max(0, int(self.rate_config.requests_per_day * 0.8) - requests_day) * self.rate_config.max_records_per_request,
+                "this_minute": max(0, self.rate_config.safe_requests_per_minute - requests_minute)
+                * self.rate_config.max_records_per_request,
+                "this_hour": max(0, int(self.rate_config.requests_per_hour * 0.8) - requests_hour)
+                * self.rate_config.max_records_per_request,
+                "today": max(0, int(self.rate_config.requests_per_day * 0.8) - requests_day)
+                * self.rate_config.max_records_per_request,
             },
         }
 
@@ -399,7 +409,9 @@ class SmartDataFetcher:
             except Exception as e:
                 logger.warning(f"Could not load existing data: {e}")
 
-        logger.info(f"Fetching {symbol} {timeframe} from {datetime.fromtimestamp(current_ts/1000)} to {end_date}")
+        logger.info(
+            f"Fetching {symbol} {timeframe} from {datetime.fromtimestamp(current_ts / 1000)} to {end_date}"
+        )
 
         batch_count = 0
         while current_ts < end_ts and not self._stop_flag:
@@ -479,8 +491,7 @@ class SmartDataFetcher:
         self._save_progress()
 
         logger.info(
-            f"Completed {symbol}: {len(df)} total records, "
-            f"{progress.requests_made} requests"
+            f"Completed {symbol}: {len(df)} total records, {progress.requests_made} requests"
         )
 
         return df
@@ -495,10 +506,7 @@ class SmartDataFetcher:
         if not data:
             return pd.DataFrame()
 
-        df = pd.DataFrame(
-            data,
-            columns=["timestamp", "open", "high", "low", "close", "volume"]
-        )
+        df = pd.DataFrame(data, columns=["timestamp", "open", "high", "low", "close", "volume"])
 
         # Remove duplicates
         df = df.drop_duplicates(subset=["timestamp"]).sort_values("timestamp")
@@ -553,9 +561,7 @@ class SmartDataFetcher:
                 break
 
             logger.info(f"Starting fetch for {symbol}")
-            df = self.fetch_ohlcv(
-                symbol, timeframe, start_date, end_date
-            )
+            df = self.fetch_ohlcv(symbol, timeframe, start_date, end_date)
             results[symbol] = df
 
         return results
@@ -578,8 +584,7 @@ class SmartDataFetcher:
             callback: Optional callback when new data is fetched
         """
         logger.info(
-            f"Starting continuous fetch for {len(symbols)} symbols, "
-            f"{len(timeframes)} timeframes"
+            f"Starting continuous fetch for {len(symbols)} symbols, {len(timeframes)} timeframes"
         )
 
         while not self._stop_flag:

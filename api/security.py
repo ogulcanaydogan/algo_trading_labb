@@ -1,7 +1,11 @@
 """API Security module for authentication and rate limiting."""
+
 from __future__ import annotations
 
+import hashlib
+import logging
 import os
+import re
 import time
 from collections import defaultdict
 from functools import wraps
@@ -9,6 +13,9 @@ from typing import Callable, Optional
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import APIKeyHeader
+
+# Initialize logger
+logger = logging.getLogger(__name__)
 
 # API Key configuration
 API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
@@ -19,36 +26,134 @@ def get_api_key() -> Optional[str]:
     return os.getenv("API_KEY")
 
 
-async def verify_api_key(
+def validate_api_key_format(api_key: str) -> bool:
+    """Validate API key format and strength."""
+    if not api_key:
+        return False
+
+    # Minimum length for API keys
+    if len(api_key) < 16:
+        return False
+
+    # Check for reasonable character variety
+    has_upper = any(c.isupper() for c in api_key)
+    has_lower = any(c.islower() for c in api_key)
+    has_digit = any(c.isdigit() for c in api_key)
+    has_special = any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?" for c in api_key)
+
+    # Require at least 3 of the 4 character types
+    variety_score = sum([has_upper, has_lower, has_digit, has_special])
+    if variety_score < 3:
+        return False
+
+    # Check for common weak patterns
+    weak_patterns = [
+        r"123456",
+        r"password",
+        r"secret",
+        r"key",
+        r"token",
+        r"admin",
+        r"root",
+        r"test",
+        r"demo",
+    ]
+
+    api_key_lower = api_key.lower()
+    for pattern in weak_patterns:
+        if re.search(pattern, api_key_lower):
+            return False
+
+    return True
+
+
+async def verify_api_key_strict(
     request: Request,
     api_key: Optional[str] = Depends(API_KEY_HEADER),
-) -> Optional[str]:
+) -> str:
     """
-    Verify the API key from request header.
-
-    If API_KEY is not configured in environment, authentication is disabled.
-    This allows for development mode without authentication.
+    Strict API key verification - no development bypass.
     """
     configured_key = get_api_key()
 
-    # If no API key is configured, skip authentication (development mode)
     if not configured_key:
-        return None
+        logger.error("API authentication not configured - blocking request")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="API authentication not configured. Please set API_KEY environment variable.",
+        )
 
     if not api_key:
+        client_ip = request.client.host if request.client else "unknown"
+        logger.warning(f"Missing API key from {client_ip}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing API key. Provide X-API-Key header.",
             headers={"WWW-Authenticate": "ApiKey"},
         )
 
-    if api_key != configured_key:
+    # Validate API key format
+    if not validate_api_key_format(api_key):
+        logger.warning(
+            f"Invalid API key format from {request.client.host if request.client else 'unknown'}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid API key format.",
+        )
+
+    if not validate_api_key_format(configured_key):
+        logger.error("Configured API key does not meet security requirements")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Server configuration error - API key format invalid.",
+        )
+
+    # Constant-time comparison to prevent timing attacks
+    if not _constant_time_compare(api_key, configured_key):
+        client_ip = request.client.host if request.client else "unknown"
+        logger.warning(f"Failed API key attempt from {client_ip}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid API key.",
         )
 
     return api_key
+
+
+async def verify_api_key(
+    request: Request,
+    api_key: Optional[str] = Depends(API_KEY_HEADER),
+) -> Optional[str]:
+    """
+    Verify API key from request header.
+
+    For backward compatibility, supports both strict and development modes.
+    In production, use verify_api_key_strict instead.
+    """
+    # Check if we're in development mode
+    development_mode = os.getenv("DEVELOPMENT_MODE", "false").lower() == "true"
+
+    if development_mode:
+        logger.warning("Running in development mode - API authentication bypassed")
+        return None
+
+    # Use strict verification in production
+    return await verify_api_key_strict(request, api_key)
+
+
+def _constant_time_compare(val1: str, val2: str) -> bool:
+    """
+    Compare two strings in constant time to prevent timing attacks.
+    """
+    if len(val1) != len(val2):
+        return False
+
+    result = 0
+    for x, y in zip(val1, val2):
+        result |= ord(x) ^ ord(y)
+
+    return result == 0
 
 
 class RateLimiter:
@@ -83,9 +188,7 @@ class RateLimiter:
         self._minute_windows[client_id] = self._clean_window(
             self._minute_windows[client_id], minute_ago
         )
-        self._hour_windows[client_id] = self._clean_window(
-            self._hour_windows[client_id], hour_ago
-        )
+        self._hour_windows[client_id] = self._clean_window(self._hour_windows[client_id], hour_ago)
 
         # Check minute limit
         if len(self._minute_windows[client_id]) >= self.requests_per_minute:

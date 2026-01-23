@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 class SentimentSource(Enum):
     """Sources of sentiment data."""
+
     NEWS = "news"
     TWITTER = "twitter"
     REDDIT = "reddit"
@@ -29,6 +30,7 @@ class SentimentSource(Enum):
 
 class SentimentLevel(Enum):
     """Sentiment classification levels."""
+
     EXTREME_FEAR = "extreme_fear"
     FEAR = "fear"
     NEUTRAL = "neutral"
@@ -39,6 +41,7 @@ class SentimentLevel(Enum):
 @dataclass
 class SentimentItem:
     """Single sentiment data point."""
+
     source: SentimentSource
     symbol: str
     score: float  # -1 to 1
@@ -62,6 +65,7 @@ class SentimentItem:
 @dataclass
 class AggregateSentiment:
     """Aggregated sentiment across sources."""
+
     symbol: str
     overall_score: float  # -1 to 1
     overall_level: SentimentLevel
@@ -95,14 +99,17 @@ class AggregateSentiment:
 @dataclass
 class SentimentConfig:
     """Configuration for sentiment analysis."""
+
     # Source weights
-    source_weights: Dict[str, float] = field(default_factory=lambda: {
-        "news": 0.35,
-        "twitter": 0.25,
-        "reddit": 0.20,
-        "fear_greed": 0.15,
-        "onchain": 0.05,
-    })
+    source_weights: Dict[str, float] = field(
+        default_factory=lambda: {
+            "news": 0.35,
+            "twitter": 0.25,
+            "reddit": 0.20,
+            "fear_greed": 0.15,
+            "onchain": 0.05,
+        }
+    )
 
     # Thresholds
     extreme_threshold: float = 0.6
@@ -117,17 +124,54 @@ class SentimentConfig:
     min_sources_for_confidence: int = 2
 
     # Keywords for basic sentiment
-    bullish_keywords: List[str] = field(default_factory=lambda: [
-        "bullish", "moon", "pump", "buy", "long", "breakout", "surge",
-        "rally", "soar", "gain", "profit", "growth", "uptrend", "accumulate",
-        "hodl", "btfd", "green", "rocket", "ath", "new high"
-    ])
+    bullish_keywords: List[str] = field(
+        default_factory=lambda: [
+            "bullish",
+            "moon",
+            "pump",
+            "buy",
+            "long",
+            "breakout",
+            "surge",
+            "rally",
+            "soar",
+            "gain",
+            "profit",
+            "growth",
+            "uptrend",
+            "accumulate",
+            "hodl",
+            "btfd",
+            "green",
+            "rocket",
+            "ath",
+            "new high",
+        ]
+    )
 
-    bearish_keywords: List[str] = field(default_factory=lambda: [
-        "bearish", "dump", "crash", "sell", "short", "breakdown", "plunge",
-        "drop", "fall", "loss", "decline", "downtrend", "distribute",
-        "rekt", "red", "correction", "fear", "panic", "capitulation"
-    ])
+    bearish_keywords: List[str] = field(
+        default_factory=lambda: [
+            "bearish",
+            "dump",
+            "crash",
+            "sell",
+            "short",
+            "breakdown",
+            "plunge",
+            "drop",
+            "fall",
+            "loss",
+            "decline",
+            "downtrend",
+            "distribute",
+            "rekt",
+            "red",
+            "correction",
+            "fear",
+            "panic",
+            "capitulation",
+        ]
+    )
 
 
 class SentimentAnalyzer:
@@ -230,8 +274,7 @@ class SentimentAnalyzer:
         # Cleanup old items (keep last 24 hours)
         cutoff = datetime.now() - timedelta(hours=24)
         self._sentiment_cache[symbol] = [
-            i for i in self._sentiment_cache[symbol]
-            if i.timestamp > cutoff
+            i for i in self._sentiment_cache[symbol] if i.timestamp > cutoff
         ]
 
         return item
@@ -365,10 +408,13 @@ class SentimentAnalyzer:
         # Calculate confidence
         num_sources = len(source_scores)
         num_items = len(recent_items)
-        confidence = min(1.0, (
-            (num_sources / self.config.min_sources_for_confidence) * 0.5 +
-            (num_items / self.config.min_items_for_signal) * 0.5
-        ))
+        confidence = min(
+            1.0,
+            (
+                (num_sources / self.config.min_sources_for_confidence) * 0.5
+                + (num_items / self.config.min_items_for_signal) * 0.5
+            ),
+        )
 
         # Bullish ratio
         bullish = sum(1 for i in recent_items if i.score > 0)

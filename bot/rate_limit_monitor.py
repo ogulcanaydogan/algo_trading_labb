@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class RateLimitConfig:
     """Rate limit configuration for an API."""
+
     requests_per_minute: int = 60
     requests_per_hour: int = 1000
     requests_per_day: int = 10000
@@ -31,6 +32,7 @@ class RateLimitConfig:
 @dataclass
 class APIUsageStats:
     """Usage statistics for an API."""
+
     name: str
     requests_last_minute: int = 0
     requests_last_hour: int = 0
@@ -48,6 +50,7 @@ class APIUsageStats:
 @dataclass
 class RateLimitStatus:
     """Current rate limit status for an API."""
+
     name: str
     minute_usage: float  # Percentage of minute limit used
     hour_usage: float
@@ -155,7 +158,9 @@ class RateLimitMonitor:
                 # Keep only last 100 latencies
                 if len(self._latencies[api_name]) > 100:
                     self._latencies[api_name] = self._latencies[api_name][-100:]
-                stats.avg_latency_ms = sum(self._latencies[api_name]) / len(self._latencies[api_name])
+                stats.avg_latency_ms = sum(self._latencies[api_name]) / len(
+                    self._latencies[api_name]
+                )
 
             # Record error
             if error:
@@ -234,12 +239,8 @@ class RateLimitMonitor:
         """Remove entries older than 24 hours."""
         day_ago = now - 86400
 
-        self._request_log[api_name] = [
-            t for t in self._request_log[api_name] if t > day_ago
-        ]
-        self._weight_log[api_name] = [
-            (t, w) for t, w in self._weight_log[api_name] if t > day_ago
-        ]
+        self._request_log[api_name] = [t for t in self._request_log[api_name] if t > day_ago]
+        self._weight_log[api_name] = [(t, w) for t, w in self._weight_log[api_name] if t > day_ago]
 
     def get_status(self, api_name: str) -> RateLimitStatus:
         """Get current rate limit status for an API."""
@@ -258,10 +259,24 @@ class RateLimitMonitor:
             requests_day = len([t for t in self._request_log[api_name] if t > day_ago])
             weight_minute = sum(w for t, w in self._weight_log[api_name] if t > minute_ago)
 
-            minute_usage = (requests_minute / config.requests_per_minute * 100) if config.requests_per_minute > 0 else 0
-            hour_usage = (requests_hour / config.requests_per_hour * 100) if config.requests_per_hour > 0 else 0
-            day_usage = (requests_day / config.requests_per_day * 100) if config.requests_per_day > 0 else 0
-            weight_usage = (weight_minute / config.weight_per_minute * 100) if config.weight_per_minute > 0 else 0
+            minute_usage = (
+                (requests_minute / config.requests_per_minute * 100)
+                if config.requests_per_minute > 0
+                else 0
+            )
+            hour_usage = (
+                (requests_hour / config.requests_per_hour * 100)
+                if config.requests_per_hour > 0
+                else 0
+            )
+            day_usage = (
+                (requests_day / config.requests_per_day * 100) if config.requests_per_day > 0 else 0
+            )
+            weight_usage = (
+                (weight_minute / config.weight_per_minute * 100)
+                if config.weight_per_minute > 0
+                else 0
+            )
 
             is_throttled = api_name in self._throttle_until and now < self._throttle_until[api_name]
             seconds_until_reset = int(self._throttle_until[api_name] - now) if is_throttled else 0
@@ -302,10 +317,18 @@ class RateLimitMonitor:
                 hour_ago = now - 3600
                 day_ago = now - 86400
 
-                stats.requests_last_minute = len([t for t in self._request_log[api_name] if t > minute_ago])
-                stats.requests_last_hour = len([t for t in self._request_log[api_name] if t > hour_ago])
-                stats.requests_last_day = len([t for t in self._request_log[api_name] if t > day_ago])
-                stats.weight_last_minute = sum(w for t, w in self._weight_log[api_name] if t > minute_ago)
+                stats.requests_last_minute = len(
+                    [t for t in self._request_log[api_name] if t > minute_ago]
+                )
+                stats.requests_last_hour = len(
+                    [t for t in self._request_log[api_name] if t > hour_ago]
+                )
+                stats.requests_last_day = len(
+                    [t for t in self._request_log[api_name] if t > day_ago]
+                )
+                stats.weight_last_minute = sum(
+                    w for t, w in self._weight_log[api_name] if t > minute_ago
+                )
 
                 # Update status
                 status_obj = self.get_status(api_name)
@@ -313,7 +336,9 @@ class RateLimitMonitor:
                     stats.status = "throttled"
                 elif status_obj.warning_level == "critical":
                     stats.status = "warning"
-                elif stats.last_error_time and (datetime.now() - stats.last_error_time).seconds < 300:
+                elif (
+                    stats.last_error_time and (datetime.now() - stats.last_error_time).seconds < 300
+                ):
                     stats.status = "error"
                 else:
                     stats.status = "healthy"
@@ -327,11 +352,13 @@ class RateLimitMonitor:
 
             if api_name:
                 for ts, msg in self._errors.get(api_name, [])[-limit:]:
-                    errors.append({
-                        "api": api_name,
-                        "timestamp": datetime.fromtimestamp(ts).isoformat(),
-                        "message": msg,
-                    })
+                    errors.append(
+                        {
+                            "api": api_name,
+                            "timestamp": datetime.fromtimestamp(ts).isoformat(),
+                            "message": msg,
+                        }
+                    )
             else:
                 all_errors = []
                 for name, err_list in self._errors.items():
@@ -340,11 +367,13 @@ class RateLimitMonitor:
 
                 all_errors.sort(reverse=True)
                 for ts, name, msg in all_errors[:limit]:
-                    errors.append({
-                        "api": name,
-                        "timestamp": datetime.fromtimestamp(ts).isoformat(),
-                        "message": msg,
-                    })
+                    errors.append(
+                        {
+                            "api": name,
+                            "timestamp": datetime.fromtimestamp(ts).isoformat(),
+                            "message": msg,
+                        }
+                    )
 
             return errors
 
@@ -357,45 +386,51 @@ class RateLimitMonitor:
             status = self.get_status(name)
             config = self._configs.get(name, RateLimitConfig())
 
-            apis.append({
-                "name": name,
-                "status": stats.status,
-                "usage": {
-                    "minute": {
-                        "current": stats.requests_last_minute,
-                        "limit": config.requests_per_minute,
-                        "percent": status.minute_usage,
+            apis.append(
+                {
+                    "name": name,
+                    "status": stats.status,
+                    "usage": {
+                        "minute": {
+                            "current": stats.requests_last_minute,
+                            "limit": config.requests_per_minute,
+                            "percent": status.minute_usage,
+                        },
+                        "hour": {
+                            "current": stats.requests_last_hour,
+                            "limit": config.requests_per_hour,
+                            "percent": status.hour_usage,
+                        },
+                        "day": {
+                            "current": stats.requests_last_day,
+                            "limit": config.requests_per_day,
+                            "percent": status.day_usage,
+                        },
+                        "weight": {
+                            "current": stats.weight_last_minute,
+                            "limit": config.weight_per_minute,
+                            "percent": status.weight_usage,
+                        },
                     },
-                    "hour": {
-                        "current": stats.requests_last_hour,
-                        "limit": config.requests_per_hour,
-                        "percent": status.hour_usage,
+                    "stats": {
+                        "total_requests": stats.total_requests,
+                        "total_errors": stats.total_errors,
+                        "avg_latency_ms": round(stats.avg_latency_ms, 1),
+                        "last_request": stats.last_request_time.isoformat()
+                        if stats.last_request_time
+                        else None,
+                        "last_error": stats.last_error_time.isoformat()
+                        if stats.last_error_time
+                        else None,
+                        "last_error_message": stats.last_error_message,
                     },
-                    "day": {
-                        "current": stats.requests_last_day,
-                        "limit": config.requests_per_day,
-                        "percent": status.day_usage,
+                    "throttle": {
+                        "is_throttled": status.is_throttled,
+                        "seconds_until_reset": status.seconds_until_reset,
                     },
-                    "weight": {
-                        "current": stats.weight_last_minute,
-                        "limit": config.weight_per_minute,
-                        "percent": status.weight_usage,
-                    },
-                },
-                "stats": {
-                    "total_requests": stats.total_requests,
-                    "total_errors": stats.total_errors,
-                    "avg_latency_ms": round(stats.avg_latency_ms, 1),
-                    "last_request": stats.last_request_time.isoformat() if stats.last_request_time else None,
-                    "last_error": stats.last_error_time.isoformat() if stats.last_error_time else None,
-                    "last_error_message": stats.last_error_message,
-                },
-                "throttle": {
-                    "is_throttled": status.is_throttled,
-                    "seconds_until_reset": status.seconds_until_reset,
-                },
-                "warning_level": status.warning_level,
-            })
+                    "warning_level": status.warning_level,
+                }
+            )
 
         # Overall health
         health_statuses = [a["status"] for a in apis]

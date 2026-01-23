@@ -42,6 +42,7 @@ logger = logging.getLogger(__name__)
 
 class TradingMode(Enum):
     """Trading mode."""
+
     PAPER = "paper"
     LIVE = "live"
     BACKTEST = "backtest"
@@ -62,9 +63,7 @@ class ExecutionAdapter(Protocol):
         """Get current price."""
         ...
 
-    async def get_ohlcv(
-        self, symbol: str, timeframe: str, limit: int
-    ) -> pd.DataFrame:
+    async def get_ohlcv(self, symbol: str, timeframe: str, limit: int) -> pd.DataFrame:
         """Get OHLCV data."""
         ...
 
@@ -97,9 +96,7 @@ class TradingConfig:
     update_interval_seconds: int = 300  # 5 minutes
 
     # Position sizing
-    position_config: PositionSizingConfig = field(
-        default_factory=PositionSizingConfig
-    )
+    position_config: PositionSizingConfig = field(default_factory=PositionSizingConfig)
 
     # Risk management
     risk_config: RiskConfig = field(default_factory=RiskConfig)
@@ -212,8 +209,7 @@ class RegimeTradingEngine:
 
         # Initialize components - separate detector per symbol to prevent cross-contamination
         self.regime_detectors: Dict[str, RegimeDetector] = {
-            symbol: RegimeDetector(config.regime_config)
-            for symbol in config.symbols
+            symbol: RegimeDetector(config.regime_config) for symbol in config.symbols
         }
         self.position_manager = RegimePositionManager(config.position_config)
         self.risk_engine = RegimeRiskEngine(
@@ -227,9 +223,12 @@ class RegimeTradingEngine:
         if enable_notifications:
             try:
                 from bot.notifications import NotificationManager
+
                 self._notifier = NotificationManager()
                 if self._notifier.has_channels():
-                    logger.info(f"Notifications enabled: {self._notifier.get_configured_channels()}")
+                    logger.info(
+                        f"Notifications enabled: {self._notifier.get_configured_channels()}"
+                    )
                 else:
                     logger.info("No notification channels configured")
             except ImportError:
@@ -376,12 +375,14 @@ class RegimeTradingEngine:
                 confidence=regime_state.confidence,
             )
 
-            self._regime_history.append({
-                "timestamp": datetime.now().isoformat(),
-                "from": old_regime.value if old_regime else None,
-                "to": regime_state.regime.value,
-                "confidence": regime_state.confidence,
-            })
+            self._regime_history.append(
+                {
+                    "timestamp": datetime.now().isoformat(),
+                    "from": old_regime.value if old_regime else None,
+                    "to": regime_state.regime.value,
+                    "confidence": regime_state.confidence,
+                }
+            )
 
         # Update state (per-symbol and global)
         self._last_regimes[symbol] = regime_state.regime
@@ -426,9 +427,7 @@ class RegimeTradingEngine:
 
         # Execute if needed
         if recommendation.should_execute:
-            await self._execute_recommendation(
-                symbol, recommendation, current_price, equity
-            )
+            await self._execute_recommendation(symbol, recommendation, current_price, equity)
 
     async def _execute_recommendation(
         self,
@@ -594,7 +593,9 @@ class RegimeTradingEngine:
 
             alert = Alert(
                 alert_type=AlertType.REGIME_CHANGE,
-                level=AlertLevel.WARNING if new_regime in [MarketRegime.BEAR, MarketRegime.CRASH] else AlertLevel.INFO,
+                level=AlertLevel.WARNING
+                if new_regime in [MarketRegime.BEAR, MarketRegime.CRASH]
+                else AlertLevel.INFO,
                 title=f"{emoji} Regime Change: {symbol}",
                 message=f"Market regime changed from {old_name.upper()} to {new_regime.value.upper()}",
                 data={
@@ -675,12 +676,16 @@ class RegimeTradingEngine:
         try:
             self.config.state_file.parent.mkdir(parents=True, exist_ok=True)
             with open(self.config.state_file, "w") as f:
-                json.dump({
-                    "state": self.state.to_dict(),
-                    "total_pnl": self.state.total_pnl,
-                    "peak_equity": getattr(self, "_peak_equity", 0),
-                    "saved_at": datetime.now().isoformat(),
-                }, f, indent=2)
+                json.dump(
+                    {
+                        "state": self.state.to_dict(),
+                        "total_pnl": self.state.total_pnl,
+                        "peak_equity": getattr(self, "_peak_equity", 0),
+                        "saved_at": datetime.now().isoformat(),
+                    },
+                    f,
+                    indent=2,
+                )
         except Exception as e:
             logger.warning(f"Failed to save state: {e}")
 
@@ -698,6 +703,7 @@ class RegimeTradingEngine:
 # ============================================================================
 # Simple Paper Trading Adapter (for testing)
 # ============================================================================
+
 
 class SimplePaperAdapter:
     """
@@ -722,8 +728,7 @@ class SimplePaperAdapter:
     async def get_balance(self) -> Dict[str, float]:
         """Get account balance."""
         position_value = sum(
-            pos["quantity"] * self._prices.get(sym, 0)
-            for sym, pos in self._positions.items()
+            pos["quantity"] * self._prices.get(sym, 0) for sym, pos in self._positions.items()
         )
         return {
             "available": self._balance,
@@ -762,16 +767,13 @@ class SimplePaperAdapter:
             yf_symbol = yf_symbol.replace("USDT", "USD")
         return yf_symbol
 
-    async def get_ohlcv(
-        self, symbol: str, timeframe: str, limit: int
-    ) -> Optional[pd.DataFrame]:
+    async def get_ohlcv(self, symbol: str, timeframe: str, limit: int) -> Optional[pd.DataFrame]:
         """Get OHLCV data - auto-fetches if not available."""
         # Check if we need to fetch new data
-        should_fetch = (
-            self._auto_fetch and
-            (symbol not in self._ohlcv_data or
-             symbol not in self._last_fetch or
-             (datetime.now() - self._last_fetch.get(symbol, datetime.min)).total_seconds() > 300)
+        should_fetch = self._auto_fetch and (
+            symbol not in self._ohlcv_data
+            or symbol not in self._last_fetch
+            or (datetime.now() - self._last_fetch.get(symbol, datetime.min)).total_seconds() > 300
         )
 
         if should_fetch:
@@ -788,8 +790,13 @@ class SimplePaperAdapter:
 
             # Map timeframe to yfinance interval
             interval_map = {
-                "1m": "1m", "5m": "5m", "15m": "15m", "30m": "30m",
-                "1h": "1h", "4h": "1h", "1d": "1d"
+                "1m": "1m",
+                "5m": "5m",
+                "15m": "15m",
+                "30m": "30m",
+                "1h": "1h",
+                "4h": "1h",
+                "1d": "1d",
             }
             interval = interval_map.get(timeframe, "1h")
 
@@ -810,10 +817,15 @@ class SimplePaperAdapter:
                     data.columns = data.columns.get_level_values(0)
 
                 # Rename columns to standard format
-                data = data.rename(columns={
-                    "Open": "open", "High": "high", "Low": "low",
-                    "Close": "close", "Volume": "volume"
-                })
+                data = data.rename(
+                    columns={
+                        "Open": "open",
+                        "High": "high",
+                        "Low": "low",
+                        "Close": "close",
+                        "Volume": "volume",
+                    }
+                )
 
                 # Take last 'limit' bars
                 if len(data) > limit:

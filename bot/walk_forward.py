@@ -46,6 +46,7 @@ class WalkForwardConfig:
         validation_split: Fraction of training data to use for validation
         random_state: Random seed for reproducibility
     """
+
     train_window_days: int = 180
     test_window_days: int = 30
     step_days: int = 30
@@ -87,6 +88,7 @@ class WindowMetrics:
         short_predictions: Number of SHORT predictions
         flat_predictions: Number of FLAT predictions
     """
+
     accuracy: float = 0.0
     precision: float = 0.0
     recall: float = 0.0
@@ -137,6 +139,7 @@ class WindowResult:
         actuals: Array of actual values
         probabilities: Array of prediction probabilities
     """
+
     window_id: int
     train_start: datetime
     train_end: datetime
@@ -160,10 +163,18 @@ class WindowResult:
         """Convert result to dictionary."""
         return {
             "window_id": self.window_id,
-            "train_start": self.train_start.isoformat() if isinstance(self.train_start, datetime) else str(self.train_start),
-            "train_end": self.train_end.isoformat() if isinstance(self.train_end, datetime) else str(self.train_end),
-            "test_start": self.test_start.isoformat() if isinstance(self.test_start, datetime) else str(self.test_start),
-            "test_end": self.test_end.isoformat() if isinstance(self.test_end, datetime) else str(self.test_end),
+            "train_start": self.train_start.isoformat()
+            if isinstance(self.train_start, datetime)
+            else str(self.train_start),
+            "train_end": self.train_end.isoformat()
+            if isinstance(self.train_end, datetime)
+            else str(self.train_end),
+            "test_start": self.test_start.isoformat()
+            if isinstance(self.test_start, datetime)
+            else str(self.test_start),
+            "test_end": self.test_end.isoformat()
+            if isinstance(self.test_end, datetime)
+            else str(self.test_end),
             "train_samples": self.train_samples,
             "test_samples": self.test_samples,
             "train_metrics": self.train_metrics.to_dict(),
@@ -188,6 +199,7 @@ class WalkForwardResults:
         start_date: Start date of entire validation period
         end_date: End date of entire validation period
     """
+
     windows: List[WindowResult]
     aggregate_metrics: Dict[str, float]
     is_robust: bool
@@ -233,7 +245,9 @@ class WalkForwardResults:
         print(f"Total Training Time: {self.total_training_time:.1f}s")
         print("-" * 70)
         print(f"Total Windows: {len(self.windows)}")
-        print(f"Profitable Windows: {sum(1 for w in self.windows if w.is_profitable)} ({sum(1 for w in self.windows if w.is_profitable) / len(self.windows) * 100:.1f}%)")
+        print(
+            f"Profitable Windows: {sum(1 for w in self.windows if w.is_profitable)} ({sum(1 for w in self.windows if w.is_profitable) / len(self.windows) * 100:.1f}%)"
+        )
         print("-" * 70)
         print("Aggregate Metrics (Out-of-Sample):")
         for metric, value in self.aggregate_metrics.items():
@@ -302,6 +316,7 @@ class WalkForwardValidator:
         # Import feature engineer
         try:
             from .ml.feature_engineer import FeatureEngineer
+
             self.feature_engineer = FeatureEngineer()
         except ImportError:
             logger.warning("FeatureEngineer not available, using raw features")
@@ -403,9 +418,11 @@ class WalkForwardValidator:
             print(f"\n{'=' * 70}")
             print(f"WALK-FORWARD VALIDATION: {symbol}")
             print(f"Model: {model_class.__name__}")
-            print(f"Config: train={self.config.train_window_days}d, "
-                  f"test={self.config.test_window_days}d, "
-                  f"step={self.config.step_days}d")
+            print(
+                f"Config: train={self.config.train_window_days}d, "
+                f"test={self.config.test_window_days}d, "
+                f"step={self.config.step_days}d"
+            )
             print(f"{'=' * 70}\n")
 
         window_results: List[WindowResult] = []
@@ -452,9 +469,7 @@ class WalkForwardValidator:
 
         # Determine if model is robust
         is_robust = (
-            robustness_score >= 0.6 and
-            consistency_score >= 0.5 and
-            overfitting_score <= 0.4
+            robustness_score >= 0.6 and consistency_score >= 0.5 and overfitting_score <= 0.4
         )
 
         # Get model type
@@ -477,7 +492,9 @@ class WalkForwardValidator:
 
         # Save results
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        results_path = self.results_dir / f"{symbol.replace('/', '_')}_{model_type}_{timestamp}.json"
+        results_path = (
+            self.results_dir / f"{symbol.replace('/', '_')}_{model_type}_{timestamp}.json"
+        )
         results.save(results_path)
 
         return results
@@ -503,19 +520,47 @@ class WalkForwardValidator:
             test_features = test_df.copy()
 
         # Prepare training data
-        feature_cols = [col for col in train_features.columns
-                       if col not in ["target_return", "target_direction", "target_class",
-                                     "open", "high", "low", "close", "volume"]]
+        feature_cols = [
+            col
+            for col in train_features.columns
+            if col
+            not in [
+                "target_return",
+                "target_direction",
+                "target_class",
+                "open",
+                "high",
+                "low",
+                "close",
+                "volume",
+            ]
+        ]
 
         X_train = train_features[feature_cols].values
-        y_train = train_features["target_class"].values if "target_class" in train_features else np.zeros(len(train_features))
+        y_train = (
+            train_features["target_class"].values
+            if "target_class" in train_features
+            else np.zeros(len(train_features))
+        )
 
         X_test = test_features[feature_cols].values
-        y_test = test_features["target_class"].values if "target_class" in test_features else np.zeros(len(test_features))
+        y_test = (
+            test_features["target_class"].values
+            if "target_class" in test_features
+            else np.zeros(len(test_features))
+        )
 
         # Get returns for Sharpe calculation
-        train_returns = train_features["target_return"].values if "target_return" in train_features else np.zeros(len(train_features))
-        test_returns = test_features["target_return"].values if "target_return" in test_features else np.zeros(len(test_features))
+        train_returns = (
+            train_features["target_return"].values
+            if "target_return" in train_features
+            else np.zeros(len(train_features))
+        )
+        test_returns = (
+            test_features["target_return"].values
+            if "target_return" in test_features
+            else np.zeros(len(test_features))
+        )
 
         # Split training data for validation
         val_size = int(len(X_train) * self.config.validation_split)
@@ -859,10 +904,12 @@ def run_walk_forward_validation(
     # Import model classes
     if model_type == "lstm":
         from .ml.models.deep_learning.lstm import LSTMModel, LSTMConfig
+
         model_class = LSTMModel
         model_config = LSTMConfig(epochs=50)  # Reduced for faster validation
     elif model_type == "transformer":
         from .ml.models.deep_learning.transformer import TransformerModel, TransformerConfig
+
         model_class = TransformerModel
         model_config = TransformerConfig(epochs=50)
     else:
@@ -893,6 +940,7 @@ def run_walk_forward_validation(
 @dataclass
 class WalkForwardResult:
     """Legacy: Complete walk-forward optimization result (for backward compatibility)."""
+
     total_windows: int
     profitable_windows: int
     combined_metrics: Dict[str, float]
@@ -905,7 +953,9 @@ class WalkForwardResult:
         return {
             "total_windows": self.total_windows,
             "profitable_windows": self.profitable_windows,
-            "win_rate_windows": round(self.profitable_windows / self.total_windows, 2) if self.total_windows > 0 else 0,
+            "win_rate_windows": round(self.profitable_windows / self.total_windows, 2)
+            if self.total_windows > 0
+            else 0,
             "combined_metrics": {k: round(v, 4) for k, v in self.combined_metrics.items()},
             "robustness_score": round(self.robustness_score, 2),
             "overfitting_score": round(self.overfitting_score, 2),
@@ -918,7 +968,9 @@ class WalkForwardResult:
         print("WALK-FORWARD OPTIMIZATION RESULTS")
         print("=" * 60)
         print(f"Total Windows: {self.total_windows}")
-        print(f"Profitable Windows: {self.profitable_windows} ({self.profitable_windows / self.total_windows:.0%})")
+        print(
+            f"Profitable Windows: {self.profitable_windows} ({self.profitable_windows / self.total_windows:.0%})"
+        )
         print(f"\nCombined Out-of-Sample Metrics:")
         for metric, value in self.combined_metrics.items():
             print(f"  {metric}: {value:.4f}")

@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TransferResult:
     """Result of transfer learning."""
+
     source_symbol: str
     target_symbol: str
     source_accuracy: float
@@ -63,9 +64,7 @@ class FeatureAligner:
         return self.target_scaler.fit_transform(X_target)
 
     def align_features(
-        self,
-        X_source: pd.DataFrame,
-        X_target: pd.DataFrame
+        self, X_source: pd.DataFrame, X_target: pd.DataFrame
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Align features between source and target.
@@ -105,11 +104,7 @@ class PretrainedModelBank:
         self.feature_names: Dict[str, List[str]] = {}
 
     def save_pretrained(
-        self,
-        symbol: str,
-        model: BaseEstimator,
-        scaler: StandardScaler,
-        feature_names: List[str]
+        self, symbol: str, model: BaseEstimator, scaler: StandardScaler, feature_names: List[str]
     ):
         """Save a pre-trained model."""
         symbol_clean = symbol.replace("/", "_")
@@ -122,13 +117,14 @@ class PretrainedModelBank:
 
         # Save metadata
         import json
+
         meta = {
-            'symbol': symbol,
-            'feature_names': feature_names,
-            'trained_at': datetime.now().isoformat()
+            "symbol": symbol,
+            "feature_names": feature_names,
+            "trained_at": datetime.now().isoformat(),
         }
         meta_path = self.model_dir / f"{symbol_clean}_meta.json"
-        with open(meta_path, 'w') as f:
+        with open(meta_path, "w") as f:
             json.dump(meta, f)
 
         self.models[symbol] = model
@@ -154,14 +150,15 @@ class PretrainedModelBank:
         scaler = joblib.load(scaler_path)
 
         import json
+
         with open(meta_path) as f:
             meta = json.load(f)
 
         self.models[symbol] = model
         self.scalers[symbol] = scaler
-        self.feature_names[symbol] = meta['feature_names']
+        self.feature_names[symbol] = meta["feature_names"]
 
-        return model, scaler, meta['feature_names']
+        return model, scaler, meta["feature_names"]
 
     def list_available(self) -> List[str]:
         """List available pretrained models."""
@@ -187,7 +184,7 @@ class TransferLearner:
         self,
         source_symbol: str = "BTC/USDT",
         finetune_epochs: int = 10,
-        finetune_lr_scale: float = 0.1
+        finetune_lr_scale: float = 0.1,
     ):
         self.source_symbol = source_symbol
         self.finetune_epochs = finetune_epochs
@@ -197,10 +194,7 @@ class TransferLearner:
         self.feature_aligner = FeatureAligner()
 
     def pretrain_on_source(
-        self,
-        X_source: pd.DataFrame,
-        y_source: pd.Series,
-        model_type: str = 'random_forest'
+        self, X_source: pd.DataFrame, y_source: pd.Series, model_type: str = "random_forest"
     ) -> Tuple[BaseEstimator, float]:
         """
         Pre-train model on source domain (e.g., BTC).
@@ -225,20 +219,13 @@ class TransferLearner:
         y_train, y_test = y_source.iloc[:split_idx], y_source.iloc[split_idx:]
 
         # Create model
-        if model_type == 'random_forest':
+        if model_type == "random_forest":
             model = RandomForestClassifier(
-                n_estimators=200,
-                max_depth=20,
-                class_weight='balanced',
-                random_state=42,
-                n_jobs=-1
+                n_estimators=200, max_depth=20, class_weight="balanced", random_state=42, n_jobs=-1
             )
-        elif model_type == 'gradient_boosting':
+        elif model_type == "gradient_boosting":
             model = GradientBoostingClassifier(
-                n_estimators=200,
-                max_depth=5,
-                learning_rate=0.05,
-                random_state=42
+                n_estimators=200, max_depth=5, learning_rate=0.05, random_state=42
             )
         else:
             model = RandomForestClassifier(n_estimators=100, random_state=42)
@@ -249,12 +236,7 @@ class TransferLearner:
         logger.info(f"Pre-training accuracy: {accuracy:.2%}")
 
         # Save to model bank
-        self.model_bank.save_pretrained(
-            self.source_symbol,
-            model,
-            scaler,
-            list(X_source.columns)
-        )
+        self.model_bank.save_pretrained(self.source_symbol, model, scaler, list(X_source.columns))
 
         return model, accuracy
 
@@ -263,7 +245,7 @@ class TransferLearner:
         X_target: pd.DataFrame,
         y_target: pd.Series,
         target_symbol: str,
-        strategy: str = 'finetune'
+        strategy: str = "finetune",
     ) -> TransferResult:
         """
         Transfer pretrained model to target domain.
@@ -286,14 +268,14 @@ class TransferLearner:
             )
         except FileNotFoundError:
             logger.warning(f"No pretrained model for {self.source_symbol}, training from scratch")
-            strategy = 'scratch'
+            strategy = "scratch"
 
         # Align features
         common_features = list(set(source_features) & set(X_target.columns))
         if len(common_features) < len(source_features) * 0.5:
             logger.warning(f"Only {len(common_features)} common features, may affect transfer")
 
-        X_target_aligned = X_target[common_features] if strategy != 'scratch' else X_target
+        X_target_aligned = X_target[common_features] if strategy != "scratch" else X_target
 
         # Scale target data
         target_scaler = StandardScaler()
@@ -309,57 +291,55 @@ class TransferLearner:
 
         # 1. Train from scratch (baseline)
         scratch_model = RandomForestClassifier(
-            n_estimators=200,
-            max_depth=20,
-            class_weight='balanced',
-            random_state=42,
-            n_jobs=-1
+            n_estimators=200, max_depth=20, class_weight="balanced", random_state=42, n_jobs=-1
         )
         scratch_model.fit(X_train, y_train)
         scratch_accuracy = accuracy_score(y_test, scratch_model.predict(X_test))
-        results['scratch'] = scratch_accuracy
+        results["scratch"] = scratch_accuracy
         logger.info(f"From scratch accuracy: {scratch_accuracy:.2%}")
 
-        if strategy != 'scratch':
+        if strategy != "scratch":
             # 2. Direct transfer
             # Align source scaler to target data distribution
-            X_test_for_source = source_scaler.transform(
-                X_target[common_features].iloc[split_idx:]
-            )
+            X_test_for_source = source_scaler.transform(X_target[common_features].iloc[split_idx:])
             direct_accuracy = accuracy_score(y_test, source_model.predict(X_test_for_source))
-            results['direct'] = direct_accuracy
+            results["direct"] = direct_accuracy
             logger.info(f"Direct transfer accuracy: {direct_accuracy:.2%}")
 
             # 3. Fine-tuning
-            if strategy == 'finetune':
+            if strategy == "finetune":
                 finetuned_model, finetune_accuracy = self._finetune(
                     source_model, X_train, y_train, X_test, y_test
                 )
-                results['finetune'] = finetune_accuracy
+                results["finetune"] = finetune_accuracy
                 logger.info(f"Fine-tuned accuracy: {finetune_accuracy:.2%}")
             else:
                 finetune_accuracy = direct_accuracy
-                results['finetune'] = finetune_accuracy
+                results["finetune"] = finetune_accuracy
 
         else:
-            results['direct'] = scratch_accuracy
-            results['finetune'] = scratch_accuracy
+            results["direct"] = scratch_accuracy
+            results["finetune"] = scratch_accuracy
 
         # Determine best approach
         best_approach = max(results, key=results.get)
         best_accuracy = results[best_approach]
 
-        improvement = ((best_accuracy - scratch_accuracy) / scratch_accuracy) * 100 if scratch_accuracy > 0 else 0
+        improvement = (
+            ((best_accuracy - scratch_accuracy) / scratch_accuracy) * 100
+            if scratch_accuracy > 0
+            else 0
+        )
 
         return TransferResult(
             source_symbol=self.source_symbol,
             target_symbol=target_symbol,
             source_accuracy=0,  # Would need to calculate
-            direct_transfer_accuracy=results.get('direct', 0),
-            finetuned_accuracy=results.get('finetune', 0),
+            direct_transfer_accuracy=results.get("direct", 0),
+            finetuned_accuracy=results.get("finetune", 0),
             improvement_over_scratch=improvement,
             best_approach=best_approach,
-            finetuning_epochs=self.finetune_epochs
+            finetuning_epochs=self.finetune_epochs,
         )
 
     def _finetune(
@@ -368,7 +348,7 @@ class TransferLearner:
         X_train: np.ndarray,
         y_train: pd.Series,
         X_test: np.ndarray,
-        y_test: pd.Series
+        y_test: pd.Series,
     ) -> Tuple[BaseEstimator, float]:
         """
         Fine-tune source model on target data.
@@ -382,15 +362,15 @@ class TransferLearner:
         # For RandomForest, we can use warm_start
         if isinstance(source_model, RandomForestClassifier):
             # Transfer feature importances as prior
-            if hasattr(source_model, 'feature_importances_'):
+            if hasattr(source_model, "feature_importances_"):
                 # Create new model with source knowledge
                 finetuned = RandomForestClassifier(
                     n_estimators=source_model.n_estimators + 50,  # Add trees
                     max_depth=source_model.max_depth,
-                    class_weight='balanced',
+                    class_weight="balanced",
                     random_state=42,
                     warm_start=True,
-                    n_jobs=-1
+                    n_jobs=-1,
                 )
 
                 # Initial fit with subset
@@ -422,10 +402,7 @@ class MultiTaskLearner:
         self.shared_features = None
         self.task_specific_models: Dict[str, BaseEstimator] = {}
 
-    def train_multitask(
-        self,
-        data: Dict[str, Tuple[pd.DataFrame, pd.Series]]
-    ) -> Dict[str, float]:
+    def train_multitask(self, data: Dict[str, Tuple[pd.DataFrame, pd.Series]]) -> Dict[str, float]:
         """
         Train multi-task model on all symbols.
 
@@ -465,11 +442,7 @@ class MultiTaskLearner:
 
         # Train shared model
         shared_model = RandomForestClassifier(
-            n_estimators=300,
-            max_depth=25,
-            class_weight='balanced',
-            random_state=42,
-            n_jobs=-1
+            n_estimators=300, max_depth=25, class_weight="balanced", random_state=42, n_jobs=-1
         )
         shared_model.fit(X_scaled, y_combined)
 
@@ -497,7 +470,7 @@ def transfer_from_btc(
     X_target: pd.DataFrame,
     y_target: pd.Series,
     X_btc: Optional[pd.DataFrame] = None,
-    y_btc: Optional[pd.Series] = None
+    y_btc: Optional[pd.Series] = None,
 ) -> TransferResult:
     """
     Convenience function to transfer learning from BTC to target.
@@ -519,6 +492,6 @@ def transfer_from_btc(
         learner.pretrain_on_source(X_btc, y_btc)
 
     # Transfer to target
-    result = learner.transfer_to_target(X_target, y_target, target_symbol, strategy='finetune')
+    result = learner.transfer_to_target(X_target, y_target, target_symbol, strategy="finetune")
 
     return result

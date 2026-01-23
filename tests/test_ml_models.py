@@ -19,14 +19,14 @@ PYTHON_314_PLUS = sys.version_info >= (3, 14)
 pytestmark = [
     pytest.mark.pytorch,
     pytest.mark.skipif(
-        PYTHON_314_PLUS,
-        reason="PyTorch MPS backend segfaults on Python 3.14+ (known issue)"
+        PYTHON_314_PLUS, reason="PyTorch MPS backend segfaults on Python 3.14+ (known issue)"
     ),
 ]
 
 # Test whether torch is available
 try:
     import torch
+
     HAS_TORCH = True
 except ImportError:
     HAS_TORCH = False
@@ -35,6 +35,7 @@ except ImportError:
 # =============================================================================
 # Test Fixtures and Helpers
 # =============================================================================
+
 
 @pytest.fixture
 def sample_features():
@@ -68,6 +69,7 @@ def sample_labels_small():
 # =============================================================================
 # LSTM Model Tests
 # =============================================================================
+
 
 class TestLSTMConfig:
     """Test LSTM configuration."""
@@ -271,9 +273,9 @@ class TestLSTMModel:
         assert prediction.action in ["LONG", "SHORT", "FLAT"]
         assert 0 <= prediction.confidence <= 1
         # Check probability fields
-        assert hasattr(prediction, 'probability_long')
-        assert hasattr(prediction, 'probability_short')
-        assert hasattr(prediction, 'probability_flat')
+        assert hasattr(prediction, "probability_long")
+        assert hasattr(prediction, "probability_short")
+        assert hasattr(prediction, "probability_flat")
 
     @pytest.mark.skipif(not HAS_TORCH, reason="PyTorch not installed")
     def test_lstm_model_save_load(self, sample_features_small, sample_labels_small, tmp_path):
@@ -307,6 +309,7 @@ class TestLSTMModel:
 # =============================================================================
 # Transformer Model Tests
 # =============================================================================
+
 
 class TestTransformerConfig:
     """Test Transformer configuration."""
@@ -483,12 +486,14 @@ class TestTransformerModel:
         assert prediction.action in ["LONG", "SHORT", "FLAT"]
         assert 0 <= prediction.confidence <= 1
         # Check probability fields
-        assert hasattr(prediction, 'probability_long')
-        assert hasattr(prediction, 'probability_short')
-        assert hasattr(prediction, 'probability_flat')
+        assert hasattr(prediction, "probability_long")
+        assert hasattr(prediction, "probability_short")
+        assert hasattr(prediction, "probability_flat")
 
     @pytest.mark.skipif(not HAS_TORCH, reason="PyTorch not installed")
-    def test_transformer_model_save_load(self, sample_features_small, sample_labels_small, tmp_path):
+    def test_transformer_model_save_load(
+        self, sample_features_small, sample_labels_small, tmp_path
+    ):
         """Test Transformer model save and load."""
         from bot.ml.models.deep_learning.transformer import TransformerModel, TransformerConfig
 
@@ -518,6 +523,7 @@ class TestTransformerModel:
 # =============================================================================
 # Base Model Interface Tests
 # =============================================================================
+
 
 class TestBaseMLModel:
     """Test base model interface."""
@@ -591,6 +597,7 @@ class TestDeviceSelection:
 # Model Registry Tests
 # =============================================================================
 
+
 class TestModelRegistry:
     """Test model registry functionality."""
 
@@ -605,7 +612,11 @@ class TestModelRegistry:
             assert registry is not None
 
             # Check for common methods (different implementations may have different names)
-            has_listing = hasattr(registry, 'list_models') or hasattr(registry, 'get_available_models') or hasattr(registry, 'available_models')
+            has_listing = (
+                hasattr(registry, "list_models")
+                or hasattr(registry, "get_available_models")
+                or hasattr(registry, "available_models")
+            )
             assert has_listing or True  # Pass if registry exists
         except ImportError:
             pytest.skip("ModelRegistry not implemented yet")
@@ -614,6 +625,7 @@ class TestModelRegistry:
 # =============================================================================
 # Integration Tests
 # =============================================================================
+
 
 class TestModelIntegration:
     """Integration tests for ML models."""
@@ -625,7 +637,9 @@ class TestModelIntegration:
         from bot.ml.models.deep_learning.transformer import TransformerModel, TransformerConfig
 
         lstm_config = LSTMConfig(epochs=1, batch_size=4, sequence_length=30, hidden_size=16)
-        transformer_config = TransformerConfig(epochs=1, batch_size=4, sequence_length=30, model_dim=16, num_heads=2)
+        transformer_config = TransformerConfig(
+            epochs=1, batch_size=4, sequence_length=30, model_dim=16, num_heads=2
+        )
 
         lstm = LSTMModel(lstm_config)
         transformer = TransformerModel(transformer_config)
@@ -663,6 +677,7 @@ class TestModelIntegration:
 # =============================================================================
 # Edge Cases and Error Handling
 # =============================================================================
+
 
 class TestEdgeCases:
     """Test edge cases and error handling."""
@@ -723,7 +738,7 @@ class TestEdgeCases:
             result = model.predict(sample_features_small[0:1])
             # If no error, should still return a valid prediction structure
             if result is not None:
-                assert hasattr(result, 'action')
+                assert hasattr(result, "action")
                 assert result.action in ["LONG", "SHORT", "FLAT"]
         except (ValueError, RuntimeError, AttributeError):
             # Expected behavior - model not trained yet
@@ -733,6 +748,7 @@ class TestEdgeCases:
 # =============================================================================
 # Performance Tests
 # =============================================================================
+
 
 class TestPerformance:
     """Performance-related tests."""

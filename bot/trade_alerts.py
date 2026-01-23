@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 class AlertCategory(Enum):
     """Alert categories for filtering."""
+
     TRADE = "trade"
     SIGNAL = "signal"
     RISK = "risk"
@@ -32,6 +33,7 @@ class AlertCategory(Enum):
 @dataclass
 class TradeAlertConfig:
     """Configuration for trade alerts."""
+
     # Alert filtering
     min_trade_value: float = 0.0  # Minimum trade value to alert on
     min_pnl_notify: float = 10.0  # Minimum P&L to send notification
@@ -122,12 +124,14 @@ class TelegramTradeAlerts:
         try:
             url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
 
-            data = json.dumps({
-                "chat_id": self.chat_id,
-                "text": html_message,
-                "parse_mode": "HTML",
-                "disable_web_page_preview": True,
-            }).encode("utf-8")
+            data = json.dumps(
+                {
+                    "chat_id": self.chat_id,
+                    "text": html_message,
+                    "parse_mode": "HTML",
+                    "disable_web_page_preview": True,
+                }
+            ).encode("utf-8")
 
             req = Request(url, data=data, headers={"Content-Type": "application/json"})
             with urlopen(req, timeout=10) as response:
@@ -323,14 +327,17 @@ class TelegramTradeAlerts:
             html += f"\n⏱️ <b>Duration:</b> {duration_str}"
 
         # Daily stats
-        today_win_rate = (self._daily_stats["wins"] / self._daily_stats["trades"] * 100
-                         if self._daily_stats["trades"] > 0 else 0)
+        today_win_rate = (
+            self._daily_stats["wins"] / self._daily_stats["trades"] * 100
+            if self._daily_stats["trades"] > 0
+            else 0
+        )
 
         html += f"""
 
-<b>Today:</b> {self._daily_stats['trades']} trades | ${self._daily_stats['pnl']:+,.2f} | {today_win_rate:.0f}% win rate
+<b>Today:</b> {self._daily_stats["trades"]} trades | ${self._daily_stats["pnl"]:+,.2f} | {today_win_rate:.0f}% win rate
 
-<i>{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</i>
+<i>{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</i>
 """
 
         result = self._send_html(html)
@@ -504,7 +511,7 @@ class TelegramTradeAlerts:
         }.get(severity.lower(), "⚠️")
 
         html = f"""
-{severity_emoji} <b>Risk Alert: {alert_type.replace('_', ' ').title()}</b>
+{severity_emoji} <b>Risk Alert: {alert_type.replace("_", " ").title()}</b>
 
 {message}
 """
@@ -618,7 +625,7 @@ class TelegramTradeAlerts:
 <b>Uptime:</b> {uptime_str}
 <b>Errors Today:</b> {errors_today}
 
-<i>{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</i>
+<i>{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</i>
 """
 
         return self._send_html(html)
@@ -655,7 +662,7 @@ class TelegramTradeAlerts:
 
 <i>Consider reducing position sizes to protect gains.</i>
 
-<i>{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</i>
+<i>{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</i>
 """
 
         return self._send_html(html)
@@ -683,7 +690,7 @@ class TelegramTradeAlerts:
 <b>Max Allowed:</b> -{max_loss}%
 
 <b>Trades Today:</b> {trades}
-<b>Status:</b> {'⏸️ TRADING PAUSED' if paused else '⚠️ AT RISK'}
+<b>Status:</b> {"⏸️ TRADING PAUSED" if paused else "⚠️ AT RISK"}
 
 🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴
 
@@ -692,7 +699,7 @@ class TelegramTradeAlerts:
 • Identify what went wrong
 • Wait until tomorrow to resume
 
-<i>{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</i>
+<i>{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</i>
 """
 
         return self._send_html(html)
@@ -725,7 +732,7 @@ class TelegramTradeAlerts:
 
         html += f"""<i>Trading will remain paused until manually resumed or next trading day.</i>
 
-<i>{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</i>
+<i>{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</i>
 """
 
         return self._send_html(html)
@@ -738,10 +745,12 @@ class TelegramTradeAlerts:
         try:
             url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
 
-            data = json.dumps({
-                "chat_id": self.chat_id,
-                "text": message,
-            }).encode("utf-8")
+            data = json.dumps(
+                {
+                    "chat_id": self.chat_id,
+                    "text": message,
+                }
+            ).encode("utf-8")
 
             req = Request(url, data=data, headers={"Content-Type": "application/json"})
             with urlopen(req, timeout=10) as response:

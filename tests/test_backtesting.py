@@ -215,13 +215,16 @@ class TestBacktester:
         returns = np.random.randn(n) * 0.01
         prices = base_price * np.exp(np.cumsum(returns))
 
-        return pd.DataFrame({
-            "open": prices * (1 + np.random.randn(n) * 0.001),
-            "high": prices * (1 + np.abs(np.random.randn(n)) * 0.005),
-            "low": prices * (1 - np.abs(np.random.randn(n)) * 0.005),
-            "close": prices,
-            "volume": np.random.randint(1000, 10000, n),
-        }, index=dates)
+        return pd.DataFrame(
+            {
+                "open": prices * (1 + np.random.randn(n) * 0.001),
+                "high": prices * (1 + np.abs(np.random.randn(n)) * 0.005),
+                "low": prices * (1 - np.abs(np.random.randn(n)) * 0.005),
+                "close": prices,
+                "volume": np.random.randint(1000, 10000, n),
+            },
+            index=dates,
+        )
 
     def test_backtester_creation(self, backtester):
         """Test backtester is created."""
@@ -266,11 +269,13 @@ class TestBacktesterInternals:
 
     def test_open_long_position(self, backtester):
         """Test opening long position."""
-        bar = pd.Series({
-            "close": 100.0,
-            "high": 101.0,
-            "low": 99.0,
-        })
+        bar = pd.Series(
+            {
+                "close": 100.0,
+                "high": 101.0,
+                "low": 99.0,
+            }
+        )
         bar.name = datetime(2024, 1, 1, 10, 0)
 
         signal = {
@@ -288,11 +293,13 @@ class TestBacktesterInternals:
 
     def test_open_short_position(self, backtester):
         """Test opening short position."""
-        bar = pd.Series({
-            "close": 100.0,
-            "high": 101.0,
-            "low": 99.0,
-        })
+        bar = pd.Series(
+            {
+                "close": 100.0,
+                "high": 101.0,
+                "low": 99.0,
+            }
+        )
         bar.name = datetime(2024, 1, 1, 10, 0)
 
         signal = {

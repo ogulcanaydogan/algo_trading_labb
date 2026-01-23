@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 class AuditEventType(Enum):
     """Types of audit events."""
+
     # Trading events
     ORDER_PLACED = "order.placed"
     ORDER_FILLED = "order.filled"
@@ -70,6 +71,7 @@ class AuditEventType(Enum):
 
 class AuditSeverity(Enum):
     """Severity levels for audit events."""
+
     DEBUG = "debug"
     INFO = "info"
     WARNING = "warning"
@@ -80,6 +82,7 @@ class AuditSeverity(Enum):
 @dataclass
 class AuditEvent:
     """An audit log entry."""
+
     id: str
     timestamp: datetime
     event_type: AuditEventType
@@ -168,12 +171,7 @@ class AuditWriter:
 class FileAuditWriter(AuditWriter):
     """Write audit logs to file."""
 
-    def __init__(
-        self,
-        log_dir: str,
-        rotate_daily: bool = True,
-        max_file_size_mb: int = 100
-    ):
+    def __init__(self, log_dir: str, rotate_daily: bool = True, max_file_size_mb: int = 100):
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
         self.rotate_daily = rotate_daily
@@ -199,9 +197,7 @@ class FileAuditWriter(AuditWriter):
                 f.write(event.to_json() + "\n")
 
     def read_events(
-        self,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None
+        self, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None
     ) -> List[AuditEvent]:
         """Read events from log files."""
         events = []
@@ -233,8 +229,9 @@ class ConsoleAuditWriter(AuditWriter):
         self._severity_order = [s for s in AuditSeverity]
 
     def write(self, event: AuditEvent):
-        if self._severity_order.index(event.severity) >= \
-           self._severity_order.index(self.min_severity):
+        if self._severity_order.index(event.severity) >= self._severity_order.index(
+            self.min_severity
+        ):
             print(
                 f"[AUDIT] {event.timestamp.isoformat()} "
                 f"[{event.severity.value.upper()}] "
@@ -255,7 +252,7 @@ class InMemoryAuditWriter(AuditWriter):
         with self._lock:
             self._events.append(event)
             if len(self._events) > self.max_events:
-                self._events = self._events[-self.max_events:]
+                self._events = self._events[-self.max_events :]
 
     def get_events(
         self,
@@ -264,7 +261,7 @@ class InMemoryAuditWriter(AuditWriter):
         resource: Optional[str] = None,
         start_time: Optional[datetime] = None,
         end_time: Optional[datetime] = None,
-        limit: int = 100
+        limit: int = 100,
     ) -> List[AuditEvent]:
         """Query stored events."""
         with self._lock:
@@ -301,9 +298,7 @@ class AuditLogger:
     """
 
     def __init__(
-        self,
-        service_name: str = "trading-system",
-        writers: Optional[List[AuditWriter]] = None
+        self, service_name: str = "trading-system", writers: Optional[List[AuditWriter]] = None
     ):
         self.service_name = service_name
         self._writers = writers or []
@@ -334,7 +329,7 @@ class AuditLogger:
         severity: AuditSeverity = AuditSeverity.INFO,
         outcome: str = "success",
         details: Optional[Dict] = None,
-        **kwargs
+        **kwargs,
     ) -> AuditEvent:
         """
         Log an audit event.
@@ -390,7 +385,7 @@ class AuditLogger:
         price: Optional[float] = None,
         actor: str = "system",
         outcome: str = "success",
-        **kwargs
+        **kwargs,
     ):
         """Log order-related event."""
         return self.log(
@@ -416,7 +411,7 @@ class AuditLogger:
         current_value: float,
         limit_value: float,
         symbol: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ):
         """Log risk-related event."""
         severity = AuditSeverity.WARNING
@@ -441,12 +436,7 @@ class AuditLogger:
         )
 
     def log_config_change(
-        self,
-        config_key: str,
-        old_value: Any,
-        new_value: Any,
-        actor: str = "system",
-        **kwargs
+        self, config_key: str, old_value: Any, new_value: Any, actor: str = "system", **kwargs
     ):
         """Log configuration change."""
         return self.log(
@@ -469,7 +459,7 @@ class AuditLogger:
         actor: str,
         outcome: str = "success",
         ip_address: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ):
         """Log security-related event."""
         severity = AuditSeverity.INFO
@@ -502,7 +492,7 @@ class TradingAuditLogger(AuditLogger):
         log_dir: str = "data/audit_logs",
         enable_console: bool = False,
         enable_file: bool = True,
-        enable_memory: bool = True
+        enable_memory: bool = True,
     ):
         super().__init__(service_name="trading-system")
 
@@ -525,7 +515,7 @@ class TradingAuditLogger(AuditLogger):
         resource: Optional[str] = None,
         start_time: Optional[datetime] = None,
         end_time: Optional[datetime] = None,
-        limit: int = 100
+        limit: int = 100,
     ) -> List[AuditEvent]:
         """Query recent events from memory."""
         if not self._memory_writer:
@@ -540,10 +530,7 @@ class TradingAuditLogger(AuditLogger):
         )
 
     def get_order_history(
-        self,
-        order_id: Optional[str] = None,
-        symbol: Optional[str] = None,
-        limit: int = 100
+        self, order_id: Optional[str] = None, symbol: Optional[str] = None, limit: int = 100
     ) -> List[Dict]:
         """Get order audit history."""
         events = self.query_events(limit=limit * 4)
@@ -560,16 +547,10 @@ class TradingAuditLogger(AuditLogger):
         order_events = [e for e in events if e.event_type in order_types]
 
         if order_id:
-            order_events = [
-                e for e in order_events
-                if e.details.get("order_id") == order_id
-            ]
+            order_events = [e for e in order_events if e.details.get("order_id") == order_id]
 
         if symbol:
-            order_events = [
-                e for e in order_events
-                if e.details.get("symbol") == symbol
-            ]
+            order_events = [e for e in order_events if e.details.get("symbol") == symbol]
 
         return [e.to_dict() for e in order_events[:limit]]
 
@@ -587,17 +568,9 @@ class TradingAuditLogger(AuditLogger):
         risk_events = [e for e in events if e.event_type in risk_types]
         return [e.to_dict() for e in risk_events[:limit]]
 
-    def generate_audit_report(
-        self,
-        start_date: datetime,
-        end_date: datetime
-    ) -> Dict:
+    def generate_audit_report(self, start_date: datetime, end_date: datetime) -> Dict:
         """Generate audit report for a period."""
-        events = self.query_events(
-            start_time=start_date,
-            end_time=end_date,
-            limit=10000
-        )
+        events = self.query_events(start_time=start_date, end_time=end_date, limit=10000)
 
         # Summarize by type
         by_type: Dict[str, int] = {}
@@ -626,9 +599,7 @@ class TradingAuditLogger(AuditLogger):
 
 
 def create_audit_logger(
-    log_dir: str = "data/audit_logs",
-    enable_console: bool = False,
-    enable_file: bool = True
+    log_dir: str = "data/audit_logs", enable_console: bool = False, enable_file: bool = True
 ) -> TradingAuditLogger:
     """Factory function to create trading audit logger."""
     return TradingAuditLogger(

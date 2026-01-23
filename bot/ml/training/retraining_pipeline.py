@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 class RetrainingTrigger(Enum):
     """Reasons for triggering model retraining."""
+
     SCHEDULED = "scheduled"
     PERFORMANCE_DEGRADATION = "performance_degradation"
     DATA_DRIFT = "data_drift"
@@ -34,6 +35,7 @@ class RetrainingTrigger(Enum):
 @dataclass
 class PerformanceMetrics:
     """Model performance metrics."""
+
     accuracy: float
     precision: float
     recall: float
@@ -66,6 +68,7 @@ class PerformanceMetrics:
 @dataclass
 class DriftMetrics:
     """Data drift detection metrics."""
+
     feature_drift_score: float  # 0-1, higher = more drift
     target_drift_score: float
     covariate_shift_detected: bool
@@ -87,6 +90,7 @@ class DriftMetrics:
 @dataclass
 class RetrainingConfig:
     """Configuration for retraining pipeline."""
+
     # Performance thresholds
     min_accuracy: float = 0.52
     min_sharpe_ratio: float = 0.5
@@ -115,6 +119,7 @@ class RetrainingConfig:
 @dataclass
 class RetrainingResult:
     """Result of a retraining attempt."""
+
     symbol: str
     model_type: str
     success: bool
@@ -168,16 +173,14 @@ class ModelPerformanceMonitor:
                 with open(history_file, "r") as f:
                     data = json.load(f)
                     for key, metrics_list in data.items():
-                        self._history[key] = [
-                            PerformanceMetrics.from_dict(m) for m in metrics_list
-                        ]
+                        self._history[key] = [PerformanceMetrics.from_dict(m) for m in metrics_list]
             except (json.JSONDecodeError, IOError) as e:
                 logger.warning(f"Failed to load performance history: {e}")
 
     def _save_history(self) -> None:
         """Save performance history to disk."""
         data = {
-            key: [m.to_dict() for m in metrics_list[-self.lookback_window:]]
+            key: [m.to_dict() for m in metrics_list[-self.lookback_window :]]
             for key, metrics_list in self._history.items()
         }
         with open(self._get_history_file(), "w") as f:
@@ -198,7 +201,7 @@ class ModelPerformanceMonitor:
 
         # Keep only recent history
         if len(self._history[key]) > self.lookback_window:
-            self._history[key] = self._history[key][-self.lookback_window:]
+            self._history[key] = self._history[key][-self.lookback_window :]
 
         self._save_history()
 
@@ -253,13 +256,22 @@ class ModelPerformanceMonitor:
             return True, f"Accuracy ({avg_accuracy:.3f}) below threshold ({config.min_accuracy})"
 
         if avg_sharpe < config.min_sharpe_ratio:
-            return True, f"Sharpe ratio ({avg_sharpe:.2f}) below threshold ({config.min_sharpe_ratio})"
+            return (
+                True,
+                f"Sharpe ratio ({avg_sharpe:.2f}) below threshold ({config.min_sharpe_ratio})",
+            )
 
         if avg_win_rate < config.min_win_rate:
-            return True, f"Win rate ({avg_win_rate:.2%}) below threshold ({config.min_win_rate:.2%})"
+            return (
+                True,
+                f"Win rate ({avg_win_rate:.2%}) below threshold ({config.min_win_rate:.2%})",
+            )
 
         if latest_drawdown > config.max_drawdown_threshold:
-            return True, f"Drawdown ({latest_drawdown:.2%}) exceeds threshold ({config.max_drawdown_threshold:.2%})"
+            return (
+                True,
+                f"Drawdown ({latest_drawdown:.2%}) exceeds threshold ({config.max_drawdown_threshold:.2%})",
+            )
 
         # Check trend
         trend = self.get_performance_trend(symbol, model_type)
@@ -329,8 +341,7 @@ class DataDriftDetector:
             common_classes = set(ref_target.index) & set(curr_target.index)
             if common_classes:
                 target_drift = sum(
-                    abs(ref_target.get(c, 0) - curr_target.get(c, 0))
-                    for c in common_classes
+                    abs(ref_target.get(c, 0) - curr_target.get(c, 0)) for c in common_classes
                 ) / len(common_classes)
 
         return DriftMetrics(
@@ -428,9 +439,7 @@ class RetrainingPipeline:
     def _save_state(self) -> None:
         """Save pipeline state to disk."""
         data = {
-            "last_retrain": {
-                k: v.isoformat() for k, v in self._last_retrain.items()
-            },
+            "last_retrain": {k: v.isoformat() for k, v in self._last_retrain.items()},
         }
         with open(self._get_state_file(), "w") as f:
             json.dump(data, f, indent=2)
@@ -464,15 +473,15 @@ class RetrainingPipeline:
                 return True, RetrainingTrigger.MODEL_AGE, f"Model is {age_days} days old"
 
         # Check scheduled retraining
-        if (now.weekday() == self.config.scheduled_retraining_day and
-            now.hour == self.config.scheduled_retraining_hour):
+        if (
+            now.weekday() == self.config.scheduled_retraining_day
+            and now.hour == self.config.scheduled_retraining_hour
+        ):
             if last_retrain is None or (now - last_retrain).days >= 7:
                 return True, RetrainingTrigger.SCHEDULED, "Weekly scheduled retraining"
 
         # Check performance degradation
-        is_degraded, reason = self.monitor.check_degradation(
-            symbol, model_type, self.config
-        )
+        is_degraded, reason = self.monitor.check_degradation(symbol, model_type, self.config)
         if is_degraded:
             return True, RetrainingTrigger.PERFORMANCE_DEGRADATION, reason
 
@@ -491,14 +500,12 @@ class RetrainingPipeline:
         Returns:
             Tuple of (drift_detected, drift_metrics)
         """
-        metrics = self.drift_detector.detect_drift(
-            reference_data, current_data, features
-        )
+        metrics = self.drift_detector.detect_drift(reference_data, current_data, features)
 
         drift_detected = (
-            metrics.feature_drift_score > self.config.drift_threshold or
-            metrics.covariate_shift_detected or
-            metrics.label_shift_detected
+            metrics.feature_drift_score > self.config.drift_threshold
+            or metrics.covariate_shift_detected
+            or metrics.label_shift_detected
         )
 
         return drift_detected, metrics
@@ -563,18 +570,24 @@ class RetrainingPipeline:
             # Check improvement
             improvement_pct = 0.0
             if old_metrics:
-                improvement_pct = (new_metrics.accuracy - old_metrics.accuracy) / old_metrics.accuracy
+                improvement_pct = (
+                    new_metrics.accuracy - old_metrics.accuracy
+                ) / old_metrics.accuracy
 
             # Decide on deployment
             should_deploy = True
             if self.config.require_validation_pass:
                 if new_metrics.accuracy < self.config.min_accuracy:
                     should_deploy = False
-                    logger.warning(f"New model accuracy ({new_metrics.accuracy:.3f}) below threshold")
+                    logger.warning(
+                        f"New model accuracy ({new_metrics.accuracy:.3f}) below threshold"
+                    )
 
                 if old_metrics and improvement_pct < self.config.min_improvement_pct:
                     should_deploy = False
-                    logger.warning(f"Improvement ({improvement_pct:.2%}) below threshold ({self.config.min_improvement_pct:.2%})")
+                    logger.warning(
+                        f"Improvement ({improvement_pct:.2%}) below threshold ({self.config.min_improvement_pct:.2%})"
+                    )
 
             # Record performance
             if should_deploy:
@@ -593,7 +606,9 @@ class RetrainingPipeline:
                 deployed=should_deploy,
             )
 
-            logger.info(f"Retraining complete. Deployed: {should_deploy}, Improvement: {improvement_pct:.2%}")
+            logger.info(
+                f"Retraining complete. Deployed: {should_deploy}, Improvement: {improvement_pct:.2%}"
+            )
 
             self._retraining_history.append(result)
             return result
@@ -620,12 +635,8 @@ class RetrainingPipeline:
                 "max_model_age_days": self.config.max_model_age_days,
                 "drift_threshold": self.config.drift_threshold,
             },
-            "last_retrains": {
-                k: v.isoformat() for k, v in self._last_retrain.items()
-            },
-            "recent_retrainings": [
-                r.to_dict() for r in self._retraining_history[-10:]
-            ],
+            "last_retrains": {k: v.isoformat() for k, v in self._last_retrain.items()},
+            "recent_retrainings": [r.to_dict() for r in self._retraining_history[-10:]],
         }
 
     def get_retraining_schedule(
@@ -647,13 +658,15 @@ class RetrainingPipeline:
                 key = f"{symbol}_{model_type}"
                 last = self._last_retrain.get(key)
 
-                schedule.append({
-                    "symbol": symbol,
-                    "model_type": model_type,
-                    "should_retrain": should,
-                    "trigger": trigger.value,
-                    "reason": reason,
-                    "last_retrained": last.isoformat() if last else None,
-                })
+                schedule.append(
+                    {
+                        "symbol": symbol,
+                        "model_type": model_type,
+                        "should_retrain": should,
+                        "trigger": trigger.value,
+                        "reason": reason,
+                        "last_retrained": last.isoformat() if last else None,
+                    }
+                )
 
         return schedule

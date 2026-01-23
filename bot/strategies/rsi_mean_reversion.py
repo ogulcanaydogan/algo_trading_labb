@@ -18,6 +18,7 @@ from .base import BaseStrategy, StrategyConfig, StrategySignal
 
 class RSIMeanReversionConfig(StrategyConfig):
     """Configuration for RSI Mean Reversion strategy."""
+
     rsi_period: int = 14
     rsi_oversold: float = 30.0
     rsi_overbought: float = 70.0
@@ -70,12 +71,13 @@ class RSIMeanReversionStrategy(BaseStrategy):
         df = ohlcv.copy()
 
         df["rsi"] = RSIIndicator(df["close"], window=self.config.rsi_period).rsi()
-        df["ema_50"] = EMAIndicator(df["close"], window=self.config.ema_filter_period).ema_indicator()
+        df["ema_50"] = EMAIndicator(
+            df["close"], window=self.config.ema_filter_period
+        ).ema_indicator()
 
         if self.config.use_stochastic:
             stoch = StochasticOscillator(
-                df["high"], df["low"], df["close"],
-                window=self.config.stoch_period, smooth_window=3
+                df["high"], df["low"], df["close"], window=self.config.stoch_period, smooth_window=3
             )
             df["stoch_k"] = stoch.stoch()
             df["stoch_d"] = stoch.stoch_signal()

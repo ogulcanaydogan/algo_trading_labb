@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 class AlertLevel(Enum):
     """Alert severity levels."""
+
     INFO = "info"
     WARNING = "warning"
     ERROR = "error"
@@ -38,6 +39,7 @@ class AlertLevel(Enum):
 
 class AlertChannel(Enum):
     """Available alert channels."""
+
     LOG = "log"
     FILE = "file"
     TELEGRAM = "telegram"
@@ -48,6 +50,7 @@ class AlertChannel(Enum):
 @dataclass
 class Alert:
     """Alert data structure."""
+
     level: AlertLevel
     title: str
     message: str
@@ -71,6 +74,7 @@ class Alert:
 @dataclass
 class MetricSnapshot:
     """Point-in-time system metrics."""
+
     timestamp: datetime
     cpu_percent: float
     memory_percent: float
@@ -86,6 +90,7 @@ class MetricSnapshot:
 @dataclass
 class TradingMetrics:
     """Trading performance metrics."""
+
     total_pnl: float = 0.0
     daily_pnl: float = 0.0
     win_rate: float = 0.0
@@ -195,10 +200,7 @@ class AlertManager:
             AlertLevel.CRITICAL: logging.CRITICAL,
         }
         log_level = level_map.get(alert.level, logging.INFO)
-        logger.log(
-            log_level,
-            f"[{alert.source}] {alert.title}: {alert.message}"
-        )
+        logger.log(log_level, f"[{alert.source}] {alert.title}: {alert.message}")
 
     def _handle_file(self, alert: Alert) -> None:
         """Handle alert by writing to file."""
@@ -279,35 +281,41 @@ class SystemMonitor:
         # Check CPU
         if metrics.cpu_percent > self.cpu_threshold:
             issues.append(f"High CPU usage: {metrics.cpu_percent:.1f}%")
-            self.alert_manager.send_alert(Alert(
-                level=AlertLevel.WARNING,
-                title="High CPU Usage",
-                message=f"CPU usage at {metrics.cpu_percent:.1f}%",
-                source="system_monitor",
-                data={"cpu_percent": metrics.cpu_percent},
-            ))
+            self.alert_manager.send_alert(
+                Alert(
+                    level=AlertLevel.WARNING,
+                    title="High CPU Usage",
+                    message=f"CPU usage at {metrics.cpu_percent:.1f}%",
+                    source="system_monitor",
+                    data={"cpu_percent": metrics.cpu_percent},
+                )
+            )
 
         # Check memory
         if metrics.memory_percent > self.memory_threshold:
             issues.append(f"High memory usage: {metrics.memory_percent:.1f}%")
-            self.alert_manager.send_alert(Alert(
-                level=AlertLevel.WARNING,
-                title="High Memory Usage",
-                message=f"Memory usage at {metrics.memory_percent:.1f}%",
-                source="system_monitor",
-                data={"memory_percent": metrics.memory_percent},
-            ))
+            self.alert_manager.send_alert(
+                Alert(
+                    level=AlertLevel.WARNING,
+                    title="High Memory Usage",
+                    message=f"Memory usage at {metrics.memory_percent:.1f}%",
+                    source="system_monitor",
+                    data={"memory_percent": metrics.memory_percent},
+                )
+            )
 
         # Check disk
         if metrics.disk_percent > self.disk_threshold:
             issues.append(f"Low disk space: {metrics.disk_percent:.1f}% used")
-            self.alert_manager.send_alert(Alert(
-                level=AlertLevel.ERROR,
-                title="Low Disk Space",
-                message=f"Disk usage at {metrics.disk_percent:.1f}%",
-                source="system_monitor",
-                data={"disk_percent": metrics.disk_percent},
-            ))
+            self.alert_manager.send_alert(
+                Alert(
+                    level=AlertLevel.ERROR,
+                    title="Low Disk Space",
+                    message=f"Disk usage at {metrics.disk_percent:.1f}%",
+                    source="system_monitor",
+                    data={"disk_percent": metrics.disk_percent},
+                )
+            )
 
         return {
             "healthy": len(issues) == 0,
@@ -407,7 +415,9 @@ class TradingMonitor:
         # Drawdown
         if self._peak_equity > 0:
             self.metrics.current_drawdown = (self._peak_equity - current_equity) / self._peak_equity
-            self.metrics.max_drawdown = max(self.metrics.max_drawdown, self.metrics.current_drawdown)
+            self.metrics.max_drawdown = max(
+                self.metrics.max_drawdown, self.metrics.current_drawdown
+            )
 
         # Position metrics
         self.metrics.active_positions = len([p for p in positions if p.get("status") == "open"])
@@ -446,23 +456,27 @@ class TradingMonitor:
         if self._daily_start_equity > 0:
             daily_loss_pct = (self._daily_start_equity - current_equity) / self._daily_start_equity
             if daily_loss_pct > self.max_daily_loss_pct:
-                self.alert_manager.send_alert(Alert(
-                    level=AlertLevel.CRITICAL,
-                    title="Daily Loss Limit Exceeded",
-                    message=f"Daily loss of {daily_loss_pct*100:.2f}% exceeds limit of {self.max_daily_loss_pct*100:.1f}%",
-                    source="trading_monitor",
-                    data={"daily_loss_pct": daily_loss_pct},
-                ))
+                self.alert_manager.send_alert(
+                    Alert(
+                        level=AlertLevel.CRITICAL,
+                        title="Daily Loss Limit Exceeded",
+                        message=f"Daily loss of {daily_loss_pct * 100:.2f}% exceeds limit of {self.max_daily_loss_pct * 100:.1f}%",
+                        source="trading_monitor",
+                        data={"daily_loss_pct": daily_loss_pct},
+                    )
+                )
 
         # Drawdown alert
         if self.metrics.current_drawdown > self.max_drawdown_pct:
-            self.alert_manager.send_alert(Alert(
-                level=AlertLevel.CRITICAL,
-                title="Maximum Drawdown Exceeded",
-                message=f"Drawdown of {self.metrics.current_drawdown*100:.2f}% exceeds limit of {self.max_drawdown_pct*100:.1f}%",
-                source="trading_monitor",
-                data={"drawdown": self.metrics.current_drawdown},
-            ))
+            self.alert_manager.send_alert(
+                Alert(
+                    level=AlertLevel.CRITICAL,
+                    title="Maximum Drawdown Exceeded",
+                    message=f"Drawdown of {self.metrics.current_drawdown * 100:.2f}% exceeds limit of {self.max_drawdown_pct * 100:.1f}%",
+                    source="trading_monitor",
+                    data={"drawdown": self.metrics.current_drawdown},
+                )
+            )
 
     def get_metrics(self) -> Dict[str, Any]:
         """Get current trading metrics."""
@@ -513,12 +527,14 @@ class MonitoringService:
         logger.info("Monitoring service started")
 
         # Send startup alert
-        self.alert_manager.send_alert(Alert(
-            level=AlertLevel.INFO,
-            title="Monitoring Service Started",
-            message="All monitoring services are now active",
-            source="monitoring_service",
-        ))
+        self.alert_manager.send_alert(
+            Alert(
+                level=AlertLevel.INFO,
+                title="Monitoring Service Started",
+                message="All monitoring services are now active",
+                source="monitoring_service",
+            )
+        )
 
     def stop(self) -> None:
         """Stop all monitoring services."""
@@ -535,9 +551,7 @@ class MonitoringService:
             "timestamp": datetime.now().isoformat(),
             "system": system_health,
             "trading": self.trading_monitor.get_metrics(),
-            "recent_alerts": [
-                a.to_dict() for a in self.alert_manager.get_recent_alerts(10)
-            ],
+            "recent_alerts": [a.to_dict() for a in self.alert_manager.get_recent_alerts(10)],
         }
 
     def send_alert(

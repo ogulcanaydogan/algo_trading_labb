@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 class MarketRegime(Enum):
     """Market regime classifications."""
+
     STRONG_BULL = "strong_bull"
     BULL = "bull"
     SIDEWAYS = "sideways"
@@ -34,6 +35,7 @@ class MarketRegime(Enum):
 @dataclass
 class RegimeStrategy:
     """Strategy parameters for a specific regime."""
+
     regime: MarketRegime
     position_size_multiplier: float = 1.0
     stop_loss_pct: float = 2.0
@@ -59,6 +61,7 @@ class RegimeStrategy:
 @dataclass
 class RegimeState:
     """Current regime state with confidence."""
+
     regime: MarketRegime
     confidence: float
     previous_regime: MarketRegime
@@ -221,7 +224,7 @@ class RegimeAdapter:
             )
 
         # Get recent prices
-        recent = prices[-self.lookback_period:]
+        recent = prices[-self.lookback_period :]
 
         # Calculate indicators
         returns = np.diff(recent) / recent[:-1]
@@ -348,7 +351,10 @@ class RegimeAdapter:
 
         if self._current_state.regime in high_risk_regimes:
             strategy = self.get_strategy()
-            return True, f"High risk regime: {self._current_state.regime.value} - reducing to {strategy.position_size_multiplier}x"
+            return (
+                True,
+                f"High risk regime: {self._current_state.regime.value} - reducing to {strategy.position_size_multiplier}x",
+            )
 
         return False, ""
 
@@ -412,7 +418,7 @@ class RegimeAdapter:
         self._regime_history.append(state)
 
         if len(self._regime_history) > self._max_history:
-            self._regime_history = self._regime_history[-self._max_history:]
+            self._regime_history = self._regime_history[-self._max_history :]
 
     def set_strategy(self, regime: MarketRegime, strategy: RegimeStrategy):
         """Set custom strategy for a regime."""

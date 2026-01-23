@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 
 class ModelHealthStatus(Enum):
     """Model health status levels."""
+
     HEALTHY = "healthy"
     WARNING = "warning"
     CRITICAL = "critical"
@@ -42,6 +43,7 @@ class ModelHealthStatus(Enum):
 @dataclass
 class ModelHealth:
     """Health status of a model."""
+
     symbol: str
     model_type: str
     status: ModelHealthStatus
@@ -73,6 +75,7 @@ class ModelHealth:
 @dataclass
 class RetrainingJob:
     """A scheduled retraining job."""
+
     symbol: str
     model_type: str
     trigger: RetrainingTrigger
@@ -195,9 +198,7 @@ class AutoRetrainingScheduler:
     def _save_state(self) -> None:
         """Save scheduler state to disk."""
         data = {
-            "model_created": {
-                k: v.isoformat() for k, v in self._model_created.items()
-            },
+            "model_created": {k: v.isoformat() for k, v in self._model_created.items()},
             "last_check": datetime.now().isoformat(),
             "registered_models": list(self._models.keys()),
         }
@@ -286,8 +287,7 @@ class AutoRetrainingScheduler:
             self._save_state()
 
             logger.info(
-                f"Hot-swapped model: {symbol} {model_type} "
-                f"(had previous: {old_model is not None})"
+                f"Hot-swapped model: {symbol} {model_type} (had previous: {old_model is not None})"
             )
             return True
 
@@ -321,9 +321,7 @@ class AutoRetrainingScheduler:
             days_since_trained = (datetime.now() - created).days
 
         # Check if should retrain
-        should_retrain, trigger, reason = self.pipeline.should_retrain(
-            symbol, model_type, created
-        )
+        should_retrain, trigger, reason = self.pipeline.should_retrain(symbol, model_type, created)
 
         # Get latest metrics from monitor
         latest_metrics = self.pipeline.monitor.get_latest_metrics(symbol, model_type)
@@ -453,7 +451,9 @@ class AutoRetrainingScheduler:
             training_data = self.data_fetcher(job.symbol, 90)  # 90 days of data
 
             if training_data is None or len(training_data) < self.config.min_training_samples:
-                raise ValueError(f"Insufficient training data: {len(training_data) if training_data is not None else 0}")
+                raise ValueError(
+                    f"Insufficient training data: {len(training_data) if training_data is not None else 0}"
+                )
 
             # Define training function
             def train_model(data: pd.DataFrame) -> Any:
@@ -525,7 +525,10 @@ class AutoRetrainingScheduler:
                 trigger = RetrainingTrigger.MANUAL
                 if health.drift_detected:
                     trigger = RetrainingTrigger.DATA_DRIFT
-                elif health.days_since_trained and health.days_since_trained > self.config.max_model_age_days:
+                elif (
+                    health.days_since_trained
+                    and health.days_since_trained > self.config.max_model_age_days
+                ):
                     trigger = RetrainingTrigger.MODEL_AGE
                 elif health.accuracy and health.accuracy < self.config.min_accuracy:
                     trigger = RetrainingTrigger.PERFORMANCE_DEGRADATION
@@ -593,15 +596,11 @@ class AutoRetrainingScheduler:
                 "running": self._running,
                 "check_interval_hours": self.check_interval / 3600,
                 "registered_models": [
-                    f"{sym}_{mt}"
-                    for sym, types in self._models.items()
-                    for mt in types
+                    f"{sym}_{mt}" for sym, types in self._models.items() for mt in types
                 ],
                 "pending_jobs": [j.to_dict() for j in self._job_queue],
                 "recent_jobs": [j.to_dict() for j in self._completed_jobs[-10:]],
-                "health_cache": {
-                    k: v.to_dict() for k, v in self._health_cache.items()
-                },
+                "health_cache": {k: v.to_dict() for k, v in self._health_cache.items()},
             }
 
     def get_model_health_summary(self) -> Dict[str, Any]:

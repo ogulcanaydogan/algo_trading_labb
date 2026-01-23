@@ -24,6 +24,7 @@ from .base import BaseStrategy, StrategyConfig, StrategySignal
 @dataclass
 class GridTradingConfig(StrategyConfig):
     """Configuration for Grid Trading strategy."""
+
     grid_levels: int = 5  # Number of grid levels above and below
     grid_spacing_pct: float = 1.0  # Spacing between levels as percentage
     use_atr_spacing: bool = True  # Use ATR for dynamic spacing
@@ -41,6 +42,7 @@ class GridTradingConfig(StrategyConfig):
 @dataclass
 class GridLevel:
     """Represents a single grid level."""
+
     price: float
     type: str  # "buy" or "sell"
     active: bool = True
@@ -150,12 +152,14 @@ class GridTradingStrategy(BaseStrategy):
             if self.grid_config.use_sr_bounds and level_price < support:
                 break
 
-            levels.append(GridLevel(
-                price=level_price,
-                type="buy",
-                active=True,
-                filled=False,
-            ))
+            levels.append(
+                GridLevel(
+                    price=level_price,
+                    type="buy",
+                    active=True,
+                    filled=False,
+                )
+            )
 
         # Generate sell levels (above center)
         for i in range(1, self.grid_config.grid_levels + 1):
@@ -165,12 +169,14 @@ class GridTradingStrategy(BaseStrategy):
             if self.grid_config.use_sr_bounds and level_price > resistance:
                 break
 
-            levels.append(GridLevel(
-                price=level_price,
-                type="sell",
-                active=True,
-                filled=False,
-            ))
+            levels.append(
+                GridLevel(
+                    price=level_price,
+                    type="sell",
+                    active=True,
+                    filled=False,
+                )
+            )
 
         return sorted(levels, key=lambda x: x.price)
 
@@ -201,10 +207,13 @@ class GridTradingStrategy(BaseStrategy):
         """Generate signal based on grid level triggers."""
         df = self.add_indicators(ohlcv)
 
-        min_len = max(
-            self.grid_config.support_resistance_lookback,
-            self.grid_config.trend_ema_period,
-        ) + 10
+        min_len = (
+            max(
+                self.grid_config.support_resistance_lookback,
+                self.grid_config.trend_ema_period,
+            )
+            + 10
+        )
 
         if len(df) < min_len:
             return self._flat_signal("Insufficient data")
@@ -347,7 +356,6 @@ class GridTradingStrategy(BaseStrategy):
             "filled_buy": sum(1 for l in buy_levels if l.filled),
             "filled_sell": sum(1 for l in sell_levels if l.filled),
             "levels": [
-                {"price": l.price, "type": l.type, "filled": l.filled}
-                for l in self._grid_levels
+                {"price": l.price, "type": l.type, "filled": l.filled} for l in self._grid_levels
             ],
         }

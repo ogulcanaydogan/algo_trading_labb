@@ -44,15 +44,55 @@ class TestRiskMetricsCalculator:
     def positive_returns(self):
         """Generate positive returns data."""
         # Use explicit positive returns for reliable test
-        return [0.02, 0.01, 0.015, 0.008, 0.012, 0.018, 0.005, 0.01, 0.02, 0.011,
-                0.01, 0.008, 0.015, 0.009, 0.012, 0.007, 0.018, 0.005, 0.011, 0.013]
+        return [
+            0.02,
+            0.01,
+            0.015,
+            0.008,
+            0.012,
+            0.018,
+            0.005,
+            0.01,
+            0.02,
+            0.011,
+            0.01,
+            0.008,
+            0.015,
+            0.009,
+            0.012,
+            0.007,
+            0.018,
+            0.005,
+            0.011,
+            0.013,
+        ]
 
     @pytest.fixture
     def negative_returns(self):
         """Generate negative returns data."""
         # Use explicit negative returns for reliable test
-        return [-0.02, -0.01, -0.015, -0.008, -0.012, -0.018, -0.005, -0.01, -0.02, -0.011,
-                -0.01, -0.008, -0.015, -0.009, -0.012, -0.007, -0.018, -0.005, -0.011, -0.013]
+        return [
+            -0.02,
+            -0.01,
+            -0.015,
+            -0.008,
+            -0.012,
+            -0.018,
+            -0.005,
+            -0.01,
+            -0.02,
+            -0.011,
+            -0.01,
+            -0.008,
+            -0.015,
+            -0.009,
+            -0.012,
+            -0.007,
+            -0.018,
+            -0.005,
+            -0.011,
+            -0.013,
+        ]
 
     @pytest.fixture
     def mixed_returns(self):
@@ -272,7 +312,7 @@ class TestEdgeCases:
     def test_nan_handling(self):
         """Test NaN values are handled."""
         calc = RiskMetricsCalculator()
-        returns = [0.01, float('nan'), 0.02, 0.01, float('nan')]
+        returns = [0.01, float("nan"), 0.02, 0.01, float("nan")]
         calc.load_returns(returns)
         metrics = calc.calculate()
         # Should still calculate with non-NaN values

@@ -37,12 +37,14 @@ try:
         RFE,
         mutual_info_classif,
     )
+
     HAS_SKLEARN = True
 except ImportError:
     HAS_SKLEARN = False
 
 try:
     import xgboost as xgb
+
     HAS_XGBOOST = True
 except ImportError:
     HAS_XGBOOST = False
@@ -56,6 +58,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class EnhancedPredictionResult:
     """Result from enhanced ML prediction."""
+
     action: Literal["LONG", "SHORT", "FLAT"]
     confidence: float
     probability_up: float
@@ -89,6 +92,7 @@ class EnhancedPredictionResult:
 @dataclass
 class EnhancedModelConfig:
     """Configuration for enhanced ML predictor."""
+
     # Classification type
     classification_type: Literal["binary", "ternary"] = "binary"
 
@@ -156,7 +160,7 @@ class FeatureSelector:
         elif self.method == "mutual_info":
             return self._select_by_mutual_info(X, y, feature_names)
         else:
-            return feature_names[:self.max_features]
+            return feature_names[: self.max_features]
 
     def _select_by_importance(
         self,
@@ -177,7 +181,7 @@ class FeatureSelector:
             self.feature_scores[name] = float(score)
 
         # Select top features
-        indices = np.argsort(importances)[::-1][:self.max_features]
+        indices = np.argsort(importances)[::-1][: self.max_features]
         self.selected_features = [feature_names[i] for i in indices]
 
         logger.info(f"Selected {len(self.selected_features)} features by importance")
@@ -198,8 +202,7 @@ class FeatureSelector:
         rfe.fit(X, y)
 
         self.selected_features = [
-            name for name, selected in zip(feature_names, rfe.support_)
-            if selected
+            name for name, selected in zip(feature_names, rfe.support_) if selected
         ]
 
         # Store rankings
@@ -223,7 +226,7 @@ class FeatureSelector:
             self.feature_scores[name] = float(score)
 
         # Select top features
-        indices = np.argsort(mi_scores)[::-1][:self.max_features]
+        indices = np.argsort(mi_scores)[::-1][: self.max_features]
         self.selected_features = [feature_names[i] for i in indices]
 
         logger.info(f"Selected {len(self.selected_features)} features by mutual info")
@@ -268,7 +271,9 @@ class EnhancedMLPredictor:
             max_features=self.config.max_features,
         )
         self.scaler = StandardScaler()
-        self.regime_classifier = MarketRegimeClassifier() if self.config.enable_regime_aware else None
+        self.regime_classifier = (
+            MarketRegimeClassifier() if self.config.enable_regime_aware else None
+        )
 
         self.model = None
         self.regime_models: Dict[str, any] = {}  # Regime-specific models
@@ -348,7 +353,9 @@ class EnhancedMLPredictor:
         """
         # Calculate forward returns
         df = df.copy()
-        df["forward_return"] = df["close"].pct_change(self.config.forward_periods).shift(-self.config.forward_periods)
+        df["forward_return"] = (
+            df["close"].pct_change(self.config.forward_periods).shift(-self.config.forward_periods)
+        )
 
         if self.config.classification_type == "binary":
             # Binary: UP (1) or DOWN (0)
@@ -390,15 +397,25 @@ class EnhancedMLPredictor:
         # Get feature columns (exclude target, price, and future-looking columns to prevent leakage)
         exclude_cols = {
             # Target columns
-            "target", "forward_return", "target_return", "target_class",
-            "target_triple_barrier", "target_direction", "target_strong_trend",
+            "target",
+            "forward_return",
+            "target_return",
+            "target_class",
+            "target_triple_barrier",
+            "target_direction",
+            "target_strong_trend",
             "target_risk_adjusted",
             # Price columns
-            "open", "high", "low", "close", "volume",
+            "open",
+            "high",
+            "low",
+            "close",
+            "volume",
         }
         # Also exclude any column starting with 'future_' or 'target_' (leakage prevention)
         self.feature_names = [
-            c for c in df.columns
+            c
+            for c in df.columns
             if c not in exclude_cols
             and not c.startswith("future_")
             and not c.startswith("target_")
@@ -442,9 +459,11 @@ class EnhancedMLPredictor:
 
         # Cross-validation
         cv_scores = cross_val_score(
-            self.model, X_train_selected, y_train,
+            self.model,
+            X_train_selected,
+            y_train,
             cv=min(self.config.cv_folds, len(y_train) // 50),
-            scoring="accuracy"
+            scoring="accuracy",
         )
 
         # Class distribution analysis
@@ -503,7 +522,7 @@ class EnhancedMLPredictor:
                 regimes.append("unknown")
                 continue
 
-            window = df.iloc[max(0, i-200):i+1]
+            window = df.iloc[max(0, i - 200) : i + 1]
             try:
                 analysis = self.regime_classifier.classify(window)
                 regimes.append(analysis.regime.value)
@@ -511,7 +530,7 @@ class EnhancedMLPredictor:
                 regimes.append("unknown")
 
         df_temp = df.copy()
-        df_temp["regime"] = regimes[:len(df)]
+        df_temp["regime"] = regimes[: len(df)]
 
         # Train models for each regime
         for regime in ["bull", "bear", "sideways"]:
@@ -519,8 +538,8 @@ class EnhancedMLPredictor:
             if mask.sum() < 100:
                 continue
 
-            X_regime = X_scaled[mask.values[:len(X_scaled)]]
-            y_regime = y[mask.values[:len(y)]]
+            X_regime = X_scaled[mask.values[: len(X_scaled)]]
+            y_regime = y[mask.values[: len(y)]]
 
             if len(X_regime) < 100:
                 continue
@@ -728,9 +747,7 @@ class EnhancedMLPredictor:
             return []
 
         sorted_features = sorted(
-            self.feature_selector.feature_scores.items(),
-            key=lambda x: x[1],
-            reverse=True
+            self.feature_selector.feature_scores.items(), key=lambda x: x[1], reverse=True
         )
         return sorted_features[:top_n]
 

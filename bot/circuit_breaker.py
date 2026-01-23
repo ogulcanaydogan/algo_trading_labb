@@ -213,9 +213,7 @@ class CircuitBreaker:
 
             # Check latency threshold
             if latency_ms > self.config.latency_threshold_ms:
-                logger.warning(
-                    f"Circuit {self.name}: High latency {latency_ms:.0f}ms"
-                )
+                logger.warning(f"Circuit {self.name}: High latency {latency_ms:.0f}ms")
 
             # If half-open and successful, close circuit
             if self.state == CircuitState.HALF_OPEN:
@@ -371,9 +369,7 @@ class CircuitBreaker:
                 "latency_threshold_ms": self.config.latency_threshold_ms,
                 "reset_timeout_seconds": self.config.reset_timeout_seconds,
             },
-            "last_state_change": datetime.fromtimestamp(
-                self.last_state_change
-            ).isoformat(),
+            "last_state_change": datetime.fromtimestamp(self.last_state_change).isoformat(),
             "time_in_state_seconds": time.time() - self.last_state_change,
         }
 
@@ -446,22 +442,16 @@ class CircuitBreakerManager:
         """Get status of all circuits."""
         return {
             "total_circuits": len(self.circuits),
-            "open_circuits": sum(
-                1 for c in self.circuits.values()
-                if c.state == CircuitState.OPEN
-            ),
+            "open_circuits": sum(1 for c in self.circuits.values() if c.state == CircuitState.OPEN),
             "half_open_circuits": sum(
-                1 for c in self.circuits.values()
-                if c.state == CircuitState.HALF_OPEN
+                1 for c in self.circuits.values() if c.state == CircuitState.HALF_OPEN
             ),
-            "circuits": {
-                name: circuit.get_status()
-                for name, circuit in self.circuits.items()
-            },
+            "circuits": {name: circuit.get_status() for name, circuit in self.circuits.items()},
         }
 
 
 # ==================== Pre-configured Circuit Breakers ====================
+
 
 def create_trading_circuit_breaker(
     name: str = "trading",
@@ -519,6 +509,7 @@ def create_api_circuit_breaker(
 
 # ==================== Usage Example ====================
 
+
 async def example_usage():
     """Example of using circuit breakers."""
 
@@ -530,20 +521,27 @@ async def example_usage():
     )
 
     # Create circuits
-    trading = manager.create("trading", CircuitConfig(
-        error_rate_threshold=0.3,
-        consecutive_failures_threshold=3,
-    ))
+    trading = manager.create(
+        "trading",
+        CircuitConfig(
+            error_rate_threshold=0.3,
+            consecutive_failures_threshold=3,
+        ),
+    )
 
-    data_feed = manager.create("data_feed", CircuitConfig(
-        error_rate_threshold=0.5,
-        consecutive_failures_threshold=5,
-    ))
+    data_feed = manager.create(
+        "data_feed",
+        CircuitConfig(
+            error_rate_threshold=0.5,
+            consecutive_failures_threshold=5,
+        ),
+    )
 
     # Use circuit breaker
     async def fetch_data():
         # Simulated data fetch
         import random
+
         if random.random() < 0.3:
             raise Exception("Simulated failure")
         return {"price": 50000}

@@ -22,15 +22,17 @@ logger = logging.getLogger(__name__)
 
 class AIModel(Enum):
     """Available AI models for different tasks."""
-    REASONING = "llama3.1:70b"      # Deep analysis, complex reasoning
-    FAST = "qwen2.5:7b"             # Quick decisions, low latency
-    MULTI_EXPERT = "mixtral:8x7b"   # Multiple expert opinions
-    CODE = "qwen2.5-coder:14b"      # Strategy code generation
+
+    REASONING = "llama3.1:70b"  # Deep analysis, complex reasoning
+    FAST = "qwen2.5:7b"  # Quick decisions, low latency
+    MULTI_EXPERT = "mixtral:8x7b"  # Multiple expert opinions
+    CODE = "qwen2.5-coder:14b"  # Strategy code generation
 
 
 @dataclass
 class MarketContext:
     """Comprehensive market context for AI analysis."""
+
     symbol: str
     current_price: float
     price_change_1h: float
@@ -57,17 +59,18 @@ MARKET CONTEXT for {self.symbol}:
 - Market Regime: {self.regime} (confidence: {self.regime_confidence:.0%})
 - RSI(14): {self.rsi:.1f}
 - MACD Signal: {self.macd_signal}
-- Support Levels: {', '.join(f'${s:,.0f}' for s in self.support_levels[:3])}
-- Resistance Levels: {', '.join(f'${r:,.0f}' for r in self.resistance_levels[:3])}
+- Support Levels: {", ".join(f"${s:,.0f}" for s in self.support_levels[:3])}
+- Resistance Levels: {", ".join(f"${r:,.0f}" for r in self.resistance_levels[:3])}
 - Recent Trades: {len(self.recent_trades)} trades
-- News Sentiment: {self.news_sentiment or 'N/A'}
-- Fear & Greed: {self.fear_greed_index or 'N/A'}
+- News Sentiment: {self.news_sentiment or "N/A"}
+- Fear & Greed: {self.fear_greed_index or "N/A"}
 """
 
 
 @dataclass
 class AIDecision:
     """AI-generated trading decision with full reasoning."""
+
     action: Literal["LONG", "SHORT", "FLAT", "REDUCE", "ADD"]
     confidence: float
     entry_price: Optional[float]
@@ -101,6 +104,7 @@ class AIDecision:
 @dataclass
 class StrategyRecommendation:
     """AI-recommended strategy parameters."""
+
     strategy_name: str
     parameters: Dict[str, Any]
     expected_win_rate: float
@@ -170,8 +174,8 @@ class EnhancedAIEngine:
                     "options": {
                         "temperature": temperature,
                         "num_ctx": 8192,
-                    }
-                }
+                    },
+                },
             )
             response.raise_for_status()
             result = response.json()
@@ -365,12 +369,15 @@ Quick trading decision needed. JSON response only:
             stop_loss=None,
             take_profit=None,
             position_size_pct=int(final_confidence * 50),  # Max 50% on ensemble
-            reasoning=f"Ensemble decision ({agreement_ratio:.0%} agreement):\n" + "\n".join(reasonings),
+            reasoning=f"Ensemble decision ({agreement_ratio:.0%} agreement):\n"
+            + "\n".join(reasonings),
             risks=["Model disagreement"] if agreement_ratio < 1.0 else [],
             catalysts=[],
             time_horizon="intraday",
             model_used="ensemble",
-            generation_time_ms=sum(r.get("elapsed_ms", 0) for r in results if not isinstance(r, Exception)),
+            generation_time_ms=sum(
+                r.get("elapsed_ms", 0) for r in results if not isinstance(r, Exception)
+            ),
         )
 
     async def generate_strategy(
@@ -442,12 +449,12 @@ Entry Context:
 {market_context_at_entry.to_prompt()}
 
 Trade Details:
-- Direction: {trade.get('direction')}
-- Entry: ${trade.get('entry_price')}
-- Exit: ${trade.get('exit_price')}
-- PnL: {trade.get('pnl_pct'):+.2f}%
-- Duration: {trade.get('duration_minutes')} minutes
-- Exit Reason: {trade.get('exit_reason')}
+- Direction: {trade.get("direction")}
+- Entry: ${trade.get("entry_price")}
+- Exit: ${trade.get("exit_price")}
+- PnL: {trade.get("pnl_pct"):+.2f}%
+- Duration: {trade.get("duration_minutes")} minutes
+- Exit Reason: {trade.get("exit_reason")}
 
 Analyze what we can learn from this trade.
 

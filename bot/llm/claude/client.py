@@ -16,6 +16,7 @@ from .cost_manager import CostManager
 
 try:
     import anthropic
+
     HAS_ANTHROPIC = True
 except ImportError:
     HAS_ANTHROPIC = False
@@ -64,8 +65,7 @@ class ClaudeClient:
     ):
         if not HAS_ANTHROPIC:
             raise ImportError(
-                "anthropic library not installed. "
-                "Install with: pip install anthropic"
+                "anthropic library not installed. Install with: pip install anthropic"
             )
 
         self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
@@ -180,13 +180,13 @@ class ClaudeClient:
                 return self.client.messages.create(**kwargs)
 
             except anthropic.RateLimitError:
-                wait_time = 2 ** attempt
+                wait_time = 2**attempt
                 print(f"Rate limited, waiting {wait_time}s...")
                 time.sleep(wait_time)
 
             except anthropic.APIConnectionError as e:
                 if attempt < max_retries - 1:
-                    wait_time = 2 ** attempt
+                    wait_time = 2**attempt
                     print(f"Connection error, retrying in {wait_time}s: {e}")
                     time.sleep(wait_time)
                 else:

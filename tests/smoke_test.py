@@ -28,6 +28,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 class Colors:
     """ANSI color codes for terminal output."""
+
     GREEN = "\033[92m"
     RED = "\033[91m"
     YELLOW = "\033[93m"
@@ -94,7 +95,10 @@ class SmokeTestRunner:
         if self.failed == 0:
             print("\n" + colored("All smoke tests passed!", Colors.GREEN + Colors.BOLD))
         else:
-            print("\n" + colored("Some tests failed. Review the output above.", Colors.RED + Colors.BOLD))
+            print(
+                "\n"
+                + colored("Some tests failed. Review the output above.", Colors.RED + Colors.BOLD)
+            )
 
         return self.failed == 0
 
@@ -105,6 +109,7 @@ class SmokeTestRunner:
 
 import pytest
 
+
 @pytest.fixture
 def runner():
     """Provide a SmokeTestRunner instance for tests."""
@@ -114,6 +119,7 @@ def runner():
 # =============================================================================
 # MODULE IMPORT TESTS
 # =============================================================================
+
 
 def test_core_imports(runner: SmokeTestRunner):
     """Test that core modules can be imported."""
@@ -138,7 +144,7 @@ def test_core_imports(runner: SmokeTestRunner):
                 runner.log_test(
                     f"Import {module_name}.{attr_name}",
                     False,
-                    f"Module exists but '{attr_name}' not found"
+                    f"Module exists but '{attr_name}' not found",
                 )
         except ImportError as e:
             runner.log_test(f"Import {module_name}", False, str(e))
@@ -171,6 +177,7 @@ def test_ml_imports(runner: SmokeTestRunner):
 # STATE TESTS
 # =============================================================================
 
+
 def test_state_persistence(runner: SmokeTestRunner):
     """Test state can be created and loaded."""
     runner.log("\n[3/5] Testing State Persistence...", Colors.BLUE)
@@ -180,14 +187,13 @@ def test_state_persistence(runner: SmokeTestRunner):
 
         # Create temp directory for test
         import tempfile
+
         with tempfile.TemporaryDirectory() as tmpdir:
             store = UnifiedStateStore(data_dir=tmpdir)
 
             # Test state initialization
             state = store.initialize(
-                mode=TradingMode.PAPER_LIVE_DATA,
-                initial_capital=10000.0,
-                resume=False
+                mode=TradingMode.PAPER_LIVE_DATA, initial_capital=10000.0, resume=False
             )
             runner.log_test("Create state", state is not None)
 
@@ -200,7 +206,7 @@ def test_state_persistence(runner: SmokeTestRunner):
             runner.log_test(
                 "Get state",
                 state2 is not None and state2.current_balance == 10100.0,
-                f"Expected 10100.0, got {state2.current_balance if state2 else 'None'}"
+                f"Expected 10100.0, got {state2.current_balance if state2 else 'None'}",
             )
 
     except Exception as e:
@@ -210,6 +216,7 @@ def test_state_persistence(runner: SmokeTestRunner):
 # =============================================================================
 # AI BRAIN TESTS
 # =============================================================================
+
 
 def test_ai_brain(runner: SmokeTestRunner):
     """Test AI Brain components."""
@@ -238,7 +245,7 @@ def test_ai_brain(runner: SmokeTestRunner):
                 trend_1h="up",
                 rsi=55.0,
                 volatility_percentile=50.0,
-                condition=MarketCondition.BULL
+                condition=MarketCondition.BULL,
             )
             runner.log_test("Create market snapshot", snapshot is not None)
         except Exception as e:
@@ -255,9 +262,7 @@ def test_ai_brain(runner: SmokeTestRunner):
         try:
             status = brain.get_brain_status()
             runner.log_test(
-                "Get brain status",
-                isinstance(status, dict),
-                f"Got type: {type(status)}"
+                "Get brain status", isinstance(status, dict), f"Got type: {type(status)}"
             )
         except Exception as e:
             runner.log_test("Get brain status", False, str(e))
@@ -269,6 +274,7 @@ def test_ai_brain(runner: SmokeTestRunner):
 # =============================================================================
 # ML PERFORMANCE TRACKER TESTS
 # =============================================================================
+
 
 def test_ml_tracker(runner: SmokeTestRunner):
     """Test ML Performance Tracker."""
@@ -289,7 +295,7 @@ def test_ml_tracker(runner: SmokeTestRunner):
                 prediction="buy",
                 confidence=0.75,
                 market_condition="bull",
-                volatility=50.0
+                volatility=50.0,
             )
             runner.log_test("Record prediction", pred_id is not None)
 
@@ -299,18 +305,12 @@ def test_ml_tracker(runner: SmokeTestRunner):
 
             # Test performance query
             perf = tracker.get_model_performance("test_model", days=30)
-            runner.log_test(
-                "Query performance",
-                isinstance(perf, dict),
-                f"Got: {perf}"
-            )
+            runner.log_test("Query performance", isinstance(perf, dict), f"Got: {perf}")
 
             # Test ranking
             ranking = tracker.get_model_ranking(days=30)
             runner.log_test(
-                "Get model ranking",
-                isinstance(ranking, list),
-                f"Got {len(ranking)} models"
+                "Get model ranking", isinstance(ranking, list), f"Got {len(ranking)} models"
             )
 
     except Exception as e:
@@ -320,6 +320,7 @@ def test_ml_tracker(runner: SmokeTestRunner):
 # =============================================================================
 # API TESTS (requires running server)
 # =============================================================================
+
 
 @pytest.mark.asyncio
 async def test_api_endpoints(runner: SmokeTestRunner, base_url: str = "http://localhost:8000"):
@@ -334,18 +335,14 @@ async def test_api_endpoints(runner: SmokeTestRunner, base_url: str = "http://lo
             try:
                 resp = await client.get(f"{base_url}/health")
                 runner.log_test(
-                    "GET /health",
-                    resp.status_code == 200,
-                    f"Status: {resp.status_code}"
+                    "GET /health", resp.status_code == 200, f"Status: {resp.status_code}"
                 )
 
                 # Verify response shape
                 data = resp.json()
                 has_status = "status" in data
                 runner.log_test(
-                    "Health response shape",
-                    has_status,
-                    f"Has 'status' field: {has_status}"
+                    "Health response shape", has_status, f"Has 'status' field: {has_status}"
                 )
             except httpx.ConnectError:
                 runner.log_skip("API endpoints", "Server not running at " + base_url)
@@ -356,16 +353,10 @@ async def test_api_endpoints(runner: SmokeTestRunner, base_url: str = "http://lo
             if resp.status_code == 200:
                 data = resp.json()
                 has_fields = all(k in data for k in ["shorting", "leverage", "aggressive"])
-                runner.log_test(
-                    "GET /api/trading/risk-settings",
-                    has_fields,
-                    f"Response: {data}"
-                )
+                runner.log_test("GET /api/trading/risk-settings", has_fields, f"Response: {data}")
             else:
                 runner.log_test(
-                    "GET /api/trading/risk-settings",
-                    False,
-                    f"Status: {resp.status_code}"
+                    "GET /api/trading/risk-settings", False, f"Status: {resp.status_code}"
                 )
 
             # AI Brain status
@@ -373,11 +364,7 @@ async def test_api_endpoints(runner: SmokeTestRunner, base_url: str = "http://lo
             if resp.status_code == 200:
                 runner.log_test("GET /api/ai-brain/status", True)
             else:
-                runner.log_test(
-                    "GET /api/ai-brain/status",
-                    False,
-                    f"Status: {resp.status_code}"
-                )
+                runner.log_test("GET /api/ai-brain/status", False, f"Status: {resp.status_code}")
 
             # ML model performance
             resp = await client.get(f"{base_url}/api/ml/model-performance")
@@ -385,9 +372,7 @@ async def test_api_endpoints(runner: SmokeTestRunner, base_url: str = "http://lo
                 runner.log_test("GET /api/ml/model-performance", True)
             else:
                 runner.log_test(
-                    "GET /api/ml/model-performance",
-                    False,
-                    f"Status: {resp.status_code}"
+                    "GET /api/ml/model-performance", False, f"Status: {resp.status_code}"
                 )
 
     except ImportError:
@@ -399,6 +384,7 @@ async def test_api_endpoints(runner: SmokeTestRunner, base_url: str = "http://lo
 # =============================================================================
 # CONTRACT TESTS
 # =============================================================================
+
 
 def test_api_contracts(runner: SmokeTestRunner):
     """Test that API response contracts are maintained."""
@@ -413,16 +399,12 @@ def test_api_contracts(runner: SmokeTestRunner):
             quantity=0.01,
             entry_price=42000.0,
             side="long",
-            entry_time="2026-01-15T10:00:00Z"
+            entry_time="2026-01-15T10:00:00Z",
         )
 
         required_fields = ["symbol", "quantity", "entry_price", "side", "entry_time"]
         has_fields = all(hasattr(pos, f) for f in required_fields)
-        runner.log_test(
-            "PositionState contract",
-            has_fields,
-            f"Required fields: {required_fields}"
-        )
+        runner.log_test("PositionState contract", has_fields, f"Required fields: {required_fields}")
     except Exception as e:
         runner.log_test("PositionState contract", False, str(e))
 
@@ -442,18 +424,25 @@ def test_api_contracts(runner: SmokeTestRunner):
             entry_time="2026-01-15T08:00:00Z",
             exit_time="2026-01-15T10:00:00Z",
             exit_reason="take_profit",
-            mode="paper_live_data"
+            mode="paper_live_data",
         )
 
-        required_fields = ["id", "symbol", "side", "quantity", "entry_price",
-                          "exit_price", "pnl", "pnl_pct", "entry_time",
-                          "exit_time", "exit_reason", "mode"]
+        required_fields = [
+            "id",
+            "symbol",
+            "side",
+            "quantity",
+            "entry_price",
+            "exit_price",
+            "pnl",
+            "pnl_pct",
+            "entry_time",
+            "exit_time",
+            "exit_reason",
+            "mode",
+        ]
         has_fields = all(hasattr(trade, f) for f in required_fields)
-        runner.log_test(
-            "TradeRecord contract",
-            has_fields,
-            f"Required fields present"
-        )
+        runner.log_test("TradeRecord contract", has_fields, f"Required fields present")
     except Exception as e:
         runner.log_test("TradeRecord contract", False, str(e))
 
@@ -461,6 +450,7 @@ def test_api_contracts(runner: SmokeTestRunner):
 # =============================================================================
 # MAIN
 # =============================================================================
+
 
 def main():
     parser = argparse.ArgumentParser(description="Run smoke tests")

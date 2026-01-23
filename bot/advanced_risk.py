@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class KellyResult:
     """Kelly criterion calculation result."""
+
     kelly_fraction: float  # Optimal fraction (0-1)
     half_kelly: float  # Conservative (half Kelly)
     quarter_kelly: float  # Very conservative
@@ -49,6 +50,7 @@ class KellyResult:
 @dataclass
 class DrawdownScaling:
     """Drawdown-based position scaling result."""
+
     current_drawdown_pct: float
     scale_factor: float  # 0-1, multiplier for position size
     max_allowed_position_pct: float
@@ -66,6 +68,7 @@ class DrawdownScaling:
 @dataclass
 class MonteCarloResult:
     """Monte Carlo simulation result."""
+
     num_simulations: int
     num_trades: int
     median_final_balance: float
@@ -95,6 +98,7 @@ class MonteCarloResult:
 @dataclass
 class BenchmarkComparison:
     """Benchmark comparison result."""
+
     strategy_return: float
     benchmark_return: float
     alpha: float  # Excess return over benchmark
@@ -366,7 +370,7 @@ class AdvancedRiskManager:
             sim_returns = np.random.choice(returns, size=num_trades, replace=True)
 
             for ret in sim_returns:
-                balance *= (1 + ret)
+                balance *= 1 + ret
                 peak = max(peak, balance)
                 dd = (peak - balance) / peak if peak > 0 else 0
                 max_dd = max(max_dd, dd)
@@ -453,12 +457,16 @@ class AdvancedRiskManager:
         rf_rate = 0.04 / 252  # ~4% annual risk-free rate
 
         if np.std(strategy_returns) > 0:
-            sharpe_strat = (np.mean(strategy_returns) - rf_rate) / np.std(strategy_returns) * np.sqrt(252)
+            sharpe_strat = (
+                (np.mean(strategy_returns) - rf_rate) / np.std(strategy_returns) * np.sqrt(252)
+            )
         else:
             sharpe_strat = 0
 
         if np.std(benchmark_returns) > 0:
-            sharpe_bench = (np.mean(benchmark_returns) - rf_rate) / np.std(benchmark_returns) * np.sqrt(252)
+            sharpe_bench = (
+                (np.mean(benchmark_returns) - rf_rate) / np.std(benchmark_returns) * np.sqrt(252)
+            )
         else:
             sharpe_bench = 0
 
@@ -479,7 +487,9 @@ class AdvancedRiskManager:
         strategy_cumret = np.cumsum(strategy_returns)
         bench_cumret = np.cumsum(benchmark_returns)
         outperform_count = sum(s > b for s, b in zip(strategy_cumret, bench_cumret))
-        outperform_pct = outperform_count / len(strategy_cumret) * 100 if len(strategy_cumret) > 0 else 0
+        outperform_pct = (
+            outperform_count / len(strategy_cumret) * 100 if len(strategy_cumret) > 0 else 0
+        )
 
         return BenchmarkComparison(
             strategy_return=strategy_total,
@@ -523,6 +533,7 @@ class FeatureImportanceAnalyzer:
             feature_names = []
             if meta_path.exists():
                 import json
+
                 with open(meta_path) as f:
                     meta = json.load(f)
                     feature_names = meta.get("feature_names", [])
@@ -532,11 +543,9 @@ class FeatureImportanceAnalyzer:
                 importances = model.feature_importances_
 
                 if feature_names and len(feature_names) == len(importances):
-                    return dict(sorted(
-                        zip(feature_names, importances),
-                        key=lambda x: x[1],
-                        reverse=True
-                    ))
+                    return dict(
+                        sorted(zip(feature_names, importances), key=lambda x: x[1], reverse=True)
+                    )
                 else:
                     return {f"feature_{i}": imp for i, imp in enumerate(importances)}
 

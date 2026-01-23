@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 class ExperimentStatus(Enum):
     """Experiment lifecycle status."""
+
     DRAFT = "draft"
     RUNNING = "running"
     PAUSED = "paused"
@@ -34,6 +35,7 @@ class ExperimentStatus(Enum):
 
 class AllocationMethod(Enum):
     """Traffic allocation method."""
+
     RANDOM = "random"
     HASH = "hash"  # Deterministic based on user/session ID
     ROUND_ROBIN = "round_robin"
@@ -43,6 +45,7 @@ class AllocationMethod(Enum):
 @dataclass
 class Variant:
     """Experiment variant (treatment or control)."""
+
     name: str
     weight: float = 0.5  # Traffic allocation weight
     config: Dict[str, Any] = field(default_factory=dict)
@@ -60,6 +63,7 @@ class Variant:
 @dataclass
 class MetricResult:
     """Result for a single metric."""
+
     name: str
     control_mean: float
     treatment_mean: float
@@ -85,7 +89,7 @@ class MetricResult:
             "p_value": round(self.p_value, 6),
             "confidence_interval": (
                 round(self.confidence_interval[0], 6),
-                round(self.confidence_interval[1], 6)
+                round(self.confidence_interval[1], 6),
             ),
             "is_significant": self.is_significant,
             "sample_size_control": self.sample_size_control,
@@ -96,6 +100,7 @@ class MetricResult:
 @dataclass
 class ExperimentResult:
     """Complete experiment results."""
+
     experiment_id: str
     experiment_name: str
     status: ExperimentStatus
@@ -129,6 +134,7 @@ class ExperimentResult:
 @dataclass
 class Experiment:
     """A/B test experiment."""
+
     id: str
     name: str
     description: str
@@ -277,11 +283,7 @@ class ABTestingFramework:
         exp.ended_at = datetime.now()
         logger.info(f"Stopped experiment: {experiment_id}")
 
-    def assign_variant(
-        self,
-        experiment_id: str,
-        entity_id: str
-    ) -> Tuple[str, Dict[str, Any]]:
+    def assign_variant(self, experiment_id: str, entity_id: str) -> Tuple[str, Dict[str, Any]]:
         """
         Assign an entity to a variant.
 
@@ -336,10 +338,7 @@ class ABTestingFramework:
 
     def _random_assignment(self, exp: Experiment) -> Variant:
         """Random assignment based on weights."""
-        return random.choices(
-            exp.variants,
-            weights=[v.weight for v in exp.variants]
-        )[0]
+        return random.choices(exp.variants, weights=[v.weight for v in exp.variants])[0]
 
     def _round_robin_assignment(self, exp: Experiment) -> Variant:
         """Round-robin assignment."""
@@ -351,13 +350,7 @@ class ABTestingFramework:
         """Weighted assignment (same as random)."""
         return self._random_assignment(exp)
 
-    def record_metric(
-        self,
-        experiment_id: str,
-        entity_id: str,
-        metric_name: str,
-        value: float
-    ):
+    def record_metric(self, experiment_id: str, entity_id: str, metric_name: str, value: float):
         """
         Record a metric observation.
 
@@ -385,9 +378,7 @@ class ABTestingFramework:
                 exp._observations[variant_name][metric_name].append(value)
 
     def analyze_experiment(
-        self,
-        experiment_id: str,
-        primary_metric: Optional[str] = None
+        self, experiment_id: str, primary_metric: Optional[str] = None
     ) -> ExperimentResult:
         """
         Analyze experiment results.
@@ -422,10 +413,7 @@ class ABTestingFramework:
                 treatment_values = treatment_data.get(metric_name, [])
 
                 result = self._analyze_metric(
-                    metric_name,
-                    control_values,
-                    treatment_values,
-                    exp.significance_level
+                    metric_name, control_values, treatment_values, exp.significance_level
                 )
 
                 key = f"{metric_name}_{variant.name}"
@@ -441,10 +429,14 @@ class ABTestingFramework:
                 if result.relative_diff_pct > 0:
                     variant_name = key.replace(f"{primary}_", "")
                     winner = variant_name
-                    recommendation = f"{variant_name} outperforms control by {result.relative_diff_pct:.1f}%"
+                    recommendation = (
+                        f"{variant_name} outperforms control by {result.relative_diff_pct:.1f}%"
+                    )
                 else:
                     winner = control.name
-                    recommendation = f"Control outperforms treatment by {abs(result.relative_diff_pct):.1f}%"
+                    recommendation = (
+                        f"Control outperforms treatment by {abs(result.relative_diff_pct):.1f}%"
+                    )
 
         # Calculate duration
         if exp.started_at:
@@ -454,8 +446,7 @@ class ABTestingFramework:
             duration = 0
 
         total_samples = sum(
-            len(exp._observations.get(v.name, {}).get(exp.metrics[0], []))
-            for v in exp.variants
+            len(exp._observations.get(v.name, {}).get(exp.metrics[0], [])) for v in exp.variants
         )
 
         return ExperimentResult(
@@ -477,7 +468,7 @@ class ABTestingFramework:
         metric_name: str,
         control_values: List[float],
         treatment_values: List[float],
-        significance_level: float
+        significance_level: float,
     ) -> MetricResult:
         """Perform statistical analysis on a metric."""
         # Handle empty data
@@ -515,10 +506,11 @@ class ABTestingFramework:
             p_value = 1.0
 
         # Confidence interval for difference
-        se_diff = np.sqrt(
-            (control_std ** 2 / len(control_arr)) +
-            (treatment_std ** 2 / len(treatment_arr))
-        ) if len(control_arr) > 0 and len(treatment_arr) > 0 else 0
+        se_diff = (
+            np.sqrt((control_std**2 / len(control_arr)) + (treatment_std**2 / len(treatment_arr)))
+            if len(control_arr) > 0 and len(treatment_arr) > 0
+            else 0
+        )
 
         z = stats.norm.ppf(1 - significance_level / 2)
         ci_lower = absolute_diff - z * se_diff
@@ -545,7 +537,7 @@ class ABTestingFramework:
         minimum_detectable_effect: float,
         significance_level: float = 0.05,
         power: float = 0.8,
-        ratio: float = 1.0
+        ratio: float = 1.0,
     ) -> Dict[str, int]:
         """
         Calculate required sample size for experiment.
@@ -569,9 +561,13 @@ class ABTestingFramework:
         z_beta = stats.norm.ppf(power)
 
         # Sample size formula
-        n1 = ((z_alpha * np.sqrt(2 * p_avg * (1 - p_avg)) +
-               z_beta * np.sqrt(p1 * (1 - p1) + p2 * (1 - p2) / ratio)) ** 2) / \
-             ((p1 - p2) ** 2)
+        n1 = (
+            (
+                z_alpha * np.sqrt(2 * p_avg * (1 - p_avg))
+                + z_beta * np.sqrt(p1 * (1 - p1) + p2 * (1 - p2) / ratio)
+            )
+            ** 2
+        ) / ((p1 - p2) ** 2)
 
         n2 = n1 * ratio
 
@@ -582,9 +578,7 @@ class ABTestingFramework:
         }
 
     def check_early_stopping(
-        self,
-        experiment_id: str,
-        method: str = "obrien_fleming"
+        self, experiment_id: str, method: str = "obrien_fleming"
     ) -> Dict[str, Any]:
         """
         Check if experiment can be stopped early.
@@ -607,9 +601,13 @@ class ABTestingFramework:
         # Adjust significance level based on method
         if method == "obrien_fleming":
             # More conservative early, relaxed later
-            adjusted_alpha = exp.significance_level * (2 - 2 * stats.norm.cdf(
-                stats.norm.ppf(1 - exp.significance_level / 2) / np.sqrt(info_fraction)
-            ))
+            adjusted_alpha = exp.significance_level * (
+                2
+                - 2
+                * stats.norm.cdf(
+                    stats.norm.ppf(1 - exp.significance_level / 2) / np.sqrt(info_fraction)
+                )
+            )
         else:  # pocock
             # Constant boundary
             adjusted_alpha = exp.significance_level / max(1, int(1 / info_fraction))
@@ -638,10 +636,7 @@ class ABTestingFramework:
         """Get experiment by ID."""
         return self._experiments.get(experiment_id)
 
-    def list_experiments(
-        self,
-        status: Optional[ExperimentStatus] = None
-    ) -> List[Experiment]:
+    def list_experiments(self, status: Optional[ExperimentStatus] = None) -> List[Experiment]:
         """List all experiments, optionally filtered by status."""
         experiments = list(self._experiments.values())
         if status:
@@ -678,7 +673,7 @@ class StrategyABTest:
         name: str,
         control_config: Dict[str, Any],
         treatment_configs: List[Dict[str, Any]],
-        min_trades: int = 100
+        min_trades: int = 100,
     ) -> Experiment:
         """
         Create a strategy A/B test.
@@ -689,23 +684,18 @@ class StrategyABTest:
             treatment_configs: List of treatment strategy configurations
             min_trades: Minimum trades before analysis
         """
-        variants = [
-            Variant(
-                name="control",
-                weight=0.5,
-                config=control_config,
-                is_control=True
-            )
-        ]
+        variants = [Variant(name="control", weight=0.5, config=control_config, is_control=True)]
 
         weight_per_treatment = 0.5 / len(treatment_configs)
         for i, config in enumerate(treatment_configs):
-            variants.append(Variant(
-                name=f"treatment_{i+1}",
-                weight=weight_per_treatment,
-                config=config,
-                is_control=False
-            ))
+            variants.append(
+                Variant(
+                    name=f"treatment_{i + 1}",
+                    weight=weight_per_treatment,
+                    config=config,
+                    is_control=False,
+                )
+            )
 
         return self.framework.create_experiment(
             name=name,
@@ -716,12 +706,7 @@ class StrategyABTest:
         )
 
     def record_trade(
-        self,
-        experiment_id: str,
-        trade_id: str,
-        pnl: float,
-        return_pct: float,
-        win: bool
+        self, experiment_id: str, trade_id: str, pnl: float, return_pct: float, win: bool
     ):
         """Record a trade result."""
         exp = self.framework.get_experiment(experiment_id)
@@ -739,8 +724,6 @@ def create_ab_testing_framework() -> ABTestingFramework:
     return ABTestingFramework()
 
 
-def create_strategy_ab_test(
-    framework: Optional[ABTestingFramework] = None
-) -> StrategyABTest:
+def create_strategy_ab_test(framework: Optional[ABTestingFramework] = None) -> StrategyABTest:
     """Factory function to create strategy A/B test."""
     return StrategyABTest(framework)

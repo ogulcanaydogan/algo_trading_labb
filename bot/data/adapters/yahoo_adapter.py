@@ -43,6 +43,7 @@ try:
         MultiLevelCache,
         with_retry,
     )
+
     HAS_RATE_LIMITER = True
 except ImportError:
     HAS_RATE_LIMITER = False
@@ -66,7 +67,12 @@ class YahooAdapter(DataAdapter):
 
     name = "yahoo"
     data_source = DataSource.YAHOO
-    supported_markets = [MarketType.STOCK, MarketType.COMMODITY, MarketType.CRYPTO, MarketType.INDEX]
+    supported_markets = [
+        MarketType.STOCK,
+        MarketType.COMMODITY,
+        MarketType.CRYPTO,
+        MarketType.INDEX,
+    ]
     supports_realtime = False  # 15-minute delay
     supports_historical = True
     priority = 5  # Lower priority than real-time providers
@@ -83,14 +89,14 @@ class YahooAdapter(DataAdapter):
         "ADA/USDT": "ADA-USD",
         "DOGE/USDT": "DOGE-USD",
         # Commodities
-        "XAU/USD": "GC=F",      # Gold futures
-        "XAG/USD": "SI=F",      # Silver futures
-        "USOIL/USD": "CL=F",    # WTI Crude Oil futures
-        "UKOIL/USD": "BZ=F",    # Brent Crude Oil futures
-        "NATGAS/USD": "NG=F",   # Natural Gas futures
-        "COPPER/USD": "HG=F",   # Copper futures
-        "PLATINUM/USD": "PL=F", # Platinum futures
-        "PALLADIUM/USD": "PA=F", # Palladium futures
+        "XAU/USD": "GC=F",  # Gold futures
+        "XAG/USD": "SI=F",  # Silver futures
+        "USOIL/USD": "CL=F",  # WTI Crude Oil futures
+        "UKOIL/USD": "BZ=F",  # Brent Crude Oil futures
+        "NATGAS/USD": "NG=F",  # Natural Gas futures
+        "COPPER/USD": "HG=F",  # Copper futures
+        "PLATINUM/USD": "PL=F",  # Platinum futures
+        "PALLADIUM/USD": "PA=F",  # Palladium futures
         # Stocks map directly (AAPL -> AAPL)
     }
 
@@ -110,8 +116,8 @@ class YahooAdapter(DataAdapter):
 
     # Period mapping for historical data
     PERIOD_MAP = {
-        "1m": "7d",    # Max 7 days for 1m
-        "2m": "60d",   # Max 60 days for 2m
+        "1m": "7d",  # Max 7 days for 1m
+        "2m": "60d",  # Max 60 days for 2m
         "5m": "60d",
         "15m": "60d",
         "30m": "60d",
@@ -141,13 +147,13 @@ class YahooAdapter(DataAdapter):
                 cache_dir=CACHE_DIR,
                 memory_max_size=200,
                 memory_ttl=60.0,  # 1 minute in memory
-                disk_ttl=300.0,   # 5 minutes on disk (quotes change frequently)
+                disk_ttl=300.0,  # 5 minutes on disk (quotes change frequently)
             )
             self._ohlcv_cache = MultiLevelCache(
                 cache_dir=CACHE_DIR,
                 memory_max_size=100,
-                memory_ttl=300.0,   # 5 minutes in memory for OHLCV
-                disk_ttl=3600.0,    # 1 hour on disk for OHLCV
+                memory_ttl=300.0,  # 5 minutes in memory for OHLCV
+                disk_ttl=3600.0,  # 1 hour on disk for OHLCV
             )
         else:
             self._cache = None
@@ -180,9 +186,20 @@ class YahooAdapter(DataAdapter):
     def _get_market_type(self, symbol: str) -> MarketType:
         """Determine market type from symbol."""
         # Check our registries
-        if symbol in CRYPTO_SYMBOLS or symbol.endswith("-USD") and "/" in self.SYMBOL_MAP.get(symbol, ""):
+        if (
+            symbol in CRYPTO_SYMBOLS
+            or symbol.endswith("-USD")
+            and "/" in self.SYMBOL_MAP.get(symbol, "")
+        ):
             return MarketType.CRYPTO
-        if symbol in COMMODITY_SYMBOLS or symbol in ["GC=F", "SI=F", "CL=F", "BZ=F", "NG=F", "HG=F"]:
+        if symbol in COMMODITY_SYMBOLS or symbol in [
+            "GC=F",
+            "SI=F",
+            "CL=F",
+            "BZ=F",
+            "NG=F",
+            "HG=F",
+        ]:
             return MarketType.COMMODITY
         if symbol in STOCK_SYMBOLS:
             return MarketType.STOCK
@@ -304,12 +321,12 @@ class YahooAdapter(DataAdapter):
             for idx, row in df.iterrows():
                 # Handle timezone-aware index
                 ts = idx
-                if hasattr(ts, 'tz_localize'):
+                if hasattr(ts, "tz_localize"):
                     ts = ts.tz_localize(None)
                 if not ts.tzinfo:
                     ts = ts.replace(tzinfo=timezone.utc)
 
-                timestamp = ts.to_pydatetime() if hasattr(ts, 'to_pydatetime') else ts
+                timestamp = ts.to_pydatetime() if hasattr(ts, "to_pydatetime") else ts
 
                 ohlcv = NormalizedOHLCV(
                     symbol=symbol,
@@ -323,19 +340,23 @@ class YahooAdapter(DataAdapter):
                     market_type=market_type,
                     data_source=self.data_source,
                     exchange=self._get_exchange(symbol),
-                    adjusted_close=float(row.get("adj close", row["close"])) if "adj close" in row else None,
+                    adjusted_close=float(row.get("adj close", row["close"]))
+                    if "adj close" in row
+                    else None,
                 )
                 result.append(ohlcv)
 
                 # Prepare for caching
-                cache_data.append({
-                    "timestamp": timestamp.isoformat(),
-                    "open": float(row["open"]),
-                    "high": float(row["high"]),
-                    "low": float(row["low"]),
-                    "close": float(row["close"]),
-                    "volume": float(row.get("volume", 0)),
-                })
+                cache_data.append(
+                    {
+                        "timestamp": timestamp.isoformat(),
+                        "open": float(row["open"]),
+                        "high": float(row["high"]),
+                        "low": float(row["low"]),
+                        "close": float(row["close"]),
+                        "volume": float(row.get("volume", 0)),
+                    }
+                )
 
             # Store in cache
             if self._ohlcv_cache and cache_data:
@@ -413,7 +434,7 @@ class YahooAdapter(DataAdapter):
                         "last_price": float(last_price) if last_price else None,
                     },
                     memory_ttl=30.0,  # 30 seconds in memory
-                    disk_ttl=60.0,    # 1 minute on disk
+                    disk_ttl=60.0,  # 1 minute on disk
                 )
 
             return NormalizedQuote(

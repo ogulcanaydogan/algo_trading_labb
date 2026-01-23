@@ -39,6 +39,7 @@ from .ml import (
 try:
     from .ml.registry import ModelRegistry, ModelSelector, ModelSelectionStrategy
     from .ml.models.base import ModelPrediction
+
     HAS_DL_MODELS = True
 except ImportError:
     HAS_DL_MODELS = False
@@ -55,6 +56,7 @@ from .llm import LLMAdvisor, PerformanceAnalyzer, AnalysisReport
 @dataclass
 class TradingDecision:
     """Final trading decision from the smart engine."""
+
     action: str  # LONG, SHORT, FLAT
     confidence: float
     source: str  # Which component made the decision
@@ -90,6 +92,7 @@ class TradingDecision:
 @dataclass
 class EngineConfig:
     """Configuration for the Smart Trading Engine."""
+
     # Decision weights
     ml_weight: float = 0.35
     strategy_weight: float = 0.35
@@ -192,9 +195,7 @@ class SmartTradingEngine:
             return None
 
         if self._model_selector is None:
-            self._model_registry = ModelRegistry(
-                registry_dir=str(self.data_dir / "model_registry")
-            )
+            self._model_registry = ModelRegistry(registry_dir=str(self.data_dir / "model_registry"))
             strategy_map = {
                 "single_best": ModelSelectionStrategy.SINGLE_BEST,
                 "regime_based": ModelSelectionStrategy.REGIME_BASED,
@@ -202,8 +203,7 @@ class SmartTradingEngine:
                 "adaptive": ModelSelectionStrategy.ADAPTIVE,
             }
             strategy = strategy_map.get(
-                self.config.dl_model_selection,
-                ModelSelectionStrategy.REGIME_BASED
+                self.config.dl_model_selection, ModelSelectionStrategy.REGIME_BASED
             )
             self._model_selector = ModelSelector(
                 registry=self._model_registry,
@@ -383,7 +383,9 @@ class SmartTradingEngine:
         # 1. Analyze market regime
         regime_analysis = self.regime_classifier.classify(ohlcv)
         self._last_regime = regime_analysis.regime
-        reasoning.append(f"Market regime: {regime_analysis.regime.value} ({regime_analysis.confidence:.0%} confidence)")
+        reasoning.append(
+            f"Market regime: {regime_analysis.regime.value} ({regime_analysis.confidence:.0%} confidence)"
+        )
         reasoning.extend(regime_analysis.reasoning)
 
         # 2. Get ML prediction (if available)
@@ -404,10 +406,14 @@ class SmartTradingEngine:
         # 3. Get strategy signals
         strategy_result = self.strategy_selector.select_and_generate(ohlcv)
         strategy_signal = strategy_result.primary_signal
-        reasoning.append(f"Strategy ({strategy_result.selected_strategy}): {strategy_signal.decision} ({strategy_signal.confidence:.0%})")
+        reasoning.append(
+            f"Strategy ({strategy_result.selected_strategy}): {strategy_signal.decision} ({strategy_signal.confidence:.0%})"
+        )
 
         if strategy_result.supporting_strategies:
-            reasoning.append(f"Supporting strategies: {', '.join(strategy_result.supporting_strategies)}")
+            reasoning.append(
+                f"Supporting strategies: {', '.join(strategy_result.supporting_strategies)}"
+            )
 
         # 4. Combine signals with weighted voting
         final_action, final_confidence = self._combine_signals(
@@ -431,7 +437,7 @@ class SmartTradingEngine:
         # Clamp position multiplier
         position_multiplier = max(
             self.config.min_position_multiplier,
-            min(self.config.max_position_multiplier, position_multiplier)
+            min(self.config.max_position_multiplier, position_multiplier),
         )
 
         # 6. Get stop loss and take profit from strategy
@@ -616,7 +622,9 @@ class SmartTradingEngine:
             },
             "ml_status": {
                 "is_trained": self.ml_predictor.is_trained if self.ml_predictor else False,
-                "last_trained": self._ml_last_trained.isoformat() if self._ml_last_trained else None,
+                "last_trained": self._ml_last_trained.isoformat()
+                if self._ml_last_trained
+                else None,
                 "should_retrain": self.should_retrain(),
             },
             "last_regime": self._last_regime.value if self._last_regime else None,
@@ -666,9 +674,13 @@ class SmartTradingEngine:
             parts.append(f"ML model supports this direction ({decision.ml_probability:.0%}).")
 
         if decision.strategy_confidence > 0.5:
-            parts.append(f"Strategy signal confirms ({decision.strategy_signal}, {decision.strategy_confidence:.0%}).")
+            parts.append(
+                f"Strategy signal confirms ({decision.strategy_signal}, {decision.strategy_confidence:.0%})."
+            )
 
         if decision.position_size_multiplier != 1.0:
-            parts.append(f"Position size adjusted to {decision.position_size_multiplier:.1f}x based on conditions.")
+            parts.append(
+                f"Position size adjusted to {decision.position_size_multiplier:.1f}x based on conditions."
+            )
 
         return " ".join(parts)

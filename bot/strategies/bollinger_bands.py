@@ -21,6 +21,7 @@ from .base import BaseStrategy, StrategyConfig, StrategySignal
 @dataclass
 class BollingerBandConfig(StrategyConfig):
     """Configuration for Bollinger Band strategy."""
+
     bb_period: int = 20
     bb_std: float = 2.0
     rsi_period: int = 14
@@ -53,7 +54,9 @@ class BollingerBandStrategy(BaseStrategy):
 
     @property
     def description(self) -> str:
-        return f"Bollinger Bands ({self.config.bb_period}, {self.config.bb_std}) - {self.config.mode}"
+        return (
+            f"Bollinger Bands ({self.config.bb_period}, {self.config.bb_std}) - {self.config.mode}"
+        )
 
     @property
     def suitable_regimes(self) -> List[str]:
@@ -68,7 +71,9 @@ class BollingerBandStrategy(BaseStrategy):
         """Add Bollinger Bands and RSI."""
         df = ohlcv.copy()
 
-        bb = BollingerBands(df["close"], window=self.config.bb_period, window_dev=self.config.bb_std)
+        bb = BollingerBands(
+            df["close"], window=self.config.bb_period, window_dev=self.config.bb_std
+        )
         df["bb_high"] = bb.bollinger_hband()
         df["bb_low"] = bb.bollinger_lband()
         df["bb_mid"] = bb.bollinger_mavg()

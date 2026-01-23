@@ -36,6 +36,7 @@ try:
     import torch
     import torch.nn as nn
     import torch.optim as optim
+
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
@@ -52,6 +53,7 @@ class Action:
 @dataclass
 class State:
     """Market state representation for RL agent."""
+
     # Price features
     price_change_1h: float
     price_change_4h: float
@@ -84,26 +86,29 @@ class State:
 
     def to_array(self) -> np.ndarray:
         """Convert to numpy array for neural network."""
-        return np.array([
-            self.price_change_1h,
-            self.price_change_4h,
-            self.price_change_24h,
-            self.price_vs_ema20,
-            self.price_vs_ema50,
-            self.rsi / 100.0,  # Normalize
-            self.rsi_change / 100.0,
-            self.macd_hist,
-            self.momentum_5 / 100.0,
-            self.atr_ratio,
-            self.bb_position,
-            self.volatility_ratio,
-            self.adx / 100.0,
-            self.trend_direction,
-            self.volume_ratio,
-            self.current_position,
-            self.position_pnl / 100.0,
-            min(self.position_duration / 100.0, 1.0),
-        ], dtype=np.float32)
+        return np.array(
+            [
+                self.price_change_1h,
+                self.price_change_4h,
+                self.price_change_24h,
+                self.price_vs_ema20,
+                self.price_vs_ema50,
+                self.rsi / 100.0,  # Normalize
+                self.rsi_change / 100.0,
+                self.macd_hist,
+                self.momentum_5 / 100.0,
+                self.atr_ratio,
+                self.bb_position,
+                self.volatility_ratio,
+                self.adx / 100.0,
+                self.trend_direction,
+                self.volume_ratio,
+                self.current_position,
+                self.position_pnl / 100.0,
+                min(self.position_duration / 100.0, 1.0),
+            ],
+            dtype=np.float32,
+        )
 
     @classmethod
     def from_market_data(
@@ -112,24 +117,24 @@ class State:
         position: float = 0,
         position_pnl: float = 0,
         position_duration: int = 0,
-    ) -> 'State':
+    ) -> "State":
         """Create state from indicator dict."""
         return cls(
-            price_change_1h=indicators.get('price_change_1h', 0),
-            price_change_4h=indicators.get('price_change_4h', 0),
-            price_change_24h=indicators.get('price_change_24h', 0),
-            price_vs_ema20=indicators.get('price_vs_ema20', 0),
-            price_vs_ema50=indicators.get('price_vs_ema50', 0),
-            rsi=indicators.get('rsi', 50),
-            rsi_change=indicators.get('rsi_change', 0),
-            macd_hist=indicators.get('macd_hist', 0),
-            momentum_5=indicators.get('momentum_5', 0),
-            atr_ratio=indicators.get('atr_ratio', 1),
-            bb_position=indicators.get('bb_position', 0.5),
-            volatility_ratio=indicators.get('volatility_ratio', 1),
-            adx=indicators.get('adx', 25),
-            trend_direction=indicators.get('trend_direction', 0),
-            volume_ratio=indicators.get('volume_ratio', 1),
+            price_change_1h=indicators.get("price_change_1h", 0),
+            price_change_4h=indicators.get("price_change_4h", 0),
+            price_change_24h=indicators.get("price_change_24h", 0),
+            price_vs_ema20=indicators.get("price_vs_ema20", 0),
+            price_vs_ema50=indicators.get("price_vs_ema50", 0),
+            rsi=indicators.get("rsi", 50),
+            rsi_change=indicators.get("rsi_change", 0),
+            macd_hist=indicators.get("macd_hist", 0),
+            momentum_5=indicators.get("momentum_5", 0),
+            atr_ratio=indicators.get("atr_ratio", 1),
+            bb_position=indicators.get("bb_position", 0.5),
+            volatility_ratio=indicators.get("volatility_ratio", 1),
+            adx=indicators.get("adx", 25),
+            trend_direction=indicators.get("trend_direction", 0),
+            volume_ratio=indicators.get("volume_ratio", 1),
             current_position=position,
             position_pnl=position_pnl,
             position_duration=position_duration,
@@ -137,6 +142,7 @@ class State:
 
 
 if TORCH_AVAILABLE:
+
     class DQNetwork(nn.Module):
         """Deep Q-Network for action value estimation."""
 
@@ -152,11 +158,13 @@ if TORCH_AVAILABLE:
             prev_size = state_size
 
             for hidden_size in hidden_sizes:
-                layers.extend([
-                    nn.Linear(prev_size, hidden_size),
-                    nn.ReLU(),
-                    nn.Dropout(0.2),
-                ])
+                layers.extend(
+                    [
+                        nn.Linear(prev_size, hidden_size),
+                        nn.ReLU(),
+                        nn.Dropout(0.2),
+                    ]
+                )
                 prev_size = hidden_size
 
             layers.append(nn.Linear(prev_size, action_size))
@@ -442,7 +450,7 @@ class RLTradingAgent:
 
             # Update weights
             error = target - current_q_action
-            total_loss += error ** 2
+            total_loss += error**2
 
             # Gradient update
             self.weights[:, action] += self.learning_rate * error * state
@@ -475,13 +483,16 @@ class RLTradingAgent:
         path.parent.mkdir(parents=True, exist_ok=True)
 
         if TORCH_AVAILABLE:
-            torch.save({
-                'policy_net': self.policy_net.state_dict(),
-                'target_net': self.target_net.state_dict(),
-                'optimizer': self.optimizer.state_dict(),
-                'epsilon': self.epsilon,
-                'training_steps': self.training_steps,
-            }, path)
+            torch.save(
+                {
+                    "policy_net": self.policy_net.state_dict(),
+                    "target_net": self.target_net.state_dict(),
+                    "optimizer": self.optimizer.state_dict(),
+                    "epsilon": self.epsilon,
+                    "training_steps": self.training_steps,
+                },
+                path,
+            )
         else:
             np.savez(
                 path,
@@ -502,17 +513,17 @@ class RLTradingAgent:
 
         if TORCH_AVAILABLE:
             checkpoint = torch.load(path, map_location=self.device)
-            self.policy_net.load_state_dict(checkpoint['policy_net'])
-            self.target_net.load_state_dict(checkpoint['target_net'])
-            self.optimizer.load_state_dict(checkpoint['optimizer'])
-            self.epsilon = checkpoint['epsilon']
-            self.training_steps = checkpoint['training_steps']
+            self.policy_net.load_state_dict(checkpoint["policy_net"])
+            self.target_net.load_state_dict(checkpoint["target_net"])
+            self.optimizer.load_state_dict(checkpoint["optimizer"])
+            self.epsilon = checkpoint["epsilon"]
+            self.training_steps = checkpoint["training_steps"]
         else:
             data = np.load(path)
-            self.weights = data['weights']
-            self.bias = data['bias']
-            self.epsilon = float(data['epsilon'])
-            self.training_steps = int(data['training_steps'])
+            self.weights = data["weights"]
+            self.bias = data["bias"]
+            self.epsilon = float(data["epsilon"])
+            self.training_steps = int(data["training_steps"])
 
         logger.info(f"Model loaded from {path}")
 

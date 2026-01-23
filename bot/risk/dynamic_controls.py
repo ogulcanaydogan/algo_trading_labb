@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 class CircuitBreakerState(Enum):
     """Circuit breaker states."""
+
     NORMAL = "normal"
     WARNING = "warning"
     TRIGGERED = "triggered"
@@ -31,6 +32,7 @@ class CircuitBreakerState(Enum):
 
 class RiskLevel(Enum):
     """Portfolio risk levels."""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -40,6 +42,7 @@ class RiskLevel(Enum):
 @dataclass
 class CorrelationAlert:
     """Alert for correlation changes."""
+
     timestamp: datetime
     asset_pair: Tuple[str, str]
     historical_correlation: float
@@ -63,6 +66,7 @@ class CorrelationAlert:
 @dataclass
 class CircuitBreakerStatus:
     """Current status of circuit breaker."""
+
     state: CircuitBreakerState
     triggered_at: Optional[datetime]
     trigger_reason: Optional[str]
@@ -84,6 +88,7 @@ class CircuitBreakerStatus:
 @dataclass
 class CorrelationConfig:
     """Correlation circuit breaker configuration."""
+
     # Thresholds
     correlation_spike_threshold: float = 0.3  # Alert if correlation changes > 30%
     correlation_critical_threshold: float = 0.5  # Trigger if change > 50%
@@ -151,15 +156,15 @@ class CorrelationCircuitBreaker:
                 total_cooldown = (self._cooldown_until - self._triggered_at).total_seconds()
                 elapsed = (datetime.now() - self._triggered_at).total_seconds()
                 recovery_pct = min(1.0, elapsed / total_cooldown)
-                return self.config.triggered_reduction_factor + \
-                       (1.0 - self.config.triggered_reduction_factor) * recovery_pct
+                return (
+                    self.config.triggered_reduction_factor
+                    + (1.0 - self.config.triggered_reduction_factor) * recovery_pct
+                )
             return self.config.warning_reduction_factor
         return 1.0
 
     def update_correlations(
-        self,
-        returns: pd.DataFrame,
-        historical_returns: Optional[pd.DataFrame] = None
+        self, returns: pd.DataFrame, historical_returns: Optional[pd.DataFrame] = None
     ) -> CircuitBreakerStatus:
         """
         Update correlation monitoring with new returns data.
@@ -180,9 +185,7 @@ class CorrelationCircuitBreaker:
         elif self._historical_correlations:
             # Use stored historical correlations
             assets = returns.columns.tolist()
-            historical_corr = pd.DataFrame(
-                index=assets, columns=assets, dtype=float
-            )
+            historical_corr = pd.DataFrame(index=assets, columns=assets, dtype=float)
             for (a1, a2), corr in self._historical_correlations.items():
                 if a1 in assets and a2 in assets:
                     historical_corr.loc[a1, a2] = corr
@@ -219,9 +222,7 @@ class CorrelationCircuitBreaker:
                     self._historical_correlations[(asset1, asset2)] = corr.iloc[i, j]
 
     def _detect_anomalies(
-        self,
-        current: pd.DataFrame,
-        historical: pd.DataFrame
+        self, current: pd.DataFrame, historical: pd.DataFrame
     ) -> List[CorrelationAlert]:
         """Detect correlation anomalies."""
         alerts = []
@@ -243,39 +244,47 @@ class CorrelationCircuitBreaker:
 
                 # Check for spike (correlation moving toward 1)
                 if current_corr > historical_corr + self.config.correlation_spike_threshold:
-                    severity = "critical" if change > self.config.correlation_critical_threshold else "warning"
-                    alerts.append(CorrelationAlert(
-                        timestamp=now,
-                        asset_pair=(asset1, asset2),
-                        historical_correlation=historical_corr,
-                        current_correlation=current_corr,
-                        change_magnitude=change,
-                        alert_type="spike",
-                        severity=severity,
-                    ))
+                    severity = (
+                        "critical"
+                        if change > self.config.correlation_critical_threshold
+                        else "warning"
+                    )
+                    alerts.append(
+                        CorrelationAlert(
+                            timestamp=now,
+                            asset_pair=(asset1, asset2),
+                            historical_correlation=historical_corr,
+                            current_correlation=current_corr,
+                            change_magnitude=change,
+                            alert_type="spike",
+                            severity=severity,
+                        )
+                    )
 
                 # Check for breakdown (correlation moving toward -1 or changing sign)
                 elif change > self.config.correlation_spike_threshold:
                     sign_change = (current_corr * historical_corr) < 0
                     alert_type = "regime_change" if sign_change else "breakdown"
-                    severity = "critical" if change > self.config.correlation_critical_threshold else "warning"
-                    alerts.append(CorrelationAlert(
-                        timestamp=now,
-                        asset_pair=(asset1, asset2),
-                        historical_correlation=historical_corr,
-                        current_correlation=current_corr,
-                        change_magnitude=change,
-                        alert_type=alert_type,
-                        severity=severity,
-                    ))
+                    severity = (
+                        "critical"
+                        if change > self.config.correlation_critical_threshold
+                        else "warning"
+                    )
+                    alerts.append(
+                        CorrelationAlert(
+                            timestamp=now,
+                            asset_pair=(asset1, asset2),
+                            historical_correlation=historical_corr,
+                            current_correlation=current_corr,
+                            change_magnitude=change,
+                            alert_type=alert_type,
+                            severity=severity,
+                        )
+                    )
 
         return alerts
 
-    def _update_state(
-        self,
-        current_corr: pd.DataFrame,
-        alerts: List[CorrelationAlert]
-    ):
+    def _update_state(self, current_corr: pd.DataFrame, alerts: List[CorrelationAlert]):
         """Update circuit breaker state based on alerts."""
         critical_alerts = [a for a in alerts if a.severity == "critical"]
         warning_alerts = [a for a in alerts if a.severity == "warning"]
@@ -292,7 +301,9 @@ class CorrelationCircuitBreaker:
                 )
         elif len(critical_alerts) >= 1 or len(warning_alerts) >= 3:
             if self._state == CircuitBreakerState.NORMAL:
-                self._warn(f"Alerts: {len(critical_alerts)} critical, {len(warning_alerts)} warning")
+                self._warn(
+                    f"Alerts: {len(critical_alerts)} critical, {len(warning_alerts)} warning"
+                )
         elif self._state == CircuitBreakerState.WARNING and not alerts:
             self._state = CircuitBreakerState.NORMAL
             logger.info("Correlation circuit breaker returned to NORMAL")
@@ -339,6 +350,7 @@ class CorrelationCircuitBreaker:
 @dataclass
 class PositionSizingConfig:
     """Configuration for dynamic position sizing."""
+
     # Base parameters
     base_risk_per_trade: float = 0.02  # 2% of capital per trade
     max_position_size: float = 0.20  # 20% max single position
@@ -368,6 +380,7 @@ class PositionSizingConfig:
 @dataclass
 class PositionSizeResult:
     """Result of position sizing calculation."""
+
     base_size: float
     volatility_adjusted_size: float
     regime_adjusted_size: float
@@ -408,7 +421,7 @@ class DynamicPositionSizer:
     def __init__(
         self,
         config: Optional[PositionSizingConfig] = None,
-        circuit_breaker: Optional[CorrelationCircuitBreaker] = None
+        circuit_breaker: Optional[CorrelationCircuitBreaker] = None,
     ):
         self.config = config or PositionSizingConfig()
         self.circuit_breaker = circuit_breaker
@@ -505,7 +518,7 @@ class DynamicPositionSizer:
         final_size = min(
             dd_adjusted_size * cb_scalar,
             kelly_size * self.config.kelly_fraction,
-            self.config.max_position_size
+            self.config.max_position_size,
         )
 
         # Ensure non-negative
@@ -593,7 +606,7 @@ class DynamicPositionSizer:
 
 
 def create_correlation_circuit_breaker(
-    config: Optional[CorrelationConfig] = None
+    config: Optional[CorrelationConfig] = None,
 ) -> CorrelationCircuitBreaker:
     """Factory function to create correlation circuit breaker."""
     return CorrelationCircuitBreaker(config=config)
@@ -601,7 +614,7 @@ def create_correlation_circuit_breaker(
 
 def create_dynamic_position_sizer(
     config: Optional[PositionSizingConfig] = None,
-    circuit_breaker: Optional[CorrelationCircuitBreaker] = None
+    circuit_breaker: Optional[CorrelationCircuitBreaker] = None,
 ) -> DynamicPositionSizer:
     """Factory function to create dynamic position sizer."""
     return DynamicPositionSizer(config=config, circuit_breaker=circuit_breaker)

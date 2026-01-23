@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class DrawdownPeriod:
     """Represents a single drawdown period."""
+
     start_date: datetime
     end_date: Optional[datetime]
     recovery_date: Optional[datetime]
@@ -38,6 +39,7 @@ class DrawdownPeriod:
 @dataclass
 class DrawdownAnalysis:
     """Complete drawdown analysis results."""
+
     max_drawdown: float
     max_drawdown_date: Optional[datetime]
     max_drawdown_duration: float
@@ -82,15 +84,16 @@ class DrawdownAnalyzer:
                 # List of equity values
                 self._equity_curve = [float(v) for v in data]
                 self._dates = [
-                    datetime.now() - timedelta(hours=len(data) - i)
-                    for i in range(len(data))
+                    datetime.now() - timedelta(hours=len(data) - i) for i in range(len(data))
                 ]
             elif isinstance(data, dict):
                 # Dict with timestamps
                 curve = data.get("curve", data.get("equity", []))
                 if isinstance(curve, list) and curve:
                     if isinstance(curve[0], dict):
-                        self._equity_curve = [float(p.get("value", p.get("equity", 0))) for p in curve]
+                        self._equity_curve = [
+                            float(p.get("value", p.get("equity", 0))) for p in curve
+                        ]
                         self._dates = [
                             datetime.fromisoformat(p.get("timestamp", p.get("date", "")))
                             if p.get("timestamp") or p.get("date")
@@ -182,9 +185,7 @@ class DrawdownAnalyzer:
         # Average recovery time
         recovered_periods = [p for p in periods if p.is_recovered and p.recovery_days is not None]
         avg_recovery = (
-            np.mean([p.recovery_days for p in recovered_periods])
-            if recovered_periods
-            else 0
+            np.mean([p.recovery_days for p in recovered_periods]) if recovered_periods else 0
         )
 
         # Current drawdown
@@ -217,7 +218,7 @@ class DrawdownAnalyzer:
         recovery_factor = total_return / max_dd if max_dd > 0 else 0
 
         # Ulcer Index (RMS of drawdown)
-        ulcer_index = float(np.sqrt(np.mean(drawdown ** 2))) * 100
+        ulcer_index = float(np.sqrt(np.mean(drawdown**2))) * 100
 
         # Pain Index (mean of drawdown)
         pain_index = float(np.mean(drawdown)) * 100
@@ -286,7 +287,9 @@ class DrawdownAnalyzer:
 
                 if drawdown[i] < threshold:
                     # Recovery
-                    dd_percent = (peak_value - trough_value) / peak_value * 100 if peak_value > 0 else 0
+                    dd_percent = (
+                        (peak_value - trough_value) / peak_value * 100 if peak_value > 0 else 0
+                    )
 
                     period = DrawdownPeriod(
                         start_date=dates[peak_idx] if peak_idx < len(dates) else datetime.now(),
@@ -295,8 +298,12 @@ class DrawdownAnalyzer:
                         peak_value=float(peak_value),
                         trough_value=float(trough_value),
                         drawdown_percent=round(dd_percent, 2),
-                        duration_days=(dates[trough_idx] - dates[peak_idx]).days if trough_idx < len(dates) and peak_idx < len(dates) else 0,
-                        recovery_days=(dates[i] - dates[trough_idx]).days if i < len(dates) and trough_idx < len(dates) else 0,
+                        duration_days=(dates[trough_idx] - dates[peak_idx]).days
+                        if trough_idx < len(dates) and peak_idx < len(dates)
+                        else 0,
+                        recovery_days=(dates[i] - dates[trough_idx]).days
+                        if i < len(dates) and trough_idx < len(dates)
+                        else 0,
                         is_recovered=True,
                         peak_index=peak_idx,
                         trough_index=trough_idx,
@@ -368,7 +375,9 @@ class DrawdownAnalyzer:
                 "rank": i + 1,
                 "start_date": p.start_date.strftime("%Y-%m-%d") if p.start_date else "N/A",
                 "end_date": p.end_date.strftime("%Y-%m-%d") if p.end_date else "N/A",
-                "recovery_date": p.recovery_date.strftime("%Y-%m-%d") if p.recovery_date else "Ongoing",
+                "recovery_date": p.recovery_date.strftime("%Y-%m-%d")
+                if p.recovery_date
+                else "Ongoing",
                 "drawdown_percent": p.drawdown_percent,
                 "duration_days": p.duration_days,
                 "recovery_days": p.recovery_days if p.recovery_days else "N/A",
@@ -382,12 +391,16 @@ class DrawdownAnalyzer:
         return {
             "summary": {
                 "max_drawdown": analysis.max_drawdown,
-                "max_drawdown_date": analysis.max_drawdown_date.isoformat() if analysis.max_drawdown_date else None,
+                "max_drawdown_date": analysis.max_drawdown_date.isoformat()
+                if analysis.max_drawdown_date
+                else None,
                 "max_drawdown_duration_days": analysis.max_drawdown_duration,
                 "avg_drawdown": analysis.avg_drawdown,
                 "avg_recovery_days": analysis.avg_recovery_time,
                 "current_drawdown": analysis.current_drawdown,
-                "current_drawdown_start": analysis.current_drawdown_start.isoformat() if analysis.current_drawdown_start else None,
+                "current_drawdown_start": analysis.current_drawdown_start.isoformat()
+                if analysis.current_drawdown_start
+                else None,
             },
             "risk_metrics": {
                 "recovery_factor": analysis.recovery_factor,
@@ -397,7 +410,9 @@ class DrawdownAnalyzer:
                 "time_in_drawdown_percent": analysis.time_in_drawdown_percent,
             },
             "distribution": analysis.drawdown_distribution,
-            "underwater_curve": analysis.underwater_curve[-100:] if len(analysis.underwater_curve) > 100 else analysis.underwater_curve,
+            "underwater_curve": analysis.underwater_curve[-100:]
+            if len(analysis.underwater_curve) > 100
+            else analysis.underwater_curve,
             "top_drawdowns": [
                 {
                     "rank": i + 1,
@@ -408,7 +423,9 @@ class DrawdownAnalyzer:
                     "is_recovered": p.is_recovered,
                 }
                 for i, p in enumerate(
-                    sorted(analysis.drawdown_periods, key=lambda x: x.drawdown_percent, reverse=True)[:5]
+                    sorted(
+                        analysis.drawdown_periods, key=lambda x: x.drawdown_percent, reverse=True
+                    )[:5]
                 )
             ],
             "total_drawdown_periods": len(analysis.drawdown_periods),

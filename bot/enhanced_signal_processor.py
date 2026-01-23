@@ -29,8 +29,9 @@ try:
         MultiTimeframeAnalyzer,
         TimeframeCascadeFilter,
         get_mtf_analyzer,
-        get_mtf_signal
+        get_mtf_signal,
     )
+
     MTF_AVAILABLE = True
 except ImportError:
     MTF_AVAILABLE = False
@@ -41,8 +42,9 @@ try:
         RegimeModelEnsemble,
         RegimeDetector,
         MarketRegime,
-        create_regime_ensemble
+        create_regime_ensemble,
     )
+
     REGIME_MODELS_AVAILABLE = True
 except ImportError:
     REGIME_MODELS_AVAILABLE = False
@@ -53,8 +55,9 @@ try:
         OrderBookAnalyzer,
         OptionsFlowAnalyzer,
         get_orderbook_analyzer,
-        get_options_analyzer
+        get_options_analyzer,
     )
+
     ORDERBOOK_AVAILABLE = True
 except ImportError:
     ORDERBOOK_AVAILABLE = False
@@ -62,6 +65,7 @@ except ImportError:
 
 try:
     from bot.ml.transfer_learning import TransferLearner, PretrainedModelBank
+
     TRANSFER_AVAILABLE = True
 except ImportError:
     TRANSFER_AVAILABLE = False
@@ -69,6 +73,7 @@ except ImportError:
 
 try:
     from bot.ml.online_learning import OnlineLearner, get_adaptive_manager
+
     ONLINE_LEARNING_AVAILABLE = True
 except ImportError:
     ONLINE_LEARNING_AVAILABLE = False
@@ -76,6 +81,7 @@ except ImportError:
 
 try:
     from bot.ml.rl_optimizer import RLTradingOptimizer, get_rl_optimizer
+
     RL_AVAILABLE = True
 except ImportError:
     RL_AVAILABLE = False
@@ -83,6 +89,7 @@ except ImportError:
 
 try:
     from bot.ml.alternative_data import SentimentDataFetcher
+
     SENTIMENT_AVAILABLE = True
 except ImportError:
     SENTIMENT_AVAILABLE = False
@@ -92,6 +99,7 @@ except ImportError:
 @dataclass
 class EnhancedSignal:
     """Comprehensive signal with all enhancements."""
+
     symbol: str
     timestamp: datetime
     action: str
@@ -144,7 +152,7 @@ class EnhancedSignalProcessor:
         enable_orderbook: bool = True,
         enable_rl: bool = True,
         enable_online_learning: bool = True,
-        enable_sentiment: bool = True
+        enable_sentiment: bool = True,
     ):
         self.enable_mtf = enable_mtf and MTF_AVAILABLE
         self.enable_regime = enable_regime and REGIME_MODELS_AVAILABLE
@@ -164,19 +172,18 @@ class EnhancedSignalProcessor:
         # Price/data cache
         self.price_history: Dict[str, pd.DataFrame] = {}
 
-        logger.info(f"Enhanced Signal Processor initialized: "
-                   f"MTF={self.enable_mtf}, Regime={self.enable_regime}, "
-                   f"OrderBook={self.enable_orderbook}, RL={self.enable_rl}")
+        logger.info(
+            f"Enhanced Signal Processor initialized: "
+            f"MTF={self.enable_mtf}, Regime={self.enable_regime}, "
+            f"OrderBook={self.enable_orderbook}, RL={self.enable_rl}"
+        )
 
     def update_price_history(self, symbol: str, ohlcv: pd.DataFrame):
         """Update price history for a symbol."""
         self.price_history[symbol] = ohlcv
 
     def update_orderbook(
-        self,
-        symbol: str,
-        bids: List[Tuple[float, float]],
-        asks: List[Tuple[float, float]]
+        self, symbol: str, bids: List[Tuple[float, float]], asks: List[Tuple[float, float]]
     ):
         """Update order book data for a symbol."""
         if not self.enable_orderbook:
@@ -192,7 +199,7 @@ class EnhancedSignalProcessor:
         symbol: str,
         base_signal: Dict[str, Any],
         current_price: float,
-        features: Optional[np.ndarray] = None
+        features: Optional[np.ndarray] = None,
     ) -> EnhancedSignal:
         """
         Process a base signal through all enhancements.
@@ -210,14 +217,14 @@ class EnhancedSignalProcessor:
         warnings = []
         reasoning_parts = []
 
-        action = base_signal.get('action', 'HOLD')
-        confidence = base_signal.get('confidence', 0.5)
+        action = base_signal.get("action", "HOLD")
+        confidence = base_signal.get("confidence", 0.5)
 
         # Initialize defaults
         mtf_alignment = 0.5
-        mtf_primary_trend = 'neutral'
-        mtf_entry_quality = 'fair'
-        detected_regime = 'unknown'
+        mtf_primary_trend = "neutral"
+        mtf_entry_quality = "fair"
+        detected_regime = "unknown"
         regime_model_accuracy = 0.5
         orderbook_imbalance = 0.0
         whale_activity = 0.0
@@ -251,7 +258,7 @@ class EnhancedSignalProcessor:
                     confidence = min(0.95, confidence * (1 + mtf_alignment * 0.2))
 
                 reasoning_parts.append(f"MTF: {mtf_primary_trend} trend, {mtf_entry_quality} entry")
-                enhancements_applied.append('multi_timeframe')
+                enhancements_applied.append("multi_timeframe")
 
             except Exception as e:
                 logger.warning(f"MTF analysis failed: {e}")
@@ -261,7 +268,7 @@ class EnhancedSignalProcessor:
             try:
                 if symbol not in self.regime_ensembles:
                     # Simple rule-based regime detection fallback
-                    prices = self.price_history[symbol]['close']
+                    prices = self.price_history[symbol]["close"]
                     if len(prices) >= 50:
                         returns = prices.pct_change()
                         volatility = returns.rolling(20).std().iloc[-1]
@@ -269,41 +276,43 @@ class EnhancedSignalProcessor:
 
                         # Classify regime based on trend and volatility
                         if volatility > 0.03:  # High volatility
-                            detected_regime = 'volatile'
+                            detected_regime = "volatile"
                         elif trend > 0.05:  # Strong uptrend
-                            detected_regime = 'bull'
+                            detected_regime = "bull"
                         elif trend < -0.05:  # Strong downtrend
-                            detected_regime = 'bear'
+                            detected_regime = "bear"
                         elif abs(trend) < 0.02:  # Sideways
-                            detected_regime = 'sideways'
+                            detected_regime = "sideways"
                         else:
-                            detected_regime = 'neutral'
+                            detected_regime = "neutral"
 
                         regime_model_accuracy = 0.6  # Rule-based confidence
-                        enhancements_applied.append('regime_rules')
+                        enhancements_applied.append("regime_rules")
                         reasoning_parts.append(f"Regime: {detected_regime} (rule-based)")
                 else:
                     ensemble = self.regime_ensembles[symbol]
                     regime_signal = ensemble.get_regime_signal(
-                        pd.DataFrame({'feature': [features]}) if features is not None else pd.DataFrame(),
-                        self.price_history[symbol]['close']
+                        pd.DataFrame({"feature": [features]})
+                        if features is not None
+                        else pd.DataFrame(),
+                        self.price_history[symbol]["close"],
                     )
 
-                    detected_regime = regime_signal['regime']
-                    regime_model_accuracy = regime_signal['model_accuracy']
+                    detected_regime = regime_signal["regime"]
+                    regime_model_accuracy = regime_signal["model_accuracy"]
 
                     # Adjust based on regime
-                    if detected_regime in ['crash', 'high_volatility']:
+                    if detected_regime in ["crash", "high_volatility"]:
                         position_size_multiplier *= 0.5
                         stop_loss_adjustment *= 1.5  # Wider stops
                         warnings.append(f"High risk regime: {detected_regime}")
-                    elif detected_regime in ['bull_trend', 'recovery']:
-                        position_size_multiplier *= 1.2 if action == 'BUY' else 0.8
-                    elif detected_regime in ['bear_trend']:
-                        position_size_multiplier *= 1.2 if action == 'SELL' else 0.8
+                    elif detected_regime in ["bull_trend", "recovery"]:
+                        position_size_multiplier *= 1.2 if action == "BUY" else 0.8
+                    elif detected_regime in ["bear_trend"]:
+                        position_size_multiplier *= 1.2 if action == "SELL" else 0.8
 
                     reasoning_parts.append(f"Regime: {detected_regime}")
-                    enhancements_applied.append('regime_model')
+                    enhancements_applied.append("regime_model")
 
             except Exception as e:
                 logger.warning(f"Regime model failed: {e}")
@@ -320,8 +329,9 @@ class EnhancedSignalProcessor:
 
                 # Adjust based on order flow
                 if abs(orderbook_imbalance) > 0.3:
-                    if (orderbook_imbalance > 0 and action == 'BUY') or \
-                       (orderbook_imbalance < 0 and action == 'SELL'):
+                    if (orderbook_imbalance > 0 and action == "BUY") or (
+                        orderbook_imbalance < 0 and action == "SELL"
+                    ):
                         confidence = min(0.95, confidence * 1.1)
                         reasoning_parts.append(f"Order flow confirms {action}")
                     else:
@@ -337,7 +347,7 @@ class EnhancedSignalProcessor:
                     position_size_multiplier *= 0.8
                     warnings.append("High flow toxicity detected")
 
-                enhancements_applied.append('orderbook')
+                enhancements_applied.append("orderbook")
 
             except Exception as e:
                 logger.warning(f"Order book analysis failed: {e}")
@@ -346,19 +356,19 @@ class EnhancedSignalProcessor:
         if self.enable_rl and features is not None and self.rl_optimizer.trained:
             try:
                 rl_action_name, rl_position_delta, rl_conf = self.rl_optimizer.get_action(features)
-                rl_action = rl_action_name.replace('STRONG_', '')
+                rl_action = rl_action_name.replace("STRONG_", "")
                 rl_confidence = rl_conf
 
                 # RL can override or confirm
                 if rl_action == action:
                     confidence = min(0.95, confidence * 1.1)
                     reasoning_parts.append(f"RL confirms: {rl_action}")
-                elif rl_action != 'HOLD' and action != 'HOLD':
+                elif rl_action != "HOLD" and action != "HOLD":
                     # Conflicting signals
                     confidence *= 0.75
                     warnings.append(f"RL suggests {rl_action} vs ML {action}")
 
-                enhancements_applied.append('rl_optimizer')
+                enhancements_applied.append("rl_optimizer")
 
             except Exception as e:
                 logger.warning(f"RL optimization failed: {e}")
@@ -373,44 +383,46 @@ class EnhancedSignalProcessor:
             try:
                 sentiment_data = await self.sentiment_fetcher.get_crypto_sentiment(symbol)
 
-                fear_greed_index = sentiment_data.get('fear_greed') or 50.0
-                social_sentiment = sentiment_data.get('social_sentiment') or 0.0
-                news_sentiment = sentiment_data.get('news_sentiment') or 0.0
-                sentiment_composite = sentiment_data.get('composite_score', 0.0)
+                fear_greed_index = sentiment_data.get("fear_greed") or 50.0
+                social_sentiment = sentiment_data.get("social_sentiment") or 0.0
+                news_sentiment = sentiment_data.get("news_sentiment") or 0.0
+                sentiment_composite = sentiment_data.get("composite_score", 0.0)
 
                 # Adjust confidence based on sentiment
                 # Fear/Greed: < 25 = Extreme Fear, > 75 = Extreme Greed
                 if fear_greed_index < 25:  # Extreme fear
-                    if action == 'BUY':
+                    if action == "BUY":
                         confidence *= 1.1  # Contrarian boost
                         reasoning_parts.append("Extreme fear - contrarian buy")
                     else:
                         confidence *= 0.9
                 elif fear_greed_index > 75:  # Extreme greed
-                    if action == 'SELL':
+                    if action == "SELL":
                         confidence *= 1.1  # Contrarian boost
                         reasoning_parts.append("Extreme greed - contrarian sell")
                     else:
                         confidence *= 0.9
 
                 # Sentiment composite alignment
-                if (sentiment_composite > 0.3 and action == 'BUY') or \
-                   (sentiment_composite < -0.3 and action == 'SELL'):
+                if (sentiment_composite > 0.3 and action == "BUY") or (
+                    sentiment_composite < -0.3 and action == "SELL"
+                ):
                     confidence = min(0.95, confidence * 1.05)
                     reasoning_parts.append(f"Sentiment confirms {action}")
-                elif (sentiment_composite > 0.3 and action == 'SELL') or \
-                     (sentiment_composite < -0.3 and action == 'BUY'):
+                elif (sentiment_composite > 0.3 and action == "SELL") or (
+                    sentiment_composite < -0.3 and action == "BUY"
+                ):
                     warnings.append("Sentiment conflicts with signal")
 
-                enhancements_applied.append('sentiment')
+                enhancements_applied.append("sentiment")
 
             except Exception as e:
                 logger.warning(f"Sentiment analysis failed: {e}")
 
         # 6. Final adjustments based on entry quality
-        if mtf_entry_quality == 'excellent':
+        if mtf_entry_quality == "excellent":
             position_size_multiplier *= 1.2
-        elif mtf_entry_quality == 'poor':
+        elif mtf_entry_quality == "poor":
             position_size_multiplier *= 0.7
             warnings.append("Poor entry quality - reduced size")
 
@@ -445,7 +457,7 @@ class EnhancedSignalProcessor:
             take_profit_adjustment=take_profit_adjustment,
             enhancements_applied=enhancements_applied,
             warnings=warnings,
-            reasoning=reasoning
+            reasoning=reasoning,
         )
 
     def record_outcome(
@@ -455,7 +467,7 @@ class EnhancedSignalProcessor:
         entry_price: float,
         exit_price: float,
         pnl: float,
-        features: Optional[np.ndarray] = None
+        features: Optional[np.ndarray] = None,
     ):
         """
         Record trade outcome for learning.
@@ -468,7 +480,7 @@ class EnhancedSignalProcessor:
                 learner = manager.get_or_create(symbol)
 
                 label = 1 if pnl > 0 else (-1 if pnl < 0 else 0)
-                action_map = {'BUY': 2, 'SELL': 0, 'HOLD': 1}
+                action_map = {"BUY": 2, "SELL": 0, "HOLD": 1}
                 prediction = action_map.get(action, 1)
 
                 if features is not None:
@@ -480,14 +492,14 @@ class EnhancedSignalProcessor:
     def get_status(self) -> Dict[str, Any]:
         """Get processor status."""
         return {
-            'mtf_enabled': self.enable_mtf,
-            'regime_enabled': self.enable_regime,
-            'orderbook_enabled': self.enable_orderbook,
-            'rl_enabled': self.enable_rl,
-            'online_learning_enabled': self.enable_online_learning,
-            'symbols_with_history': list(self.price_history.keys()),
-            'symbols_with_orderbook': list(self.orderbook_analyzers.keys()),
-            'regime_ensembles_loaded': list(self.regime_ensembles.keys())
+            "mtf_enabled": self.enable_mtf,
+            "regime_enabled": self.enable_regime,
+            "orderbook_enabled": self.enable_orderbook,
+            "rl_enabled": self.enable_rl,
+            "online_learning_enabled": self.enable_online_learning,
+            "symbols_with_history": list(self.price_history.keys()),
+            "symbols_with_orderbook": list(self.orderbook_analyzers.keys()),
+            "regime_ensembles_loaded": list(self.regime_ensembles.keys()),
         }
 
 
@@ -508,7 +520,7 @@ async def enhance_signal(
     base_signal: Dict[str, Any],
     current_price: float,
     ohlcv: Optional[pd.DataFrame] = None,
-    features: Optional[np.ndarray] = None
+    features: Optional[np.ndarray] = None,
 ) -> Dict[str, Any]:
     """
     Convenience function to enhance a signal.
@@ -528,34 +540,32 @@ async def enhance_signal(
     if ohlcv is not None:
         processor.update_price_history(symbol, ohlcv)
 
-    enhanced = await processor.process_signal(
-        symbol, base_signal, current_price, features
-    )
+    enhanced = await processor.process_signal(symbol, base_signal, current_price, features)
 
     # Convert to dict for compatibility
     return {
-        'action': enhanced.action,
-        'confidence': enhanced.confidence,
-        'symbol': enhanced.symbol,
-        'timestamp': enhanced.timestamp.isoformat(),
-        'enhancements': {
-            'mtf_alignment': enhanced.mtf_alignment,
-            'mtf_primary_trend': enhanced.mtf_primary_trend,
-            'mtf_entry_quality': enhanced.mtf_entry_quality,
-            'detected_regime': enhanced.detected_regime,
-            'regime_model_accuracy': enhanced.regime_model_accuracy,
-            'orderbook_imbalance': enhanced.orderbook_imbalance,
-            'whale_activity': enhanced.whale_activity,
-            'flow_toxicity': enhanced.flow_toxicity,
-            'rl_action': enhanced.rl_action,
-            'rl_confidence': enhanced.rl_confidence,
+        "action": enhanced.action,
+        "confidence": enhanced.confidence,
+        "symbol": enhanced.symbol,
+        "timestamp": enhanced.timestamp.isoformat(),
+        "enhancements": {
+            "mtf_alignment": enhanced.mtf_alignment,
+            "mtf_primary_trend": enhanced.mtf_primary_trend,
+            "mtf_entry_quality": enhanced.mtf_entry_quality,
+            "detected_regime": enhanced.detected_regime,
+            "regime_model_accuracy": enhanced.regime_model_accuracy,
+            "orderbook_imbalance": enhanced.orderbook_imbalance,
+            "whale_activity": enhanced.whale_activity,
+            "flow_toxicity": enhanced.flow_toxicity,
+            "rl_action": enhanced.rl_action,
+            "rl_confidence": enhanced.rl_confidence,
         },
-        'adjustments': {
-            'position_size_multiplier': enhanced.position_size_multiplier,
-            'stop_loss_adjustment': enhanced.stop_loss_adjustment,
-            'take_profit_adjustment': enhanced.take_profit_adjustment,
+        "adjustments": {
+            "position_size_multiplier": enhanced.position_size_multiplier,
+            "stop_loss_adjustment": enhanced.stop_loss_adjustment,
+            "take_profit_adjustment": enhanced.take_profit_adjustment,
         },
-        'enhancements_applied': enhanced.enhancements_applied,
-        'warnings': enhanced.warnings,
-        'reasoning': enhanced.reasoning
+        "enhancements_applied": enhanced.enhancements_applied,
+        "warnings": enhanced.warnings,
+        "reasoning": enhanced.reasoning,
     }

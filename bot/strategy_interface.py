@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 class StrategyAction(Enum):
     """Possible strategy actions"""
+
     HOLD = "hold"
     BUY = "buy"
     SELL = "sell"
@@ -36,6 +37,7 @@ class StrategyAction(Enum):
 
 class StrategyStatus(Enum):
     """Strategy lifecycle status"""
+
     ACTIVE = "active"  # Running and trading
     SHADOW = "shadow"  # Running but not trading (paper mode)
     PAUSED = "paused"  # Temporarily stopped
@@ -50,6 +52,7 @@ class StrategySignal:
 
     This is the "contract" that all strategies must fulfill.
     """
+
     # Core prediction
     action: StrategyAction
     direction: str  # "long", "short", "flat"
@@ -108,6 +111,7 @@ class MarketState:
 
     Contains everything a strategy needs to make a decision.
     """
+
     # Price data
     symbol: str
     timestamp: datetime
@@ -168,6 +172,7 @@ class MarketState:
 @dataclass
 class StrategyPerformance:
     """Track strategy performance metrics"""
+
     strategy_name: str
 
     # Trade statistics
@@ -245,9 +250,7 @@ class StrategyPerformance:
 
         # Update per-regime stats
         if regime not in self.performance_by_regime:
-            self.performance_by_regime[regime] = {
-                "trades": 0, "wins": 0, "pnl": 0.0
-            }
+            self.performance_by_regime[regime] = {"trades": 0, "wins": 0, "pnl": 0.0}
         self.performance_by_regime[regime]["trades"] += 1
         self.performance_by_regime[regime]["pnl"] += pnl
         if pnl > 0:
@@ -255,9 +258,9 @@ class StrategyPerformance:
 
         # Check for degradation
         self.is_degraded = (
-            self.consecutive_losses >= 5 or
-            self.days_since_profit >= 10 or
-            (self.total_trades >= 20 and self.win_rate < 0.35)
+            self.consecutive_losses >= 5
+            or self.days_since_profit >= 10
+            or (self.total_trades >= 20 and self.win_rate < 0.35)
         )
 
         self.last_trade = datetime.now()
@@ -417,11 +420,7 @@ class StrategyRegistry:
     - Auto-disable degraded strategies
     """
 
-    def __init__(
-        self,
-        auto_disable_degraded: bool = True,
-        min_confidence_threshold: float = 0.4
-    ):
+    def __init__(self, auto_disable_degraded: bool = True, min_confidence_threshold: float = 0.4):
         self.strategies: Dict[str, Strategy] = {}
         self.auto_disable_degraded = auto_disable_degraded
         self.min_confidence_threshold = min_confidence_threshold
@@ -439,7 +438,7 @@ class StrategyRegistry:
         self,
         strategy: Strategy,
         initial_weight: float = 1.0,
-        status: StrategyStatus = StrategyStatus.ACTIVE
+        status: StrategyStatus = StrategyStatus.ACTIVE,
     ) -> bool:
         """Register a new strategy"""
         if strategy.name in self.strategies:
@@ -492,16 +491,14 @@ class StrategyRegistry:
     def get_active_strategies(self) -> List[Strategy]:
         """Get all strategies that should generate signals"""
         return [
-            s for s in self.strategies.values()
+            s
+            for s in self.strategies.values()
             if s.status in [StrategyStatus.ACTIVE, StrategyStatus.SHADOW]
         ]
 
     def get_trading_strategies(self) -> List[Strategy]:
         """Get strategies that should execute trades (not shadow)"""
-        return [
-            s for s in self.strategies.values()
-            if s.status == StrategyStatus.ACTIVE
-        ]
+        return [s for s in self.strategies.values() if s.status == StrategyStatus.ACTIVE]
 
     def initialize_all(self, historical_data: Optional[List[Dict]] = None):
         """Initialize all registered strategies"""
@@ -513,9 +510,7 @@ class StrategyRegistry:
                 strategy.status = StrategyStatus.DISABLED
 
     def get_signals(
-        self,
-        state: MarketState,
-        include_shadow: bool = True
+        self, state: MarketState, include_shadow: bool = True
     ) -> List[Tuple[Strategy, StrategySignal]]:
         """
         Get signals from all active strategies.
@@ -529,7 +524,9 @@ class StrategyRegistry:
         """
         signals = []
 
-        strategies = self.get_active_strategies() if include_shadow else self.get_trading_strategies()
+        strategies = (
+            self.get_active_strategies() if include_shadow else self.get_trading_strategies()
+        )
 
         for strategy in strategies:
             try:
@@ -570,8 +567,7 @@ class StrategyRegistry:
         return signals
 
     def get_consensus_signal(
-        self,
-        signals: List[Tuple[Strategy, StrategySignal]]
+        self, signals: List[Tuple[Strategy, StrategySignal]]
     ) -> Optional[StrategySignal]:
         """
         Combine multiple strategy signals into a consensus.
@@ -608,7 +604,8 @@ class StrategyRegistry:
 
         # Find matching signals for consensus direction
         matching_signals = [
-            (s, sig) for s, sig in signals
+            (s, sig)
+            for s, sig in signals
             if sig.direction == consensus_direction and s.status == StrategyStatus.ACTIVE
         ]
 
@@ -617,24 +614,32 @@ class StrategyRegistry:
 
         # Aggregate position parameters (weighted average)
         total_match_weight = sum(
-            self.allocation_weights.get(s.name, 1.0) * sig.confidence
-            for s, sig in matching_signals
+            self.allocation_weights.get(s.name, 1.0) * sig.confidence for s, sig in matching_signals
         )
 
-        avg_stop_pct = sum(
-            sig.stop_loss_pct * self.allocation_weights.get(s.name, 1.0) * sig.confidence
-            for s, sig in matching_signals
-        ) / total_match_weight
+        avg_stop_pct = (
+            sum(
+                sig.stop_loss_pct * self.allocation_weights.get(s.name, 1.0) * sig.confidence
+                for s, sig in matching_signals
+            )
+            / total_match_weight
+        )
 
-        avg_take_pct = sum(
-            sig.take_profit_pct * self.allocation_weights.get(s.name, 1.0) * sig.confidence
-            for s, sig in matching_signals
-        ) / total_match_weight
+        avg_take_pct = (
+            sum(
+                sig.take_profit_pct * self.allocation_weights.get(s.name, 1.0) * sig.confidence
+                for s, sig in matching_signals
+            )
+            / total_match_weight
+        )
 
-        avg_size_pct = sum(
-            sig.position_size_pct * self.allocation_weights.get(s.name, 1.0) * sig.confidence
-            for s, sig in matching_signals
-        ) / total_match_weight
+        avg_size_pct = (
+            sum(
+                sig.position_size_pct * self.allocation_weights.get(s.name, 1.0) * sig.confidence
+                for s, sig in matching_signals
+            )
+            / total_match_weight
+        )
 
         # Build consensus signal
         if consensus_direction == "long":
@@ -693,15 +698,17 @@ class StrategyRegistry:
         strategies = []
         for name, s in self.strategies.items():
             perf = s.performance
-            strategies.append({
-                "name": name,
-                "status": s.status.value,
-                "win_rate": perf.win_rate,
-                "total_pnl_pct": perf.total_pnl_pct,
-                "sharpe_ratio": perf.sharpe_ratio,
-                "profit_factor": perf.profit_factor,
-                "total_trades": perf.total_trades,
-            })
+            strategies.append(
+                {
+                    "name": name,
+                    "status": s.status.value,
+                    "win_rate": perf.win_rate,
+                    "total_pnl_pct": perf.total_pnl_pct,
+                    "sharpe_ratio": perf.sharpe_ratio,
+                    "profit_factor": perf.profit_factor,
+                    "total_trades": perf.total_trades,
+                }
+            )
 
         # Sort by metric (descending)
         strategies.sort(key=lambda x: x.get(metric, 0), reverse=True)
@@ -712,9 +719,7 @@ class StrategyRegistry:
             "total_strategies": len(self.strategies),
             "active_count": len(self.get_active_strategies()),
             "trading_count": len(self.get_trading_strategies()),
-            "strategies": {
-                name: s.to_dict() for name, s in self.strategies.items()
-            },
+            "strategies": {name: s.to_dict() for name, s in self.strategies.items()},
             "allocation_weights": self.allocation_weights,
         }
 
@@ -722,6 +727,7 @@ class StrategyRegistry:
 # ============================================================
 # Built-in Strategy Implementations
 # ============================================================
+
 
 class EMACrossoverStrategy(Strategy):
     """
@@ -831,7 +837,9 @@ class MeanReversionStrategy(Strategy):
             oversold_factor = (30 - rsi) / 30
             bb_factor = (bb_lower - price) / (bb_middle - bb_lower) if bb_middle != bb_lower else 0
             confidence = min(0.9, 0.5 + oversold_factor * 0.3 + bb_factor * 0.2)
-            reasoning = f"Oversold: Price below BB lower ({price:.2f} < {bb_lower:.2f}), RSI={rsi:.1f}"
+            reasoning = (
+                f"Oversold: Price below BB lower ({price:.2f} < {bb_lower:.2f}), RSI={rsi:.1f}"
+            )
 
         # Overbought - look for short
         elif price > bb_upper and rsi > 70:
@@ -840,7 +848,9 @@ class MeanReversionStrategy(Strategy):
             overbought_factor = (rsi - 70) / 30
             bb_factor = (price - bb_upper) / (bb_upper - bb_middle) if bb_upper != bb_middle else 0
             confidence = min(0.9, 0.5 + overbought_factor * 0.3 + bb_factor * 0.2)
-            reasoning = f"Overbought: Price above BB upper ({price:.2f} > {bb_upper:.2f}), RSI={rsi:.1f}"
+            reasoning = (
+                f"Overbought: Price above BB upper ({price:.2f} > {bb_upper:.2f}), RSI={rsi:.1f}"
+            )
 
         else:
             reasoning = f"No mean reversion signal: Price in BB range, RSI={rsi:.1f}"
@@ -906,7 +916,9 @@ class BreakoutStrategy(Strategy):
             direction = "long"
             breakout_strength = (price - high_20) / atr if atr > 0 else 0
             confidence = min(0.85, 0.5 + breakout_strength * 0.2 + 0.1)
-            reasoning = f"Upside breakout: Price ({price:.2f}) >= 20-high ({high_20:.2f}), ATR expanding"
+            reasoning = (
+                f"Upside breakout: Price ({price:.2f}) >= 20-high ({high_20:.2f}), ATR expanding"
+            )
 
         # Downside breakout
         elif price <= low_20 and vol_expanding:
@@ -914,7 +926,9 @@ class BreakoutStrategy(Strategy):
             direction = "short"
             breakout_strength = (low_20 - price) / atr if atr > 0 else 0
             confidence = min(0.85, 0.5 + breakout_strength * 0.2 + 0.1)
-            reasoning = f"Downside breakout: Price ({price:.2f}) <= 20-low ({low_20:.2f}), ATR expanding"
+            reasoning = (
+                f"Downside breakout: Price ({price:.2f}) <= 20-low ({low_20:.2f}), ATR expanding"
+            )
 
         else:
             reasoning = f"No breakout: Price in range [{low_20:.2f}, {high_20:.2f}]"
@@ -984,7 +998,9 @@ class MomentumStrategy(Strategy):
             trend_factor = min((adx - 25) / 25, 1.0)
             macd_factor = min(abs(macd_hist) / abs(macd_signal) if macd_signal != 0 else 0, 1.0)
             confidence = min(0.9, 0.5 + trend_factor * 0.2 + macd_factor * 0.2)
-            reasoning = f"Bullish momentum: MACD ({macd:.4f}) > Signal ({macd_signal:.4f}), ADX={adx:.1f}"
+            reasoning = (
+                f"Bullish momentum: MACD ({macd:.4f}) > Signal ({macd_signal:.4f}), ADX={adx:.1f}"
+            )
 
         elif macd < macd_signal and strong_trend:
             action = StrategyAction.SELL
@@ -992,7 +1008,9 @@ class MomentumStrategy(Strategy):
             trend_factor = min((adx - 25) / 25, 1.0)
             macd_factor = min(abs(macd_hist) / abs(macd_signal) if macd_signal != 0 else 0, 1.0)
             confidence = min(0.9, 0.5 + trend_factor * 0.2 + macd_factor * 0.2)
-            reasoning = f"Bearish momentum: MACD ({macd:.4f}) < Signal ({macd_signal:.4f}), ADX={adx:.1f}"
+            reasoning = (
+                f"Bearish momentum: MACD ({macd:.4f}) < Signal ({macd_signal:.4f}), ADX={adx:.1f}"
+            )
 
         else:
             if not strong_trend:
@@ -1043,8 +1061,7 @@ def get_strategy_registry() -> StrategyRegistry:
 
 
 def create_strategy_registry(
-    include_builtin: bool = True,
-    auto_disable_degraded: bool = True
+    include_builtin: bool = True, auto_disable_degraded: bool = True
 ) -> StrategyRegistry:
     """Create a new strategy registry"""
     registry = StrategyRegistry(auto_disable_degraded=auto_disable_degraded)

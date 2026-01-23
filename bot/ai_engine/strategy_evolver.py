@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 
 class IndicatorType(Enum):
     """Available indicator types for strategy genes."""
+
     EMA_CROSS = "ema_cross"
     RSI = "rsi"
     MACD = "macd"
@@ -46,6 +47,7 @@ class IndicatorType(Enum):
 
 class ConditionOperator(Enum):
     """Operators for conditions."""
+
     GREATER = ">"
     LESS = "<"
     CROSS_ABOVE = "cross_above"
@@ -64,6 +66,7 @@ class StrategyGene:
     - EMA_12 cross_above EMA_26 (buy signal)
     - ADX > 25 (trend confirmation)
     """
+
     indicator: str
     operator: str
     value: float
@@ -76,7 +79,7 @@ class StrategyGene:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'StrategyGene':
+    def from_dict(cls, data: Dict[str, Any]) -> "StrategyGene":
         return cls(**data)
 
 
@@ -91,6 +94,7 @@ class StrategyChromosome:
     - Filter rules (confirm signals)
     - Risk parameters
     """
+
     id: str
     name: str
     entry_long_genes: List[StrategyGene]
@@ -119,7 +123,7 @@ class StrategyChromosome:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'StrategyChromosome':
+    def from_dict(cls, data: Dict[str, Any]) -> "StrategyChromosome":
         return cls(
             id=data["id"],
             name=data["name"],
@@ -187,10 +191,7 @@ class GeneFactory:
     }
 
     @classmethod
-    def create_random_gene(
-        cls,
-        signal_type: str = "entry"
-    ) -> StrategyGene:
+    def create_random_gene(cls, signal_type: str = "entry") -> StrategyGene:
         """Create a random gene."""
         indicator = random.choice(list(cls.INDICATOR_TEMPLATES.keys()))
         template = cls.INDICATOR_TEMPLATES[indicator]
@@ -281,18 +282,12 @@ class StrategyEvolver:
         return StrategyChromosome(
             id=self._generate_strategy_id(),
             name=f"Strategy_Gen{self.generation}_{self._strategy_counter}",
-            entry_long_genes=[
-                GeneFactory.create_random_gene("entry") for _ in range(n_entry_long)
-            ],
+            entry_long_genes=[GeneFactory.create_random_gene("entry") for _ in range(n_entry_long)],
             entry_short_genes=[
                 GeneFactory.create_random_gene("entry") for _ in range(n_entry_short)
             ],
-            exit_genes=[
-                GeneFactory.create_random_gene("exit") for _ in range(n_exit)
-            ],
-            filter_genes=[
-                GeneFactory.create_random_gene("filter") for _ in range(n_filter)
-            ],
+            exit_genes=[GeneFactory.create_random_gene("exit") for _ in range(n_exit)],
+            filter_genes=[GeneFactory.create_random_gene("filter") for _ in range(n_filter)],
             risk_params=GeneFactory.create_random_risk_params(),
             generation=self.generation,
         )
@@ -304,7 +299,7 @@ class StrategyEvolver:
 
         # Add seed strategies if provided
         if seed_strategies:
-            for strategy in seed_strategies[:self.elite_size]:
+            for strategy in seed_strategies[: self.elite_size]:
                 strategy.generation = 0
                 self.population.append(strategy)
 
@@ -325,7 +320,7 @@ class StrategyEvolver:
                 strategy.fitness = fitness_fn(strategy)
             except Exception as e:
                 logger.warning(f"Fitness evaluation failed for {strategy.id}: {e}")
-                strategy.fitness = float('-inf')
+                strategy.fitness = float("-inf")
 
         # Sort by fitness
         self.population.sort(key=lambda s: s.fitness, reverse=True)
@@ -349,7 +344,9 @@ class StrategyEvolver:
         child_id = self._generate_strategy_id()
 
         # Crossover each gene section
-        def crossover_genes(genes1: List[StrategyGene], genes2: List[StrategyGene]) -> List[StrategyGene]:
+        def crossover_genes(
+            genes1: List[StrategyGene], genes2: List[StrategyGene]
+        ) -> List[StrategyGene]:
             if not genes1 and not genes2:
                 return []
 

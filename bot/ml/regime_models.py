@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 
 class MarketRegime(Enum):
     """Market regime classifications."""
+
     BULL_TREND = "bull_trend"
     BEAR_TREND = "bear_trend"
     SIDEWAYS = "sideways"
@@ -46,6 +47,7 @@ class MarketRegime(Enum):
 @dataclass
 class RegimeDetection:
     """Result of regime detection."""
+
     regime: MarketRegime
     confidence: float
     volatility_percentile: float
@@ -63,7 +65,7 @@ class RegimeDetector:
         self,
         trend_lookback: int = 50,
         volatility_lookback: int = 20,
-        breakout_threshold: float = 0.02
+        breakout_threshold: float = 0.02,
     ):
         self.trend_lookback = trend_lookback
         self.volatility_lookback = volatility_lookback
@@ -88,7 +90,7 @@ class RegimeDetector:
                 volatility_percentile=0.5,
                 trend_strength=0,
                 support_level=prices.min(),
-                resistance_level=prices.max()
+                resistance_level=prices.max(),
             )
 
         # Calculate metrics
@@ -102,18 +104,20 @@ class RegimeDetector:
         trend_strength = (sma_short - sma_long) / sma_long if sma_long > 0 else 0
 
         # Volatility
-        current_vol = returns.iloc[-self.volatility_lookback:].std()
+        current_vol = returns.iloc[-self.volatility_lookback :].std()
         historical_vol = returns.std()
         vol_ratio = current_vol / historical_vol if historical_vol > 0 else 1
 
         self.volatility_history.append(current_vol)
         if len(self.volatility_history) > 100:
-            vol_percentile = sum(1 for v in self.volatility_history if v < current_vol) / len(self.volatility_history)
+            vol_percentile = sum(1 for v in self.volatility_history if v < current_vol) / len(
+                self.volatility_history
+            )
         else:
             vol_percentile = 0.5
 
         # Support/Resistance
-        lookback_prices = prices.iloc[-self.trend_lookback:]
+        lookback_prices = prices.iloc[-self.trend_lookback :]
         support = lookback_prices.min()
         resistance = lookback_prices.max()
 
@@ -164,7 +168,7 @@ class RegimeDetector:
             volatility_percentile=vol_percentile,
             trend_strength=trend_strength,
             support_level=support,
-            resistance_level=resistance
+            resistance_level=resistance,
         )
 
 
@@ -173,11 +177,7 @@ class RegimeSpecificModel:
     Model trained specifically for a market regime.
     """
 
-    def __init__(
-        self,
-        regime: MarketRegime,
-        model_type: str = 'random_forest'
-    ):
+    def __init__(self, regime: MarketRegime, model_type: str = "random_forest"):
         self.regime = regime
         self.model_type = model_type
         self.model: Optional[BaseEstimator] = None
@@ -212,34 +212,28 @@ class RegimeSpecificModel:
             self.model = RandomForestClassifier(
                 n_estimators=150,
                 max_depth=10,  # Shallower to avoid overfitting to noise
-                class_weight='balanced',
+                class_weight="balanced",
                 random_state=42,
-                n_jobs=-1
+                n_jobs=-1,
             )
         elif self.regime in [MarketRegime.BULL_TREND, MarketRegime.BEAR_TREND]:
             # Deeper for trending regimes
             self.model = RandomForestClassifier(
-                n_estimators=200,
-                max_depth=25,
-                class_weight='balanced',
-                random_state=42,
-                n_jobs=-1
+                n_estimators=200, max_depth=25, class_weight="balanced", random_state=42, n_jobs=-1
             )
         else:
             # Balanced for sideways
             self.model = RandomForestClassifier(
-                n_estimators=150,
-                max_depth=15,
-                class_weight='balanced',
-                random_state=42,
-                n_jobs=-1
+                n_estimators=150, max_depth=15, class_weight="balanced", random_state=42, n_jobs=-1
             )
 
         self.model.fit(X_train, y_train)
         self.accuracy = accuracy_score(y_test, self.model.predict(X_test))
         self.n_samples = len(X)
 
-        logger.info(f"{self.regime.value} model: {self.accuracy:.2%} accuracy on {self.n_samples} samples")
+        logger.info(
+            f"{self.regime.value} model: {self.accuracy:.2%} accuracy on {self.n_samples} samples"
+        )
 
         return self.accuracy
 
@@ -256,7 +250,7 @@ class RegimeSpecificModel:
 
     def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
         """Get prediction probabilities."""
-        if self.model is None or not hasattr(self.model, 'predict_proba'):
+        if self.model is None or not hasattr(self.model, "predict_proba"):
             raise ValueError("Model not trained or doesn't support probabilities")
 
         X_aligned = X[self.feature_names] if set(self.feature_names).issubset(X.columns) else X
@@ -280,10 +274,7 @@ class RegimeModelEnsemble:
         self.fallback_scaler = StandardScaler()
 
     def train_all_regimes(
-        self,
-        X: pd.DataFrame,
-        y: pd.Series,
-        prices: pd.Series
+        self, X: pd.DataFrame, y: pd.Series, prices: pd.Series
     ) -> Dict[str, float]:
         """
         Train models for all regimes.
@@ -304,7 +295,7 @@ class RegimeModelEnsemble:
             if i < 50:
                 regimes.append(MarketRegime.SIDEWAYS)
             else:
-                detection = self.regime_detector.detect(prices.iloc[:i+1])
+                detection = self.regime_detector.detect(prices.iloc[: i + 1])
                 regimes.append(detection.regime)
 
         regime_series = pd.Series(regimes, index=prices.index)
@@ -330,25 +321,19 @@ class RegimeModelEnsemble:
         split_idx = int(len(X) * 0.8)
 
         self.fallback_model = RandomForestClassifier(
-            n_estimators=200,
-            max_depth=20,
-            class_weight='balanced',
-            random_state=42,
-            n_jobs=-1
+            n_estimators=200, max_depth=20, class_weight="balanced", random_state=42, n_jobs=-1
         )
         self.fallback_model.fit(X_scaled[:split_idx], y.iloc[:split_idx])
-        fallback_acc = accuracy_score(y.iloc[split_idx:], self.fallback_model.predict(X_scaled[split_idx:]))
-        results['fallback'] = fallback_acc
+        fallback_acc = accuracy_score(
+            y.iloc[split_idx:], self.fallback_model.predict(X_scaled[split_idx:])
+        )
+        results["fallback"] = fallback_acc
 
         logger.info(f"Trained {len(self.models)} regime models + fallback")
 
         return results
 
-    def predict(
-        self,
-        X: pd.DataFrame,
-        prices: pd.Series
-    ) -> Tuple[np.ndarray, List[MarketRegime]]:
+    def predict(self, X: pd.DataFrame, prices: pd.Series) -> Tuple[np.ndarray, List[MarketRegime]]:
         """
         Predict using regime-appropriate model.
 
@@ -364,7 +349,7 @@ class RegimeModelEnsemble:
 
         for i in range(len(X)):
             # Detect regime
-            price_history = prices.iloc[:i+1] if i < len(prices) else prices
+            price_history = prices.iloc[: i + 1] if i < len(prices) else prices
             detection = self.regime_detector.detect(price_history)
 
             # Select model
@@ -382,11 +367,7 @@ class RegimeModelEnsemble:
 
         return np.array(predictions), regimes_used
 
-    def get_regime_signal(
-        self,
-        X: pd.DataFrame,
-        prices: pd.Series
-    ) -> Dict[str, Any]:
+    def get_regime_signal(self, X: pd.DataFrame, prices: pd.Series) -> Dict[str, Any]:
         """
         Get trading signal with regime context.
 
@@ -423,20 +404,20 @@ class RegimeModelEnsemble:
         confidence = np.clip(confidence, 0, 0.95)
 
         # Map prediction to action
-        action_map = {-1: 'SELL', 0: 'HOLD', 1: 'BUY'}
-        action = action_map.get(pred, 'HOLD')
+        action_map = {-1: "SELL", 0: "HOLD", 1: "BUY"}
+        action = action_map.get(pred, "HOLD")
 
         return {
-            'action': action,
-            'confidence': confidence,
-            'regime': detection.regime.value,
-            'regime_confidence': detection.confidence,
-            'volatility_percentile': detection.volatility_percentile,
-            'trend_strength': detection.trend_strength,
-            'support': detection.support_level,
-            'resistance': detection.resistance_level,
-            'model_accuracy': model_accuracy,
-            'raw_probabilities': proba
+            "action": action,
+            "confidence": confidence,
+            "regime": detection.regime.value,
+            "regime_confidence": detection.confidence,
+            "volatility_percentile": detection.volatility_percentile,
+            "trend_strength": detection.trend_strength,
+            "support": detection.support_level,
+            "resistance": detection.resistance_level,
+            "model_accuracy": model_accuracy,
+            "raw_probabilities": proba,
         }
 
     def save(self, path: Path):
@@ -465,10 +446,7 @@ class RegimeModelEnsemble:
 
 # Factory function
 def create_regime_ensemble(
-    symbol: str,
-    X: pd.DataFrame,
-    y: pd.Series,
-    prices: pd.Series
+    symbol: str, X: pd.DataFrame, y: pd.Series, prices: pd.Series
 ) -> RegimeModelEnsemble:
     """
     Create and train regime ensemble for symbol.

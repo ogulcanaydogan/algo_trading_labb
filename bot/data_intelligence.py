@@ -35,6 +35,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class NewsItem:
     """A news item with sentiment."""
+
     title: str
     source: str
     timestamp: datetime
@@ -46,6 +47,7 @@ class NewsItem:
 @dataclass
 class SentimentData:
     """Aggregated sentiment data."""
+
     news_sentiment: float  # -1 to 1
     social_sentiment: float  # -1 to 1
     fear_greed_index: float  # 0-100
@@ -58,6 +60,7 @@ class SentimentData:
 @dataclass
 class OnChainMetrics:
     """On-chain metrics for crypto."""
+
     exchange_inflow: float
     exchange_outflow: float
     net_flow: float  # negative = outflow (bullish)
@@ -80,6 +83,7 @@ class OnChainMetrics:
 @dataclass
 class EconomicContext:
     """Economic indicators and events."""
+
     fed_rate: float
     fed_stance: str  # hawkish, dovish, neutral
     cpi_yoy: float  # Inflation
@@ -124,8 +128,8 @@ class NewsAggregator:
 
     def __init__(self):
         self.cache = DataCache(ttl_seconds=300)  # 5 min cache
-        self.cryptopanic_token = os.getenv('CRYPTOPANIC_API_KEY')
-        self.newsapi_key = os.getenv('NEWSAPI_KEY')
+        self.cryptopanic_token = os.getenv("CRYPTOPANIC_API_KEY")
+        self.newsapi_key = os.getenv("NEWSAPI_KEY")
 
     async def get_news(self, symbol: str, limit: int = 20) -> List[NewsItem]:
         """Get recent news for symbol."""
@@ -137,7 +141,7 @@ class NewsAggregator:
         news_items = []
 
         # Try CryptoPanic for crypto
-        if 'USD' in symbol or 'BTC' in symbol or 'ETH' in symbol:
+        if "USD" in symbol or "BTC" in symbol or "ETH" in symbol:
             crypto_news = await self._fetch_cryptopanic(symbol, limit)
             news_items.extend(crypto_news)
 
@@ -149,8 +153,8 @@ class NewsAggregator:
         items = []
 
         # Extract base currency
-        base = symbol.split('/')[0].upper()
-        if base in ['BTC', 'ETH', 'SOL', 'AVAX', 'XRP', 'LINK', 'DOGE']:
+        base = symbol.split("/")[0].upper()
+        if base in ["BTC", "ETH", "SOL", "AVAX", "XRP", "LINK", "DOGE"]:
             currency = base
         else:
             return items
@@ -161,26 +165,30 @@ class NewsAggregator:
                 # Use public feed (limited)
                 url = f"https://cryptopanic.com/api/v1/posts/?currencies={currency}&public=true"
 
-            req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            req = Request(url, headers={"User-Agent": "Mozilla/5.0"})
             with urlopen(req, timeout=10) as response:
                 data = json.loads(response.read())
 
-            for post in data.get('results', [])[:limit]:
+            for post in data.get("results", [])[:limit]:
                 # Simple sentiment from votes
-                votes = post.get('votes', {})
-                positive = votes.get('positive', 0)
-                negative = votes.get('negative', 0)
+                votes = post.get("votes", {})
+                positive = votes.get("positive", 0)
+                negative = votes.get("negative", 0)
                 total = positive + negative + 1
                 sentiment = (positive - negative) / total
 
-                items.append(NewsItem(
-                    title=post.get('title', ''),
-                    source=post.get('source', {}).get('title', 'Unknown'),
-                    timestamp=datetime.fromisoformat(post.get('published_at', '').replace('Z', '+00:00')),
-                    sentiment=sentiment,
-                    relevance=0.8 if currency.lower() in post.get('title', '').lower() else 0.5,
-                    symbols=[currency]
-                ))
+                items.append(
+                    NewsItem(
+                        title=post.get("title", ""),
+                        source=post.get("source", {}).get("title", "Unknown"),
+                        timestamp=datetime.fromisoformat(
+                            post.get("published_at", "").replace("Z", "+00:00")
+                        ),
+                        sentiment=sentiment,
+                        relevance=0.8 if currency.lower() in post.get("title", "").lower() else 0.5,
+                        symbols=[currency],
+                    )
+                )
 
         except Exception as e:
             logger.debug(f"CryptoPanic fetch failed: {e}")
@@ -253,7 +261,7 @@ class SentimentTracker:
             fear_greed_index=fear_greed,
             bullish_pct=50 + news_sentiment * 25,  # Simple conversion
             news_volume=len(news),
-            sentiment_trend=trend
+            sentiment_trend=trend,
         )
 
         self.cache.set(cache_key, sentiment)
@@ -268,11 +276,11 @@ class SentimentTracker:
 
         try:
             url = "https://api.alternative.me/fng/"
-            req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            req = Request(url, headers={"User-Agent": "Mozilla/5.0"})
             with urlopen(req, timeout=10) as response:
                 data = json.loads(response.read())
 
-            value = float(data['data'][0]['value'])
+            value = float(data["data"][0]["value"])
             self.cache.set("fear_greed", value)
             return value
 
@@ -309,12 +317,12 @@ class OnChainAnalyzer:
             whale_transactions=0,
             active_addresses=0,
             nvt_ratio=0,
-            mvrv_ratio=1.0
+            mvrv_ratio=1.0,
         )
 
         # Try to fetch real data if API keys available
-        base = symbol.split('/')[0].upper()
-        if base in ['BTC', 'ETH']:
+        base = symbol.split("/")[0].upper()
+        if base in ["BTC", "ETH"]:
             # Could add Glassnode/CryptoQuant API calls here
             pass
 
@@ -352,7 +360,7 @@ class EconomicDataProvider:
             gdp_growth=2.5,
             dxy_index=104.0,
             vix_index=vix,
-            upcoming_events=[]
+            upcoming_events=[],
         )
 
         self.cache.set("economic", context)
@@ -362,10 +370,11 @@ class EconomicDataProvider:
         """Fetch VIX index."""
         try:
             import yfinance as yf
+
             vix = yf.Ticker("^VIX")
             hist = vix.history(period="1d")
             if not hist.empty:
-                return float(hist['Close'].iloc[-1])
+                return float(hist["Close"].iloc[-1])
         except Exception as e:
             logger.debug(f"VIX fetch failed: {e}")
         return 20.0  # Default
@@ -386,19 +395,14 @@ class CrossAssetAnalyzer:
         if cached:
             return cached
 
-        correlations = {
-            'BTC': 0.0,
-            'SP500': 0.0,
-            'DXY': 0.0,
-            'GOLD': 0.0
-        }
+        correlations = {"BTC": 0.0, "SP500": 0.0, "DXY": 0.0, "GOLD": 0.0}
 
         try:
             import yfinance as yf
 
             # Fetch price history
-            base = symbol.split('/')[0]
-            if base in ['BTC', 'ETH', 'SOL']:
+            base = symbol.split("/")[0]
+            if base in ["BTC", "ETH", "SOL"]:
                 ticker = f"{base}-USD"
             else:
                 ticker = base
@@ -413,18 +417,22 @@ class CrossAssetAnalyzer:
 
             if not target.empty and not btc.empty:
                 # Calculate returns
-                target_ret = target['Close'].pct_change().dropna()
-                btc_ret = btc['Close'].pct_change().dropna()
-                spy_ret = spy['Close'].pct_change().dropna()
+                target_ret = target["Close"].pct_change().dropna()
+                btc_ret = btc["Close"].pct_change().dropna()
+                spy_ret = spy["Close"].pct_change().dropna()
 
                 # Align dates
                 common_idx = target_ret.index.intersection(btc_ret.index)
                 if len(common_idx) > 20:
-                    correlations['BTC'] = float(target_ret.loc[common_idx].corr(btc_ret.loc[common_idx]))
+                    correlations["BTC"] = float(
+                        target_ret.loc[common_idx].corr(btc_ret.loc[common_idx])
+                    )
 
                 common_idx = target_ret.index.intersection(spy_ret.index)
                 if len(common_idx) > 20:
-                    correlations['SP500'] = float(target_ret.loc[common_idx].corr(spy_ret.loc[common_idx]))
+                    correlations["SP500"] = float(
+                        target_ret.loc[common_idx].corr(spy_ret.loc[common_idx])
+                    )
 
         except Exception as e:
             logger.debug(f"Correlation calculation failed: {e}")
@@ -459,7 +467,7 @@ class DataIntelligence:
             self.onchain_analyzer.get_metrics(symbol),
             self.economic_provider.get_context(),
             self.cross_asset_analyzer.get_correlations(symbol),
-            return_exceptions=True
+            return_exceptions=True,
         )
 
         # Handle any errors
@@ -477,41 +485,36 @@ class DataIntelligence:
 
         if isinstance(correlations, Exception):
             logger.warning(f"Correlations fetch failed: {correlations}")
-            correlations = {'BTC': 0, 'SP500': 0, 'DXY': 0, 'GOLD': 0}
+            correlations = {"BTC": 0, "SP500": 0, "DXY": 0, "GOLD": 0}
 
         # Build comprehensive context
         context = {
-            'symbol': symbol,
-            'timestamp': datetime.now().isoformat(),
-
-            'sentiment': {
-                'news': sentiment.news_sentiment,
-                'social': sentiment.social_sentiment,
-                'fear_greed': sentiment.fear_greed_index,
-                'bullish_pct': sentiment.bullish_pct,
-                'trend': sentiment.sentiment_trend,
-                'news_count': sentiment.news_volume
+            "symbol": symbol,
+            "timestamp": datetime.now().isoformat(),
+            "sentiment": {
+                "news": sentiment.news_sentiment,
+                "social": sentiment.social_sentiment,
+                "fear_greed": sentiment.fear_greed_index,
+                "bullish_pct": sentiment.bullish_pct,
+                "trend": sentiment.sentiment_trend,
+                "news_count": sentiment.news_volume,
             },
-
-            'onchain': {
-                'exchange_flow': onchain.flow_signal,
-                'net_flow': onchain.net_flow,
-                'whale_activity': 'high' if onchain.whale_transactions > 100 else 'normal',
-                'nvt_ratio': onchain.nvt_ratio,
-                'mvrv_ratio': onchain.mvrv_ratio
+            "onchain": {
+                "exchange_flow": onchain.flow_signal,
+                "net_flow": onchain.net_flow,
+                "whale_activity": "high" if onchain.whale_transactions > 100 else "normal",
+                "nvt_ratio": onchain.nvt_ratio,
+                "mvrv_ratio": onchain.mvrv_ratio,
             },
-
-            'economic': {
-                'fed_rate': economic.fed_rate,
-                'fed_stance': economic.fed_stance,
-                'vix': economic.vix_index,
-                'dxy': economic.dxy_index,
-                'inflation': economic.cpi_yoy
+            "economic": {
+                "fed_rate": economic.fed_rate,
+                "fed_stance": economic.fed_stance,
+                "vix": economic.vix_index,
+                "dxy": economic.dxy_index,
+                "inflation": economic.cpi_yoy,
             },
-
-            'correlations': correlations,
-
-            'signals': self._generate_signals(sentiment, onchain, economic, correlations)
+            "correlations": correlations,
+            "signals": self._generate_signals(sentiment, onchain, economic, correlations),
         }
 
         return context
@@ -521,62 +524,79 @@ class DataIntelligence:
         sentiment: SentimentData,
         onchain: OnChainMetrics,
         economic: EconomicContext,
-        correlations: Dict[str, float]
+        correlations: Dict[str, float],
     ) -> Dict[str, Any]:
         """Generate trading signals from intelligence data."""
         signals = {
-            'sentiment_signal': 'neutral',
-            'onchain_signal': 'neutral',
-            'macro_signal': 'neutral',
-            'overall_bias': 'neutral',
-            'confidence': 0.5
+            "sentiment_signal": "neutral",
+            "onchain_signal": "neutral",
+            "macro_signal": "neutral",
+            "overall_bias": "neutral",
+            "confidence": 0.5,
         }
 
         # Sentiment signal
         if sentiment.fear_greed_index < 25:
-            signals['sentiment_signal'] = 'bullish'  # Extreme fear = buy
+            signals["sentiment_signal"] = "bullish"  # Extreme fear = buy
         elif sentiment.fear_greed_index > 75:
-            signals['sentiment_signal'] = 'bearish'  # Extreme greed = sell
+            signals["sentiment_signal"] = "bearish"  # Extreme greed = sell
         elif sentiment.news_sentiment > 0.3:
-            signals['sentiment_signal'] = 'bullish'
+            signals["sentiment_signal"] = "bullish"
         elif sentiment.news_sentiment < -0.3:
-            signals['sentiment_signal'] = 'bearish'
+            signals["sentiment_signal"] = "bearish"
 
         # On-chain signal
-        if onchain.flow_signal == 'bullish':
-            signals['onchain_signal'] = 'bullish'
-        elif onchain.flow_signal == 'bearish':
-            signals['onchain_signal'] = 'bearish'
+        if onchain.flow_signal == "bullish":
+            signals["onchain_signal"] = "bullish"
+        elif onchain.flow_signal == "bearish":
+            signals["onchain_signal"] = "bearish"
 
         # Macro signal
         if economic.vix_index > 30:
-            signals['macro_signal'] = 'bearish'  # High fear
+            signals["macro_signal"] = "bearish"  # High fear
         elif economic.vix_index < 15:
-            signals['macro_signal'] = 'bullish'  # Low fear
-        elif economic.fed_stance == 'dovish':
-            signals['macro_signal'] = 'bullish'
-        elif economic.fed_stance == 'hawkish':
-            signals['macro_signal'] = 'bearish'
+            signals["macro_signal"] = "bullish"  # Low fear
+        elif economic.fed_stance == "dovish":
+            signals["macro_signal"] = "bullish"
+        elif economic.fed_stance == "hawkish":
+            signals["macro_signal"] = "bearish"
 
         # Overall bias
-        bullish_count = sum(1 for s in [signals['sentiment_signal'], signals['onchain_signal'], signals['macro_signal']] if s == 'bullish')
-        bearish_count = sum(1 for s in [signals['sentiment_signal'], signals['onchain_signal'], signals['macro_signal']] if s == 'bearish')
+        bullish_count = sum(
+            1
+            for s in [
+                signals["sentiment_signal"],
+                signals["onchain_signal"],
+                signals["macro_signal"],
+            ]
+            if s == "bullish"
+        )
+        bearish_count = sum(
+            1
+            for s in [
+                signals["sentiment_signal"],
+                signals["onchain_signal"],
+                signals["macro_signal"],
+            ]
+            if s == "bearish"
+        )
 
         if bullish_count > bearish_count:
-            signals['overall_bias'] = 'bullish'
-            signals['confidence'] = 0.5 + bullish_count * 0.15
+            signals["overall_bias"] = "bullish"
+            signals["confidence"] = 0.5 + bullish_count * 0.15
         elif bearish_count > bullish_count:
-            signals['overall_bias'] = 'bearish'
-            signals['confidence'] = 0.5 + bearish_count * 0.15
+            signals["overall_bias"] = "bearish"
+            signals["confidence"] = 0.5 + bearish_count * 0.15
         else:
-            signals['overall_bias'] = 'neutral'
-            signals['confidence'] = 0.5
+            signals["overall_bias"] = "neutral"
+            signals["confidence"] = 0.5
 
         return signals
 
 
 # Global instance
 _data_intelligence: Optional[DataIntelligence] = None
+
 
 def get_data_intelligence() -> DataIntelligence:
     """Get or create the DataIntelligence instance."""

@@ -24,6 +24,7 @@ from .base import BaseStrategy, StrategyConfig, StrategySignal
 @dataclass
 class BreakoutConfig(StrategyConfig):
     """Configuration for Breakout strategy."""
+
     lookback_period: int = 20  # Period for support/resistance
     atr_period: int = 14
     atr_multiplier: float = 1.5  # ATR expansion threshold
@@ -111,9 +112,9 @@ class BreakoutStrategy(BaseStrategy):
         df["tight_range"] = range_pct < threshold
 
         # Count consecutive tight range bars
-        df["consolidation_bars"] = df["tight_range"].rolling(
-            window=self.breakout_config.min_consolidation_bars
-        ).sum()
+        df["consolidation_bars"] = (
+            df["tight_range"].rolling(window=self.breakout_config.min_consolidation_bars).sum()
+        )
 
         df["in_consolidation"] = (
             df["consolidation_bars"] >= self.breakout_config.min_consolidation_bars - 1
@@ -136,16 +137,26 @@ class BreakoutStrategy(BaseStrategy):
         prev_close = float(prev["close"])
         resistance = float(current["resistance"]) if not pd.isna(current["resistance"]) else close
         support = float(current["support"]) if not pd.isna(current["support"]) else close
-        donchian_high = float(current["donchian_high"]) if not pd.isna(current["donchian_high"]) else close
-        donchian_low = float(current["donchian_low"]) if not pd.isna(current["donchian_low"]) else close
+        donchian_high = (
+            float(current["donchian_high"]) if not pd.isna(current["donchian_high"]) else close
+        )
+        donchian_low = (
+            float(current["donchian_low"]) if not pd.isna(current["donchian_low"]) else close
+        )
         atr = float(current["atr"]) if not pd.isna(current["atr"]) else 0
         atr_ratio = float(current["atr_ratio"]) if not pd.isna(current["atr_ratio"]) else 1.0
-        volume_ratio = float(current["volume_ratio"]) if not pd.isna(current["volume_ratio"]) else 1.0
-        in_consolidation = bool(current["in_consolidation"]) if not pd.isna(current["in_consolidation"]) else False
+        volume_ratio = (
+            float(current["volume_ratio"]) if not pd.isna(current["volume_ratio"]) else 1.0
+        )
+        in_consolidation = (
+            bool(current["in_consolidation"]) if not pd.isna(current["in_consolidation"]) else False
+        )
         range_pct = float(current["range_pct"]) if not pd.isna(current["range_pct"]) else 0
 
         # Previous values for breakout detection
-        prev_resistance = float(prev["resistance"]) if not pd.isna(prev["resistance"]) else resistance
+        prev_resistance = (
+            float(prev["resistance"]) if not pd.isna(prev["resistance"]) else resistance
+        )
         prev_support = float(prev["support"]) if not pd.isna(prev["support"]) else support
 
         indicators = {
@@ -178,7 +189,9 @@ class BreakoutStrategy(BaseStrategy):
         donchian_bear = close < df.iloc[-2]["donchian_low"] if len(df) > 1 else False
 
         # Calculate confidence
-        def calculate_confidence(volume_conf: bool, volatility_conf: bool, consolidation: bool) -> float:
+        def calculate_confidence(
+            volume_conf: bool, volatility_conf: bool, consolidation: bool
+        ) -> float:
             base_confidence = 0.4
             if volume_conf:
                 base_confidence += 0.2
@@ -190,7 +203,9 @@ class BreakoutStrategy(BaseStrategy):
 
         # LONG: Bullish breakout
         if bullish_breakout or donchian_bull:
-            confidence = calculate_confidence(volume_confirmed, volatility_expanding, in_consolidation)
+            confidence = calculate_confidence(
+                volume_confirmed, volatility_expanding, in_consolidation
+            )
 
             if confidence >= self.config.min_confidence:
                 stop_loss = max(support, close - atr * 2)
@@ -215,7 +230,9 @@ class BreakoutStrategy(BaseStrategy):
 
         # SHORT: Bearish breakout
         elif bearish_breakout or donchian_bear:
-            confidence = calculate_confidence(volume_confirmed, volatility_expanding, in_consolidation)
+            confidence = calculate_confidence(
+                volume_confirmed, volatility_expanding, in_consolidation
+            )
 
             if confidence >= self.config.min_confidence:
                 stop_loss = min(resistance, close + atr * 2)
@@ -239,6 +256,4 @@ class BreakoutStrategy(BaseStrategy):
                 )
 
         # No breakout detected
-        return self._flat_signal(
-            f"No breakout (price between {support:.2f} and {resistance:.2f})"
-        )
+        return self._flat_signal(f"No breakout (price between {support:.2f} and {resistance:.2f})")

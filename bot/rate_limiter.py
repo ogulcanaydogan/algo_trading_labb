@@ -104,7 +104,7 @@ class TokenBucket:
         Returns:
             True if tokens were acquired, False otherwise
         """
-        deadline = time.monotonic() + (timeout or float('inf')) if block else time.monotonic()
+        deadline = time.monotonic() + (timeout or float("inf")) if block else time.monotonic()
 
         with self._lock:
             while True:
@@ -436,7 +436,7 @@ class DiskCache:
 
     def _get_conn(self) -> sqlite3.Connection:
         """Get thread-local database connection."""
-        if not hasattr(self._local, 'conn') or self._local.conn is None:
+        if not hasattr(self._local, "conn") or self._local.conn is None:
             self._local.conn = sqlite3.connect(
                 str(self.db_path),
                 check_same_thread=False,
@@ -583,7 +583,13 @@ class MultiLevelCache:
 
         return None
 
-    def set(self, key: str, value: Any, memory_ttl: Optional[float] = None, disk_ttl: Optional[float] = None) -> None:
+    def set(
+        self,
+        key: str,
+        value: Any,
+        memory_ttl: Optional[float] = None,
+        disk_ttl: Optional[float] = None,
+    ) -> None:
         """Set in both memory and disk."""
         self.memory.set(key, value, memory_ttl or self.memory_ttl)
         self.disk.set(key, value, disk_ttl or self.disk_ttl)
@@ -696,7 +702,7 @@ def with_retry(
 
                     if attempt < max_retries:
                         # Calculate backoff with jitter
-                        delay = min(base_delay * (2 ** attempt), max_delay)
+                        delay = min(base_delay * (2**attempt), max_delay)
                         delay += random.uniform(0, delay * 0.1)
 
                         logger.warning(
@@ -705,9 +711,7 @@ def with_retry(
                         )
                         time.sleep(delay)
                     else:
-                        logger.error(
-                            f"All {max_retries} retries failed for {func.__name__}: {e}"
-                        )
+                        logger.error(f"All {max_retries} retries failed for {func.__name__}: {e}")
 
             raise last_exception
 

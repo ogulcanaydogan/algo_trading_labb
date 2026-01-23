@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class OptimizationResult:
     """Result of strategy optimization."""
+
     strategy_name: str
     best_params: Dict[str, Any]
     best_score: float
@@ -43,7 +44,9 @@ class OptimizationResult:
             "best_score": round(self.best_score, 4),
             "objective": self.objective,
             "in_sample_metrics": {k: round(v, 4) for k, v in self.in_sample_metrics.items()},
-            "out_of_sample_metrics": {k: round(v, 4) for k, v in self.out_of_sample_metrics.items()},
+            "out_of_sample_metrics": {
+                k: round(v, 4) for k, v in self.out_of_sample_metrics.items()
+            },
             "optimization_time": round(self.optimization_time, 2),
             "windows_tested": self.windows_tested,
         }
@@ -52,6 +55,7 @@ class OptimizationResult:
 @dataclass
 class WalkForwardWindow:
     """A single walk-forward window."""
+
     train_start: datetime
     train_end: datetime
     test_start: datetime
@@ -118,13 +122,15 @@ class StrategyOptimizer:
             if test_end > end_date:
                 break
 
-            windows.append(WalkForwardWindow(
-                train_start=train_start,
-                train_end=train_end,
-                test_start=test_start,
-                test_end=test_end,
-                window_index=window_index,
-            ))
+            windows.append(
+                WalkForwardWindow(
+                    train_start=train_start,
+                    train_end=train_end,
+                    test_start=test_start,
+                    test_end=test_end,
+                    window_index=window_index,
+                )
+            )
 
             current_start += timedelta(days=self.step_days)
             window_index += 1
@@ -197,12 +203,10 @@ class StrategyOptimizer:
                 for window in windows:
                     # Get data for this window
                     train_data = ohlcv[
-                        (ohlcv.index >= window.train_start) &
-                        (ohlcv.index < window.train_end)
+                        (ohlcv.index >= window.train_start) & (ohlcv.index < window.train_end)
                     ]
                     test_data = ohlcv[
-                        (ohlcv.index >= window.test_start) &
-                        (ohlcv.index < window.test_end)
+                        (ohlcv.index >= window.test_start) & (ohlcv.index < window.test_end)
                     ]
 
                     if len(train_data) < 100 or len(test_data) < 20:
@@ -214,16 +218,12 @@ class StrategyOptimizer:
                     # Backtest on training data
                     train_trades = self._backtest(strategy, train_data)
                     train_metrics = self._calculate_metrics(train_trades)
-                    in_sample_scores.append(
-                        self._get_objective_value(train_metrics, objective)
-                    )
+                    in_sample_scores.append(self._get_objective_value(train_metrics, objective))
 
                     # Backtest on test data (out-of-sample)
                     test_trades = self._backtest(strategy, test_data)
                     test_metrics = self._calculate_metrics(test_trades)
-                    out_sample_scores.append(
-                        self._get_objective_value(test_metrics, objective)
-                    )
+                    out_sample_scores.append(self._get_objective_value(test_metrics, objective))
 
                 if not out_sample_scores:
                     continue
@@ -263,7 +263,9 @@ class StrategyOptimizer:
         optimization_time = (datetime.now() - start_time).total_seconds()
 
         return OptimizationResult(
-            strategy_name=strategy_class.__name__ if hasattr(strategy_class, '__name__') else str(strategy_class),
+            strategy_name=strategy_class.__name__
+            if hasattr(strategy_class, "__name__")
+            else str(strategy_class),
             best_params=best_params,
             best_score=best_score,
             objective=objective,
@@ -300,7 +302,7 @@ class StrategyOptimizer:
             return trades
 
         for i in range(min_rows, len(ohlcv)):
-            window = ohlcv.iloc[:i+1]
+            window = ohlcv.iloc[: i + 1]
             current_price = window["close"].iloc[-1]
             timestamp = window.index[-1]
 
@@ -357,19 +359,25 @@ class StrategyOptimizer:
                 if should_exit:
                     # Calculate P&L
                     if position["side"] == "long":
-                        pnl_pct = (current_price - position["entry_price"]) / position["entry_price"]
+                        pnl_pct = (current_price - position["entry_price"]) / position[
+                            "entry_price"
+                        ]
                     else:
-                        pnl_pct = (position["entry_price"] - current_price) / position["entry_price"]
+                        pnl_pct = (position["entry_price"] - current_price) / position[
+                            "entry_price"
+                        ]
 
-                    trades.append({
-                        "entry_price": position["entry_price"],
-                        "exit_price": current_price,
-                        "side": position["side"],
-                        "pnl_pct": pnl_pct,
-                        "exit_reason": exit_reason,
-                        "entry_time": position["entry_time"],
-                        "exit_time": timestamp,
-                    })
+                    trades.append(
+                        {
+                            "entry_price": position["entry_price"],
+                            "exit_price": current_price,
+                            "side": position["side"],
+                            "pnl_pct": pnl_pct,
+                            "exit_reason": exit_reason,
+                            "entry_time": position["entry_time"],
+                            "exit_time": timestamp,
+                        }
+                    )
 
                     position = None
 

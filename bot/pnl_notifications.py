@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 class NotificationType(Enum):
     """Types of PnL notifications."""
+
     PROFIT_MILESTONE = "profit_milestone"
     LOSS_ALERT = "loss_alert"
     DRAWDOWN_WARNING = "drawdown_warning"
@@ -35,6 +36,7 @@ class NotificationType(Enum):
 
 class NotificationPriority(Enum):
     """Priority levels for notifications."""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -44,6 +46,7 @@ class NotificationPriority(Enum):
 @dataclass
 class NotificationConfig:
     """Configuration for PnL notifications."""
+
     # Profit milestones (trigger notification at these % gains)
     profit_milestones: List[float] = field(default_factory=lambda: [1, 5, 10, 25, 50, 100])
 
@@ -81,6 +84,7 @@ class NotificationConfig:
 @dataclass
 class PnLNotification:
     """A single notification to be sent."""
+
     type: NotificationType
     priority: NotificationPriority
     title: str
@@ -203,17 +207,25 @@ class PnLNotificationManager:
 
         # Calculate metrics
         total_pnl = current_equity - self._starting_equity
-        total_pnl_pct = (total_pnl / self._starting_equity * 100) if self._starting_equity > 0 else 0
+        total_pnl_pct = (
+            (total_pnl / self._starting_equity * 100) if self._starting_equity > 0 else 0
+        )
 
         daily_pnl = current_equity - self._daily_start_equity
-        daily_pnl_pct = (daily_pnl / self._daily_start_equity * 100) if self._daily_start_equity > 0 else 0
+        daily_pnl_pct = (
+            (daily_pnl / self._daily_start_equity * 100) if self._daily_start_equity > 0 else 0
+        )
 
         # Update peak
         if current_equity > self._peak_equity:
             self._peak_equity = current_equity
 
         # Calculate drawdown
-        drawdown = (self._peak_equity - current_equity) / self._peak_equity * 100 if self._peak_equity > 0 else 0
+        drawdown = (
+            (self._peak_equity - current_equity) / self._peak_equity * 100
+            if self._peak_equity > 0
+            else 0
+        )
 
         # Check quiet hours
         if self._in_quiet_hours():
@@ -225,7 +237,9 @@ class PnLNotificationManager:
                 if self._can_notify("profit"):
                     notif = PnLNotification(
                         type=NotificationType.PROFIT_MILESTONE,
-                        priority=NotificationPriority.MEDIUM if milestone < 25 else NotificationPriority.HIGH,
+                        priority=NotificationPriority.MEDIUM
+                        if milestone < 25
+                        else NotificationPriority.HIGH,
                         title=f"Profit Milestone: +{milestone}%",
                         message=f"Portfolio has reached +{total_pnl_pct:.1f}% total profit (${total_pnl:.2f})",
                         pnl_value=total_pnl,
@@ -242,7 +256,9 @@ class PnLNotificationManager:
                 if self._can_notify("loss"):
                     notif = PnLNotification(
                         type=NotificationType.LOSS_ALERT,
-                        priority=NotificationPriority.HIGH if threshold <= -10 else NotificationPriority.MEDIUM,
+                        priority=NotificationPriority.HIGH
+                        if threshold <= -10
+                        else NotificationPriority.MEDIUM,
                         title=f"Loss Alert: {threshold}%",
                         message=f"Portfolio is down {total_pnl_pct:.1f}% (${total_pnl:.2f})",
                         pnl_value=total_pnl,
@@ -473,11 +489,13 @@ class PnLNotificationManager:
             key=lambda x: x[1],
             reverse=True,
         )[:limit]:
-            history.append({
-                "type": ntype,
-                "timestamp": timestamp.isoformat(),
-                "time_ago": str(datetime.now() - timestamp),
-            })
+            history.append(
+                {
+                    "type": ntype,
+                    "timestamp": timestamp.isoformat(),
+                    "time_ago": str(datetime.now() - timestamp),
+                }
+            )
 
         return history
 
@@ -494,9 +512,7 @@ class PnLNotificationManager:
             "notified_milestones": self._notified_milestones,
             "win_streak": self._win_streak,
             "loss_streak": self._loss_streak,
-            "last_notifications": {
-                k: v.isoformat() for k, v in self._last_notifications.items()
-            },
+            "last_notifications": {k: v.isoformat() for k, v in self._last_notifications.items()},
             "config": {
                 "profit_milestones": self.config.profit_milestones,
                 "loss_thresholds": self.config.loss_thresholds,

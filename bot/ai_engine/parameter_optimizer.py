@@ -35,6 +35,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ParameterSpace:
     """Defines the search space for a parameter."""
+
     name: str
     min_val: float
     max_val: float
@@ -45,6 +46,7 @@ class ParameterSpace:
 @dataclass
 class OptimizationConfig:
     """Configuration for optimization run."""
+
     symbol: str
     regime: str
     backtest_days: int = 90
@@ -98,19 +100,13 @@ class ParameterOptimizer:
         params = {}
         for space in self.param_spaces:
             if space.param_type == "int":
-                params[space.name] = random.randint(
-                    int(space.min_val), int(space.max_val)
-                )
+                params[space.name] = random.randint(int(space.min_val), int(space.max_val))
             else:
                 n_steps = int((space.max_val - space.min_val) / space.step)
                 params[space.name] = space.min_val + random.randint(0, n_steps) * space.step
         return params
 
-    def _mutate_params(
-        self,
-        params: Dict[str, Any],
-        mutation_rate: float = 0.3
-    ) -> Dict[str, Any]:
+    def _mutate_params(self, params: Dict[str, Any], mutation_rate: float = 0.3) -> Dict[str, Any]:
         """Mutate parameters slightly for local search."""
         new_params = params.copy()
         for space in self.param_spaces:
@@ -119,23 +115,15 @@ class ParameterOptimizer:
                     delta = random.randint(-2, 2) * int(space.step)
                     new_val = params[space.name] + delta
                     new_params[space.name] = max(
-                        int(space.min_val),
-                        min(int(space.max_val), new_val)
+                        int(space.min_val), min(int(space.max_val), new_val)
                     )
                 else:
                     delta = random.choice([-1, 0, 1]) * space.step
                     new_val = params[space.name] + delta
-                    new_params[space.name] = max(
-                        space.min_val,
-                        min(space.max_val, new_val)
-                    )
+                    new_params[space.name] = max(space.min_val, min(space.max_val, new_val))
         return new_params
 
-    def _crossover(
-        self,
-        params1: Dict[str, Any],
-        params2: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def _crossover(self, params1: Dict[str, Any], params2: Dict[str, Any]) -> Dict[str, Any]:
         """Crossover two parameter sets."""
         child = {}
         for space in self.param_spaces:
@@ -169,15 +157,18 @@ class ParameterOptimizer:
         self._results_cache[cache_key] = []
 
         best_params = None
-        best_score = float('-inf')
+        best_score = float("-inf")
 
         # Phase 1: Random exploration
         for i in range(config.n_random_starts):
             params = self._sample_random()
 
             # Ensure ema_fast < ema_slow
-            if params.get('ema_fast', 0) >= params.get('ema_slow', 100):
-                params['ema_fast'], params['ema_slow'] = params['ema_slow'] - 5, params['ema_fast'] + 5
+            if params.get("ema_fast", 0) >= params.get("ema_slow", 100):
+                params["ema_fast"], params["ema_slow"] = (
+                    params["ema_slow"] - 5,
+                    params["ema_fast"] + 5,
+                )
 
             try:
                 metrics = backtest_fn(params)
@@ -199,9 +190,7 @@ class ParameterOptimizer:
         for i in range(config.n_random_starts, config.n_trials):
             # Get top performers
             sorted_results = sorted(
-                self._results_cache[cache_key],
-                key=lambda x: x[1],
-                reverse=True
+                self._results_cache[cache_key], key=lambda x: x[1], reverse=True
             )[:5]
 
             if len(sorted_results) >= 2:
@@ -217,8 +206,8 @@ class ParameterOptimizer:
                 params = self._sample_random()
 
             # Ensure ema_fast < ema_slow
-            if params.get('ema_fast', 0) >= params.get('ema_slow', 100):
-                params['ema_fast'] = params['ema_slow'] - 5
+            if params.get("ema_fast", 0) >= params.get("ema_slow", 100):
+                params["ema_fast"] = params["ema_slow"] - 5
 
             try:
                 metrics = backtest_fn(params)
@@ -248,11 +237,11 @@ class ParameterOptimizer:
                     symbol=config.symbol,
                     regime=config.regime,
                     parameters=best_params,
-                    sharpe_ratio=best_metrics.get('sharpe_ratio', 0),
-                    win_rate=best_metrics.get('win_rate', 0),
-                    total_return=best_metrics.get('total_return', 0),
-                    max_drawdown=best_metrics.get('max_drawdown', 0),
-                    num_trades=best_metrics.get('num_trades', 0),
+                    sharpe_ratio=best_metrics.get("sharpe_ratio", 0),
+                    win_rate=best_metrics.get("win_rate", 0),
+                    total_return=best_metrics.get("total_return", 0),
+                    max_drawdown=best_metrics.get("max_drawdown", 0),
+                    num_trades=best_metrics.get("num_trades", 0),
                     backtest_period_days=config.backtest_days,
                 )
                 self.db.save_optimization_result(result)
@@ -264,11 +253,7 @@ class ParameterOptimizer:
         logger.info(f"Optimization complete: best {config.objective}={best_score:.4f}")
         return best_params, best_score
 
-    def get_best_params(
-        self,
-        symbol: str,
-        regime: str
-    ) -> Optional[Dict[str, Any]]:
+    def get_best_params(self, symbol: str, regime: str) -> Optional[Dict[str, Any]]:
         """Get cached or database best parameters."""
         cache_key = f"{symbol}_{regime}"
 
@@ -296,9 +281,7 @@ class ParameterOptimizer:
         return params
 
     def get_regime_adjusted_params(
-        self,
-        base_params: Dict[str, Any],
-        regime: str
+        self, base_params: Dict[str, Any], regime: str
     ) -> Dict[str, Any]:
         """
         Adjust parameters based on market regime.
@@ -309,33 +292,29 @@ class ParameterOptimizer:
 
         if regime in ["strong_bull", "bull"]:
             # In bull markets: trend following, wider stops
-            params['ema_fast'] = max(8, params.get('ema_fast', 12) - 2)
-            params['atr_multiplier_sl'] = min(3.0, params.get('atr_multiplier_sl', 2.0) + 0.5)
-            params['adx_threshold'] = max(15, params.get('adx_threshold', 20) - 5)
+            params["ema_fast"] = max(8, params.get("ema_fast", 12) - 2)
+            params["atr_multiplier_sl"] = min(3.0, params.get("atr_multiplier_sl", 2.0) + 0.5)
+            params["adx_threshold"] = max(15, params.get("adx_threshold", 20) - 5)
 
         elif regime in ["strong_bear", "bear"]:
             # In bear markets: faster signals, tighter stops
-            params['ema_fast'] = min(15, params.get('ema_fast', 12) + 2)
-            params['atr_multiplier_sl'] = max(1.5, params.get('atr_multiplier_sl', 2.0) - 0.25)
+            params["ema_fast"] = min(15, params.get("ema_fast", 12) + 2)
+            params["atr_multiplier_sl"] = max(1.5, params.get("atr_multiplier_sl", 2.0) - 0.25)
 
         elif regime in ["sideways", "ranging"]:
             # In sideways: mean reversion, RSI-focused
-            params['rsi_overbought'] = min(75, params.get('rsi_overbought', 70) + 5)
-            params['rsi_oversold'] = max(25, params.get('rsi_oversold', 30) - 5)
-            params['adx_threshold'] = min(30, params.get('adx_threshold', 20) + 5)
+            params["rsi_overbought"] = min(75, params.get("rsi_overbought", 70) + 5)
+            params["rsi_oversold"] = max(25, params.get("rsi_oversold", 30) - 5)
+            params["adx_threshold"] = min(30, params.get("adx_threshold", 20) + 5)
 
         elif regime in ["volatile", "high_vol", "crash"]:
             # In volatile: tight stops, smaller positions
-            params['atr_multiplier_sl'] = max(1.0, params.get('atr_multiplier_sl', 2.0) - 0.5)
-            params['atr_multiplier_tp'] = max(1.5, params.get('atr_multiplier_tp', 3.0) - 0.5)
+            params["atr_multiplier_sl"] = max(1.0, params.get("atr_multiplier_sl", 2.0) - 0.5)
+            params["atr_multiplier_tp"] = max(1.5, params.get("atr_multiplier_tp", 3.0) - 0.5)
 
         return params
 
-    def analyze_parameter_importance(
-        self,
-        symbol: str,
-        regime: str
-    ) -> Dict[str, float]:
+    def analyze_parameter_importance(self, symbol: str, regime: str) -> Dict[str, float]:
         """
         Analyze which parameters have the most impact on performance.
 

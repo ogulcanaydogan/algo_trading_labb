@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class DailyReport:
     """Daily performance report."""
+
     date: str
     starting_balance: float
     ending_balance: float
@@ -124,15 +125,15 @@ class DailyReport:
                     </tr>
                     <tr>
                         <td>Best Trade</td>
-                        <td>{self.best_trade.get('symbol', 'N/A')}</td>
-                        <td class="positive">${self.best_trade.get('pnl', 0):+,.2f}</td>
-                        <td class="positive">{self.best_trade.get('pnl_pct', 0):+.2f}%</td>
+                        <td>{self.best_trade.get("symbol", "N/A")}</td>
+                        <td class="positive">${self.best_trade.get("pnl", 0):+,.2f}</td>
+                        <td class="positive">{self.best_trade.get("pnl_pct", 0):+.2f}%</td>
                     </tr>
                     <tr>
                         <td>Worst Trade</td>
-                        <td>{self.worst_trade.get('symbol', 'N/A')}</td>
-                        <td class="negative">${self.worst_trade.get('pnl', 0):+,.2f}</td>
-                        <td class="negative">{self.worst_trade.get('pnl_pct', 0):+.2f}%</td>
+                        <td>{self.worst_trade.get("symbol", "N/A")}</td>
+                        <td class="negative">${self.worst_trade.get("pnl", 0):+,.2f}</td>
+                        <td class="negative">{self.worst_trade.get("pnl_pct", 0):+.2f}%</td>
                     </tr>
                 </table>
             </div>
@@ -149,13 +150,13 @@ class DailyReport:
         """
 
         for pos in self.open_positions:
-            upnl = pos.get('unrealized_pnl', 0)
+            upnl = pos.get("unrealized_pnl", 0)
             upnl_color = "#00cc00" if upnl >= 0 else "#cc0000"
             html += f"""
                     <tr>
-                        <td>{pos.get('symbol', 'N/A')}</td>
-                        <td>{pos.get('side', 'N/A').upper()}</td>
-                        <td>${pos.get('entry_price', 0):,.2f}</td>
+                        <td>{pos.get("symbol", "N/A")}</td>
+                        <td>{pos.get("side", "N/A").upper()}</td>
+                        <td>${pos.get("entry_price", 0):,.2f}</td>
                         <td style="color: {upnl_color};">${upnl:+,.2f}</td>
                     </tr>
             """
@@ -176,6 +177,7 @@ class DailyReport:
 @dataclass
 class WeeklyReport:
     """Weekly performance report."""
+
     week_start: str
     week_end: str
     starting_balance: float
@@ -278,8 +280,16 @@ class PerformanceReporter:
         # Calculate metrics
         today_equity = [e for e in equity_history if e.get("timestamp", "").startswith(date)]
 
-        starting_balance = today_equity[0].get("equity", today_equity[0].get("balance", 10000)) if today_equity else state.get("initial_capital", 10000)
-        ending_balance = today_equity[-1].get("equity", today_equity[-1].get("balance", 10000)) if today_equity else state.get("balance", 10000)
+        starting_balance = (
+            today_equity[0].get("equity", today_equity[0].get("balance", 10000))
+            if today_equity
+            else state.get("initial_capital", 10000)
+        )
+        ending_balance = (
+            today_equity[-1].get("equity", today_equity[-1].get("balance", 10000))
+            if today_equity
+            else state.get("balance", 10000)
+        )
 
         daily_pnl = ending_balance - starting_balance
         daily_pnl_pct = (daily_pnl / starting_balance * 100) if starting_balance > 0 else 0
@@ -323,14 +333,19 @@ class PerformanceReporter:
         if len(today_equity) > 1:
             returns = []
             for i in range(1, len(today_equity)):
-                prev_eq = get_eq(today_equity[i-1])
+                prev_eq = get_eq(today_equity[i - 1])
                 curr_eq = get_eq(today_equity[i])
                 if prev_eq > 0:
                     ret = (curr_eq - prev_eq) / prev_eq
                     returns.append(ret)
 
             import numpy as np
-            sharpe = (np.mean(returns) / np.std(returns)) * np.sqrt(252) if returns and np.std(returns) > 0 else 0
+
+            sharpe = (
+                (np.mean(returns) / np.std(returns)) * np.sqrt(252)
+                if returns and np.std(returns) > 0
+                else 0
+            )
         else:
             sharpe = 0
 
@@ -388,8 +403,7 @@ class PerformanceReporter:
             with open(trades_file) as f:
                 all_trades = json.load(f)
                 trades = [
-                    t for t in all_trades
-                    if week_start <= t.get("timestamp", "")[:10] <= week_end
+                    t for t in all_trades if week_start <= t.get("timestamp", "")[:10] <= week_end
                 ]
 
         # Load state
@@ -408,15 +422,16 @@ class PerformanceReporter:
 
         # Filter equity for the week
         week_equity = [
-            e for e in equity_history
-            if week_start <= e.get("timestamp", "")[:10] <= week_end
+            e for e in equity_history if week_start <= e.get("timestamp", "")[:10] <= week_end
         ]
 
         # Helper to get equity/balance
         def get_eq(e):
             return e.get("equity", e.get("balance", 10000))
 
-        starting_balance = get_eq(week_equity[0]) if week_equity else state.get("initial_capital", 10000)
+        starting_balance = (
+            get_eq(week_equity[0]) if week_equity else state.get("initial_capital", 10000)
+        )
         ending_balance = get_eq(week_equity[-1]) if week_equity else state.get("balance", 10000)
 
         weekly_pnl = ending_balance - starting_balance
@@ -430,13 +445,15 @@ class PerformanceReporter:
             day_trades = [t for t in trades if t.get("timestamp", "").startswith(day_str)]
             day_pnl = sum(t.get("pnl", 0) for t in day_trades)
 
-            daily_breakdown.append({
-                "date": day_str,
-                "day": day_dt.strftime("%A"),
-                "trades": len(day_trades),
-                "pnl": day_pnl,
-                "wins": sum(1 for t in day_trades if t.get("pnl", 0) > 0),
-            })
+            daily_breakdown.append(
+                {
+                    "date": day_str,
+                    "day": day_dt.strftime("%A"),
+                    "trades": len(day_trades),
+                    "pnl": day_pnl,
+                    "wins": sum(1 for t in day_trades if t.get("pnl", 0) > 0),
+                }
+            )
 
         # Best/worst day
         best_day = max(daily_breakdown, key=lambda d: d["pnl"]) if daily_breakdown else {}
@@ -458,12 +475,11 @@ class PerformanceReporter:
         top_performers = sorted(
             [{"symbol": k, **v} for k, v in symbol_performance.items()],
             key=lambda x: x["pnl"],
-            reverse=True
+            reverse=True,
         )[:3]
 
         worst_performers = sorted(
-            [{"symbol": k, **v} for k, v in symbol_performance.items()],
-            key=lambda x: x["pnl"]
+            [{"symbol": k, **v} for k, v in symbol_performance.items()], key=lambda x: x["pnl"]
         )[:3]
 
         # Calculate ratios
@@ -549,11 +565,13 @@ class PerformanceReporter:
         subject: Optional[str] = None,
     ) -> bool:
         """Send report via email."""
-        if not all([
-            self.email_config.get("sender_email"),
-            self.email_config.get("sender_password"),
-            self.email_config.get("recipient_email"),
-        ]):
+        if not all(
+            [
+                self.email_config.get("sender_email"),
+                self.email_config.get("sender_password"),
+                self.email_config.get("recipient_email"),
+            ]
+        ):
             logger.warning("Email not configured - skipping email send")
             return False
 

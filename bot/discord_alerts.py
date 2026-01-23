@@ -48,9 +48,9 @@ class DiscordAlerts:
 
     # Colors for embeds
     COLOR_SUCCESS = 0x00FF00  # Green
-    COLOR_DANGER = 0xFF0000   # Red
+    COLOR_DANGER = 0xFF0000  # Red
     COLOR_WARNING = 0xFFAA00  # Orange
-    COLOR_INFO = 0x0099FF     # Blue
+    COLOR_INFO = 0x0099FF  # Blue
     COLOR_NEUTRAL = 0x808080  # Gray
 
     def __init__(self, config: Optional[DiscordConfig] = None):
@@ -189,7 +189,11 @@ class DiscordAlerts:
             "fields": [
                 {"name": "Starting Balance", "value": f"${starting_balance:,.2f}", "inline": True},
                 {"name": "Ending Balance", "value": f"${ending_balance:,.2f}", "inline": True},
-                {"name": "Day P&L", "value": f"${total_pnl:+,.2f} ({pnl_pct:+.2f}%)", "inline": True},
+                {
+                    "name": "Day P&L",
+                    "value": f"${total_pnl:+,.2f} ({pnl_pct:+.2f}%)",
+                    "inline": True,
+                },
                 {"name": "Trades", "value": str(trades_count), "inline": True},
                 {"name": "Win Rate", "value": f"{win_rate:.1f}%", "inline": True},
                 {"name": "Winners", "value": f"{winning_trades}/{trades_count}", "inline": True},
@@ -286,7 +290,11 @@ class DiscordAlerts:
             "fields": [
                 {"name": "Mode", "value": mode.upper(), "inline": True},
                 {"name": "Balance", "value": f"${balance:,.2f}", "inline": True},
-                {"name": "Symbols", "value": ", ".join(symbols[:5]) + ("..." if len(symbols) > 5 else ""), "inline": False},
+                {
+                    "name": "Symbols",
+                    "value": ", ".join(symbols[:5]) + ("..." if len(symbols) > 5 else ""),
+                    "inline": False,
+                },
             ],
             "timestamp": datetime.utcnow().isoformat(),
             "footer": {"text": self.config.bot_name},

@@ -21,6 +21,7 @@ import pandas as pd
 try:
     import torch
     import torch.nn as nn
+
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
@@ -30,6 +31,7 @@ logger = logging.getLogger(__name__)
 
 # Deep Learning model definitions (must match training script)
 if TORCH_AVAILABLE:
+
     class SimpleLSTM(nn.Module):
         """Simple LSTM for price prediction."""
 
@@ -40,13 +42,13 @@ if TORCH_AVAILABLE:
                 hidden_size=hidden_size,
                 num_layers=num_layers,
                 batch_first=True,
-                dropout=dropout if num_layers > 1 else 0
+                dropout=dropout if num_layers > 1 else 0,
             )
             self.fc = nn.Sequential(
                 nn.Linear(hidden_size, hidden_size // 2),
                 nn.ReLU(),
                 nn.Dropout(dropout),
-                nn.Linear(hidden_size // 2, output_size)
+                nn.Linear(hidden_size // 2, output_size),
             )
 
         def forward(self, x):
@@ -57,19 +59,24 @@ if TORCH_AVAILABLE:
     class SimpleTransformer(nn.Module):
         """Simple Transformer for price prediction."""
 
-        def __init__(self, input_size, d_model=64, nhead=4, num_layers=2, output_size=3, dropout=0.3):
+        def __init__(
+            self, input_size, d_model=64, nhead=4, num_layers=2, output_size=3, dropout=0.3
+        ):
             super().__init__()
             self.input_proj = nn.Linear(input_size, d_model)
             encoder_layer = nn.TransformerEncoderLayer(
-                d_model=d_model, nhead=nhead,
-                dim_feedforward=d_model * 4, dropout=dropout, batch_first=True
+                d_model=d_model,
+                nhead=nhead,
+                dim_feedforward=d_model * 4,
+                dropout=dropout,
+                batch_first=True,
             )
             self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
             self.fc = nn.Sequential(
                 nn.Linear(d_model, d_model // 2),
                 nn.ReLU(),
                 nn.Dropout(dropout),
-                nn.Linear(d_model // 2, output_size)
+                nn.Linear(d_model // 2, output_size),
             )
 
         def forward(self, x):
@@ -84,8 +91,10 @@ if TORCH_AVAILABLE:
         def __init__(self, input_size, hidden_size=48, num_layers=1, output_size=3, dropout=0.5):
             super().__init__()
             self.lstm = nn.LSTM(
-                input_size=input_size, hidden_size=hidden_size,
-                num_layers=num_layers, batch_first=True
+                input_size=input_size,
+                hidden_size=hidden_size,
+                num_layers=num_layers,
+                batch_first=True,
             )
             self.dropout = nn.Dropout(dropout)
             self.fc = nn.Linear(hidden_size, output_size)
@@ -99,13 +108,18 @@ if TORCH_AVAILABLE:
     class RegularizedTransformer(nn.Module):
         """Transformer with strong regularization."""
 
-        def __init__(self, input_size, d_model=48, nhead=4, num_layers=1, output_size=3, dropout=0.5):
+        def __init__(
+            self, input_size, d_model=48, nhead=4, num_layers=1, output_size=3, dropout=0.5
+        ):
             super().__init__()
             self.input_proj = nn.Linear(input_size, d_model)
             self.dropout1 = nn.Dropout(dropout)
             encoder_layer = nn.TransformerEncoderLayer(
-                d_model=d_model, nhead=nhead,
-                dim_feedforward=d_model * 2, dropout=dropout, batch_first=True
+                d_model=d_model,
+                nhead=nhead,
+                dim_feedforward=d_model * 2,
+                dropout=dropout,
+                batch_first=True,
             )
             self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
             self.dropout2 = nn.Dropout(dropout)
@@ -154,7 +168,7 @@ class EnsemblePredictor:
         self.dl_models: Dict[str, Any] = {}
         self.dl_scalers: Dict[str, Any] = {}
         self.dl_meta: Dict[str, Dict] = {}
-        self.dl_device = torch.device('cpu') if TORCH_AVAILABLE else None
+        self.dl_device = torch.device("cpu") if TORCH_AVAILABLE else None
 
         # Weights and accuracies
         self.model_weights: Dict[str, float] = {}
@@ -163,10 +177,10 @@ class EnsemblePredictor:
         # Sequence buffer for DL models
         self.feature_buffer: List[np.ndarray] = []
         self.seq_length = 30  # Default, updated when loading models
-        
+
     def load_models(self) -> bool:
         """Load all available models for the symbol."""
-        symbol_clean = self.symbol.replace('/', '_')
+        symbol_clean = self.symbol.replace("/", "_")
 
         # Load traditional ML models
         ml_loaded = self._load_ml_models(symbol_clean)
@@ -180,8 +194,10 @@ class EnsemblePredictor:
 
         if total_loaded > 0:
             self._initialize_weights()
-            logger.info(f"Ensemble loaded {total_loaded} models for {self.symbol} "
-                       f"(ML: {ml_loaded}, DL: {dl_loaded})")
+            logger.info(
+                f"Ensemble loaded {total_loaded} models for {self.symbol} "
+                f"(ML: {ml_loaded}, DL: {dl_loaded})"
+            )
             return True
         else:
             logger.warning(f"No models loaded for {self.symbol}")
@@ -189,7 +205,7 @@ class EnsemblePredictor:
 
     def _load_ml_models(self, symbol_clean: str) -> int:
         """Load traditional ML models."""
-        model_types = ['random_forest', 'gradient_boosting', 'xgboost']
+        model_types = ["random_forest", "gradient_boosting", "xgboost"]
         loaded_count = 0
 
         for model_type in model_types:
@@ -210,14 +226,14 @@ class EnsemblePredictor:
                     # Load accuracy - try per-model meta first
                     accuracy = 0.4  # Default
                     if per_model_meta.exists():
-                        with open(per_model_meta, 'r') as f:
+                        with open(per_model_meta, "r") as f:
                             meta = json.load(f)
-                            accuracy = meta.get('accuracy', meta.get('cv_mean', 0.4))
+                            accuracy = meta.get("accuracy", meta.get("cv_mean", 0.4))
                     elif combined_meta.exists():
-                        with open(combined_meta, 'r') as f:
+                        with open(combined_meta, "r") as f:
                             meta = json.load(f)
-                            if 'models' in meta and model_type in meta['models']:
-                                accuracy = meta['models'][model_type].get('cv_accuracy', 0.4)
+                            if "models" in meta and model_type in meta["models"]:
+                                accuracy = meta["models"][model_type].get("cv_accuracy", 0.4)
 
                     self.model_accuracies[model_type] = accuracy
                     loaded_count += 1
@@ -236,15 +252,27 @@ class EnsemblePredictor:
 
         # Try loading different DL model variants
         dl_variants = [
-            ('lstm', SimpleLSTM, {'hidden_size': 64, 'num_layers': 2, 'dropout': 0.3}),
-            ('transformer', SimpleTransformer, {'d_model': 64, 'nhead': 4, 'num_layers': 2, 'dropout': 0.3}),
-            ('lstm_regularized', RegularizedLSTM, {'hidden_size': 48, 'num_layers': 1, 'dropout': 0.5}),
-            ('transformer_regularized', RegularizedTransformer, {'d_model': 48, 'nhead': 4, 'num_layers': 1, 'dropout': 0.5}),
+            ("lstm", SimpleLSTM, {"hidden_size": 64, "num_layers": 2, "dropout": 0.3}),
+            (
+                "transformer",
+                SimpleTransformer,
+                {"d_model": 64, "nhead": 4, "num_layers": 2, "dropout": 0.3},
+            ),
+            (
+                "lstm_regularized",
+                RegularizedLSTM,
+                {"hidden_size": 48, "num_layers": 1, "dropout": 0.5},
+            ),
+            (
+                "transformer_regularized",
+                RegularizedTransformer,
+                {"d_model": 48, "nhead": 4, "num_layers": 1, "dropout": 0.5},
+            ),
         ]
 
         for model_name, model_class, default_params in dl_variants:
             # Check multiple naming conventions
-            if 'regularized' in model_name:
+            if "regularized" in model_name:
                 model_paths = [
                     self.model_dir / f"{symbol_clean}_{model_name}.pt",
                     self.model_dir / f"{symbol_clean}_dl_{model_name}.pt",
@@ -288,18 +316,18 @@ class EnsemblePredictor:
                 accuracy = 0.35  # Default for DL
 
                 if meta_path and meta_path.exists():
-                    with open(meta_path, 'r') as f:
+                    with open(meta_path, "r") as f:
                         meta = json.load(f)
-                        input_size = meta.get('n_features', meta.get('input_size', 22))
-                        self.seq_length = meta.get('sequence_length', meta.get('seq_length', 20))
-                        accuracy = meta.get('accuracy', 0.35)
+                        input_size = meta.get("n_features", meta.get("input_size", 22))
+                        self.seq_length = meta.get("sequence_length", meta.get("seq_length", 20))
+                        accuracy = meta.get("accuracy", 0.35)
                         self.dl_meta[model_name] = meta
                 else:
                     # Try combined meta
                     results = {}
-                    base_name = model_name.replace('_regularized', '')
+                    base_name = model_name.replace("_regularized", "")
                     if base_name in results:
-                        accuracy = results[base_name].get('test_accuracy', 35) / 100
+                        accuracy = results[base_name].get("test_accuracy", 35) / 100
 
                 # Create and load model
                 model = model_class(input_size=input_size, **default_params)
@@ -330,8 +358,8 @@ class EnsemblePredictor:
 
         # Keep buffer at seq_length
         if len(self.feature_buffer) > self.seq_length:
-            self.feature_buffer = self.feature_buffer[-self.seq_length:]
-    
+            self.feature_buffer = self.feature_buffer[-self.seq_length :]
+
     def _initialize_weights(self) -> None:
         """Initialize voting weights based on strategy."""
         # Combine all model types
@@ -364,7 +392,7 @@ class EnsemblePredictor:
                     self.model_weights[model_type] = 1.0 / n_models
 
         logger.info(f"Ensemble weights: {self.model_weights}")
-    
+
     def predict(self, features: np.ndarray) -> Tuple[int, float, Dict[str, Any]]:
         """
         Generate ensemble prediction.
@@ -391,20 +419,20 @@ class EnsemblePredictor:
             predictions.update(self._predict_dl())
 
         if not predictions:
-            return 0, 0.0, {'error': 'No predictions generated'}
+            return 0, 0.0, {"error": "No predictions generated"}
 
         # Combine predictions using voting strategy
         final_prediction, final_confidence = self._vote(predictions)
 
         # Prepare details
         details = {
-            'individual_predictions': predictions,
-            'weights': self.model_weights,
-            'voting_strategy': self.voting_strategy,
-            'num_models': len(predictions),
-            'ml_models': len(self.models),
-            'dl_models': len(self.dl_models),
-            'dl_buffer_ready': len(self.feature_buffer) >= self.seq_length
+            "individual_predictions": predictions,
+            "weights": self.model_weights,
+            "voting_strategy": self.voting_strategy,
+            "num_models": len(predictions),
+            "ml_models": len(self.models),
+            "dl_models": len(self.dl_models),
+            "dl_buffer_ready": len(self.feature_buffer) >= self.seq_length,
         }
 
         return final_prediction, final_confidence, details
@@ -423,7 +451,9 @@ class EnsemblePredictor:
                     if expected_features == actual_features:
                         features_scaled = self.scalers[model_type].transform(features_2d)
                     else:
-                        logger.debug(f"Skipping scaler for {model_type}: expects {expected_features}, got {actual_features}")
+                        logger.debug(
+                            f"Skipping scaler for {model_type}: expects {expected_features}, got {actual_features}"
+                        )
                         features_scaled = features_2d
                 else:
                     features_scaled = features.reshape(1, -1) if features.ndim == 1 else features
@@ -438,19 +468,15 @@ class EnsemblePredictor:
                 pred = pred_map.get(int(raw_pred), 0)
 
                 # Get probability if available
-                if hasattr(model, 'predict_proba'):
+                if hasattr(model, "predict_proba"):
                     proba = model.predict_proba(features_scaled)[0]
                     predictions[model_type] = {
-                        'prediction': pred,
-                        'confidence': float(max(proba)),
-                        'type': 'ml'
+                        "prediction": pred,
+                        "confidence": float(max(proba)),
+                        "type": "ml",
                     }
                 else:
-                    predictions[model_type] = {
-                        'prediction': pred,
-                        'confidence': 0.7,
-                        'type': 'ml'
-                    }
+                    predictions[model_type] = {"prediction": pred, "confidence": 0.7, "type": "ml"}
             except Exception as e:
                 logger.warning(f"ML prediction failed for {model_type}: {e}")
 
@@ -464,7 +490,7 @@ class EnsemblePredictor:
         predictions = {}
 
         # Build sequence from buffer
-        sequence = np.array(self.feature_buffer[-self.seq_length:])
+        sequence = np.array(self.feature_buffer[-self.seq_length :])
 
         for model_name, model in self.dl_models.items():
             try:
@@ -495,58 +521,59 @@ class EnsemblePredictor:
                 pred = pred_map.get(raw_pred, 0)
 
                 predictions[model_name] = {
-                    'prediction': pred,
-                    'confidence': float(max(proba)),
-                    'probabilities': proba.tolist(),
-                    'type': 'dl'
+                    "prediction": pred,
+                    "confidence": float(max(proba)),
+                    "probabilities": proba.tolist(),
+                    "type": "dl",
                 }
 
             except Exception as e:
                 logger.warning(f"DL prediction failed for {model_name}: {e}")
 
         return predictions
-    
+
     def _vote(self, predictions: Dict[str, Dict]) -> Tuple[int, float]:
         """Combine predictions using voting strategy."""
         if not predictions:
             return 0, 0.0  # Flat with zero confidence
-        
+
         if self.voting_strategy == "majority":
             # Simple majority vote
-            votes = [p['prediction'] for p in predictions.values()]
+            votes = [p["prediction"] for p in predictions.values()]
             from collections import Counter
+
             vote_counts = Counter(votes)
             winner = vote_counts.most_common(1)[0][0]
             confidence = vote_counts[winner] / len(votes)
             return winner, confidence
-        
+
         elif self.voting_strategy in ["weighted", "performance"]:
             # Weighted voting
             vote_scores = {1: 0.0, 0: 0.0, -1: 0.0}  # long, flat, short
-            
+
             for model_type, pred_info in predictions.items():
                 weight = self.model_weights.get(model_type, 0.0)
-                pred = pred_info['prediction']
-                conf = pred_info['confidence']
-                
+                pred = pred_info["prediction"]
+                conf = pred_info["confidence"]
+
                 # Weight by both model weight and prediction confidence
                 vote_scores[pred] += weight * conf
-            
+
             # Winner is highest weighted score
             winner = max(vote_scores, key=vote_scores.get)
-            
+
             # Confidence is normalized score
             total_score = sum(vote_scores.values())
             if total_score > 0:
                 confidence = vote_scores[winner] / total_score
             else:
                 confidence = 0.0
-            
+
             return winner, confidence
-        
+
         else:
             raise ValueError(f"Unknown voting strategy: {self.voting_strategy}")
-    
+
     def update_weights(self, model_type: str, accuracy: float) -> None:
         """Update model weight based on recent performance."""
         if self.voting_strategy == "performance":
@@ -556,17 +583,13 @@ class EnsemblePredictor:
 
 
 def create_ensemble_predictor(
-    symbol: str,
-    model_dir: Path = Path("data/models"),
-    voting_strategy: str = "performance"
+    symbol: str, model_dir: Path = Path("data/models"), voting_strategy: str = "performance"
 ) -> Optional[EnsemblePredictor]:
     """Factory function to create and load an ensemble predictor."""
     predictor = EnsemblePredictor(
-        model_dir=model_dir,
-        symbol=symbol,
-        voting_strategy=voting_strategy
+        model_dir=model_dir, symbol=symbol, voting_strategy=voting_strategy
     )
-    
+
     if predictor.load_models():
         return predictor
     else:

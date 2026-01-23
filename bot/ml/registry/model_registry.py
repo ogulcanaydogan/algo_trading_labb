@@ -89,12 +89,14 @@ class ModelRegistry:
         """Register available model classes."""
         try:
             from ..models.deep_learning.lstm import LSTMModel
+
             self.MODEL_CLASSES["lstm"] = LSTMModel
         except ImportError:
             pass
 
         try:
             from ..models.deep_learning.transformer import TransformerModel
+
             self.MODEL_CLASSES["transformer"] = TransformerModel
         except ImportError:
             pass
@@ -274,9 +276,7 @@ class ModelRegistry:
         candidates = [
             model
             for model in self.registered_models.values()
-            if model.symbol == symbol
-            and model.market_type == market_type
-            and model.is_active
+            if model.symbol == symbol and model.market_type == market_type and model.is_active
         ]
 
         if not candidates:

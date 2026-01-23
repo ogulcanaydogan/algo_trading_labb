@@ -21,6 +21,7 @@ import statistics
 @dataclass
 class TradeAnalysis:
     """Analysis of a single trade."""
+
     symbol: str
     side: str
     entry_time: str
@@ -50,6 +51,7 @@ class TradeAnalysis:
 @dataclass
 class PatternInsight:
     """Insight from pattern analysis."""
+
     pattern_name: str
     description: str
     occurrences: int
@@ -93,7 +95,7 @@ class TradeJournalSummary:
 
     def to_dict(self) -> Dict:
         result = asdict(self)
-        result['patterns'] = [asdict(p) for p in self.patterns]
+        result["patterns"] = [asdict(p) for p in self.patterns]
         return result
 
 
@@ -121,7 +123,7 @@ class TradeJournal:
     def _save_journal(self):
         """Save journal to file."""
         try:
-            with open(self.journal_path, 'w') as f:
+            with open(self.journal_path, "w") as f:
                 json.dump([asdict(e) for e in self.entries], f, indent=2)
         except Exception as e:
             print(f"Error saving journal: {e}")
@@ -135,29 +137,29 @@ class TradeJournal:
             context: Optional context (regime, confidence, etc.)
         """
         analysis = TradeAnalysis(
-            symbol=trade.get('symbol', 'unknown'),
-            side=trade.get('side', trade.get('action', '')).lower(),
-            entry_time=trade.get('entry_time', trade.get('timestamp', '')),
-            exit_time=trade.get('exit_time', ''),
-            entry_price=trade.get('entry_price', trade.get('price', 0)),
-            exit_price=trade.get('exit_price', 0),
-            pnl=trade.get('pnl', 0),
-            pnl_pct=trade.get('pnl_pct', 0),
-            hold_time_minutes=trade.get('hold_time_minutes', 0),
-            exit_reason=trade.get('exit_reason', ''),
+            symbol=trade.get("symbol", "unknown"),
+            side=trade.get("side", trade.get("action", "")).lower(),
+            entry_time=trade.get("entry_time", trade.get("timestamp", "")),
+            exit_time=trade.get("exit_time", ""),
+            entry_price=trade.get("entry_price", trade.get("price", 0)),
+            exit_price=trade.get("exit_price", 0),
+            pnl=trade.get("pnl", 0),
+            pnl_pct=trade.get("pnl_pct", 0),
+            hold_time_minutes=trade.get("hold_time_minutes", 0),
+            exit_reason=trade.get("exit_reason", ""),
         )
 
         # Add context
         if context:
-            analysis.regime = context.get('regime', '')
-            analysis.confidence = context.get('confidence', 0)
-            analysis.volatility = context.get('volatility', '')
+            analysis.regime = context.get("regime", "")
+            analysis.confidence = context.get("confidence", 0)
+            analysis.volatility = context.get("volatility", "")
 
         # Calculate MFE/MAE if available
-        if 'max_profit' in trade:
-            analysis.max_favorable_excursion = trade['max_profit']
-        if 'max_loss' in trade:
-            analysis.max_adverse_excursion = trade['max_loss']
+        if "max_profit" in trade:
+            analysis.max_favorable_excursion = trade["max_profit"]
+        if "max_loss" in trade:
+            analysis.max_adverse_excursion = trade["max_loss"]
 
         # Calculate efficiency
         if analysis.max_favorable_excursion > 0:
@@ -265,78 +267,86 @@ class TradeJournal:
             return patterns
 
         # Pattern 1: Time of day analysis
-        hour_perf = defaultdict(lambda: {'wins': 0, 'losses': 0, 'pnl': 0})
+        hour_perf = defaultdict(lambda: {"wins": 0, "losses": 0, "pnl": 0})
         for entry in self.entries:
             try:
                 hour = datetime.fromisoformat(entry.entry_time).hour
                 if entry.pnl > 0:
-                    hour_perf[hour]['wins'] += 1
+                    hour_perf[hour]["wins"] += 1
                 else:
-                    hour_perf[hour]['losses'] += 1
-                hour_perf[hour]['pnl'] += entry.pnl
+                    hour_perf[hour]["losses"] += 1
+                hour_perf[hour]["pnl"] += entry.pnl
             except Exception:
                 pass
 
         # Find best/worst hours
         for hour, data in hour_perf.items():
-            total = data['wins'] + data['losses']
+            total = data["wins"] + data["losses"]
             if total >= 3:
-                win_rate = data['wins'] / total
+                win_rate = data["wins"] / total
                 if win_rate > 0.65:
-                    patterns.append(PatternInsight(
-                        pattern_name=f"strong_hour_{hour}",
-                        description=f"Trading at {hour}:00 shows {win_rate:.0%} win rate",
-                        occurrences=total,
-                        win_rate=win_rate,
-                        avg_pnl=data['pnl'] / total,
-                        confidence=min(1.0, total / 20),
-                        recommendation=f"Prioritize trades around {hour}:00"
-                    ))
+                    patterns.append(
+                        PatternInsight(
+                            pattern_name=f"strong_hour_{hour}",
+                            description=f"Trading at {hour}:00 shows {win_rate:.0%} win rate",
+                            occurrences=total,
+                            win_rate=win_rate,
+                            avg_pnl=data["pnl"] / total,
+                            confidence=min(1.0, total / 20),
+                            recommendation=f"Prioritize trades around {hour}:00",
+                        )
+                    )
                 elif win_rate < 0.35:
-                    patterns.append(PatternInsight(
-                        pattern_name=f"weak_hour_{hour}",
-                        description=f"Trading at {hour}:00 shows only {win_rate:.0%} win rate",
-                        occurrences=total,
-                        win_rate=win_rate,
-                        avg_pnl=data['pnl'] / total,
-                        confidence=min(1.0, total / 20),
-                        recommendation=f"Avoid or reduce trading at {hour}:00"
-                    ))
+                    patterns.append(
+                        PatternInsight(
+                            pattern_name=f"weak_hour_{hour}",
+                            description=f"Trading at {hour}:00 shows only {win_rate:.0%} win rate",
+                            occurrences=total,
+                            win_rate=win_rate,
+                            avg_pnl=data["pnl"] / total,
+                            confidence=min(1.0, total / 20),
+                            recommendation=f"Avoid or reduce trading at {hour}:00",
+                        )
+                    )
 
         # Pattern 2: Regime performance
-        regime_perf = defaultdict(lambda: {'wins': 0, 'losses': 0, 'pnl': 0})
+        regime_perf = defaultdict(lambda: {"wins": 0, "losses": 0, "pnl": 0})
         for entry in self.entries:
             if entry.regime:
                 if entry.pnl > 0:
-                    regime_perf[entry.regime]['wins'] += 1
+                    regime_perf[entry.regime]["wins"] += 1
                 else:
-                    regime_perf[entry.regime]['losses'] += 1
-                regime_perf[entry.regime]['pnl'] += entry.pnl
+                    regime_perf[entry.regime]["losses"] += 1
+                regime_perf[entry.regime]["pnl"] += entry.pnl
 
         for regime, data in regime_perf.items():
-            total = data['wins'] + data['losses']
+            total = data["wins"] + data["losses"]
             if total >= 5:
-                win_rate = data['wins'] / total
+                win_rate = data["wins"] / total
                 if win_rate > 0.6:
-                    patterns.append(PatternInsight(
-                        pattern_name=f"strong_regime_{regime}",
-                        description=f"Strong performance in {regime} regime ({win_rate:.0%} win rate)",
-                        occurrences=total,
-                        win_rate=win_rate,
-                        avg_pnl=data['pnl'] / total,
-                        confidence=min(1.0, total / 15),
-                        recommendation=f"Increase position size in {regime} regime"
-                    ))
+                    patterns.append(
+                        PatternInsight(
+                            pattern_name=f"strong_regime_{regime}",
+                            description=f"Strong performance in {regime} regime ({win_rate:.0%} win rate)",
+                            occurrences=total,
+                            win_rate=win_rate,
+                            avg_pnl=data["pnl"] / total,
+                            confidence=min(1.0, total / 15),
+                            recommendation=f"Increase position size in {regime} regime",
+                        )
+                    )
                 elif win_rate < 0.4:
-                    patterns.append(PatternInsight(
-                        pattern_name=f"weak_regime_{regime}",
-                        description=f"Weak performance in {regime} regime ({win_rate:.0%} win rate)",
-                        occurrences=total,
-                        win_rate=win_rate,
-                        avg_pnl=data['pnl'] / total,
-                        confidence=min(1.0, total / 15),
-                        recommendation=f"Reduce trading or skip {regime} regime"
-                    ))
+                    patterns.append(
+                        PatternInsight(
+                            pattern_name=f"weak_regime_{regime}",
+                            description=f"Weak performance in {regime} regime ({win_rate:.0%} win rate)",
+                            occurrences=total,
+                            win_rate=win_rate,
+                            avg_pnl=data["pnl"] / total,
+                            confidence=min(1.0, total / 15),
+                            recommendation=f"Reduce trading or skip {regime} regime",
+                        )
+                    )
 
         # Pattern 3: Confidence threshold analysis
         high_conf = [e for e in self.entries if e.confidence > 0.65]
@@ -346,30 +356,36 @@ class TradeJournal:
             wins = len([e for e in high_conf if e.pnl > 0])
             win_rate = wins / len(high_conf)
             avg_pnl = statistics.mean([e.pnl for e in high_conf])
-            patterns.append(PatternInsight(
-                pattern_name="high_confidence_trades",
-                description=f"High confidence (>65%) trades: {win_rate:.0%} win rate",
-                occurrences=len(high_conf),
-                win_rate=win_rate,
-                avg_pnl=avg_pnl,
-                confidence=min(1.0, len(high_conf) / 20),
-                recommendation="Trust high confidence signals" if win_rate > 0.55 else "Review confidence calibration"
-            ))
+            patterns.append(
+                PatternInsight(
+                    pattern_name="high_confidence_trades",
+                    description=f"High confidence (>65%) trades: {win_rate:.0%} win rate",
+                    occurrences=len(high_conf),
+                    win_rate=win_rate,
+                    avg_pnl=avg_pnl,
+                    confidence=min(1.0, len(high_conf) / 20),
+                    recommendation="Trust high confidence signals"
+                    if win_rate > 0.55
+                    else "Review confidence calibration",
+                )
+            )
 
         if len(low_conf) >= 5:
             wins = len([e for e in low_conf if e.pnl > 0])
             win_rate = wins / len(low_conf)
             avg_pnl = statistics.mean([e.pnl for e in low_conf])
             if win_rate < 0.45:
-                patterns.append(PatternInsight(
-                    pattern_name="low_confidence_trades",
-                    description=f"Low confidence (<55%) trades underperform: {win_rate:.0%} win rate",
-                    occurrences=len(low_conf),
-                    win_rate=win_rate,
-                    avg_pnl=avg_pnl,
-                    confidence=min(1.0, len(low_conf) / 20),
-                    recommendation="Raise confidence threshold to 0.55+"
-                ))
+                patterns.append(
+                    PatternInsight(
+                        pattern_name="low_confidence_trades",
+                        description=f"Low confidence (<55%) trades underperform: {win_rate:.0%} win rate",
+                        occurrences=len(low_conf),
+                        win_rate=win_rate,
+                        avg_pnl=avg_pnl,
+                        confidence=min(1.0, len(low_conf) / 20),
+                        recommendation="Raise confidence threshold to 0.55+",
+                    )
+                )
 
         # Pattern 4: Hold time analysis
         quick_trades = [e for e in self.entries if e.hold_time_minutes < 30]
@@ -380,25 +396,29 @@ class TradeJournal:
             long_wr = len([e for e in long_trades if e.pnl > 0]) / len(long_trades)
 
             if quick_wr > long_wr + 0.15:
-                patterns.append(PatternInsight(
-                    pattern_name="quick_trades_better",
-                    description=f"Quick trades (<30min) outperform: {quick_wr:.0%} vs {long_wr:.0%}",
-                    occurrences=len(quick_trades),
-                    win_rate=quick_wr,
-                    avg_pnl=statistics.mean([e.pnl for e in quick_trades]),
-                    confidence=0.7,
-                    recommendation="Consider tighter take-profits for faster exits"
-                ))
+                patterns.append(
+                    PatternInsight(
+                        pattern_name="quick_trades_better",
+                        description=f"Quick trades (<30min) outperform: {quick_wr:.0%} vs {long_wr:.0%}",
+                        occurrences=len(quick_trades),
+                        win_rate=quick_wr,
+                        avg_pnl=statistics.mean([e.pnl for e in quick_trades]),
+                        confidence=0.7,
+                        recommendation="Consider tighter take-profits for faster exits",
+                    )
+                )
             elif long_wr > quick_wr + 0.15:
-                patterns.append(PatternInsight(
-                    pattern_name="long_trades_better",
-                    description=f"Longer holds (>60min) outperform: {long_wr:.0%} vs {quick_wr:.0%}",
-                    occurrences=len(long_trades),
-                    win_rate=long_wr,
-                    avg_pnl=statistics.mean([e.pnl for e in long_trades]),
-                    confidence=0.7,
-                    recommendation="Be patient; avoid premature exits"
-                ))
+                patterns.append(
+                    PatternInsight(
+                        pattern_name="long_trades_better",
+                        description=f"Longer holds (>60min) outperform: {long_wr:.0%} vs {quick_wr:.0%}",
+                        occurrences=len(long_trades),
+                        win_rate=long_wr,
+                        avg_pnl=statistics.mean([e.pnl for e in long_trades]),
+                        confidence=0.7,
+                        recommendation="Be patient; avoid premature exits",
+                    )
+                )
 
         return patterns
 
@@ -412,8 +432,8 @@ class TradeJournal:
             return summary
 
         # Time analysis
-        hour_perf = defaultdict(lambda: {'wins': 0, 'losses': 0})
-        day_perf = defaultdict(lambda: {'wins': 0, 'losses': 0})
+        hour_perf = defaultdict(lambda: {"wins": 0, "losses": 0})
+        day_perf = defaultdict(lambda: {"wins": 0, "losses": 0})
 
         for entry in self.entries:
             try:
@@ -422,23 +442,31 @@ class TradeJournal:
                 day = dt.strftime("%A")
 
                 if entry.pnl > 0:
-                    hour_perf[hour]['wins'] += 1
-                    day_perf[day]['wins'] += 1
+                    hour_perf[hour]["wins"] += 1
+                    day_perf[day]["wins"] += 1
                 else:
-                    hour_perf[hour]['losses'] += 1
-                    day_perf[day]['losses'] += 1
+                    hour_perf[hour]["losses"] += 1
+                    day_perf[day]["losses"] += 1
             except Exception:
                 pass
 
         # Best/worst hours
-        hour_rates = {h: d['wins']/(d['wins']+d['losses']) for h, d in hour_perf.items() if d['wins']+d['losses'] >= 2}
+        hour_rates = {
+            h: d["wins"] / (d["wins"] + d["losses"])
+            for h, d in hour_perf.items()
+            if d["wins"] + d["losses"] >= 2
+        }
         if hour_rates:
             sorted_hours = sorted(hour_rates.items(), key=lambda x: x[1], reverse=True)
             summary.best_trading_hours = [h for h, r in sorted_hours[:3] if r > 0.5]
             summary.worst_trading_hours = [h for h, r in sorted_hours[-3:] if r < 0.5]
 
         # Best/worst days
-        day_rates = {d: data['wins']/(data['wins']+data['losses']) for d, data in day_perf.items() if data['wins']+data['losses'] >= 2}
+        day_rates = {
+            d: data["wins"] / (data["wins"] + data["losses"])
+            for d, data in day_perf.items()
+            if data["wins"] + data["losses"] >= 2
+        }
         if day_rates:
             sorted_days = sorted(day_rates.items(), key=lambda x: x[1], reverse=True)
             summary.best_trading_days = [d for d, r in sorted_days[:2] if r > 0.5]
@@ -450,29 +478,31 @@ class TradeJournal:
             summary.premature_exits = len([e for e in winners_with_mfe if e.efficiency < 0.5])
             summary.optimal_exits = len([e for e in winners_with_mfe if e.efficiency > 0.7])
             left_on_table = [e.max_favorable_excursion - e.pnl for e in winners_with_mfe]
-            summary.avg_profit_left_on_table = statistics.mean(left_on_table) if left_on_table else 0
+            summary.avg_profit_left_on_table = (
+                statistics.mean(left_on_table) if left_on_table else 0
+            )
 
         # Regime analysis
-        regime_perf = defaultdict(lambda: {'wins': 0, 'losses': 0, 'pnl': 0})
+        regime_perf = defaultdict(lambda: {"wins": 0, "losses": 0, "pnl": 0})
         for entry in self.entries:
             if entry.regime:
                 if entry.pnl > 0:
-                    regime_perf[entry.regime]['wins'] += 1
+                    regime_perf[entry.regime]["wins"] += 1
                 else:
-                    regime_perf[entry.regime]['losses'] += 1
-                regime_perf[entry.regime]['pnl'] += entry.pnl
+                    regime_perf[entry.regime]["losses"] += 1
+                regime_perf[entry.regime]["pnl"] += entry.pnl
 
         for regime, data in regime_perf.items():
-            total = data['wins'] + data['losses']
+            total = data["wins"] + data["losses"]
             summary.regime_performance[regime] = {
-                'trades': total,
-                'win_rate': data['wins'] / total if total > 0 else 0,
-                'total_pnl': data['pnl']
+                "trades": total,
+                "win_rate": data["wins"] / total if total > 0 else 0,
+                "total_pnl": data["pnl"],
             }
 
         if regime_perf:
-            best = max(regime_perf.items(), key=lambda x: x[1]['pnl'])
-            worst = min(regime_perf.items(), key=lambda x: x[1]['pnl'])
+            best = max(regime_perf.items(), key=lambda x: x[1]["pnl"])
+            worst = min(regime_perf.items(), key=lambda x: x[1]["pnl"])
             summary.best_regime = best[0]
             summary.worst_regime = worst[0]
 
@@ -497,7 +527,10 @@ class TradeJournal:
             elif "confidence" in lesson.lower():
                 lesson_counts["Signal quality"] += 1
 
-        summary.top_lessons = [f"{k}: {v} occurrences" for k, v in sorted(lesson_counts.items(), key=lambda x: x[1], reverse=True)[:3]]
+        summary.top_lessons = [
+            f"{k}: {v} occurrences"
+            for k, v in sorted(lesson_counts.items(), key=lambda x: x[1], reverse=True)[:3]
+        ]
 
         # Generate recommendations
         recommendations = []
@@ -510,15 +543,24 @@ class TradeJournal:
         if win_rate < 0.45:
             recommendations.append("Win rate below 45% - consider raising confidence threshold")
         elif win_rate > 0.65:
-            recommendations.append("Strong win rate - can slightly lower confidence threshold to increase trade frequency")
+            recommendations.append(
+                "Strong win rate - can slightly lower confidence threshold to increase trade frequency"
+            )
 
         # Exit efficiency based
         if summary.premature_exits > summary.optimal_exits:
-            recommendations.append("Many premature exits - consider trailing stops or wider take-profits")
+            recommendations.append(
+                "Many premature exits - consider trailing stops or wider take-profits"
+            )
 
         # Regime based
-        if summary.worst_regime and summary.regime_performance.get(summary.worst_regime, {}).get('win_rate', 1) < 0.4:
-            recommendations.append(f"Poor performance in {summary.worst_regime} regime - consider skipping or reducing size")
+        if (
+            summary.worst_regime
+            and summary.regime_performance.get(summary.worst_regime, {}).get("win_rate", 1) < 0.4
+        ):
+            recommendations.append(
+                f"Poor performance in {summary.worst_regime} regime - consider skipping or reducing size"
+            )
 
         # Pattern based
         for pattern in summary.patterns:
@@ -538,7 +580,9 @@ class TradeJournal:
 
 
 # Standalone function for quick analysis
-def analyze_trades(trades_file: str = "data/ml_paper_trading_enhanced/trades.json") -> TradeJournalSummary:
+def analyze_trades(
+    trades_file: str = "data/ml_paper_trading_enhanced/trades.json",
+) -> TradeJournalSummary:
     """
     Quick function to analyze trades and get insights.
     """
@@ -553,7 +597,7 @@ def analyze_trades(trades_file: str = "data/ml_paper_trading_enhanced/trades.jso
 
             # Add closed trades to journal
             for trade in trades:
-                if 'pnl' in trade:
+                if "pnl" in trade:
                     journal.add_trade(trade)
         except Exception as e:
             print(f"Error loading trades: {e}")

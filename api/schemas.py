@@ -10,7 +10,9 @@ class BotStateResponse(BaseModel):
     timestamp: datetime
     symbol: str
     position: Literal["LONG", "SHORT", "FLAT"]
-    entry_price: Optional[float] = Field(None, description="Last entry price for the open position.")
+    entry_price: Optional[float] = Field(
+        None, description="Last entry price for the open position."
+    )
     position_size: float
     balance: float
     unrealized_pnl_pct: float
@@ -73,9 +75,7 @@ class PortfolioBotStatusResponse(BaseModel):
     asset_type: Optional[str] = Field(
         None, description="Asset class label assigned in the portfolio config."
     )
-    timeframe: Optional[str] = Field(
-        None, description="Primary timeframe configured for the bot."
-    )
+    timeframe: Optional[str] = Field(None, description="Primary timeframe configured for the bot.")
     allocation_pct: Optional[float] = Field(
         None, description="Share of the total portfolio allocated to this asset."
     )
@@ -92,15 +92,13 @@ class PortfolioBotStatusResponse(BaseModel):
         None, description="Take-profit percentage configured for this bot."
     )
     is_paused: bool = Field(
-        False,
-        description="True when manual controls have paused execution for the bot."
+        False, description="True when manual controls have paused execution for the bot."
     )
     pause_reason: Optional[str] = Field(
         None, description="Optional note explaining why the bot is paused."
     )
     pause_updated_at: Optional[datetime] = Field(
-        None,
-        description="Timestamp for the latest pause/resume toggle, when known."
+        None, description="Timestamp for the latest pause/resume toggle, when known."
     )
     is_placeholder: bool = Field(
         False,
@@ -246,6 +244,7 @@ class MacroInsightResponse(BaseModel):
 
 class HealthCheckResponse(BaseModel):
     """Response model for health check endpoint."""
+
     status: Literal["healthy", "degraded", "unhealthy"]
     timestamp: datetime
     uptime_seconds: float

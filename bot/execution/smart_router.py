@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 class VenueType(Enum):
     """Types of trading venues."""
+
     EXCHANGE = "exchange"
     BROKER = "broker"
     DARK_POOL = "dark_pool"
@@ -27,6 +28,7 @@ class VenueType(Enum):
 
 class RoutingStrategy(Enum):
     """Order routing strategies."""
+
     BEST_PRICE = "best_price"
     LOWEST_FEE = "lowest_fee"
     FASTEST = "fastest"
@@ -37,6 +39,7 @@ class RoutingStrategy(Enum):
 @dataclass
 class VenueQuote:
     """Quote from a trading venue."""
+
     venue_id: str
     symbol: str
     bid: float
@@ -72,6 +75,7 @@ class VenueQuote:
 @dataclass
 class Venue:
     """Trading venue configuration."""
+
     venue_id: str
     name: str
     venue_type: VenueType
@@ -104,6 +108,7 @@ class Venue:
 @dataclass
 class RouteDecision:
     """Routing decision for an order."""
+
     venue_id: str
     venue_name: str
     expected_price: float
@@ -133,6 +138,7 @@ class RouteDecision:
 @dataclass
 class RoutingConfig:
     """Smart router configuration."""
+
     # Strategy
     default_strategy: RoutingStrategy = RoutingStrategy.SMART
 
@@ -295,9 +301,7 @@ class SmartOrderRouter:
             if not venue or not venue.is_active:
                 continue
 
-            score = self._score_venue(
-                venue, quote, side, quantity, strategy
-            )
+            score = self._score_venue(venue, quote, side, quantity, strategy)
 
             if score is not None:
                 venue_scores.append((venue_id, score, quote))
@@ -322,12 +326,14 @@ class SmartOrderRouter:
         for venue_id, score, quote in venue_scores[1:4]:
             venue = self._venues[venue_id]
             alt_price = quote.ask if side == "buy" else quote.bid
-            alternatives.append({
-                "venue_id": venue_id,
-                "venue_name": venue.name,
-                "price": alt_price,
-                "score": score["total_score"],
-            })
+            alternatives.append(
+                {
+                    "venue_id": venue_id,
+                    "venue_name": venue.name,
+                    "price": alt_price,
+                    "score": score["total_score"],
+                }
+            )
 
         return RouteDecision(
             venue_id=best_venue_id,
@@ -440,10 +446,10 @@ class SmartOrderRouter:
 
         else:  # SMART
             total = (
-                scores["price"] * self.config.price_weight +
-                scores["fee"] * self.config.fee_weight +
-                scores["liquidity"] * self.config.liquidity_weight +
-                scores["latency"] * self.config.latency_weight
+                scores["price"] * self.config.price_weight
+                + scores["fee"] * self.config.fee_weight
+                + scores["liquidity"] * self.config.liquidity_weight
+                + scores["latency"] * self.config.latency_weight
             )
             reasoning.append(
                 f"Balanced: price={scores['price']:.2f}, "
@@ -494,12 +500,14 @@ class SmartOrderRouter:
             price = quote.ask if side == "buy" else quote.bid
 
             if available > 0 and price > 0:
-                venue_liquidity.append({
-                    "venue_id": venue_id,
-                    "available": available,
-                    "price": price,
-                    "fee": venue.taker_fee,
-                })
+                venue_liquidity.append(
+                    {
+                        "venue_id": venue_id,
+                        "available": available,
+                        "price": price,
+                        "fee": venue.taker_fee,
+                    }
+                )
 
         if not venue_liquidity:
             raise ValueError(f"No liquidity available for {symbol}")
@@ -514,7 +522,7 @@ class SmartOrderRouter:
         splits = []
         remaining = quantity
 
-        for venue in venue_liquidity[:self.config.max_split_venues]:
+        for venue in venue_liquidity[: self.config.max_split_venues]:
             if remaining <= 0:
                 break
 
@@ -590,10 +598,7 @@ class SmartOrderRouter:
 
         for venue_id, venue in self._venues.items():
             # Calculate execution stats
-            venue_executions = [
-                e for e in self._execution_history
-                if e["venue_id"] == venue_id
-            ]
+            venue_executions = [e for e in self._execution_history if e["venue_id"] == venue_id]
 
             if venue_executions:
                 slippage = sum(
@@ -603,11 +608,13 @@ class SmartOrderRouter:
             else:
                 slippage = 0
 
-            stats.append({
-                "venue": venue.to_dict(),
-                "executions": len(venue_executions),
-                "avg_slippage_pct": slippage * 100,
-            })
+            stats.append(
+                {
+                    "venue": venue.to_dict(),
+                    "executions": len(venue_executions),
+                    "avg_slippage_pct": slippage * 100,
+                }
+            )
 
         return stats
 

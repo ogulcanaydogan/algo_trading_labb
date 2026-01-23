@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class CorrelationPair:
     """Correlation between two assets."""
+
     asset1: str
     asset2: str
     correlation: float
@@ -51,6 +52,7 @@ class CorrelationPair:
 @dataclass
 class CorrelationCluster:
     """Group of highly correlated assets."""
+
     cluster_id: str
     assets: List[str]
     avg_correlation: float
@@ -68,6 +70,7 @@ class CorrelationCluster:
 @dataclass
 class ExposureCheck:
     """Result of exposure check."""
+
     allowed: bool
     reason: str
     current_cluster_exposure: float
@@ -89,14 +92,15 @@ class ExposureCheck:
 @dataclass
 class CorrelationConfig:
     """Configuration for correlation management."""
+
     # Correlation thresholds
-    high_correlation_threshold: float = 0.7     # Considered highly correlated
+    high_correlation_threshold: float = 0.7  # Considered highly correlated
     inverse_correlation_threshold: float = -0.5  # Inverse correlation
 
     # Exposure limits
-    max_cluster_exposure_pct: float = 0.30      # Max 30% in correlated cluster
-    max_single_asset_pct: float = 0.10          # Max 10% in single asset
-    max_correlated_positions: int = 3           # Max positions in same cluster
+    max_cluster_exposure_pct: float = 0.30  # Max 30% in correlated cluster
+    max_single_asset_pct: float = 0.10  # Max 10% in single asset
+    max_correlated_positions: int = 3  # Max positions in same cluster
 
     # Calculation settings
     lookback_days: int = 90
@@ -104,13 +108,15 @@ class CorrelationConfig:
     update_interval_hours: int = 24
 
     # Default clusters (common correlations)
-    default_clusters: Dict[str, List[str]] = field(default_factory=lambda: {
-        "crypto_majors": ["BTC/USDT", "ETH/USDT"],
-        "crypto_alts": ["SOL/USDT", "AVAX/USDT", "DOT/USDT"],
-        "tech_stocks": ["AAPL", "MSFT", "GOOGL", "NVDA"],
-        "commodities": ["XAU/USD", "XAG/USD"],
-        "energy": ["USOIL/USD", "UKOIL/USD", "NATGAS/USD"],
-    })
+    default_clusters: Dict[str, List[str]] = field(
+        default_factory=lambda: {
+            "crypto_majors": ["BTC/USDT", "ETH/USDT"],
+            "crypto_alts": ["SOL/USDT", "AVAX/USDT", "DOT/USDT"],
+            "tech_stocks": ["AAPL", "MSFT", "GOOGL", "NVDA"],
+            "commodities": ["XAU/USD", "XAG/USD"],
+            "energy": ["USOIL/USD", "UKOIL/USD", "NATGAS/USD"],
+        }
+    )
 
 
 class CorrelationManager:
@@ -202,7 +208,7 @@ class CorrelationManager:
             if sym1 not in self.correlation_matrix:
                 self.correlation_matrix[sym1] = {}
 
-            for sym2 in list(returns.keys())[i+1:]:
+            for sym2 in list(returns.keys())[i + 1 :]:
                 # Align data
                 r1, r2 = returns[sym1].align(returns[sym2], join="inner")
                 if len(r1) < self.config.min_data_points:
@@ -240,7 +246,9 @@ class CorrelationManager:
                 # Calculate average correlation
                 corrs = [
                     self.correlation_matrix.get(a, {}).get(b, 0)
-                    for a in cluster_assets for b in cluster_assets if a != b
+                    for a in cluster_assets
+                    for b in cluster_assets
+                    if a != b
                 ]
                 avg_corr = np.mean([abs(c) for c in corrs if c]) if corrs else 0.8
 
@@ -261,7 +269,9 @@ class CorrelationManager:
             return self.correlation_matrix[asset2].get(asset1)
         return None
 
-    def get_correlated_assets(self, asset: str, min_correlation: float = 0.5) -> List[Tuple[str, float]]:
+    def get_correlated_assets(
+        self, asset: str, min_correlation: float = 0.5
+    ) -> List[Tuple[str, float]]:
         """Get all assets correlated with given asset."""
         correlated = []
         if asset in self.correlation_matrix:
@@ -306,14 +316,18 @@ class CorrelationManager:
                 current_cluster_exposure=0,
                 max_cluster_exposure=self.config.max_single_asset_pct,
                 correlated_positions=[],
-                suggested_size_reduction=self.config.max_single_asset_pct / new_exposure_pct if new_exposure_pct > 0 else 1,
+                suggested_size_reduction=self.config.max_single_asset_pct / new_exposure_pct
+                if new_exposure_pct > 0
+                else 1,
             )
 
         # Get cluster for new asset
         cluster = self.get_cluster_for_asset(new_asset)
         if not cluster:
             # Check dynamic correlations
-            correlated = self.get_correlated_assets(new_asset, self.config.high_correlation_threshold)
+            correlated = self.get_correlated_assets(
+                new_asset, self.config.high_correlation_threshold
+            )
             if correlated:
                 cluster_assets = [new_asset] + [a for a, _ in correlated]
             else:
@@ -337,15 +351,23 @@ class CorrelationManager:
                 correlated_positions.append(sym)
                 current_cluster_value += abs(value)
 
-        current_cluster_exposure = current_cluster_value / portfolio_value if portfolio_value > 0 else 0
-        new_cluster_exposure = (current_cluster_value + new_position_value) / portfolio_value if portfolio_value > 0 else 0
+        current_cluster_exposure = (
+            current_cluster_value / portfolio_value if portfolio_value > 0 else 0
+        )
+        new_cluster_exposure = (
+            (current_cluster_value + new_position_value) / portfolio_value
+            if portfolio_value > 0
+            else 0
+        )
 
         max_exposure = cluster.max_exposure_pct if cluster else self.config.max_cluster_exposure_pct
 
         # Check cluster exposure limit
         if new_cluster_exposure > max_exposure:
             remaining_capacity = max(0, max_exposure - current_cluster_exposure) * portfolio_value
-            suggested_reduction = remaining_capacity / new_position_value if new_position_value > 0 else 0
+            suggested_reduction = (
+                remaining_capacity / new_position_value if new_position_value > 0 else 0
+            )
 
             return ExposureCheck(
                 allowed=False,
@@ -408,13 +430,15 @@ class CorrelationManager:
                 exposure_pct = abs(value) / portfolio_value if portfolio_value > 0 else 0
                 hedge_size = exposure_pct * abs(correlation)  # Proportional to correlation
 
-                suggestions.append({
-                    "original_position": asset,
-                    "hedge_asset": hedge_asset,
-                    "correlation": correlation,
-                    "suggested_hedge_pct": round(hedge_size * 100, 2),
-                    "reason": f"{hedge_asset} has {correlation:.2f} correlation with {asset}",
-                })
+                suggestions.append(
+                    {
+                        "original_position": asset,
+                        "hedge_asset": hedge_asset,
+                        "correlation": correlation,
+                        "suggested_hedge_pct": round(hedge_size * 100, 2),
+                        "reason": f"{hedge_asset} has {correlation:.2f} correlation with {asset}",
+                    }
+                )
 
         return suggestions
 
@@ -438,10 +462,7 @@ class CorrelationManager:
         # Analyze cluster concentrations
         cluster_exposures = {}
         for cluster_id, cluster in self.clusters.items():
-            cluster_value = sum(
-                abs(positions.get(asset, 0))
-                for asset in cluster.assets
-            )
+            cluster_value = sum(abs(positions.get(asset, 0)) for asset in cluster.assets)
             if cluster_value > 0:
                 cluster_exposures[cluster_id] = {
                     "value": cluster_value,
@@ -452,7 +473,7 @@ class CorrelationManager:
         # Calculate portfolio concentration
         values = list(positions.values())
         if len(values) > 1:
-            herfindahl = sum((v/total_value)**2 for v in values if total_value > 0)
+            herfindahl = sum((v / total_value) ** 2 for v in values if total_value > 0)
         else:
             herfindahl = 1.0
 
@@ -461,7 +482,11 @@ class CorrelationManager:
             "total_value": round(total_value, 2),
             "cluster_exposures": cluster_exposures,
             "herfindahl_index": round(herfindahl, 4),
-            "concentration_risk": "high" if herfindahl > 0.25 else "medium" if herfindahl > 0.15 else "low",
+            "concentration_risk": "high"
+            if herfindahl > 0.25
+            else "medium"
+            if herfindahl > 0.15
+            else "low",
             "diversification_score": round((1 - herfindahl) * 100, 1),
         }
 
@@ -475,7 +500,7 @@ class CorrelationManager:
 
         for i, sym1 in enumerate(symbols):
             matrix.loc[sym1, sym1] = 1.0
-            for sym2 in symbols[i+1:]:
+            for sym2 in symbols[i + 1 :]:
                 corr = self.get_correlation(sym1, sym2)
                 if corr is not None:
                     matrix.loc[sym1, sym2] = corr

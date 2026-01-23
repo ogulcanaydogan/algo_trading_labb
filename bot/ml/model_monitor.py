@@ -24,6 +24,7 @@ from scipy import stats
 
 class DriftSeverity(Enum):
     """Drift severity levels."""
+
     NONE = "none"
     LOW = "low"
     MODERATE = "moderate"
@@ -33,44 +34,47 @@ class DriftSeverity(Enum):
 
 class DriftType(Enum):
     """Types of drift."""
-    DATA_DRIFT = "data_drift"           # Feature distributions changed
-    CONCEPT_DRIFT = "concept_drift"     # Relationship between features and target changed
-    LABEL_DRIFT = "label_drift"         # Target distribution changed
+
+    DATA_DRIFT = "data_drift"  # Feature distributions changed
+    CONCEPT_DRIFT = "concept_drift"  # Relationship between features and target changed
+    LABEL_DRIFT = "label_drift"  # Target distribution changed
     PREDICTION_DRIFT = "prediction_drift"  # Model output distribution changed
 
 
 @dataclass
 class DriftConfig:
     """Configuration for drift detection."""
+
     # Detection thresholds
-    ks_threshold_low: float = 0.1        # KS statistic threshold for low drift
-    ks_threshold_high: float = 0.2       # KS statistic threshold for high drift
-    psi_threshold_low: float = 0.1       # PSI threshold for low drift
-    psi_threshold_high: float = 0.25     # PSI threshold for high drift
+    ks_threshold_low: float = 0.1  # KS statistic threshold for low drift
+    ks_threshold_high: float = 0.2  # KS statistic threshold for high drift
+    psi_threshold_low: float = 0.1  # PSI threshold for low drift
+    psi_threshold_high: float = 0.25  # PSI threshold for high drift
 
     # Performance degradation thresholds
-    accuracy_drop_threshold: float = 0.05    # 5% accuracy drop
-    sharpe_drop_threshold: float = 0.3       # 0.3 Sharpe ratio drop
-    win_rate_drop_threshold: float = 0.05    # 5% win rate drop
+    accuracy_drop_threshold: float = 0.05  # 5% accuracy drop
+    sharpe_drop_threshold: float = 0.3  # 0.3 Sharpe ratio drop
+    win_rate_drop_threshold: float = 0.05  # 5% win rate drop
 
     # Monitoring windows
-    reference_window: int = 500          # Number of samples for reference distribution
-    detection_window: int = 100          # Number of samples for drift detection
-    min_samples: int = 50                # Minimum samples for detection
+    reference_window: int = 500  # Number of samples for reference distribution
+    detection_window: int = 100  # Number of samples for drift detection
+    min_samples: int = 50  # Minimum samples for detection
 
     # Calibration settings
-    calibration_window: int = 200        # Samples for calibration
-    calibration_bins: int = 10           # Number of bins for calibration
+    calibration_window: int = 200  # Samples for calibration
+    calibration_bins: int = 10  # Number of bins for calibration
 
     # Retraining triggers
     auto_retrain_on_drift: bool = True
-    retrain_cooldown_hours: int = 24     # Minimum time between retrains
+    retrain_cooldown_hours: int = 24  # Minimum time between retrains
     max_retrains_per_week: int = 3
 
 
 @dataclass
 class DriftMetrics:
     """Drift detection metrics."""
+
     timestamp: datetime = field(default_factory=datetime.now)
     drift_type: DriftType = DriftType.DATA_DRIFT
     severity: DriftSeverity = DriftSeverity.NONE
@@ -100,8 +104,9 @@ class DriftMetrics:
 @dataclass
 class CalibrationMetrics:
     """Model calibration metrics."""
-    expected_calibration_error: float = 0.0    # ECE
-    max_calibration_error: float = 0.0         # MCE
+
+    expected_calibration_error: float = 0.0  # ECE
+    max_calibration_error: float = 0.0  # MCE
     brier_score: float = 0.0
     reliability_curve: List[Tuple[float, float]] = field(default_factory=list)
     is_calibrated: bool = True
@@ -119,6 +124,7 @@ class CalibrationMetrics:
 @dataclass
 class PerformanceMetrics:
     """Model performance tracking metrics."""
+
     timestamp: datetime = field(default_factory=datetime.now)
     window_size: int = 0
     accuracy: float = 0.0
@@ -209,11 +215,10 @@ class ModelMonitor:
             labels: True labels array
         """
         self._reference_features = {
-            name: values[-self.config.reference_window:]
-            for name, values in features.items()
+            name: values[-self.config.reference_window :] for name, values in features.items()
         }
-        self._reference_predictions = predictions[-self.config.reference_window:]
-        self._reference_labels = labels[-self.config.reference_window:]
+        self._reference_predictions = predictions[-self.config.reference_window :]
+        self._reference_labels = labels[-self.config.reference_window :]
 
         # Calculate reference statistics
         self._save_state()
@@ -388,7 +393,7 @@ class ModelMonitor:
         if len(self._current_labels) < self.config.min_samples:
             return DriftMetrics(drift_type=DriftType.CONCEPT_DRIFT)
 
-        predictions = np.array(self._current_predictions[-len(self._current_labels):])
+        predictions = np.array(self._current_predictions[-len(self._current_labels) :])
         labels = np.array(self._current_labels)
 
         # Calculate current accuracy
@@ -397,9 +402,9 @@ class ModelMonitor:
 
         # Reference accuracy (from training)
         ref_preds = (self._reference_predictions > 0.5).astype(int)
-        ref_labels = self._reference_labels[:len(ref_preds)]
+        ref_labels = self._reference_labels[: len(ref_preds)]
         if len(ref_labels) > 0:
-            ref_accuracy = np.mean(ref_preds[:len(ref_labels)] == ref_labels)
+            ref_accuracy = np.mean(ref_preds[: len(ref_labels)] == ref_labels)
         else:
             ref_accuracy = 0.6  # Default expected accuracy
 
@@ -553,12 +558,16 @@ class ModelMonitor:
             # Interpolate with previous bin
             prev_bin = bin_centers[idx - 1]
             alpha = (raw_prediction - prev_bin) / (nearest_bin - prev_bin)
-            return (1 - alpha) * self._calibration_map[prev_bin] + alpha * self._calibration_map[nearest_bin]
+            return (1 - alpha) * self._calibration_map[prev_bin] + alpha * self._calibration_map[
+                nearest_bin
+            ]
         elif raw_prediction > nearest_bin and idx < len(bin_centers) - 1:
             # Interpolate with next bin
             next_bin = bin_centers[idx + 1]
             alpha = (raw_prediction - nearest_bin) / (next_bin - nearest_bin)
-            return (1 - alpha) * self._calibration_map[nearest_bin] + alpha * self._calibration_map[next_bin]
+            return (1 - alpha) * self._calibration_map[nearest_bin] + alpha * self._calibration_map[
+                next_bin
+            ]
         else:
             return self._calibration_map[nearest_bin]
 
@@ -580,7 +589,7 @@ class ModelMonitor:
         if len(self._current_labels) < self.config.min_samples:
             return metrics
 
-        predictions = np.array(self._current_predictions[-len(self._current_labels):])
+        predictions = np.array(self._current_predictions[-len(self._current_labels) :])
         labels = np.array(self._current_labels)
         pred_classes = (predictions > 0.5).astype(int)
 
@@ -596,7 +605,8 @@ class ModelMonitor:
         metrics.recall = tp / (tp + fn) if (tp + fn) > 0 else 0
         metrics.f1_score = (
             2 * metrics.precision * metrics.recall / (metrics.precision + metrics.recall)
-            if (metrics.precision + metrics.recall) > 0 else 0
+            if (metrics.precision + metrics.recall) > 0
+            else 0
         )
 
         # Trading metrics
@@ -612,7 +622,9 @@ class ModelMonitor:
             if len(losses) > 0 and np.sum(losses) > 0:
                 metrics.profit_factor = np.sum(wins) / np.sum(losses) if len(wins) > 0 else 0
 
-        metrics.avg_confidence = np.mean(self._current_confidences) if self._current_confidences else 0
+        metrics.avg_confidence = (
+            np.mean(self._current_confidences) if self._current_confidences else 0
+        )
 
         self._performance_history.append(metrics)
         if len(self._performance_history) > 100:
@@ -679,7 +691,9 @@ class ModelMonitor:
         # Check for high severity drift
         recent_drift = [d for d in self._drift_history[-20:]]
 
-        high_drift = [d for d in recent_drift if d.severity in [DriftSeverity.HIGH, DriftSeverity.CRITICAL]]
+        high_drift = [
+            d for d in recent_drift if d.severity in [DriftSeverity.HIGH, DriftSeverity.CRITICAL]
+        ]
         if high_drift:
             reasons.append(f"High severity drift detected in {len(high_drift)} checks")
 

@@ -16,6 +16,7 @@ try:
     import torch
     import torch.nn as nn
     import torch.nn.functional as F
+
     HAS_TORCH = True
 except ImportError:
     HAS_TORCH = False
@@ -27,6 +28,7 @@ except ImportError:
 @dataclass
 class PolicyConfig:
     """Configuration for the policy network."""
+
     state_dim: int = 100
     action_dim: int = 3  # SHORT, FLAT, LONG
     hidden_dim: int = 128
@@ -38,6 +40,7 @@ class PolicyConfig:
 
 
 if HAS_TORCH:
+
     class TradingPolicyNetwork(nn.Module):
         """
         PPO-style Actor-Critic policy network for trading.
@@ -119,11 +122,13 @@ if HAS_TORCH:
 
             for i in range(self.config.num_layers):
                 out_dim = self.config.hidden_dim
-                layers.extend([
-                    nn.Linear(in_dim, out_dim),
-                    self.activation(),
-                    nn.Dropout(self.config.dropout),
-                ])
+                layers.extend(
+                    [
+                        nn.Linear(in_dim, out_dim),
+                        self.activation(),
+                        nn.Dropout(self.config.dropout),
+                    ]
+                )
                 in_dim = out_dim
 
             return nn.Sequential(*layers)
@@ -252,10 +257,13 @@ if HAS_TORCH:
 
         def save(self, path: str) -> None:
             """Save model weights."""
-            torch.save({
-                "config": self.config,
-                "state_dict": self.state_dict(),
-            }, path)
+            torch.save(
+                {
+                    "config": self.config,
+                    "state_dict": self.state_dict(),
+                },
+                path,
+            )
 
         @classmethod
         def load(cls, path: str) -> "TradingPolicyNetwork":
@@ -305,6 +313,7 @@ else:
         def save(self, path: str) -> None:
             """Save placeholder."""
             import json
+
             with open(path, "w") as f:
                 json.dump({"type": "placeholder"}, f)
 

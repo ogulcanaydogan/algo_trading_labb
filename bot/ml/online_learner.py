@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class PredictionRecord:
     """Record of a prediction and its outcome."""
+
     timestamp: datetime
     symbol: str
     prediction: int  # 0=SHORT, 1=HOLD, 2=LONG
@@ -32,6 +33,7 @@ class PredictionRecord:
 @dataclass
 class ModelPerformance:
     """Track model performance over time."""
+
     model_name: str
     predictions: int = 0
     correct: int = 0
@@ -60,7 +62,7 @@ class OnlineLearner:
         lookback_hours: int = 168,  # 1 week
         ema_alpha: float = 0.1,
         min_predictions: int = 20,
-        data_dir: Path = Path("data/ml_online")
+        data_dir: Path = Path("data/ml_online"),
     ):
         self.lookback_hours = lookback_hours
         self.ema_alpha = ema_alpha
@@ -80,18 +82,11 @@ class OnlineLearner:
         logger.info(f"OnlineLearner initialized: lookback={lookback_hours}h, alpha={ema_alpha}")
 
     def record_prediction(
-        self,
-        symbol: str,
-        model_name: str,
-        prediction: int,
-        confidence: float
+        self, symbol: str, model_name: str, prediction: int, confidence: float
     ) -> None:
         """Record a new prediction to be evaluated later."""
         record = PredictionRecord(
-            timestamp=datetime.now(),
-            symbol=symbol,
-            prediction=prediction,
-            confidence=confidence
+            timestamp=datetime.now(), symbol=symbol, prediction=prediction, confidence=confidence
         )
 
         # Store with model info
@@ -104,12 +99,7 @@ class OnlineLearner:
         if model_name not in self.model_performance[symbol]:
             self.model_performance[symbol][model_name] = ModelPerformance(model_name=model_name)
 
-    def update_outcomes(
-        self,
-        symbol: str,
-        current_price: float,
-        lookback_hours: int = 6
-    ) -> int:
+    def update_outcomes(self, symbol: str, current_price: float, lookback_hours: int = 6) -> int:
         """
         Update predictions with actual outcomes.
 
@@ -126,7 +116,7 @@ class OnlineLearner:
                 continue  # Too recent to evaluate
 
             # Calculate actual return since prediction
-            if hasattr(record, 'entry_price') and record.entry_price:
+            if hasattr(record, "entry_price") and record.entry_price:
                 actual_return = (current_price - record.entry_price) / record.entry_price
             else:
                 # Skip if no entry price recorded
@@ -143,10 +133,10 @@ class OnlineLearner:
 
             record.actual_return = actual_return
             record.actual_label = actual_label
-            record.correct = (record.prediction == actual_label)
+            record.correct = record.prediction == actual_label
 
             # Update model performance
-            model_name = getattr(record, 'model_name', 'unknown')
+            model_name = getattr(record, "model_name", "unknown")
             if symbol in self.model_performance and model_name in self.model_performance[symbol]:
                 perf = self.model_performance[symbol][model_name]
                 perf.predictions += 1
@@ -155,8 +145,8 @@ class OnlineLearner:
 
                 # Update EMA
                 perf.accuracy_ema = (
-                    self.ema_alpha * (1.0 if record.correct else 0.0) +
-                    (1 - self.ema_alpha) * perf.accuracy_ema
+                    self.ema_alpha * (1.0 if record.correct else 0.0)
+                    + (1 - self.ema_alpha) * perf.accuracy_ema
                 )
                 perf.last_updated = datetime.now()
 
@@ -207,7 +197,7 @@ class OnlineLearner:
         report = {
             "symbol": symbol,
             "models": {},
-            "pending_predictions": len([p for p in self.pending_predictions if p.symbol == symbol])
+            "pending_predictions": len([p for p in self.pending_predictions if p.symbol == symbol]),
         }
 
         for model_name, perf in self.model_performance[symbol].items():
@@ -216,7 +206,7 @@ class OnlineLearner:
                 "correct": perf.correct,
                 "accuracy": perf.accuracy,
                 "accuracy_ema": perf.accuracy_ema,
-                "last_updated": perf.last_updated.isoformat()
+                "last_updated": perf.last_updated.isoformat(),
             }
 
         return report
@@ -246,13 +236,13 @@ class OnlineLearner:
                         "predictions": perf.predictions,
                         "correct": perf.correct,
                         "accuracy_ema": perf.accuracy_ema,
-                        "last_updated": perf.last_updated.isoformat()
+                        "last_updated": perf.last_updated.isoformat(),
                     }
                     for model, perf in models.items()
                 }
                 for symbol, models in self.model_performance.items()
             },
-            "saved_at": datetime.now().isoformat()
+            "saved_at": datetime.now().isoformat(),
         }
 
         with open(self.data_dir / "online_learner_state.json", "w") as f:
@@ -265,7 +255,7 @@ class OnlineLearner:
             return
 
         try:
-            with open(state_file, 'r') as f:
+            with open(state_file, "r") as f:
                 state = json.load(f)
 
             for symbol, models in state.get("model_performance", {}).items():
@@ -276,7 +266,7 @@ class OnlineLearner:
                         predictions=data["predictions"],
                         correct=data["correct"],
                         accuracy_ema=data["accuracy_ema"],
-                        last_updated=datetime.fromisoformat(data["last_updated"])
+                        last_updated=datetime.fromisoformat(data["last_updated"]),
                     )
 
             logger.info("Loaded online learner state")

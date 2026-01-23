@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 
 class RiskDecision(Enum):
     """Risk decision from LLM"""
+
     APPROVE = "approve"
     REJECT = "reject"
     REDUCE = "reduce"
@@ -41,6 +42,7 @@ class RiskDecision(Enum):
 @dataclass
 class RiskAssessmentResult:
     """Result of LLM risk assessment"""
+
     decision: RiskDecision
     reasoning: str
     confidence: float
@@ -62,6 +64,7 @@ class RiskAssessmentResult:
 @dataclass
 class LeverageRecommendation:
     """Leverage recommendation from LLM"""
+
     recommended_leverage: float
     max_safe_leverage: float
     position_size_pct: float
@@ -85,6 +88,7 @@ class LeverageRecommendation:
 @dataclass
 class StrategyAdvice:
     """Advice from the LLM advisor."""
+
     assessment: str
     parameter_suggestions: Dict[str, Any]
     alternative_strategies: List[str]
@@ -449,9 +453,7 @@ class LLMAdvisor:
             RiskAssessmentResult with decision and reasoning
         """
         if not self.is_available():
-            return self._fallback_risk_assessment(
-                risk_guardian_status, size_pct, proposed_leverage
-            )
+            return self._fallback_risk_assessment(risk_guardian_status, size_pct, proposed_leverage)
 
         prompt = RISK_ASSESSMENT_PROMPT.format(
             risk_level=risk_guardian_status.get("risk_level", "unknown"),
@@ -464,7 +466,9 @@ class LLMAdvisor:
             current_leverage=risk_guardian_status.get("current_leverage", 1),
             max_leverage=risk_guardian_status.get("max_leverage", 10),
             margin_usage=risk_guardian_status.get("margin_usage_pct", 0),
-            kill_switch_status="ACTIVE" if risk_guardian_status.get("kill_switch_active") else "OFF",
+            kill_switch_status="ACTIVE"
+            if risk_guardian_status.get("kill_switch_active")
+            else "OFF",
             risk_events=json.dumps(risk_events or [], indent=2),
             symbol=symbol,
             direction=direction,
@@ -475,9 +479,7 @@ class LLMAdvisor:
         response = self._query_llm(prompt)
 
         if not response:
-            return self._fallback_risk_assessment(
-                risk_guardian_status, size_pct, proposed_leverage
-            )
+            return self._fallback_risk_assessment(risk_guardian_status, size_pct, proposed_leverage)
 
         return self._parse_risk_assessment(response)
 
@@ -662,9 +664,7 @@ class LLMAdvisor:
             Formatted daily risk report
         """
         if not self.is_available():
-            return self._fallback_daily_report(
-                date, daily_pnl_pct, drawdown, win_rate
-            )
+            return self._fallback_daily_report(date, daily_pnl_pct, drawdown, win_rate)
 
         prompt = DAILY_RISK_REPORT_PROMPT.format(
             date=date.strftime("%Y-%m-%d"),
@@ -683,9 +683,7 @@ class LLMAdvisor:
         )
 
         response = self._query_llm(prompt)
-        return response or self._fallback_daily_report(
-            date, daily_pnl_pct, drawdown, win_rate
-        )
+        return response or self._fallback_daily_report(date, daily_pnl_pct, drawdown, win_rate)
 
     # ============================================================
     # Risk-Related Fallback Methods
@@ -910,7 +908,7 @@ Status: {status}
 Performance:
 - Daily PnL: {daily_pnl_pct:+.2f}%
 - Current Drawdown: {drawdown:.2f}%
-- Win Rate: {win_rate*100:.1f}%
+- Win Rate: {win_rate * 100:.1f}%
 
 Assessment:
 {"- Consider reducing position sizes" if status == "YELLOW" else ""}
@@ -940,9 +938,13 @@ Note: LLM unavailable. This is a rule-based summary.
 
         # Extract adjustments
         adjustments = {}
-        if "size" in response_lower and ("reduce" in response_lower or "decrease" in response_lower):
+        if "size" in response_lower and (
+            "reduce" in response_lower or "decrease" in response_lower
+        ):
             adjustments["reduce_size"] = True
-        if "leverage" in response_lower and ("lower" in response_lower or "reduce" in response_lower):
+        if "leverage" in response_lower and (
+            "lower" in response_lower or "reduce" in response_lower
+        ):
             adjustments["reduce_leverage"] = True
 
         return RiskAssessmentResult(
@@ -960,18 +962,20 @@ Note: LLM unavailable. This is a rule-based summary.
         import re
 
         # Try to extract leverage numbers
-        leverage_matches = re.findall(r'(\d+(?:\.\d+)?)\s*x', response.lower())
+        leverage_matches = re.findall(r"(\d+(?:\.\d+)?)\s*x", response.lower())
         leverages = [float(m) for m in leverage_matches if float(m) <= max_leverage]
 
         recommended = leverages[0] if leverages else 1.0
         max_safe = leverages[1] if len(leverages) > 1 else min(recommended * 1.5, max_leverage)
 
         # Extract position size
-        size_matches = re.findall(r'(\d+(?:\.\d+)?)\s*%.*(?:position|size|equity)', response.lower())
+        size_matches = re.findall(
+            r"(\d+(?:\.\d+)?)\s*%.*(?:position|size|equity)", response.lower()
+        )
         position_size = float(size_matches[0]) if size_matches else 5.0
 
         # Extract stop loss
-        stop_matches = re.findall(r'stop.*?(\d+(?:\.\d+)?)\s*%', response.lower())
+        stop_matches = re.findall(r"stop.*?(\d+(?:\.\d+)?)\s*%", response.lower())
         stop_loss = float(stop_matches[0]) if stop_matches else 2.0
 
         # Extract warnings

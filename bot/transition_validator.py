@@ -85,11 +85,11 @@ class TransitionValidator:
     def __init__(self):
         self._pending_approvals: Dict[str, TransitionResult] = {}
         self._user_preferences: Dict[str, Any] = {}
-        
+
     def set_user_preferences(self, preferences: Dict[str, Any]) -> None:
         """Set user preferences for transition behavior."""
         self._user_preferences = preferences
-        
+
     def get_user_preferences(self) -> Dict[str, Any]:
         """Get current user preferences."""
         return self._user_preferences
@@ -161,9 +161,7 @@ class TransitionValidator:
             )
         )
         if not days_passed:
-            blocking_reasons.append(
-                f"Need {days_required} days in mode, have {days}"
-            )
+            blocking_reasons.append(f"Need {days_required} days in mode, have {days}")
 
         # Check total trades
         trades = state.total_trades
@@ -175,13 +173,13 @@ class TransitionValidator:
                 current=trades,
                 required=trades_required,
                 passed=trades_passed,
-                progress_pct=min(100, trades / trades_required * 100) if trades_required > 0 else 100,
+                progress_pct=min(100, trades / trades_required * 100)
+                if trades_required > 0
+                else 100,
             )
         )
         if not trades_passed:
-            blocking_reasons.append(
-                f"Need {trades_required} trades, have {trades}"
-            )
+            blocking_reasons.append(f"Need {trades_required} trades, have {trades}")
 
         # Check win rate
         win_rate = state.win_rate
@@ -193,13 +191,13 @@ class TransitionValidator:
                 current=win_rate * 100,
                 required=win_rate_required * 100,
                 passed=win_rate_passed,
-                progress_pct=min(100, win_rate / win_rate_required * 100) if win_rate_required > 0 else 100,
+                progress_pct=min(100, win_rate / win_rate_required * 100)
+                if win_rate_required > 0
+                else 100,
             )
         )
         if not win_rate_passed:
-            blocking_reasons.append(
-                f"Need {win_rate_required:.0%} win rate, have {win_rate:.0%}"
-            )
+            blocking_reasons.append(f"Need {win_rate_required:.0%} win rate, have {win_rate:.0%}")
 
         # Check max drawdown
         drawdown = state.max_drawdown_pct
@@ -211,13 +209,15 @@ class TransitionValidator:
                 current=drawdown * 100,
                 required=max_drawdown * 100,
                 passed=drawdown_passed,
-                progress_pct=100 if drawdown_passed else (max_drawdown / drawdown * 100) if drawdown > 0 else 100,
+                progress_pct=100
+                if drawdown_passed
+                else (max_drawdown / drawdown * 100)
+                if drawdown > 0
+                else 100,
             )
         )
         if not drawdown_passed:
-            blocking_reasons.append(
-                f"Drawdown {drawdown:.1%} exceeds max {max_drawdown:.1%}"
-            )
+            blocking_reasons.append(f"Drawdown {drawdown:.1%} exceeds max {max_drawdown:.1%}")
 
         # Check profit factor
         profit_factor = state.profit_factor
@@ -229,18 +229,18 @@ class TransitionValidator:
                 current=profit_factor,
                 required=pf_required,
                 passed=pf_passed,
-                progress_pct=min(100, profit_factor / pf_required * 100) if pf_required > 0 else 100,
+                progress_pct=min(100, profit_factor / pf_required * 100)
+                if pf_required > 0
+                else 100,
             )
         )
         if not pf_passed:
-            blocking_reasons.append(
-                f"Need profit factor {pf_required}, have {profit_factor:.2f}"
-            )
+            blocking_reasons.append(f"Need profit factor {pf_required}, have {profit_factor:.2f}")
 
         # Apply user preferences for flexible transitions
         if self._user_preferences:
             # If user has set a custom tolerance, adjust requirements
-            tolerance = self._user_preferences.get('transition_tolerance', 0.0)
+            tolerance = self._user_preferences.get("transition_tolerance", 0.0)
             if tolerance > 0:
                 # Allow transition if user has specified tolerance for relaxed requirements
                 # This is a simple implementation - in practice, you might want more nuanced logic
@@ -270,9 +270,7 @@ class TransitionValidator:
 
         # Calculate overall progress
         if result.progress:
-            overall_progress = sum(p.progress_pct for p in result.progress) / len(
-                result.progress
-            )
+            overall_progress = sum(p.progress_pct for p in result.progress) / len(result.progress)
         else:
             overall_progress = 100 if result.allowed else 0
 
@@ -287,9 +285,7 @@ class TransitionValidator:
             "estimated_days_remaining": self._estimate_days_remaining(result, state),
         }
 
-    def _estimate_days_remaining(
-        self, result: TransitionResult, state: ModeState
-    ) -> Optional[int]:
+    def _estimate_days_remaining(self, result: TransitionResult, state: ModeState) -> Optional[int]:
         """Estimate days until transition is possible."""
         if result.allowed:
             return 0
@@ -331,7 +327,9 @@ class TransitionValidator:
             return "", result
 
         # Generate approval ID
-        approval_id = f"approval_{from_mode.value}_{to_mode.value}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        approval_id = (
+            f"approval_{from_mode.value}_{to_mode.value}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        )
         self._pending_approvals[approval_id] = result
 
         logger.info(
@@ -341,9 +339,7 @@ class TransitionValidator:
 
         return approval_id, result
 
-    def approve_transition(
-        self, approval_id: str, approver: str
-    ) -> Tuple[bool, str]:
+    def approve_transition(self, approval_id: str, approver: str) -> Tuple[bool, str]:
         """
         Approve a pending transition.
 
@@ -358,15 +354,12 @@ class TransitionValidator:
         result.approved_at = datetime.now().isoformat()
 
         logger.warning(
-            f"Transition APPROVED: {result.from_mode.value} -> {result.to_mode.value} "
-            f"by {approver}"
+            f"Transition APPROVED: {result.from_mode.value} -> {result.to_mode.value} by {approver}"
         )
 
         return True, f"Transition approved by {approver}"
 
-    def reject_transition(
-        self, approval_id: str, reason: str
-    ) -> Tuple[bool, str]:
+    def reject_transition(self, approval_id: str, reason: str) -> Tuple[bool, str]:
         """
         Reject a pending transition.
 
@@ -430,7 +423,9 @@ class TransitionValidator:
             return next_mode
 
         # If not allowed by strict requirements, check if user preferences allow it
-        if self._user_preferences and self._user_preferences.get('allow_riskier_transitions', False):
+        if self._user_preferences and self._user_preferences.get(
+            "allow_riskier_transitions", False
+        ):
             # Allow transition with warning if user has explicitly allowed riskier transitions
             return next_mode
 
@@ -474,7 +469,7 @@ class TransitionValidator:
         # Apply user preferences for downgrade behavior
         if self._user_preferences:
             # If user has set a custom downgrade threshold, use that
-            custom_downgrade_threshold = self._user_preferences.get('downgrade_threshold')
+            custom_downgrade_threshold = self._user_preferences.get("downgrade_threshold")
             if custom_downgrade_threshold is not None:
                 if state.max_drawdown_pct > custom_downgrade_threshold:
                     return (
@@ -490,9 +485,11 @@ def create_transition_validator() -> TransitionValidator:
     """Create a transition validator instance."""
     validator = TransitionValidator()
     # Set default preferences
-    validator.set_user_preferences({
-        'allow_riskier_transitions': False,
-        'transition_tolerance': 0.0,
-        'downgrade_threshold': 0.10  # 10% drawdown threshold for automatic downgrade
-    })
+    validator.set_user_preferences(
+        {
+            "allow_riskier_transitions": False,
+            "transition_tolerance": 0.0,
+            "downgrade_threshold": 0.10,  # 10% drawdown threshold for automatic downgrade
+        }
+    )
     return validator

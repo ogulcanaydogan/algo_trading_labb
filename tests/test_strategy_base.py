@@ -280,9 +280,7 @@ class TestBaseStrategy:
         entry_price = 100.0
         stop_loss_price = 95.0  # 5% stop loss
 
-        position_size = strategy.calculate_position_size(
-            balance, entry_price, stop_loss_price
-        )
+        position_size = strategy.calculate_position_size(balance, entry_price, stop_loss_price)
 
         # Risk amount = 10000 * 0.005 = 50
         # Risk per unit = 100 - 95 = 5
@@ -296,9 +294,7 @@ class TestBaseStrategy:
         entry_price = 100.0
         stop_loss_price = 100.0  # Same as entry = zero risk
 
-        position_size = strategy.calculate_position_size(
-            balance, entry_price, stop_loss_price
-        )
+        position_size = strategy.calculate_position_size(balance, entry_price, stop_loss_price)
         assert position_size == 0.0
 
     def test_flat_signal_helper(self, strategy):

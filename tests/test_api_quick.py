@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Quick smoke test for API endpoints"""
+
 import sys
 import subprocess
 import time
 import requests
+
 
 def main():
     print("🚀 Starting API server...")
@@ -11,15 +13,15 @@ def main():
     proc = subprocess.Popen(
         [sys.executable, "-m", "uvicorn", "api.api:app", "--port", "8000"],
         stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
+        stderr=subprocess.PIPE,
     )
-    
+
     # Wait for server to start
     time.sleep(3)
-    
+
     try:
         print("\n✅ Testing endpoints...")
-        
+
         # Test /status
         print("\n📊 GET /status")
         resp = requests.get("http://127.0.0.1:8000/status", timeout=5)
@@ -32,7 +34,7 @@ def main():
             print(f"   AI Action: {data.get('ai_action')}")
         else:
             print(f"   ❌ Failed: {resp.status_code}")
-            
+
         # Test /signals
         print("\n📈 GET /signals")
         resp = requests.get("http://127.0.0.1:8000/signals?limit=3", timeout=5)
@@ -43,7 +45,7 @@ def main():
                 print(f"   - {sig.get('decision')} @ {sig.get('timestamp')}")
         else:
             print(f"   ❌ Failed: {resp.status_code}")
-            
+
         # Test /strategy
         print("\n⚙️  GET /strategy")
         resp = requests.get("http://127.0.0.1:8000/strategy", timeout=5)
@@ -55,7 +57,7 @@ def main():
             print(f"   RSI: {strat.get('rsi_period')}")
         else:
             print(f"   ❌ Failed: {resp.status_code}")
-            
+
         # Test dashboard
         print("\n🎨 GET /dashboard")
         resp = requests.get("http://127.0.0.1:8000/dashboard", timeout=5)
@@ -63,16 +65,17 @@ def main():
             print(f"   ✅ Dashboard loaded ({len(resp.text)} bytes)")
         else:
             print(f"   ❌ Failed: {resp.status_code}")
-            
+
         print("\n✅ All tests passed!")
         print("\n🌐 Dashboard available at: http://127.0.0.1:8000/dashboard")
-        
+
     except Exception as e:
         print(f"\n❌ Error: {e}")
     finally:
         print("\n🛑 Stopping server...")
         proc.terminate()
         proc.wait()
+
 
 if __name__ == "__main__":
     main()

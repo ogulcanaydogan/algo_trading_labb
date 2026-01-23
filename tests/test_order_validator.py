@@ -360,7 +360,7 @@ class TestBatchValidation:
         """Test batch validation tracks remaining balance."""
         orders = [
             {"symbol": "BTC/USDT", "action": "BUY", "quantity": 0.01, "price": 50000},  # $500
-            {"symbol": "ETH/USDT", "action": "BUY", "quantity": 0.1, "price": 3000},   # $300
+            {"symbol": "ETH/USDT", "action": "BUY", "quantity": 0.1, "price": 3000},  # $300
         ]
         results = validator.validate_batch(orders, cash_balance=1000)
         assert len(results) == 2
@@ -375,6 +375,7 @@ class TestGlobalValidator:
     def test_get_validator(self):
         """Test getting global validator."""
         import bot.order_validator as ov
+
         ov._validator = None  # Reset
 
         validator = get_validator()
@@ -384,6 +385,7 @@ class TestGlobalValidator:
     def test_get_validator_returns_same(self):
         """Test get_validator returns same instance."""
         import bot.order_validator as ov
+
         ov._validator = None  # Reset
 
         v1 = get_validator()

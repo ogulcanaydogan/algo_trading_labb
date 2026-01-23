@@ -142,7 +142,9 @@ def generate_parameter_space(request: StrategySearchRequest) -> Iterable[Strateg
                     )
 
 
-def backtest_strategy(enriched: pd.DataFrame, config: StrategyConfig) -> tuple[List[float], List[float]]:
+def backtest_strategy(
+    enriched: pd.DataFrame, config: StrategyConfig
+) -> tuple[List[float], List[float]]:
     """Simulate trades using the live decision engine.
 
     Returns a tuple of (equity_curve, trade_returns).  ``equity_curve`` stores
@@ -228,7 +230,9 @@ def calculate_metrics(
         wins = sum(1 for value in trade_returns if value > 0)
         win_rate = wins / len(trade_returns) * 100
         try:
-            sharpe = statistics.mean(trade_returns) / statistics.pstdev(trade_returns) * math.sqrt(252)
+            sharpe = (
+                statistics.mean(trade_returns) / statistics.pstdev(trade_returns) * math.sqrt(252)
+            )
         except statistics.StatisticsError:
             sharpe = 0.0
     else:
@@ -307,11 +311,15 @@ def parse_range(payload: str, *, value_type=float) -> List:
 
 
 def build_argument_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Search EMA/RSI combinations using the live strategy logic.")
+    parser = argparse.ArgumentParser(
+        description="Search EMA/RSI combinations using the live strategy logic."
+    )
     parser.add_argument("--symbol", default="BTC/USDT", help="Target trading pair symbol.")
     parser.add_argument("--timeframe", default="1m", help="Candle timeframe (e.g. 1m, 5m).")
     parser.add_argument("--lookback", type=int, default=500, help="Number of candles to evaluate.")
-    parser.add_argument("--csv", dest="csv_path", type=Path, help="Optional CSV file with OHLCV data.")
+    parser.add_argument(
+        "--csv", dest="csv_path", type=Path, help="Optional CSV file with OHLCV data."
+    )
     parser.add_argument(
         "--ema-fast",
         default="8,12,16",
@@ -345,7 +353,9 @@ def build_argument_parser() -> argparse.ArgumentParser:
         default=300,
         help="How frequently to reload macro events during the search.",
     )
-    parser.add_argument("--top", dest="top_n", type=int, default=5, help="Number of results to display.")
+    parser.add_argument(
+        "--top", dest="top_n", type=int, default=5, help="Number of results to display."
+    )
     return parser
 
 

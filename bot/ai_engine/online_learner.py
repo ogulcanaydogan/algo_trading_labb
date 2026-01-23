@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class PerformanceWindow:
     """Rolling window of performance metrics."""
+
     window_size: int = 50
     pnl_history: deque = field(default_factory=lambda: deque(maxlen=50))
     win_history: deque = field(default_factory=lambda: deque(maxlen=50))
@@ -78,6 +79,7 @@ class PerformanceWindow:
 @dataclass
 class StrategyHealth:
     """Health status of a strategy."""
+
     strategy_id: str
     performance: PerformanceWindow = field(default_factory=PerformanceWindow)
     last_updated: Optional[datetime] = None
@@ -242,18 +244,12 @@ class OnlineLearner:
         self.strategy_health[strategy_id].update(pnl_pct, regime)
 
         # Update drift detectors
-        if 'atr_ratio' in indicators_at_entry:
-            self.drift_detectors['volatility'].add_observation(
-                indicators_at_entry['atr_ratio']
-            )
-        if 'momentum_5' in indicators_at_entry:
-            self.drift_detectors['momentum'].add_observation(
-                indicators_at_entry['momentum_5']
-            )
-        if 'volume_ratio' in indicators_at_entry:
-            self.drift_detectors['volume'].add_observation(
-                indicators_at_entry['volume_ratio']
-            )
+        if "atr_ratio" in indicators_at_entry:
+            self.drift_detectors["volatility"].add_observation(indicators_at_entry["atr_ratio"])
+        if "momentum_5" in indicators_at_entry:
+            self.drift_detectors["momentum"].add_observation(indicators_at_entry["momentum_5"])
+        if "volume_ratio" in indicators_at_entry:
+            self.drift_detectors["volume"].add_observation(indicators_at_entry["volume_ratio"])
 
         # Record outcome pattern for learning
         outcome = "WIN" if pnl_pct > 0 else "LOSS"
@@ -261,12 +257,14 @@ class OnlineLearner:
         if pattern_key not in self.outcome_patterns:
             self.outcome_patterns[pattern_key] = []
 
-        self.outcome_patterns[pattern_key].append({
-            "indicators": indicators_at_entry,
-            "outcome": outcome,
-            "pnl_pct": pnl_pct,
-            "hold_duration": hold_duration_mins,
-        })
+        self.outcome_patterns[pattern_key].append(
+            {
+                "indicators": indicators_at_entry,
+                "outcome": outcome,
+                "pnl_pct": pnl_pct,
+                "hold_duration": hold_duration_mins,
+            }
+        )
 
         # Trim patterns to recent history
         if len(self.outcome_patterns[pattern_key]) > 200:
@@ -397,10 +395,16 @@ class OnlineLearner:
                 similar_outcomes = self._find_similar_outcomes(patterns, indicators)
 
                 if similar_outcomes:
-                    win_rate = sum(1 for o in similar_outcomes if o["outcome"] == "WIN") / len(similar_outcomes)
+                    win_rate = sum(1 for o in similar_outcomes if o["outcome"] == "WIN") / len(
+                        similar_outcomes
+                    )
 
                     if win_rate < 0.3:
-                        return False, 0.0, f"Low historical win rate in similar conditions: {win_rate:.1%}"
+                        return (
+                            False,
+                            0.0,
+                            f"Low historical win rate in similar conditions: {win_rate:.1%}",
+                        )
 
                     if win_rate > 0.6:
                         # Boost confidence
@@ -462,15 +466,17 @@ class OnlineLearner:
             regime_performance = self._get_regime_performance(strategy_id, current_regime)
 
             if regime_performance:
-                recommendations.append({
-                    "strategy_id": strategy_id,
-                    "regime": current_regime,
-                    "win_rate": regime_performance["win_rate"],
-                    "avg_pnl": regime_performance["avg_pnl"],
-                    "sharpe": regime_performance["sharpe"],
-                    "trades": regime_performance["trades"],
-                    "is_healthy": not health.is_degraded,
-                })
+                recommendations.append(
+                    {
+                        "strategy_id": strategy_id,
+                        "regime": current_regime,
+                        "win_rate": regime_performance["win_rate"],
+                        "avg_pnl": regime_performance["avg_pnl"],
+                        "sharpe": regime_performance["sharpe"],
+                        "trades": regime_performance["trades"],
+                        "is_healthy": not health.is_degraded,
+                    }
+                )
 
         # Sort by Sharpe ratio
         recommendations.sort(key=lambda x: x.get("sharpe", 0), reverse=True)

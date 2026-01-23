@@ -90,7 +90,7 @@ class TestAIOrchestrator:
         orchestrator = AIOrchestrator(enable_rl=True, enable_intelligence=True)
         assert orchestrator.enable_rl is True
         assert orchestrator.enable_intelligence is True
-        assert orchestrator.weights == {'ml': 0.4, 'rl': 0.3, 'sentiment': 0.15, 'regime': 0.15}
+        assert orchestrator.weights == {"ml": 0.4, "rl": 0.3, "sentiment": 0.15, "regime": 0.15}
 
     def test_orchestrator_initialization_disabled(self):
         """Test AIOrchestrator with features disabled."""
@@ -102,9 +102,13 @@ class TestAIOrchestrator:
         """Test signal combination resulting in BUY."""
         orchestrator = AIOrchestrator(enable_rl=False, enable_intelligence=False)
         action, confidence = orchestrator._combine_signals(
-            ml_action="BUY", ml_confidence=0.8,
-            rl_action="BUY", rl_confidence=0.75,
-            sentiment_score=0.3, fear_greed=50, regime="bull"
+            ml_action="BUY",
+            ml_confidence=0.8,
+            rl_action="BUY",
+            rl_confidence=0.75,
+            sentiment_score=0.3,
+            fear_greed=50,
+            regime="bull",
         )
         assert action == "BUY"
         assert confidence > 0.5
@@ -113,9 +117,13 @@ class TestAIOrchestrator:
         """Test signal combination resulting in SELL."""
         orchestrator = AIOrchestrator(enable_rl=False, enable_intelligence=False)
         action, confidence = orchestrator._combine_signals(
-            ml_action="SELL", ml_confidence=0.8,
-            rl_action="SELL", rl_confidence=0.75,
-            sentiment_score=-0.3, fear_greed=80, regime="bear"
+            ml_action="SELL",
+            ml_confidence=0.8,
+            rl_action="SELL",
+            rl_confidence=0.75,
+            sentiment_score=-0.3,
+            fear_greed=80,
+            regime="bear",
         )
         assert action == "SELL"
         assert confidence > 0.5
@@ -124,9 +132,13 @@ class TestAIOrchestrator:
         """Test signal combination resulting in HOLD."""
         orchestrator = AIOrchestrator(enable_rl=False, enable_intelligence=False)
         action, confidence = orchestrator._combine_signals(
-            ml_action="HOLD", ml_confidence=0.5,
-            rl_action="HOLD", rl_confidence=0.5,
-            sentiment_score=0.0, fear_greed=50, regime="neutral"
+            ml_action="HOLD",
+            ml_confidence=0.5,
+            rl_action="HOLD",
+            rl_confidence=0.5,
+            sentiment_score=0.0,
+            fear_greed=50,
+            regime="neutral",
         )
         assert action == "HOLD"
 
@@ -136,16 +148,24 @@ class TestAIOrchestrator:
 
         # Agreeing signals
         _, conf_agree = orchestrator._combine_signals(
-            ml_action="BUY", ml_confidence=0.7,
-            rl_action="BUY", rl_confidence=0.7,
-            sentiment_score=0.0, fear_greed=50, regime="neutral"
+            ml_action="BUY",
+            ml_confidence=0.7,
+            rl_action="BUY",
+            rl_confidence=0.7,
+            sentiment_score=0.0,
+            fear_greed=50,
+            regime="neutral",
         )
 
         # Conflicting signals
         _, conf_conflict = orchestrator._combine_signals(
-            ml_action="BUY", ml_confidence=0.7,
-            rl_action="SELL", rl_confidence=0.7,
-            sentiment_score=0.0, fear_greed=50, regime="neutral"
+            ml_action="BUY",
+            ml_confidence=0.7,
+            rl_action="SELL",
+            rl_confidence=0.7,
+            sentiment_score=0.0,
+            fear_greed=50,
+            regime="neutral",
         )
 
         # Conflicting signals should have lower confidence
@@ -157,16 +177,24 @@ class TestAIOrchestrator:
 
         # Normal regime
         _, conf_normal = orchestrator._combine_signals(
-            ml_action="BUY", ml_confidence=0.8,
-            rl_action="BUY", rl_confidence=0.8,
-            sentiment_score=0.3, fear_greed=50, regime="bull"
+            ml_action="BUY",
+            ml_confidence=0.8,
+            rl_action="BUY",
+            rl_confidence=0.8,
+            sentiment_score=0.3,
+            fear_greed=50,
+            regime="bull",
         )
 
         # Crash regime
         _, conf_crash = orchestrator._combine_signals(
-            ml_action="BUY", ml_confidence=0.8,
-            rl_action="BUY", rl_confidence=0.8,
-            sentiment_score=0.3, fear_greed=50, regime="crash"
+            ml_action="BUY",
+            ml_confidence=0.8,
+            rl_action="BUY",
+            rl_confidence=0.8,
+            sentiment_score=0.3,
+            fear_greed=50,
+            regime="crash",
         )
 
         # Crash regime should reduce BUY confidence
@@ -197,9 +225,9 @@ class TestAIOrchestrator:
                 "regime_strategy": {
                     "position_size_multiplier": 0.8,
                     "stop_loss_pct": 0.02,
-                    "take_profit_pct": 0.04
-                }
-            }
+                    "take_profit_pct": 0.04,
+                },
+            },
         }
         market_data = {"price": 50000, "volume": 1000}
 
@@ -225,7 +253,7 @@ class TestAIOrchestrator:
             hold_time_minutes=60,
             was_stopped=False,
             was_target_hit=True,
-            features=None
+            features=None,
         )
 
 
@@ -236,6 +264,7 @@ class TestGetAIOrchestrator:
         """Test that get_ai_orchestrator returns singleton."""
         # Reset the global
         import bot.ai_integration as ai_module
+
         ai_module._ai_orchestrator = None
 
         orch1 = get_ai_orchestrator(enable_rl=False, enable_intelligence=False)
@@ -246,6 +275,7 @@ class TestGetAIOrchestrator:
     def test_get_ai_orchestrator_creates_instance(self):
         """Test that get_ai_orchestrator creates an instance."""
         import bot.ai_integration as ai_module
+
         ai_module._ai_orchestrator = None
 
         orchestrator = get_ai_orchestrator(enable_rl=False, enable_intelligence=False)

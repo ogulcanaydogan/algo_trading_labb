@@ -237,6 +237,7 @@ class TestGlobalFunctions:
 
     def test_global_register_and_get(self):
         """Test global register and get functions."""
+
         class MyService:
             pass
 
@@ -246,6 +247,7 @@ class TestGlobalFunctions:
 
     def test_global_inject(self):
         """Test global inject decorator."""
+
         class MyService:
             def __init__(self):
                 self.value = "global"

@@ -1,4 +1,5 @@
 """Retry utilities with exponential backoff for resilient operations."""
+
 from __future__ import annotations
 
 import logging
@@ -181,9 +182,7 @@ class CircuitBreaker:
             logger.warning("Circuit breaker opened again after half-open failure")
         elif self._failure_count >= self.failure_threshold:
             self._state = self.OPEN
-            logger.warning(
-                "Circuit breaker opened after %d failures", self._failure_count
-            )
+            logger.warning("Circuit breaker opened after %d failures", self._failure_count)
 
     def __call__(self, func: Callable[..., T]) -> Callable[..., T]:
         """Use circuit breaker as a decorator."""
@@ -193,9 +192,7 @@ class CircuitBreaker:
             current_state = self.state
 
             if current_state == self.OPEN:
-                raise CircuitBreakerOpenError(
-                    f"Circuit breaker is open for {func.__name__}"
-                )
+                raise CircuitBreakerOpenError(f"Circuit breaker is open for {func.__name__}")
 
             if current_state == self.HALF_OPEN:
                 if self._half_open_calls >= self.half_open_max_calls:

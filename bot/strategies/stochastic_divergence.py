@@ -24,6 +24,7 @@ from .base import BaseStrategy, StrategyConfig, StrategySignal
 @dataclass
 class StochasticDivergenceConfig(StrategyConfig):
     """Configuration for Stochastic Divergence strategy."""
+
     stoch_k_period: int = 14
     stoch_d_period: int = 3
     stoch_smooth: int = 3
@@ -111,7 +112,7 @@ class StochasticDivergenceStrategy(BaseStrategy):
         maxima = []
 
         for i in range(lookback, len(series) - 1):
-            window = series.iloc[i - lookback:i + 1]
+            window = series.iloc[i - lookback : i + 1]
             if series.iloc[i] == window.min():
                 minima.append(i)
             if series.iloc[i] == window.max():

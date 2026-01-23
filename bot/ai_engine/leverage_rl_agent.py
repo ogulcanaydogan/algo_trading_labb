@@ -34,6 +34,7 @@ try:
     import torch
     import torch.nn as nn
     import torch.optim as optim
+
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
@@ -42,17 +43,18 @@ except ImportError:
 
 class LeverageAction:
     """Extended action space for leverage trading."""
-    HOLD = 0           # Do nothing
-    LONG_1X = 1        # Open/hold long at 1x
-    LONG_3X = 2        # Open/hold long at 3x
-    LONG_5X = 3        # Open/hold long at 5x
-    LONG_10X = 4       # Open/hold long at 10x
-    SHORT_1X = 5       # Open/hold short at 1x
-    SHORT_3X = 6       # Open/hold short at 3x
-    SHORT_5X = 7       # Open/hold short at 5x
-    SHORT_10X = 8      # Open/hold short at 10x
-    CLOSE = 9          # Close current position
-    REDUCE_HALF = 10   # Reduce position by 50%
+
+    HOLD = 0  # Do nothing
+    LONG_1X = 1  # Open/hold long at 1x
+    LONG_3X = 2  # Open/hold long at 3x
+    LONG_5X = 3  # Open/hold long at 5x
+    LONG_10X = 4  # Open/hold long at 10x
+    SHORT_1X = 5  # Open/hold short at 1x
+    SHORT_3X = 6  # Open/hold short at 3x
+    SHORT_5X = 7  # Open/hold short at 5x
+    SHORT_10X = 8  # Open/hold short at 10x
+    CLOSE = 9  # Close current position
+    REDUCE_HALF = 10  # Reduce position by 50%
 
     # Action descriptions
     DESCRIPTIONS = {
@@ -73,10 +75,14 @@ class LeverageAction:
     def get_leverage(action: int) -> float:
         """Get leverage multiplier for action."""
         leverage_map = {
-            1: 1.0, 5: 1.0,
-            2: 3.0, 6: 3.0,
-            3: 5.0, 7: 5.0,
-            4: 10.0, 8: 10.0,
+            1: 1.0,
+            5: 1.0,
+            2: 3.0,
+            6: 3.0,
+            3: 5.0,
+            7: 5.0,
+            4: 10.0,
+            8: 10.0,
         }
         return leverage_map.get(action, 1.0)
 
@@ -94,6 +100,7 @@ class LeverageAction:
 @dataclass
 class LeverageState:
     """Extended state for leverage-aware trading."""
+
     # Price features
     price_change_1h: float
     price_change_4h: float
@@ -120,15 +127,15 @@ class LeverageState:
     # Trend features
     adx: float
     trend_direction: float  # +1 up, -1 down, 0 sideways
-    trend_strength: float   # 0-1 how strong is the trend
-    ema_alignment: float    # +1 all aligned bullish, -1 all aligned bearish
+    trend_strength: float  # 0-1 how strong is the trend
+    ema_alignment: float  # +1 all aligned bullish, -1 all aligned bearish
 
     # Volume features
     volume_ratio: float
     buy_volume_ratio: float  # Ratio of buy to sell volume
 
     # Market structure
-    funding_rate: float      # For crypto perpetuals
+    funding_rate: float  # For crypto perpetuals
     open_interest_change: float
     long_short_ratio: float  # Longs vs shorts in market
 
@@ -138,60 +145,63 @@ class LeverageState:
     position_pnl: float
     position_duration: float
     unrealized_pnl: float
-    margin_ratio: float      # How close to liquidation (0-1)
+    margin_ratio: float  # How close to liquidation (0-1)
 
     # Risk features
     drawdown_current: float  # Current drawdown from peak
     consecutive_losses: int
-    win_rate_recent: float   # Last 10 trades win rate
+    win_rate_recent: float  # Last 10 trades win rate
 
     def to_array(self) -> np.ndarray:
         """Convert to numpy array for neural network."""
-        return np.array([
-            # Price (6)
-            self.price_change_1h,
-            self.price_change_4h,
-            self.price_change_24h,
-            self.price_vs_ema20,
-            self.price_vs_ema50,
-            self.price_vs_vwap,
-            # Momentum (6)
-            self.rsi / 100.0,
-            self.rsi_change / 100.0,
-            self.macd_hist,
-            self.macd_signal_cross,
-            self.momentum_5 / 100.0,
-            self.momentum_20 / 100.0,
-            # Volatility (5)
-            self.atr_ratio,
-            self.bb_position,
-            self.bb_width,
-            self.volatility_ratio,
-            self.high_volatility,
-            # Trend (4)
-            self.adx / 100.0,
-            self.trend_direction,
-            self.trend_strength,
-            self.ema_alignment,
-            # Volume (2)
-            self.volume_ratio,
-            self.buy_volume_ratio,
-            # Market structure (3)
-            self.funding_rate * 100,  # Amplify small values
-            self.open_interest_change,
-            self.long_short_ratio,
-            # Position (6)
-            self.current_position,
-            self.current_leverage / 10.0,  # Normalize to 0-1
-            self.position_pnl / 100.0,
-            min(self.position_duration / 100.0, 1.0),
-            self.unrealized_pnl / 100.0,
-            self.margin_ratio,
-            # Risk (3)
-            self.drawdown_current / 100.0,
-            min(self.consecutive_losses / 5.0, 1.0),
-            self.win_rate_recent,
-        ], dtype=np.float32)
+        return np.array(
+            [
+                # Price (6)
+                self.price_change_1h,
+                self.price_change_4h,
+                self.price_change_24h,
+                self.price_vs_ema20,
+                self.price_vs_ema50,
+                self.price_vs_vwap,
+                # Momentum (6)
+                self.rsi / 100.0,
+                self.rsi_change / 100.0,
+                self.macd_hist,
+                self.macd_signal_cross,
+                self.momentum_5 / 100.0,
+                self.momentum_20 / 100.0,
+                # Volatility (5)
+                self.atr_ratio,
+                self.bb_position,
+                self.bb_width,
+                self.volatility_ratio,
+                self.high_volatility,
+                # Trend (4)
+                self.adx / 100.0,
+                self.trend_direction,
+                self.trend_strength,
+                self.ema_alignment,
+                # Volume (2)
+                self.volume_ratio,
+                self.buy_volume_ratio,
+                # Market structure (3)
+                self.funding_rate * 100,  # Amplify small values
+                self.open_interest_change,
+                self.long_short_ratio,
+                # Position (6)
+                self.current_position,
+                self.current_leverage / 10.0,  # Normalize to 0-1
+                self.position_pnl / 100.0,
+                min(self.position_duration / 100.0, 1.0),
+                self.unrealized_pnl / 100.0,
+                self.margin_ratio,
+                # Risk (3)
+                self.drawdown_current / 100.0,
+                min(self.consecutive_losses / 5.0, 1.0),
+                self.win_rate_recent,
+            ],
+            dtype=np.float32,
+        )
 
     @classmethod
     def from_market_data(
@@ -199,59 +209,60 @@ class LeverageState:
         indicators: Dict[str, float],
         position_info: Dict[str, float] = None,
         risk_info: Dict[str, float] = None,
-    ) -> 'LeverageState':
+    ) -> "LeverageState":
         """Create state from indicator dicts."""
         pos = position_info or {}
         risk = risk_info or {}
 
         return cls(
             # Price
-            price_change_1h=indicators.get('price_change_1h', 0),
-            price_change_4h=indicators.get('price_change_4h', 0),
-            price_change_24h=indicators.get('price_change_24h', 0),
-            price_vs_ema20=indicators.get('price_vs_ema20', 0),
-            price_vs_ema50=indicators.get('price_vs_ema50', 0),
-            price_vs_vwap=indicators.get('price_vs_vwap', 0),
+            price_change_1h=indicators.get("price_change_1h", 0),
+            price_change_4h=indicators.get("price_change_4h", 0),
+            price_change_24h=indicators.get("price_change_24h", 0),
+            price_vs_ema20=indicators.get("price_vs_ema20", 0),
+            price_vs_ema50=indicators.get("price_vs_ema50", 0),
+            price_vs_vwap=indicators.get("price_vs_vwap", 0),
             # Momentum
-            rsi=indicators.get('rsi', 50),
-            rsi_change=indicators.get('rsi_change', 0),
-            macd_hist=indicators.get('macd_hist', 0),
-            macd_signal_cross=indicators.get('macd_signal_cross', 0),
-            momentum_5=indicators.get('momentum_5', 0),
-            momentum_20=indicators.get('momentum_20', 0),
+            rsi=indicators.get("rsi", 50),
+            rsi_change=indicators.get("rsi_change", 0),
+            macd_hist=indicators.get("macd_hist", 0),
+            macd_signal_cross=indicators.get("macd_signal_cross", 0),
+            momentum_5=indicators.get("momentum_5", 0),
+            momentum_20=indicators.get("momentum_20", 0),
             # Volatility
-            atr_ratio=indicators.get('atr_ratio', 1),
-            bb_position=indicators.get('bb_position', 0.5),
-            bb_width=indicators.get('bb_width', 0.02),
-            volatility_ratio=indicators.get('volatility_ratio', 1),
-            high_volatility=1.0 if indicators.get('volatility_ratio', 1) > 2 else 0.0,
+            atr_ratio=indicators.get("atr_ratio", 1),
+            bb_position=indicators.get("bb_position", 0.5),
+            bb_width=indicators.get("bb_width", 0.02),
+            volatility_ratio=indicators.get("volatility_ratio", 1),
+            high_volatility=1.0 if indicators.get("volatility_ratio", 1) > 2 else 0.0,
             # Trend
-            adx=indicators.get('adx', 25),
-            trend_direction=indicators.get('trend_direction', 0),
-            trend_strength=indicators.get('trend_strength', 0.5),
-            ema_alignment=indicators.get('ema_alignment', 0),
+            adx=indicators.get("adx", 25),
+            trend_direction=indicators.get("trend_direction", 0),
+            trend_strength=indicators.get("trend_strength", 0.5),
+            ema_alignment=indicators.get("ema_alignment", 0),
             # Volume
-            volume_ratio=indicators.get('volume_ratio', 1),
-            buy_volume_ratio=indicators.get('buy_volume_ratio', 0.5),
+            volume_ratio=indicators.get("volume_ratio", 1),
+            buy_volume_ratio=indicators.get("buy_volume_ratio", 0.5),
             # Market structure
-            funding_rate=indicators.get('funding_rate', 0),
-            open_interest_change=indicators.get('open_interest_change', 0),
-            long_short_ratio=indicators.get('long_short_ratio', 1),
+            funding_rate=indicators.get("funding_rate", 0),
+            open_interest_change=indicators.get("open_interest_change", 0),
+            long_short_ratio=indicators.get("long_short_ratio", 1),
             # Position
-            current_position=pos.get('position', 0),
-            current_leverage=pos.get('leverage', 1),
-            position_pnl=pos.get('pnl', 0),
-            position_duration=pos.get('duration', 0),
-            unrealized_pnl=pos.get('unrealized_pnl', 0),
-            margin_ratio=pos.get('margin_ratio', 0),
+            current_position=pos.get("position", 0),
+            current_leverage=pos.get("leverage", 1),
+            position_pnl=pos.get("pnl", 0),
+            position_duration=pos.get("duration", 0),
+            unrealized_pnl=pos.get("unrealized_pnl", 0),
+            margin_ratio=pos.get("margin_ratio", 0),
             # Risk
-            drawdown_current=risk.get('drawdown', 0),
-            consecutive_losses=risk.get('consecutive_losses', 0),
-            win_rate_recent=risk.get('win_rate_recent', 0.5),
+            drawdown_current=risk.get("drawdown", 0),
+            consecutive_losses=risk.get("consecutive_losses", 0),
+            win_rate_recent=risk.get("win_rate_recent", 0.5),
         )
 
 
 if TORCH_AVAILABLE:
+
     class LeverageDQNetwork(nn.Module):
         """Deep Q-Network for leverage trading decisions."""
 
@@ -337,7 +348,7 @@ class LeverageReplayBuffer:
         if self.size < batch_size:
             batch_size = self.size
 
-        priorities = self.priorities[:self.size] ** self.alpha
+        priorities = self.priorities[: self.size] ** self.alpha
         probs = priorities / priorities.sum()
 
         indices = np.random.choice(self.size, batch_size, p=probs, replace=False)
@@ -416,7 +427,7 @@ class LeverageRLAgent:
         # Performance tracking
         self.leverage_usage_stats = {i: 0 for i in range(action_size)}
         self.reward_by_leverage = {1: [], 3: [], 5: [], 10: []}
-        self.short_vs_long_pnl = {'long': [], 'short': []}
+        self.short_vs_long_pnl = {"long": [], "short": []}
 
         if TORCH_AVAILABLE:
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -428,9 +439,7 @@ class LeverageRLAgent:
                 lr=learning_rate,
                 weight_decay=0.01,
             )
-            self.scheduler = optim.lr_scheduler.StepLR(
-                self.optimizer, step_size=10000, gamma=0.9
-            )
+            self.scheduler = optim.lr_scheduler.StepLR(self.optimizer, step_size=10000, gamma=0.9)
         else:
             # Simplified model without PyTorch
             self.weights = np.random.randn(state_size, action_size) * 0.01
@@ -541,12 +550,12 @@ class LeverageRLAgent:
         if is_short:
             if pnl_pct > 0:
                 reward += 1.0  # Bonus for profitable short
-                self.short_vs_long_pnl['short'].append(pnl_pct)
+                self.short_vs_long_pnl["short"].append(pnl_pct)
             elif pnl_pct < -5:
                 reward -= 2.0  # Big penalty for shorts that blow up
         else:
             if pnl_pct > 0:
-                self.short_vs_long_pnl['long'].append(pnl_pct)
+                self.short_vs_long_pnl["long"].append(pnl_pct)
 
         # Liquidation risk penalty
         if margin_ratio > 0.7:
@@ -624,9 +633,7 @@ class LeverageRLAgent:
                 states, actions, rewards, next_states, dones, indices, weights
             )
         else:
-            loss = self._train_step_numpy(
-                states, actions, rewards, next_states, dones
-            )
+            loss = self._train_step_numpy(states, actions, rewards, next_states, dones)
 
         self.training_steps += 1
 
@@ -666,7 +673,7 @@ class LeverageRLAgent:
 
         # Weighted loss
         td_errors = (current_q.squeeze() - target_q).abs().detach().cpu().numpy()
-        loss = (weights * nn.MSELoss(reduction='none')(current_q.squeeze(), target_q)).mean()
+        loss = (weights * nn.MSELoss(reduction="none")(current_q.squeeze(), target_q)).mean()
 
         # Update priorities
         self.memory.update_priorities(indices, td_errors)
@@ -680,8 +687,7 @@ class LeverageRLAgent:
 
         # Soft update target network
         for target_param, policy_param in zip(
-            self.target_net.parameters(),
-            self.policy_net.parameters()
+            self.target_net.parameters(), self.policy_net.parameters()
         ):
             target_param.data.copy_(
                 self.tau * policy_param.data + (1 - self.tau) * target_param.data
@@ -717,7 +723,7 @@ class LeverageRLAgent:
                 target = reward + self.gamma * np.max(next_q)
 
             error = target - current_q_action
-            total_loss += error ** 2
+            total_loss += error**2
 
             self.weights[:, action] += self.learning_rate * error * state
             self.bias[action] += self.learning_rate * error
@@ -749,12 +755,10 @@ class LeverageRLAgent:
             "is_short": LeverageAction.is_short(best_action),
             "is_long": LeverageAction.is_long(best_action),
             "q_values": {
-                LeverageAction.DESCRIPTIONS[i]: round(q_values[i], 4)
-                for i in range(len(q_values))
+                LeverageAction.DESCRIPTIONS[i]: round(q_values[i], 4) for i in range(len(q_values))
             },
             "probabilities": {
-                LeverageAction.DESCRIPTIONS[i]: round(probs[i], 4)
-                for i in range(len(probs))
+                LeverageAction.DESCRIPTIONS[i]: round(probs[i], 4) for i in range(len(probs))
             },
             "confidence": float(probs[best_action]),
             "market_conditions": {
@@ -814,10 +818,10 @@ class LeverageRLAgent:
             relevant_actions = [5, 6, 7, 8]  # SHORT_1X to SHORT_10X
 
         best_action = None
-        best_q = float('-inf')
+        best_q = float("-inf")
 
         for action in relevant_actions:
-            q = analysis['q_values'][LeverageAction.DESCRIPTIONS[action]]
+            q = analysis["q_values"][LeverageAction.DESCRIPTIONS[action]]
             if q > best_q:
                 best_q = q
                 best_action = action
@@ -826,7 +830,7 @@ class LeverageRLAgent:
             return 1.0, 0.0
 
         optimal_leverage = LeverageAction.get_leverage(best_action)
-        confidence = analysis['probabilities'][LeverageAction.DESCRIPTIONS[best_action]]
+        confidence = analysis["probabilities"][LeverageAction.DESCRIPTIONS[best_action]]
 
         return optimal_leverage, confidence
 
@@ -834,8 +838,7 @@ class LeverageRLAgent:
         """Get statistics about leverage usage and performance."""
         stats = {
             "action_usage": {
-                LeverageAction.DESCRIPTIONS[k]: v
-                for k, v in self.leverage_usage_stats.items()
+                LeverageAction.DESCRIPTIONS[k]: v for k, v in self.leverage_usage_stats.items()
             },
             "reward_by_leverage": {},
             "short_vs_long": {},
@@ -877,16 +880,19 @@ class LeverageRLAgent:
         path.parent.mkdir(parents=True, exist_ok=True)
 
         if TORCH_AVAILABLE:
-            torch.save({
-                'policy_net': self.policy_net.state_dict(),
-                'target_net': self.target_net.state_dict(),
-                'optimizer': self.optimizer.state_dict(),
-                'scheduler': self.scheduler.state_dict(),
-                'epsilon': self.epsilon,
-                'training_steps': self.training_steps,
-                'total_reward': self.total_reward,
-                'leverage_usage_stats': self.leverage_usage_stats,
-            }, path)
+            torch.save(
+                {
+                    "policy_net": self.policy_net.state_dict(),
+                    "target_net": self.target_net.state_dict(),
+                    "optimizer": self.optimizer.state_dict(),
+                    "scheduler": self.scheduler.state_dict(),
+                    "epsilon": self.epsilon,
+                    "training_steps": self.training_steps,
+                    "total_reward": self.total_reward,
+                    "leverage_usage_stats": self.leverage_usage_stats,
+                },
+                path,
+            )
         else:
             np.savez(
                 path,
@@ -908,24 +914,23 @@ class LeverageRLAgent:
 
         if TORCH_AVAILABLE:
             checkpoint = torch.load(path, map_location=self.device)
-            self.policy_net.load_state_dict(checkpoint['policy_net'])
-            self.target_net.load_state_dict(checkpoint['target_net'])
-            self.optimizer.load_state_dict(checkpoint['optimizer'])
-            if 'scheduler' in checkpoint:
-                self.scheduler.load_state_dict(checkpoint['scheduler'])
-            self.epsilon = checkpoint['epsilon']
-            self.training_steps = checkpoint['training_steps']
-            self.total_reward = checkpoint.get('total_reward', 0)
+            self.policy_net.load_state_dict(checkpoint["policy_net"])
+            self.target_net.load_state_dict(checkpoint["target_net"])
+            self.optimizer.load_state_dict(checkpoint["optimizer"])
+            if "scheduler" in checkpoint:
+                self.scheduler.load_state_dict(checkpoint["scheduler"])
+            self.epsilon = checkpoint["epsilon"]
+            self.training_steps = checkpoint["training_steps"]
+            self.total_reward = checkpoint.get("total_reward", 0)
             self.leverage_usage_stats = checkpoint.get(
-                'leverage_usage_stats',
-                {i: 0 for i in range(self.action_size)}
+                "leverage_usage_stats", {i: 0 for i in range(self.action_size)}
             )
         else:
             data = np.load(path, allow_pickle=True)
-            self.weights = data['weights']
-            self.bias = data['bias']
-            self.epsilon = float(data['epsilon'])
-            self.training_steps = int(data['training_steps'])
+            self.weights = data["weights"]
+            self.bias = data["bias"]
+            self.epsilon = float(data["epsilon"])
+            self.training_steps = int(data["training_steps"])
 
         logger.info(f"Leverage RL model loaded from {path}")
 

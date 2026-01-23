@@ -22,16 +22,18 @@ logger = logging.getLogger(__name__)
 
 class RecoveryPhase(Enum):
     """Current phase of drawdown recovery."""
-    NORMAL = "normal"               # Full trading capacity
-    CAUTION = "caution"             # Minor drawdown, slightly reduced
-    RECOVERY = "recovery"           # Significant drawdown, reduced exposure
-    CRITICAL = "critical"           # Severe drawdown, minimal trading
-    HALTED = "halted"              # Trading suspended
+
+    NORMAL = "normal"  # Full trading capacity
+    CAUTION = "caution"  # Minor drawdown, slightly reduced
+    RECOVERY = "recovery"  # Significant drawdown, reduced exposure
+    CRITICAL = "critical"  # Severe drawdown, minimal trading
+    HALTED = "halted"  # Trading suspended
 
 
 @dataclass
 class DrawdownState:
     """Current drawdown state."""
+
     peak_equity: float
     current_equity: float
     drawdown_pct: float
@@ -59,11 +61,12 @@ class DrawdownState:
 @dataclass
 class RecoveryConfig:
     """Configuration for drawdown recovery."""
+
     # Drawdown thresholds
-    caution_threshold: float = 0.05     # 5% drawdown -> caution
-    recovery_threshold: float = 0.10    # 10% drawdown -> recovery mode
-    critical_threshold: float = 0.15    # 15% drawdown -> critical
-    halt_threshold: float = 0.20        # 20% drawdown -> halt trading
+    caution_threshold: float = 0.05  # 5% drawdown -> caution
+    recovery_threshold: float = 0.10  # 10% drawdown -> recovery mode
+    critical_threshold: float = 0.15  # 15% drawdown -> critical
+    halt_threshold: float = 0.20  # 20% drawdown -> halt trading
 
     # Position size multipliers per phase
     normal_multiplier: float = 1.0
@@ -78,17 +81,18 @@ class RecoveryConfig:
     critical_max_positions: int = 2
 
     # Recovery requirements
-    recovery_profit_streak: int = 3     # Consecutive profitable days to recover
-    recovery_time_min_days: int = 2     # Minimum days before upgrading phase
+    recovery_profit_streak: int = 3  # Consecutive profitable days to recover
+    recovery_time_min_days: int = 2  # Minimum days before upgrading phase
 
     # Additional restrictions
     no_new_positions_after_loss: bool = True  # No new positions after daily loss
-    reduce_on_consecutive_losses: int = 3     # Reduce after N consecutive losses
+    reduce_on_consecutive_losses: int = 3  # Reduce after N consecutive losses
 
 
 @dataclass
 class DailyPerformance:
     """Daily performance tracking."""
+
     date: str
     starting_equity: float
     ending_equity: float
@@ -146,7 +150,9 @@ class DrawdownRecoveryManager:
                     self.current_equity = state.get("current_equity", self.current_equity)
                     self.phase = RecoveryPhase(state.get("phase", "normal"))
                     if state.get("drawdown_start_date"):
-                        self.drawdown_start_date = datetime.fromisoformat(state["drawdown_start_date"])
+                        self.drawdown_start_date = datetime.fromisoformat(
+                            state["drawdown_start_date"]
+                        )
                     self.consecutive_losses = state.get("consecutive_losses", 0)
                     self.consecutive_profits = state.get("consecutive_profits", 0)
                 logger.info(f"Loaded drawdown state: phase={self.phase.value}")
@@ -161,7 +167,9 @@ class DrawdownRecoveryManager:
                 "peak_equity": self.peak_equity,
                 "current_equity": self.current_equity,
                 "phase": self.phase.value,
-                "drawdown_start_date": self.drawdown_start_date.isoformat() if self.drawdown_start_date else None,
+                "drawdown_start_date": self.drawdown_start_date.isoformat()
+                if self.drawdown_start_date
+                else None,
                 "consecutive_losses": self.consecutive_losses,
                 "consecutive_profits": self.consecutive_profits,
                 "updated_at": datetime.now().isoformat(),
@@ -294,7 +302,9 @@ class DrawdownRecoveryManager:
         # Additional reduction for consecutive losses
         if self.consecutive_losses >= self.config.reduce_on_consecutive_losses:
             multiplier *= 0.5
-            logger.info(f"Position size reduced due to {self.consecutive_losses} consecutive losses")
+            logger.info(
+                f"Position size reduced due to {self.consecutive_losses} consecutive losses"
+            )
 
         return multiplier
 
@@ -363,7 +373,9 @@ class DrawdownRecoveryManager:
             starting_equity=starting_equity,
             ending_equity=ending_equity,
             pnl=ending_equity - starting_equity,
-            pnl_pct=(ending_equity - starting_equity) / starting_equity if starting_equity > 0 else 0,
+            pnl_pct=(ending_equity - starting_equity) / starting_equity
+            if starting_equity > 0
+            else 0,
             trades=trades,
             winners=winners,
             losers=losers,

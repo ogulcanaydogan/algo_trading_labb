@@ -1,4 +1,5 @@
 """Unit tests for dashboard API endpoints."""
+
 from __future__ import annotations
 
 import json
@@ -44,10 +45,15 @@ def mock_state_dirs(tmp_path):
         "risk_per_trade_pct": 0.5,
     }
     (crypto_dir / "state.json").write_text(json.dumps(crypto_state), encoding="utf-8")
-    (crypto_dir / "equity.json").write_text(json.dumps([
-        {"timestamp": "2024-01-01T00:00:00Z", "value": 10000},
-        {"timestamp": "2024-01-02T00:00:00Z", "value": 10050},
-    ]), encoding="utf-8")
+    (crypto_dir / "equity.json").write_text(
+        json.dumps(
+            [
+                {"timestamp": "2024-01-01T00:00:00Z", "value": 10000},
+                {"timestamp": "2024-01-02T00:00:00Z", "value": 10050},
+            ]
+        ),
+        encoding="utf-8",
+    )
 
     # Create commodity state
     commodity_state = {
@@ -63,10 +69,15 @@ def mock_state_dirs(tmp_path):
         "risk_per_trade_pct": 0.5,
     }
     (commodity_dir / "state.json").write_text(json.dumps(commodity_state), encoding="utf-8")
-    (commodity_dir / "equity.json").write_text(json.dumps([
-        {"timestamp": "2024-01-01T00:00:00Z", "value": 10000},
-        {"timestamp": "2024-01-02T00:00:00Z", "value": 10100},
-    ]), encoding="utf-8")
+    (commodity_dir / "equity.json").write_text(
+        json.dumps(
+            [
+                {"timestamp": "2024-01-01T00:00:00Z", "value": 10000},
+                {"timestamp": "2024-01-02T00:00:00Z", "value": 10100},
+            ]
+        ),
+        encoding="utf-8",
+    )
 
     # Create stock state
     stock_state = {
@@ -82,10 +93,15 @@ def mock_state_dirs(tmp_path):
         "risk_per_trade_pct": 0.5,
     }
     (stock_dir / "state.json").write_text(json.dumps(stock_state), encoding="utf-8")
-    (stock_dir / "equity.json").write_text(json.dumps([
-        {"timestamp": "2024-01-01T00:00:00Z", "value": 10000},
-        {"timestamp": "2024-01-02T00:00:00Z", "value": 9950},
-    ]), encoding="utf-8")
+    (stock_dir / "equity.json").write_text(
+        json.dumps(
+            [
+                {"timestamp": "2024-01-01T00:00:00Z", "value": 10000},
+                {"timestamp": "2024-01-02T00:00:00Z", "value": 9950},
+            ]
+        ),
+        encoding="utf-8",
+    )
 
     return tmp_path
 
@@ -144,7 +160,9 @@ class TestPortfolioStatsEndpoint:
             data = response.json()
             assert data["market_type"] == market_type
 
-    def test_portfolio_stats_no_auth_required_without_api_key(self, client, mock_state_dirs, monkeypatch):
+    def test_portfolio_stats_no_auth_required_without_api_key(
+        self, client, mock_state_dirs, monkeypatch
+    ):
         """Test that portfolio stats works without auth when API_KEY not set."""
         monkeypatch.delenv("API_KEY", raising=False)
         monkeypatch.setattr(api_module, "STATE_DIR", mock_state_dirs)
@@ -273,10 +291,15 @@ class TestEquityEndpoints:
         """Test that equity endpoint returns 200."""
         # Create equity.json in the main state dir
         equity_file = mock_state_dirs / "equity.json"
-        equity_file.write_text(json.dumps([
-            {"timestamp": "2024-01-01T00:00:00Z", "value": 30000},
-            {"timestamp": "2024-01-02T00:00:00Z", "value": 30100},
-        ]), encoding="utf-8")
+        equity_file.write_text(
+            json.dumps(
+                [
+                    {"timestamp": "2024-01-01T00:00:00Z", "value": 30000},
+                    {"timestamp": "2024-01-02T00:00:00Z", "value": 30100},
+                ]
+            ),
+            encoding="utf-8",
+        )
         monkeypatch.setattr(api_module, "STATE_DIR", mock_state_dirs)
 
         response = client.get("/equity")
@@ -285,9 +308,14 @@ class TestEquityEndpoints:
     def test_equity_returns_list(self, client, mock_state_dirs, monkeypatch):
         """Test that equity endpoint returns a list."""
         equity_file = mock_state_dirs / "equity.json"
-        equity_file.write_text(json.dumps([
-            {"timestamp": "2024-01-01T00:00:00Z", "value": 30000},
-        ]), encoding="utf-8")
+        equity_file.write_text(
+            json.dumps(
+                [
+                    {"timestamp": "2024-01-01T00:00:00Z", "value": 30000},
+                ]
+            ),
+            encoding="utf-8",
+        )
         monkeypatch.setattr(api_module, "STATE_DIR", mock_state_dirs)
 
         response = client.get("/equity")

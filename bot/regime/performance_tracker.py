@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TradeRecord:
     """Single trade record."""
+
     trade_id: str
     symbol: str
     side: str
@@ -78,6 +79,7 @@ class TradeRecord:
 @dataclass
 class PerformanceMetrics:
     """Performance metrics for a period."""
+
     total_trades: int = 0
     winning_trades: int = 0
     losing_trades: int = 0
@@ -215,7 +217,9 @@ class PerformanceTracker:
         # Calculate Sharpe ratio (simplified)
         if len(pnls) > 1:
             returns = np.array(pnls)
-            metrics.sharpe_ratio = np.mean(returns) / np.std(returns) * np.sqrt(252) if np.std(returns) > 0 else 0
+            metrics.sharpe_ratio = (
+                np.mean(returns) / np.std(returns) * np.sqrt(252) if np.std(returns) > 0 else 0
+            )
 
         return metrics
 
@@ -270,7 +274,8 @@ class PerformanceTracker:
                 "pnl_diff": paper.total_pnl - backtest.total_pnl,
                 "pnl_diff_pct": (
                     (paper.total_pnl - backtest.total_pnl) / abs(backtest.total_pnl) * 100
-                    if backtest.total_pnl != 0 else 0
+                    if backtest.total_pnl != 0
+                    else 0
                 ),
                 "win_rate_diff": paper.win_rate - backtest.win_rate,
                 "trade_count_diff": paper.total_trades - backtest.total_trades,
@@ -289,10 +294,7 @@ class PerformanceTracker:
                 regime_trades[regime] = []
             regime_trades[regime].append(trade)
 
-        return {
-            regime: self.calculate_metrics(trades)
-            for regime, trades in regime_trades.items()
-        }
+        return {regime: self.calculate_metrics(trades) for regime, trades in regime_trades.items()}
 
     def get_daily_summary(self, date: datetime = None) -> Dict:
         """Get daily performance summary."""
@@ -302,10 +304,7 @@ class PerformanceTracker:
         start = date.replace(hour=0, minute=0, second=0, microsecond=0)
         end = start + timedelta(days=1)
 
-        paper_trades = [
-            t for t in self._paper_trades
-            if start <= t.entry_time < end
-        ]
+        paper_trades = [t for t in self._paper_trades if start <= t.entry_time < end]
 
         return {
             "date": date.strftime("%Y-%m-%d"),
@@ -405,8 +404,8 @@ class PerformanceTracker:
             msg += f"""
 
 📉 *Paper vs Backtest*
-• P&L Divergence: {div.get('pnl_diff_pct', 0):+.1f}%
-• Win Rate Diff: {div.get('win_rate_diff', 0):+.1%}"""
+• P&L Divergence: {div.get("pnl_diff_pct", 0):+.1f}%
+• Win Rate Diff: {div.get("win_rate_diff", 0):+.1%}"""
 
         return msg
 

@@ -24,8 +24,9 @@ from .base import BaseStrategy, StrategyConfig, StrategySignal
 @dataclass
 class VWAPConfig(StrategyConfig):
     """Configuration for VWAP strategy."""
+
     std_multiplier: float = 2.0  # Standard deviation bands
-    lookback_periods: int = 50   # Rolling window for VWAP
+    lookback_periods: int = 50  # Rolling window for VWAP
     volume_threshold: float = 1.2  # Require above-average volume
     rsi_period: int = 14
     rsi_oversold: float = 30
@@ -72,18 +73,18 @@ class VWAPStrategy(BaseStrategy):
 
         # Calculate VWAP
         typical_price = (df["high"] + df["low"] + df["close"]) / 3
-        cumulative_tp_vol = (typical_price * df["volume"]).rolling(
-            window=self.vwap_config.lookback_periods
-        ).sum()
-        cumulative_vol = df["volume"].rolling(
-            window=self.vwap_config.lookback_periods
-        ).sum()
+        cumulative_tp_vol = (
+            (typical_price * df["volume"]).rolling(window=self.vwap_config.lookback_periods).sum()
+        )
+        cumulative_vol = df["volume"].rolling(window=self.vwap_config.lookback_periods).sum()
         df["vwap"] = cumulative_tp_vol / cumulative_vol
 
         # Standard deviation bands
-        tp_squared = ((typical_price - df["vwap"]) ** 2 * df["volume"]).rolling(
-            window=self.vwap_config.lookback_periods
-        ).sum()
+        tp_squared = (
+            ((typical_price - df["vwap"]) ** 2 * df["volume"])
+            .rolling(window=self.vwap_config.lookback_periods)
+            .sum()
+        )
         variance = tp_squared / cumulative_vol
         std = np.sqrt(variance)
 
@@ -121,9 +122,13 @@ class VWAPStrategy(BaseStrategy):
         vwap = float(current["vwap"]) if not pd.isna(current["vwap"]) else close
         vwap_upper = float(current["vwap_upper"]) if not pd.isna(current["vwap_upper"]) else close
         vwap_lower = float(current["vwap_lower"]) if not pd.isna(current["vwap_lower"]) else close
-        vwap_deviation = float(current["vwap_deviation"]) if not pd.isna(current["vwap_deviation"]) else 0
+        vwap_deviation = (
+            float(current["vwap_deviation"]) if not pd.isna(current["vwap_deviation"]) else 0
+        )
         rsi = float(current["rsi"]) if not pd.isna(current["rsi"]) else 50
-        volume_ratio = float(current["volume_ratio"]) if not pd.isna(current["volume_ratio"]) else 1.0
+        volume_ratio = (
+            float(current["volume_ratio"]) if not pd.isna(current["volume_ratio"]) else 1.0
+        )
 
         indicators = {
             "vwap": vwap,
@@ -164,7 +169,9 @@ class VWAPStrategy(BaseStrategy):
         # SHORT signal: Price above upper band + RSI overbought
         elif is_above_upper and rsi > self.vwap_config.rsi_overbought:
             deviation_score = min(abs(vwap_deviation) / 3, 1.0)
-            rsi_score = (rsi - self.vwap_config.rsi_overbought) / (100 - self.vwap_config.rsi_overbought)
+            rsi_score = (rsi - self.vwap_config.rsi_overbought) / (
+                100 - self.vwap_config.rsi_overbought
+            )
             volume_bonus = 0.1 if strong_volume else 0
 
             confidence = min((deviation_score + rsi_score) / 2 + volume_bonus, 1.0)
@@ -181,6 +188,4 @@ class VWAPStrategy(BaseStrategy):
                     indicators=indicators,
                 )
 
-        return self._flat_signal(
-            f"Price within VWAP bands (deviation={vwap_deviation:.2f})"
-        )
+        return self._flat_signal(f"Price within VWAP bands (deviation={vwap_deviation:.2f})")

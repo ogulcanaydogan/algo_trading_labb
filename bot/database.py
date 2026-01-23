@@ -23,6 +23,7 @@ from typing import Any, Dict, Generator, List, Optional, Tuple
 @dataclass
 class Trade:
     """Trade record."""
+
     id: Optional[int] = None
     symbol: str = ""
     direction: str = ""  # LONG or SHORT
@@ -208,25 +209,66 @@ class TradingDatabase:
         """Insert a new trade and return its ID."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO trades (
                     symbol, direction, entry_time, exit_time, entry_price,
                     exit_price, size, pnl, pnl_pct, commission, slippage,
                     exit_reason, strategy, regime, confidence, metadata
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                trade.symbol, trade.direction, trade.entry_time, trade.exit_time,
-                trade.entry_price, trade.exit_price, trade.size, trade.pnl,
-                trade.pnl_pct, trade.commission, trade.slippage, trade.exit_reason,
-                trade.strategy, trade.regime, trade.confidence,
-                json.dumps(trade.metadata) if trade.metadata else None
-            ))
+            """,
+                (
+                    trade.symbol,
+                    trade.direction,
+                    trade.entry_time,
+                    trade.exit_time,
+                    trade.entry_price,
+                    trade.exit_price,
+                    trade.size,
+                    trade.pnl,
+                    trade.pnl_pct,
+                    trade.commission,
+                    trade.slippage,
+                    trade.exit_reason,
+                    trade.strategy,
+                    trade.regime,
+                    trade.confidence,
+                    json.dumps(trade.metadata) if trade.metadata else None,
+                ),
+            )
             return cursor.lastrowid
+
+    # Valid column names for Trade table (prevents SQL injection)
+    _VALID_TRADE_COLUMNS = frozenset(
+        {
+            "symbol",
+            "direction",
+            "entry_time",
+            "exit_time",
+            "entry_price",
+            "exit_price",
+            "size",
+            "pnl",
+            "pnl_pct",
+            "commission",
+            "slippage",
+            "exit_reason",
+            "strategy",
+            "regime",
+            "confidence",
+            "metadata",
+        }
+    )
 
     def update_trade(self, trade_id: int, **updates) -> bool:
         """Update a trade by ID."""
         if not updates:
             return False
+
+        # Validate column names against whitelist to prevent SQL injection
+        invalid_columns = set(updates.keys()) - self._VALID_TRADE_COLUMNS
+        if invalid_columns:
+            raise ValueError(f"Invalid column names: {invalid_columns}")
 
         set_clause = ", ".join(f"{k} = ?" for k in updates.keys())
         values = list(updates.values()) + [trade_id]
@@ -267,7 +309,12 @@ class TradingDatabase:
             query += " AND entry_time <= ?"
             params.append(end_date)
 
-        query += f" ORDER BY entry_time DESC LIMIT {limit}"
+        # Ensure limit is a valid integer to prevent SQL injection
+        safe_limit = int(limit)
+        if safe_limit < 0:
+            safe_limit = 1000
+        query += " ORDER BY entry_time DESC LIMIT ?"
+        params.append(safe_limit)
 
         with self._get_connection() as conn:
             cursor = conn.cursor()
@@ -344,12 +391,15 @@ class TradingDatabase:
 
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO equity (
                     timestamp, balance, unrealized_pnl, total_equity,
                     positions_count, symbol
                 ) VALUES (?, ?, ?, ?, ?, ?)
-            """, (timestamp, balance, unrealized_pnl, total_equity, positions_count, symbol))
+            """,
+                (timestamp, balance, unrealized_pnl, total_equity, positions_count, symbol),
+            )
 
     def get_equity_curve(
         self,
@@ -399,16 +449,26 @@ class TradingDatabase:
         """Insert a trading signal."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO signals (
                     timestamp, symbol, signal, confidence, price, regime,
                     strategy, ml_action, ml_confidence, metadata
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                timestamp, symbol, signal, confidence, price, regime,
-                strategy, ml_action, ml_confidence,
-                json.dumps(metadata) if metadata else None
-            ))
+            """,
+                (
+                    timestamp,
+                    symbol,
+                    signal,
+                    confidence,
+                    price,
+                    regime,
+                    strategy,
+                    ml_action,
+                    ml_confidence,
+                    json.dumps(metadata) if metadata else None,
+                ),
+            )
 
     def mark_signal_executed(self, signal_id: int):
         """Mark a signal as executed."""
@@ -452,27 +512,30 @@ class TradingDatabase:
         """Insert or update daily metrics."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT OR REPLACE INTO daily_metrics (
                     date, starting_balance, ending_balance, pnl, pnl_pct,
                     trades_count, winning_trades, losing_trades, win_rate,
                     profit_factor, max_drawdown_pct, sharpe_ratio, volume
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                date.date() if isinstance(date, datetime) else date,
-                metrics.get("starting_balance"),
-                metrics.get("ending_balance"),
-                metrics.get("pnl"),
-                metrics.get("pnl_pct"),
-                metrics.get("trades_count"),
-                metrics.get("winning_trades"),
-                metrics.get("losing_trades"),
-                metrics.get("win_rate"),
-                metrics.get("profit_factor"),
-                metrics.get("max_drawdown_pct"),
-                metrics.get("sharpe_ratio"),
-                metrics.get("volume"),
-            ))
+            """,
+                (
+                    date.date() if isinstance(date, datetime) else date,
+                    metrics.get("starting_balance"),
+                    metrics.get("ending_balance"),
+                    metrics.get("pnl"),
+                    metrics.get("pnl_pct"),
+                    metrics.get("trades_count"),
+                    metrics.get("winning_trades"),
+                    metrics.get("losing_trades"),
+                    metrics.get("win_rate"),
+                    metrics.get("profit_factor"),
+                    metrics.get("max_drawdown_pct"),
+                    metrics.get("sharpe_ratio"),
+                    metrics.get("volume"),
+                ),
+            )
 
     def get_daily_metrics(self, days: int = 30) -> List[Dict]:
         """Get recent daily metrics."""
@@ -505,17 +568,28 @@ class TradingDatabase:
         """Insert ML model record."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO ml_models (
                     name, model_type, symbol, trained_at, accuracy,
                     cross_val_score, train_samples, test_samples,
                     feature_count, parameters, file_path, is_active
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
-            """, (
-                name, model_type, symbol, datetime.now(), accuracy,
-                cross_val_score, train_samples, test_samples,
-                feature_count, json.dumps(parameters), file_path
-            ))
+            """,
+                (
+                    name,
+                    model_type,
+                    symbol,
+                    datetime.now(),
+                    accuracy,
+                    cross_val_score,
+                    train_samples,
+                    test_samples,
+                    feature_count,
+                    json.dumps(parameters),
+                    file_path,
+                ),
+            )
             return cursor.lastrowid
 
     def get_active_model(self, symbol: Optional[str] = None) -> Optional[Dict]:
@@ -577,4 +651,5 @@ class TradingDatabase:
     def backup(self, backup_path: str):
         """Create database backup."""
         import shutil
+
         shutil.copy2(self.db_path, backup_path)

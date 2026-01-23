@@ -26,25 +26,28 @@ logger = logging.getLogger(__name__)
 
 class DriftType(Enum):
     """Types of drift detected."""
+
     NONE = "none"
-    DATA_DRIFT = "data_drift"           # Feature distribution changed
-    CONCEPT_DRIFT = "concept_drift"     # Target relationship changed
-    PERFORMANCE_DRIFT = "performance"   # Model accuracy degraded
-    COMBINED = "combined"               # Multiple drift types
+    DATA_DRIFT = "data_drift"  # Feature distribution changed
+    CONCEPT_DRIFT = "concept_drift"  # Target relationship changed
+    PERFORMANCE_DRIFT = "performance"  # Model accuracy degraded
+    COMBINED = "combined"  # Multiple drift types
 
 
 class DriftSeverity(Enum):
     """Severity of detected drift."""
+
     NONE = "none"
-    LOW = "low"           # Monitor closely
-    MEDIUM = "medium"     # Consider retraining soon
-    HIGH = "high"         # Retrain immediately
-    CRITICAL = "critical" # Stop trading, retrain
+    LOW = "low"  # Monitor closely
+    MEDIUM = "medium"  # Consider retraining soon
+    HIGH = "high"  # Retrain immediately
+    CRITICAL = "critical"  # Stop trading, retrain
 
 
 @dataclass
 class DriftReport:
     """Report of drift detection analysis."""
+
     timestamp: datetime
     drift_type: DriftType
     severity: DriftSeverity
@@ -72,22 +75,23 @@ class DriftReport:
 @dataclass
 class DriftConfig:
     """Configuration for drift detection."""
+
     # Statistical test thresholds
-    ks_threshold: float = 0.1           # KS test p-value threshold
-    psi_threshold: float = 0.2          # Population Stability Index threshold
-    js_threshold: float = 0.1           # Jensen-Shannon divergence threshold
+    ks_threshold: float = 0.1  # KS test p-value threshold
+    psi_threshold: float = 0.2  # Population Stability Index threshold
+    js_threshold: float = 0.1  # Jensen-Shannon divergence threshold
 
     # Performance thresholds
-    accuracy_drop_threshold: float = 0.05   # 5% accuracy drop triggers alert
-    sharpe_drop_threshold: float = 0.3      # Sharpe ratio drop threshold
+    accuracy_drop_threshold: float = 0.05  # 5% accuracy drop triggers alert
+    sharpe_drop_threshold: float = 0.3  # Sharpe ratio drop threshold
 
     # Window sizes
-    reference_window_days: int = 30     # Days for reference distribution
-    detection_window_days: int = 7      # Days for current distribution
-    min_samples: int = 100              # Minimum samples for detection
+    reference_window_days: int = 30  # Days for reference distribution
+    detection_window_days: int = 7  # Days for current distribution
+    min_samples: int = 100  # Minimum samples for detection
 
     # Alerting
-    check_interval_hours: int = 6       # How often to check for drift
+    check_interval_hours: int = 6  # How often to check for drift
 
 
 class DriftDetector:
@@ -292,8 +296,9 @@ class DriftDetector:
 
         # Sample from reference histogram
         ref_samples = np.random.choice(
-            ref_centers, size=min(len(current_values), 1000),
-            p=ref_hist / ref_hist.sum() if ref_hist.sum() > 0 else None
+            ref_centers,
+            size=min(len(current_values), 1000),
+            p=ref_hist / ref_hist.sum() if ref_hist.sum() > 0 else None,
         )
 
         ks_stat, ks_pvalue = stats.ks_2samp(ref_samples, current_values)
@@ -342,11 +347,13 @@ class DriftDetector:
             accuracy_drop = recent_acc - accuracy
 
         # Store current performance
-        self.performance_history.append({
-            "timestamp": datetime.now().isoformat(),
-            "accuracy": accuracy,
-            "f1": f1,
-        })
+        self.performance_history.append(
+            {
+                "timestamp": datetime.now().isoformat(),
+                "accuracy": accuracy,
+                "f1": f1,
+            }
+        )
 
         return {
             "accuracy": accuracy,
@@ -437,6 +444,7 @@ class DriftDetector:
     def _get_most_drifted_features(self, reports: List[DriftReport], top_n: int = 5) -> List[str]:
         """Get features that drift most frequently."""
         from collections import Counter
+
         all_drifted = []
         for r in reports:
             all_drifted.extend(r.drifted_features)
@@ -450,8 +458,7 @@ class DriftDetector:
 
         recent = self.drift_history[-5:]
         high_severity = sum(
-            1 for r in recent
-            if r.severity in [DriftSeverity.HIGH, DriftSeverity.CRITICAL]
+            1 for r in recent if r.severity in [DriftSeverity.HIGH, DriftSeverity.CRITICAL]
         )
 
         if high_severity >= 2:

@@ -114,15 +114,17 @@ class PolygonDataProvider:
         if data and data.get("status") == "OK" and data.get("results"):
             df = pd.DataFrame(data["results"])
             df["timestamp"] = pd.to_datetime(df["t"], unit="ms")
-            df = df.rename(columns={
-                "o": "open",
-                "h": "high",
-                "l": "low",
-                "c": "close",
-                "v": "volume",
-                "vw": "vwap",
-                "n": "transactions",
-            })
+            df = df.rename(
+                columns={
+                    "o": "open",
+                    "h": "high",
+                    "l": "low",
+                    "c": "close",
+                    "v": "volume",
+                    "vw": "vwap",
+                    "n": "transactions",
+                }
+            )
             df = df.set_index("timestamp")
             df = df[["open", "high", "low", "close", "volume"]]
             return df
@@ -217,13 +219,15 @@ class PolygonDataProvider:
         if data and data.get("status") == "OK" and data.get("results"):
             df = pd.DataFrame(data["results"])
             df["timestamp"] = pd.to_datetime(df["t"], unit="ms")
-            df = df.rename(columns={
-                "o": "open",
-                "h": "high",
-                "l": "low",
-                "c": "close",
-                "v": "volume",
-            })
+            df = df.rename(
+                columns={
+                    "o": "open",
+                    "h": "high",
+                    "l": "low",
+                    "c": "close",
+                    "v": "volume",
+                }
+            )
             df = df.set_index("timestamp")
             df = df[["open", "high", "low", "close", "volume"]]
             return df
@@ -255,15 +259,17 @@ class PolygonDataProvider:
         if data and data.get("status") == "OK":
             articles = []
             for article in data.get("results", []):
-                articles.append({
-                    "title": article.get("title"),
-                    "author": article.get("author"),
-                    "published": article.get("published_utc"),
-                    "url": article.get("article_url"),
-                    "description": article.get("description"),
-                    "tickers": article.get("tickers", []),
-                    "sentiment": article.get("insights", []),
-                })
+                articles.append(
+                    {
+                        "title": article.get("title"),
+                        "author": article.get("author"),
+                        "published": article.get("published_utc"),
+                        "url": article.get("article_url"),
+                        "description": article.get("description"),
+                        "tickers": article.get("tickers", []),
+                        "sentiment": article.get("insights", []),
+                    }
+                )
             return articles
         return []
 
@@ -377,14 +383,10 @@ class PolygonDataAdapter:
         # Determine asset type and fetch
         if "/" in symbol or symbol.endswith("USD"):
             # Crypto
-            df = self.provider.get_crypto_bars(
-                symbol, timeframe=polygon_tf, limit=limit
-            )
+            df = self.provider.get_crypto_bars(symbol, timeframe=polygon_tf, limit=limit)
         else:
             # Stock
-            df = self.provider.get_stock_bars(
-                symbol, timeframe=polygon_tf, limit=limit
-            )
+            df = self.provider.get_stock_bars(symbol, timeframe=polygon_tf, limit=limit)
 
         if df is not None:
             self._cache[cache_key] = df

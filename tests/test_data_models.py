@@ -290,7 +290,7 @@ class TestSymbolInfo:
         )
 
         # Test with specific times for deterministic results
-        eastern = pytz.timezone('US/Eastern')
+        eastern = pytz.timezone("US/Eastern")
 
         # Monday at 10:00 AM Eastern - should be open
         market_open_time = eastern.localize(datetime(2024, 1, 15, 10, 0))

@@ -24,6 +24,7 @@ import statistics
 @dataclass
 class TradeRecord:
     """Single trade record for analysis."""
+
     symbol: str
     side: str  # 'long' or 'short'
     entry_time: datetime
@@ -153,7 +154,7 @@ def calculate_profit_factor(gross_profit: float, gross_loss: float) -> float:
     > 2.0 = excellent
     """
     if gross_loss == 0:
-        return float('inf') if gross_profit > 0 else 0
+        return float("inf") if gross_profit > 0 else 0
     return gross_profit / abs(gross_loss)
 
 
@@ -199,7 +200,7 @@ def calculate_sortino_ratio(returns: List[float], risk_free_rate: float = 0.0) -
     negative_returns = [r for r in returns if r < 0]
 
     if len(negative_returns) < 2:
-        return float('inf') if mean_return > 0 else 0.0
+        return float("inf") if mean_return > 0 else 0.0
 
     downside_std = statistics.stdev(negative_returns)
 
@@ -224,7 +225,7 @@ def calculate_calmar_ratio(total_return_pct: float, max_drawdown_pct: float) -> 
     > 5.0 = excellent
     """
     if max_drawdown_pct == 0:
-        return float('inf') if total_return_pct > 0 else 0.0
+        return float("inf") if total_return_pct > 0 else 0.0
 
     return total_return_pct / abs(max_drawdown_pct)
 
@@ -365,9 +366,7 @@ def calculate_quality_score(metrics: PerformanceMetrics) -> Tuple[float, str]:
 
 
 def calculate_all_metrics(
-    trades: List[Dict],
-    equity_curve: Optional[List[Dict]] = None,
-    initial_capital: float = 10000.0
+    trades: List[Dict], equity_curve: Optional[List[Dict]] = None, initial_capital: float = 10000.0
 ) -> PerformanceMetrics:
     """
     Calculate all performance metrics from trade history.
@@ -387,7 +386,7 @@ def calculate_all_metrics(
         return metrics
 
     # Filter closed trades (those with pnl)
-    closed_trades = [t for t in trades if 'pnl' in t and t.get('pnl') is not None]
+    closed_trades = [t for t in trades if "pnl" in t and t.get("pnl") is not None]
 
     if not closed_trades:
         return metrics
@@ -395,8 +394,8 @@ def calculate_all_metrics(
     # Basic counts
     metrics.total_trades = len(closed_trades)
 
-    pnls = [t.get('pnl', 0) or 0 for t in closed_trades]
-    pnl_pcts = [t.get('pnl_pct', 0) or 0 for t in closed_trades]
+    pnls = [t.get("pnl", 0) or 0 for t in closed_trades]
+    pnl_pcts = [t.get("pnl_pct", 0) or 0 for t in closed_trades]
 
     winners = [p for p in pnls if p > 0]
     losers = [p for p in pnls if p < 0]
@@ -406,8 +405,12 @@ def calculate_all_metrics(
     metrics.breakeven_trades = metrics.total_trades - metrics.winning_trades - metrics.losing_trades
 
     # Win/Loss rates
-    metrics.win_rate = metrics.winning_trades / metrics.total_trades if metrics.total_trades > 0 else 0
-    metrics.loss_rate = metrics.losing_trades / metrics.total_trades if metrics.total_trades > 0 else 0
+    metrics.win_rate = (
+        metrics.winning_trades / metrics.total_trades if metrics.total_trades > 0 else 0
+    )
+    metrics.loss_rate = (
+        metrics.losing_trades / metrics.total_trades if metrics.total_trades > 0 else 0
+    )
 
     # P&L totals
     metrics.total_pnl = sum(pnls)
@@ -420,8 +423,8 @@ def calculate_all_metrics(
     metrics.avg_loss = statistics.mean(losers) if losers else 0
     metrics.avg_trade = statistics.mean(pnls) if pnls else 0
 
-    winner_pcts = [t.get('pnl_pct', 0) or 0 for t in closed_trades if (t.get('pnl', 0) or 0) > 0]
-    loser_pcts = [t.get('pnl_pct', 0) or 0 for t in closed_trades if (t.get('pnl', 0) or 0) < 0]
+    winner_pcts = [t.get("pnl_pct", 0) or 0 for t in closed_trades if (t.get("pnl", 0) or 0) > 0]
+    loser_pcts = [t.get("pnl_pct", 0) or 0 for t in closed_trades if (t.get("pnl", 0) or 0) < 0]
 
     metrics.avg_win_pct = statistics.mean(winner_pcts) if winner_pcts else 0
     metrics.avg_loss_pct = statistics.mean(loser_pcts) if loser_pcts else 0
@@ -429,7 +432,9 @@ def calculate_all_metrics(
     # Key ratios
     metrics.profit_factor = calculate_profit_factor(metrics.gross_profit, metrics.gross_loss)
     metrics.expectancy = calculate_expectancy(metrics.win_rate, metrics.avg_win, metrics.avg_loss)
-    metrics.expectancy_pct = calculate_expectancy(metrics.win_rate, metrics.avg_win_pct, metrics.avg_loss_pct)
+    metrics.expectancy_pct = calculate_expectancy(
+        metrics.win_rate, metrics.avg_win_pct, metrics.avg_loss_pct
+    )
 
     # Risk-adjusted returns
     if len(pnl_pcts) >= 2:
@@ -438,7 +443,7 @@ def calculate_all_metrics(
 
     # Drawdown analysis
     if equity_curve:
-        equity_values = [e.get('total_equity', e.get('balance', 0)) for e in equity_curve]
+        equity_values = [e.get("total_equity", e.get("balance", 0)) for e in equity_curve]
         if equity_values:
             dd_series, max_dd, max_dd_pct = calculate_drawdown_series(equity_values)
             metrics.max_drawdown = max_dd
@@ -447,7 +452,9 @@ def calculate_all_metrics(
             metrics.avg_drawdown = statistics.mean(dd_series) if dd_series else 0
 
             # Calmar ratio
-            metrics.calmar_ratio = calculate_calmar_ratio(metrics.total_pnl_pct, metrics.max_drawdown_pct)
+            metrics.calmar_ratio = calculate_calmar_ratio(
+                metrics.total_pnl_pct, metrics.max_drawdown_pct
+            )
 
     # Streaks
     trade_results = [p > 0 for p in pnls]
@@ -458,12 +465,16 @@ def calculate_all_metrics(
     metrics.current_streak_type = current_type
 
     # Hold time analysis
-    hold_times = [t.get('hold_time_minutes', 0) or 0 for t in closed_trades]
+    hold_times = [t.get("hold_time_minutes", 0) or 0 for t in closed_trades]
     if hold_times:
         metrics.avg_hold_time_minutes = statistics.mean(hold_times)
 
-        win_hold = [t.get('hold_time_minutes', 0) or 0 for t in closed_trades if (t.get('pnl', 0) or 0) > 0]
-        loss_hold = [t.get('hold_time_minutes', 0) or 0 for t in closed_trades if (t.get('pnl', 0) or 0) < 0]
+        win_hold = [
+            t.get("hold_time_minutes", 0) or 0 for t in closed_trades if (t.get("pnl", 0) or 0) > 0
+        ]
+        loss_hold = [
+            t.get("hold_time_minutes", 0) or 0 for t in closed_trades if (t.get("pnl", 0) or 0) < 0
+        ]
 
         metrics.avg_win_hold_time = statistics.mean(win_hold) if win_hold else 0
         metrics.avg_loss_hold_time = statistics.mean(loss_hold) if loss_hold else 0
@@ -475,18 +486,18 @@ def calculate_all_metrics(
         metrics.total_r = sum(r_multiples)
 
     # By symbol breakdown
-    symbols = set(t.get('symbol', 'unknown') for t in closed_trades)
+    symbols = set(t.get("symbol", "unknown") for t in closed_trades)
     for symbol in symbols:
-        sym_trades = [t for t in closed_trades if t.get('symbol') == symbol]
-        sym_pnls = [t.get('pnl', 0) or 0 for t in sym_trades]
+        sym_trades = [t for t in closed_trades if t.get("symbol") == symbol]
+        sym_pnls = [t.get("pnl", 0) or 0 for t in sym_trades]
         sym_wins = len([p for p in sym_pnls if p > 0])
 
         metrics.by_symbol[symbol] = {
-            'trades': len(sym_trades),
-            'wins': sym_wins,
-            'win_rate': sym_wins / len(sym_trades) if sym_trades else 0,
-            'total_pnl': sum(sym_pnls),
-            'avg_pnl': statistics.mean(sym_pnls) if sym_pnls else 0
+            "trades": len(sym_trades),
+            "wins": sym_wins,
+            "win_rate": sym_wins / len(sym_trades) if sym_trades else 0,
+            "total_pnl": sum(sym_pnls),
+            "avg_pnl": statistics.mean(sym_pnls) if sym_pnls else 0,
         }
 
     # Rolling metrics
@@ -538,7 +549,7 @@ def load_equity_from_file(filepath: str) -> List[Dict]:
 def analyze_trading_performance(
     trades_file: str = "data/unified_trading/trades.json",
     equity_file: str = "data/unified_trading/equity.json",
-    initial_capital: float = 10000.0
+    initial_capital: float = 10000.0,
 ) -> PerformanceMetrics:
     """
     Quick function to analyze trading performance from files.
@@ -572,4 +583,6 @@ if __name__ == "__main__":
     print(f"Quality Score: {metrics.quality_score:.1f} ({metrics.quality_grade})")
     print(f"\nBy Symbol:")
     for sym, data in metrics.by_symbol.items():
-        print(f"  {sym}: {data['trades']} trades, {data['win_rate']:.1%} win rate, ${data['total_pnl']:.2f} P&L")
+        print(
+            f"  {sym}: {data['trades']} trades, {data['win_rate']:.1%} win rate, ${data['total_pnl']:.2f} P&L"
+        )

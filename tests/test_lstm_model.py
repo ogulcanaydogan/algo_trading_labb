@@ -58,13 +58,15 @@ class TestLSTMDataPreparation:
         n = 200
         base_price = 100
 
-        df = pd.DataFrame({
-            "open": base_price + np.random.randn(n).cumsum(),
-            "high": base_price + np.random.randn(n).cumsum() + 2,
-            "low": base_price + np.random.randn(n).cumsum() - 2,
-            "close": base_price + np.random.randn(n).cumsum(),
-            "volume": np.random.randint(1000, 10000, n),
-        })
+        df = pd.DataFrame(
+            {
+                "open": base_price + np.random.randn(n).cumsum(),
+                "high": base_price + np.random.randn(n).cumsum() + 2,
+                "low": base_price + np.random.randn(n).cumsum() - 2,
+                "close": base_price + np.random.randn(n).cumsum(),
+                "volume": np.random.randint(1000, 10000, n),
+            }
+        )
         return df
 
     @pytest.fixture
@@ -150,10 +152,7 @@ class TestLSTMModelBuild:
             with pytest.raises(ImportError, match="TensorFlow required"):
                 predictor.build_model()
 
-    @pytest.mark.skipif(
-        not lstm_model.HAS_TENSORFLOW,
-        reason="TensorFlow not installed"
-    )
+    @pytest.mark.skipif(not lstm_model.HAS_TENSORFLOW, reason="TensorFlow not installed")
     def test_build_model_with_tensorflow(self):
         """Test model is built with TensorFlow."""
         predictor = lstm_model.LSTMPredictor()
@@ -172,13 +171,15 @@ class TestLSTMPrediction:
 
     def test_predict_not_trained_raises(self, predictor):
         """Test predict raises when not trained."""
-        df = pd.DataFrame({
-            "open": np.random.rand(50),
-            "high": np.random.rand(50),
-            "low": np.random.rand(50),
-            "close": np.random.rand(50),
-            "volume": np.random.rand(50),
-        })
+        df = pd.DataFrame(
+            {
+                "open": np.random.rand(50),
+                "high": np.random.rand(50),
+                "low": np.random.rand(50),
+                "close": np.random.rand(50),
+                "volume": np.random.rand(50),
+            }
+        )
 
         with pytest.raises(ValueError, match="not trained"):
             predictor.predict(df)
@@ -203,10 +204,7 @@ class TestLSTMSaveLoad:
 
         assert result is False
 
-    @pytest.mark.skipif(
-        not lstm_model.HAS_TENSORFLOW,
-        reason="TensorFlow not installed"
-    )
+    @pytest.mark.skipif(not lstm_model.HAS_TENSORFLOW, reason="TensorFlow not installed")
     def test_load_without_tensorflow(self, predictor, tmp_path):
         """Test load handles missing TensorFlow gracefully."""
         # Create mock files
@@ -229,13 +227,15 @@ class TestTrainLSTMModel:
         """Create sample DataFrame."""
         np.random.seed(42)
         n = 200
-        return pd.DataFrame({
-            "open": 100 + np.random.randn(n).cumsum(),
-            "high": 102 + np.random.randn(n).cumsum(),
-            "low": 98 + np.random.randn(n).cumsum(),
-            "close": 100 + np.random.randn(n).cumsum(),
-            "volume": np.random.randint(1000, 10000, n),
-        })
+        return pd.DataFrame(
+            {
+                "open": 100 + np.random.randn(n).cumsum(),
+                "high": 102 + np.random.randn(n).cumsum(),
+                "low": 98 + np.random.randn(n).cumsum(),
+                "close": 100 + np.random.randn(n).cumsum(),
+                "volume": np.random.randint(1000, 10000, n),
+            }
+        )
 
     def test_train_without_tensorflow(self, sample_df):
         """Test training returns error without TensorFlow."""
@@ -265,14 +265,16 @@ class TestLSTMPredictorSequences:
 
     def test_prepare_data_minimum_rows(self, predictor):
         """Test with exactly sequence_length + 1 rows."""
-        df = pd.DataFrame({
-            "open": np.random.rand(11),
-            "high": np.random.rand(11),
-            "low": np.random.rand(11),
-            "close": np.random.rand(11),
-            "volume": np.random.rand(11),
-            "target": np.random.randint(0, 2, 11),
-        })
+        df = pd.DataFrame(
+            {
+                "open": np.random.rand(11),
+                "high": np.random.rand(11),
+                "low": np.random.rand(11),
+                "close": np.random.rand(11),
+                "volume": np.random.rand(11),
+                "target": np.random.randint(0, 2, 11),
+            }
+        )
 
         X, y = predictor.prepare_data(df)
 
@@ -282,14 +284,16 @@ class TestLSTMPredictorSequences:
 
     def test_prepare_data_insufficient_rows(self, predictor):
         """Test with fewer rows than sequence_length."""
-        df = pd.DataFrame({
-            "open": np.random.rand(5),
-            "high": np.random.rand(5),
-            "low": np.random.rand(5),
-            "close": np.random.rand(5),
-            "volume": np.random.rand(5),
-            "target": np.random.randint(0, 2, 5),
-        })
+        df = pd.DataFrame(
+            {
+                "open": np.random.rand(5),
+                "high": np.random.rand(5),
+                "low": np.random.rand(5),
+                "close": np.random.rand(5),
+                "volume": np.random.rand(5),
+                "target": np.random.randint(0, 2, 5),
+            }
+        )
 
         X, y = predictor.prepare_data(df)
 
@@ -299,14 +303,16 @@ class TestLSTMPredictorSequences:
     def test_sequence_content(self, predictor):
         """Test sequence content is correct."""
         # Create predictable data
-        df = pd.DataFrame({
-            "open": list(range(20)),
-            "high": list(range(20)),
-            "low": list(range(20)),
-            "close": list(range(20)),
-            "volume": [1000] * 20,
-            "target": [1] * 20,
-        })
+        df = pd.DataFrame(
+            {
+                "open": list(range(20)),
+                "high": list(range(20)),
+                "low": list(range(20)),
+                "close": list(range(20)),
+                "volume": [1000] * 20,
+                "target": [1] * 20,
+            }
+        )
 
         predictor.scaler_params = {
             "mean": {"open": 0, "high": 0, "low": 0, "close": 0, "volume": 0},
@@ -331,14 +337,16 @@ class TestLSTMPredictorNormalization:
     def test_zero_std_handled(self, predictor):
         """Test zero standard deviation is handled."""
         # Create data with constant values (zero std)
-        df = pd.DataFrame({
-            "open": [100.0] * 20,
-            "high": [100.0] * 20,
-            "low": [100.0] * 20,
-            "close": [100.0] * 20,
-            "volume": [1000] * 20,
-            "target": [1] * 20,
-        })
+        df = pd.DataFrame(
+            {
+                "open": [100.0] * 20,
+                "high": [100.0] * 20,
+                "low": [100.0] * 20,
+                "close": [100.0] * 20,
+                "volume": [1000] * 20,
+                "target": [1] * 20,
+            }
+        )
 
         # Should not raise even with zero std
         X, y = predictor.prepare_data(df)
@@ -373,13 +381,15 @@ class TestLSTMScalerParams:
         """Test scaler_params populated after prepare_data."""
         predictor = lstm_model.LSTMPredictor(sequence_length=5)
 
-        df = pd.DataFrame({
-            "open": np.random.rand(20) * 100 + 50,
-            "high": np.random.rand(20) * 100 + 55,
-            "low": np.random.rand(20) * 100 + 45,
-            "close": np.random.rand(20) * 100 + 50,
-            "volume": np.random.randint(1000, 10000, 20),
-        })
+        df = pd.DataFrame(
+            {
+                "open": np.random.rand(20) * 100 + 50,
+                "high": np.random.rand(20) * 100 + 55,
+                "low": np.random.rand(20) * 100 + 45,
+                "close": np.random.rand(20) * 100 + 50,
+                "volume": np.random.randint(1000, 10000, 20),
+            }
+        )
 
         predictor.prepare_data(df)
 

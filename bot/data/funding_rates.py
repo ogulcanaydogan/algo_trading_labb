@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class FundingRate:
     """Single funding rate data point."""
+
     symbol: str
     exchange: str
     rate: float  # Funding rate (e.g., 0.0001 = 0.01%)
@@ -64,6 +65,7 @@ class FundingRate:
 @dataclass
 class FundingSignal:
     """Trading signal from funding rate analysis."""
+
     symbol: str
     signal: Literal["LONG", "SHORT", "NEUTRAL"]
     strength: float  # 0 to 1
@@ -91,6 +93,7 @@ class FundingSignal:
 @dataclass
 class FundingArbitrage:
     """Funding rate arbitrage opportunity."""
+
     symbol: str
     long_exchange: str
     short_exchange: str
@@ -118,6 +121,7 @@ class FundingArbitrage:
 @dataclass
 class FundingConfig:
     """Funding rate analysis configuration."""
+
     # History settings
     history_size: int = 100  # Number of rates to keep
 
@@ -277,22 +281,22 @@ class FundingRateTracker:
             # Contrarian signal at extremes
             if avg_rate > self.config.extreme_threshold:
                 signal = "SHORT"  # Fade extreme bullish
-                reasoning = f"Extreme positive funding ({avg_rate*100:.3f}%), potential reversal"
+                reasoning = f"Extreme positive funding ({avg_rate * 100:.3f}%), potential reversal"
             else:
                 signal = "LONG"  # Fade extreme bearish
-                reasoning = f"Extreme negative funding ({avg_rate*100:.3f}%), potential reversal"
+                reasoning = f"Extreme negative funding ({avg_rate * 100:.3f}%), potential reversal"
             strength = min(1.0, abs(avg_rate) / self.config.extreme_threshold / 2)
         elif avg_rate > self.config.positive_threshold:
             signal = "LONG"  # Follow bullish sentiment
-            reasoning = f"Positive funding ({avg_rate*100:.3f}%) indicates bullish sentiment"
+            reasoning = f"Positive funding ({avg_rate * 100:.3f}%) indicates bullish sentiment"
             strength = min(1.0, avg_rate / self.config.extreme_threshold)
         elif avg_rate < self.config.negative_threshold:
             signal = "SHORT"  # Follow bearish sentiment
-            reasoning = f"Negative funding ({avg_rate*100:.3f}%) indicates bearish sentiment"
+            reasoning = f"Negative funding ({avg_rate * 100:.3f}%) indicates bearish sentiment"
             strength = min(1.0, abs(avg_rate) / self.config.extreme_threshold)
         else:
             signal = "NEUTRAL"
-            reasoning = f"Neutral funding ({avg_rate*100:.3f}%)"
+            reasoning = f"Neutral funding ({avg_rate * 100:.3f}%)"
             strength = 0
 
         return FundingSignal(
@@ -314,7 +318,7 @@ class FundingRateTracker:
         # Get recent rates across exchanges
         recent_rates = []
         for exchange_rates in self._rates[symbol].values():
-            recent = list(exchange_rates)[-self.config.trend_window:]
+            recent = list(exchange_rates)[-self.config.trend_window :]
             recent_rates.extend(recent)
 
         if len(recent_rates) < 3:
@@ -324,8 +328,8 @@ class FundingRateTracker:
         recent_rates.sort(key=lambda r: r.timestamp)
 
         # Calculate trend
-        first_half = [r.rate for r in recent_rates[:len(recent_rates)//2]]
-        second_half = [r.rate for r in recent_rates[len(recent_rates)//2:]]
+        first_half = [r.rate for r in recent_rates[: len(recent_rates) // 2]]
+        second_half = [r.rate for r in recent_rates[len(recent_rates) // 2 :]]
 
         if not first_half or not second_half:
             return "stable"
@@ -400,13 +404,15 @@ class FundingRateTracker:
             rates = [r.rate for r in exchanges.values()]
             avg_rate = np.mean(rates)
 
-            results.append({
-                "symbol": symbol,
-                "avg_rate": avg_rate,
-                "avg_rate_pct": avg_rate * 100,
-                "annualized_pct": avg_rate * 3 * 365 * 100,
-                "exchanges": len(exchanges),
-            })
+            results.append(
+                {
+                    "symbol": symbol,
+                    "avg_rate": avg_rate,
+                    "avg_rate_pct": avg_rate * 100,
+                    "annualized_pct": avg_rate * 3 * 365 * 100,
+                    "exchanges": len(exchanges),
+                }
+            )
 
         # Sort by rate
         if direction == "positive":
@@ -433,16 +439,8 @@ class FundingRateTracker:
     def get_summary(self) -> Dict:
         """Get funding rate summary."""
         total_symbols = len(self._latest)
-        total_positive = sum(
-            1 for exs in self._latest.values()
-            for r in exs.values()
-            if r.rate > 0
-        )
-        total_negative = sum(
-            1 for exs in self._latest.values()
-            for r in exs.values()
-            if r.rate < 0
-        )
+        total_positive = sum(1 for exs in self._latest.values() for r in exs.values() if r.rate > 0)
+        total_negative = sum(1 for exs in self._latest.values() for r in exs.values() if r.rate < 0)
 
         arb_opportunities = self.get_all_arbitrage_opportunities()
 
@@ -451,9 +449,13 @@ class FundingRateTracker:
             "total_observations": sum(len(exs) for exs in self._latest.values()),
             "positive_funding": total_positive,
             "negative_funding": total_negative,
-            "sentiment_ratio": total_positive / (total_positive + total_negative) if (total_positive + total_negative) > 0 else 0.5,
+            "sentiment_ratio": total_positive / (total_positive + total_negative)
+            if (total_positive + total_negative) > 0
+            else 0.5,
             "arbitrage_opportunities": len(arb_opportunities),
-            "top_arb_annual_pct": arb_opportunities[0].expected_profit_annual * 100 if arb_opportunities else 0,
+            "top_arb_annual_pct": arb_opportunities[0].expected_profit_annual * 100
+            if arb_opportunities
+            else 0,
         }
 
 

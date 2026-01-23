@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import time
 from contextlib import asynccontextmanager
@@ -11,6 +12,7 @@ from typing import Any, Dict, List, Optional, Set
 
 # Load .env before any other imports that might need env vars
 from dotenv import load_dotenv
+
 load_dotenv()
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
@@ -43,8 +45,12 @@ from .schemas import (
 )
 from .security import check_rate_limit, verify_api_key
 from .unified_trading_api import router as unified_trading_router
+from .validation import validate_trading_request, APIRequestValidator
 
 STATE_DIR = Path(os.getenv("DATA_DIR", "./data"))
+
+# Initialize logger
+logger = logging.getLogger(__name__)
 
 # Simple response cache for market summaries (to avoid slow API calls)
 _market_summary_cache: Dict[str, tuple] = {}  # {market_type: (timestamp, data)}
@@ -135,6 +141,7 @@ API_TAGS_METADATA = [
 # WebSocket Connection Manager for Real-Time Updates
 # =============================================================================
 
+
 class ConnectionManager:
     """Manage WebSocket connections for real-time updates."""
 
@@ -191,7 +198,7 @@ def _get_ws_update_payload() -> Dict[str, Any]:
 
     # Load UNIFIED trading state (single source of truth)
     unified_state_file = STATE_DIR / "unified_trading" / "state.json"
-    
+
     if not unified_state_file.exists():
         # Fallback to old multi-market approach if unified doesn't exist
         result["markets"] = {
@@ -217,18 +224,18 @@ def _get_ws_update_payload() -> Dict[str, Any]:
     initial_capital = state.get("initial_capital", 10000)
     total_pnl = state.get("total_pnl", 0)
     positions = state.get("positions", {})
-    
+
     # Calculate daily P&L
     daily_pnl = state.get("daily_pnl", 0)
     daily_pnl_pct = (daily_pnl / initial_capital * 100) if initial_capital > 0 else 0
-    
+
     # Portfolio totals
     result["portfolio_value"] = current_balance
     result["total_pnl"] = total_pnl
     result["total_pnl_pct"] = (total_pnl / initial_capital * 100) if initial_capital > 0 else 0
     result["daily_pnl"] = daily_pnl
     result["daily_pnl_pct"] = daily_pnl_pct
-    
+
     # Extract positions
     for symbol, pos_data in positions.items():
         result["positions"][symbol] = {
@@ -237,7 +244,7 @@ def _get_ws_update_payload() -> Dict[str, Any]:
             "entry_price": pos_data.get("entry_price", 0),
             "unrealized_pnl": pos_data.get("unrealized_pnl", 0),
         }
-    
+
     # Divide portfolio equally across 3 markets for display
     market_allocation = current_balance / 3
     positions_per_market = {
@@ -245,11 +252,11 @@ def _get_ws_update_payload() -> Dict[str, Any]:
         "commodity": 0,
         "stock": 0,
     }
-    
+
     # Count positions by market type
     crypto_symbols = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "AVAX/USDT"]
     commodity_symbols = ["XAU/USD", "XAG/USD", "USOIL/USD", "NATGAS/USD"]
-    
+
     for symbol in positions.keys():
         if any(s in symbol for s in crypto_symbols) or "USDT" in symbol:
             positions_per_market["crypto"] += 1
@@ -257,10 +264,10 @@ def _get_ws_update_payload() -> Dict[str, Any]:
             positions_per_market["commodity"] += 1
         else:
             positions_per_market["stock"] += 1
-    
+
     # Market status (all running if unified engine is active)
     is_active = state.get("status") == "active"
-    
+
     result["markets"] = {
         "crypto": {
             "total_value": market_allocation,
@@ -311,9 +318,9 @@ async def lifespan(app: FastAPI):
     # Startup: Start the WebSocket broadcast loop
     ws_manager._running = True
     ws_manager._broadcast_task = asyncio.create_task(_ws_broadcast_loop())
-    
+
     yield
-    
+
     # Shutdown: Stop the WebSocket broadcast loop
     ws_manager._running = False
     if ws_manager._broadcast_task:
@@ -322,7 +329,7 @@ async def lifespan(app: FastAPI):
             await ws_manager._broadcast_task
         except asyncio.CancelledError:
             pass
-    
+
     # Close all active connections
     for connection in list(ws_manager.active_connections):
         try:
@@ -369,6 +376,7 @@ app.include_router(unified_trading_router)
 # Include advanced API router
 try:
     from api.advanced_api import router as advanced_router
+
     app.include_router(advanced_router)
 except ImportError as e:
     logger.warning(f"Advanced API not available: {e}")
@@ -376,6 +384,7 @@ except ImportError as e:
 # Include WebSocket router
 try:
     from api.websocket_api import router as websocket_router
+
     app.include_router(websocket_router)
 except ImportError as e:
     logger.warning(f"WebSocket API not available: {e}")
@@ -469,17 +478,11 @@ def _derive_asset_metadata(
     return {
         "asset_type": asset.get("asset_type"),
         "timeframe": timeframe_value,
-        "allocation_pct": float(allocation_value)
-        if allocation_value is not None
-        else None,
+        "allocation_pct": float(allocation_value) if allocation_value is not None else None,
         "paper_mode": paper_mode_value,
         "loop_interval_seconds": loop_value,
-        "stop_loss_pct": float(stop_loss_value)
-        if stop_loss_value is not None
-        else None,
-        "take_profit_pct": float(take_profit_value)
-        if take_profit_value is not None
-        else None,
+        "stop_loss_pct": float(stop_loss_value) if stop_loss_value is not None else None,
+        "take_profit_pct": float(take_profit_value) if take_profit_value is not None else None,
     }
 
 
@@ -742,17 +745,22 @@ def read_equity(store: StateStore = Depends(get_store)) -> List[EquityPointRespo
             should_add = True
             if result:
                 last_point = result[-1]
-                last_time = datetime.fromisoformat(last_point.timestamp.replace('Z', '+00:00')) if isinstance(last_point.timestamp, str) else last_point.timestamp
-                time_diff = (now - last_time).total_seconds() if hasattr(last_time, 'total_seconds') or isinstance(last_time, datetime) else 60
-                if hasattr(time_diff, '__abs__'):
+                last_time = (
+                    datetime.fromisoformat(last_point.timestamp.replace("Z", "+00:00"))
+                    if isinstance(last_point.timestamp, str)
+                    else last_point.timestamp
+                )
+                time_diff = (
+                    (now - last_time).total_seconds()
+                    if hasattr(last_time, "total_seconds") or isinstance(last_time, datetime)
+                    else 60
+                )
+                if hasattr(time_diff, "__abs__"):
                     time_diff = abs(time_diff)
                 should_add = time_diff >= 30 or abs(last_point.value - total_value) > 10
 
             if should_add:
-                result.append(EquityPointResponse(
-                    timestamp=now.isoformat(),
-                    value=total_value
-                ))
+                result.append(EquityPointResponse(timestamp=now.isoformat(), value=total_value))
     except Exception:
         pass  # If real-time data fails, just return the stored curve
 
@@ -861,12 +869,8 @@ def list_portfolio_strategies() -> List[StrategyOverviewResponse]:
         if not overrides:
             continue
         symbol = str(overrides.get("symbol") or item.name)
-        timeframe = str(
-            overrides.get("timeframe") or StrategyConfig.from_env().timeframe
-        )
-        cfg = merge_config(
-            StrategyConfig(symbol=symbol, timeframe=timeframe), overrides
-        )
+        timeframe = str(overrides.get("timeframe") or StrategyConfig.from_env().timeframe)
+        cfg = merge_config(StrategyConfig(symbol=symbol, timeframe=timeframe), overrides)
         results.append(
             StrategyOverviewResponse(
                 symbol=cfg.symbol,
@@ -1030,12 +1034,13 @@ def read_portfolio_playbook(
     if not playbook:
         # Return empty playbook instead of 404 to prevent dashboard errors
         from datetime import datetime, timezone
+
         return PortfolioPlaybookResponse(
             generated_at=datetime.now(timezone.utc),
             starting_balance=10000.0,
             commodities=[],
             equities=[],
-            highlights=[]
+            highlights=[],
         )
 
     return PortfolioPlaybookResponse.model_validate(playbook)
@@ -1102,11 +1107,13 @@ def health_check() -> HealthCheckResponse:
             if state_path.exists():
                 try:
                     import json
+
                     with open(state_path) as f:
                         data = json.load(f)
                     ts_str = data.get("timestamp")
                     if ts_str:
                         from dateutil.parser import parse
+
                         ts = parse(ts_str)
                         if ts.tzinfo is None:
                             ts = ts.replace(tzinfo=timezone.utc)
@@ -1184,6 +1191,7 @@ async def dashboard() -> HTMLResponse:
 async def dashboard_v2():
     """Redirect legacy dashboard URLs to root."""
     from fastapi.responses import RedirectResponse
+
     return RedirectResponse(url="/", status_code=302)
 
 
@@ -1278,9 +1286,11 @@ async def get_paper_trading_log(
         sources_status = {}
 
         # Determine which log sources to read
-        sources_to_read = TRADING_LOG_SOURCES if market == "all" else {
-            k: v for k, v in TRADING_LOG_SOURCES.items() if k == market
-        }
+        sources_to_read = (
+            TRADING_LOG_SOURCES
+            if market == "all"
+            else {k: v for k, v in TRADING_LOG_SOURCES.items() if k == market}
+        )
 
         for market_name, log_path in sources_to_read.items():
             if log_path.exists():
@@ -1288,7 +1298,7 @@ async def get_paper_trading_log(
                 try:
                     with open(log_path, "r") as f:
                         # Read last N*2 lines to have enough after filtering
-                        log_lines = f.readlines()[-(lines * 2):]
+                        log_lines = f.readlines()[-(lines * 2) :]
 
                     for line in log_lines:
                         entry = parse_log_entry(line, market_name)
@@ -1326,6 +1336,7 @@ async def get_paper_trading_log(
 async def stop_bot() -> Dict[str, str]:
     """Send stop signal to paper trading bot."""
     import subprocess
+
     try:
         # Find and kill the paper trading process
         result = subprocess.run(
@@ -1391,7 +1402,9 @@ async def get_live_trading_status() -> Dict[str, Any]:
             line = line.strip()
 
             # Parse iteration line
-            iter_match = re.search(r"Iteration (\d+) \| (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})", line)
+            iter_match = re.search(
+                r"Iteration (\d+) \| (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})", line
+            )
             if iter_match:
                 current_iteration = int(iter_match.group(1))
                 current_timestamp = iter_match.group(2)
@@ -1404,7 +1417,9 @@ async def get_live_trading_status() -> Dict[str, Any]:
                 prices[symbol] = price
 
             # Parse signal lines: "BTC/USDT: FLAT ⚪ | sideways | conf: 61%"
-            signal_match = re.search(r"([\w/]+): (LONG|SHORT|FLAT) [🟢🔴⚪] \| (\w+) \| conf: (\d+)%", line)
+            signal_match = re.search(
+                r"([\w/]+): (LONG|SHORT|FLAT) [🟢🔴⚪] \| (\w+) \| conf: (\d+)%", line
+            )
             if signal_match:
                 symbol = signal_match.group(1)
                 action = signal_match.group(2)
@@ -1429,7 +1444,9 @@ async def get_live_trading_status() -> Dict[str, Any]:
             if sig["action"] != "FLAT" and symbol in prices:
                 # Estimate position based on invested capital
                 positions[symbol] = {
-                    "value": invested / len([s for s in signals.values() if s["action"] != "FLAT"]) if invested > 0 else 0,
+                    "value": invested / len([s for s in signals.values() if s["action"] != "FLAT"])
+                    if invested > 0
+                    else 0,
                     "price": prices.get(symbol, 0),
                     "signal": sig["action"],
                     "regime": sig["regime"],
@@ -1439,18 +1456,20 @@ async def get_live_trading_status() -> Dict[str, Any]:
         pnl = portfolio_value - initial_capital
         pnl_pct = (pnl / initial_capital) * 100
 
-        result.update({
-            "iteration": current_iteration,
-            "timestamp": current_timestamp,
-            "prices": prices,
-            "signals": signals,
-            "portfolio_value": round(portfolio_value, 2),
-            "cash_balance": round(cash_balance, 2),
-            "positions": positions,
-            "initial_capital": initial_capital,
-            "pnl": round(pnl, 2),
-            "pnl_pct": round(pnl_pct, 2),
-        })
+        result.update(
+            {
+                "iteration": current_iteration,
+                "timestamp": current_timestamp,
+                "prices": prices,
+                "signals": signals,
+                "portfolio_value": round(portfolio_value, 2),
+                "cash_balance": round(cash_balance, 2),
+                "positions": positions,
+                "initial_capital": initial_capital,
+                "pnl": round(pnl, 2),
+                "pnl_pct": round(pnl_pct, 2),
+            }
+        )
 
     except Exception as e:
         result["error"] = str(e)
@@ -1472,6 +1491,7 @@ def _get_smart_engine():
     if _smart_engine is None:
         try:
             from bot.smart_engine import SmartTradingEngine, EngineConfig
+
             _smart_engine = SmartTradingEngine(
                 config=EngineConfig(),
                 data_dir=str(STATE_DIR),
@@ -1487,6 +1507,7 @@ def _get_regime_classifier():
     if _regime_classifier is None:
         try:
             from bot.ml import MarketRegimeClassifier
+
             _regime_classifier = MarketRegimeClassifier()
         except ImportError:
             return None
@@ -1510,6 +1531,7 @@ async def get_market_regime(
     # Try to load recent data
     try:
         import yfinance as yf
+
         yf_symbol = symbol.replace("/", "-").replace("USDT", "USD")
         ticker = yf.Ticker(yf_symbol)
         df = ticker.history(period="60d", interval="1h")
@@ -1562,13 +1584,13 @@ async def get_ml_prediction(
 
     if not engine.ml_predictor or not engine.ml_predictor.is_trained:
         raise HTTPException(
-            status_code=503,
-            detail="ML model not trained. POST to /ml/train first."
+            status_code=503, detail="ML model not trained. POST to /ml/train first."
         )
 
     # Fetch data
     try:
         import yfinance as yf
+
         yf_symbol = symbol.replace("/", "-").replace("USDT", "USD")
         ticker = yf.Ticker(yf_symbol)
         df = ticker.history(period="60d", interval="1h")
@@ -1609,6 +1631,7 @@ async def train_ml_model(
     # Fetch training data
     try:
         import yfinance as yf
+
         yf_symbol = symbol.replace("/", "-").replace("USDT", "USD")
         ticker = yf.Ticker(yf_symbol)
         df = ticker.history(period=f"{days}d", interval="1h")
@@ -1648,6 +1671,7 @@ async def get_smart_decision(
     # Fetch data
     try:
         import yfinance as yf
+
         yf_symbol = symbol.replace("/", "-").replace("USDT", "USD")
         ticker = yf.Ticker(yf_symbol)
         df = ticker.history(period="60d", interval="1h")
@@ -1682,12 +1706,14 @@ async def list_strategies(
     for name in strategies:
         strategy = engine.strategy_selector.get_strategy(name)
         if strategy:
-            strategy_info.append({
-                "name": name,
-                "description": strategy.description,
-                "suitable_regimes": strategy.suitable_regimes,
-                "indicators": strategy.get_required_indicators(),
-            })
+            strategy_info.append(
+                {
+                    "name": name,
+                    "description": strategy.description,
+                    "suitable_regimes": strategy.suitable_regimes,
+                    "indicators": strategy.get_required_indicators(),
+                }
+            )
 
     return {
         "strategies": strategy_info,
@@ -1734,11 +1760,13 @@ async def get_performance_analysis(
     # Convert signals to trade format
     trades = []
     for sig in signals:
-        trades.append({
-            "pnl": sig.get("pnl", 0),
-            "pnl_pct": sig.get("pnl_pct", 0),
-            "direction": sig.get("decision", "FLAT"),
-        })
+        trades.append(
+            {
+                "pnl": sig.get("pnl", 0),
+                "pnl_pct": sig.get("pnl_pct", 0),
+                "direction": sig.get("decision", "FLAT"),
+            }
+        )
 
     report = engine.get_analysis_report(trades, equity)
 
@@ -1817,8 +1845,7 @@ async def optimize_portfolio(
         opt_method = method_map.get(method.lower())
         if opt_method is None:
             raise HTTPException(
-                status_code=400,
-                detail=f"Invalid method. Choose from: {list(method_map.keys())}"
+                status_code=400, detail=f"Invalid method. Choose from: {list(method_map.keys())}"
             )
 
         # Generate sample returns for demonstration
@@ -1844,8 +1871,7 @@ async def optimize_portfolio(
 
     except ImportError:
         raise HTTPException(
-            status_code=503,
-            detail="Portfolio optimizer not available. Install scipy."
+            status_code=503, detail="Portfolio optimizer not available. Install scipy."
         )
 
 
@@ -1932,11 +1958,13 @@ async def get_portfolio_correlations() -> Dict[str, Any]:
         for s1 in corr_matrix.columns:
             for s2 in corr_matrix.columns:
                 if s1 != s2 and (s2, s1) not in processed:
-                    pairs.append({
-                        "asset1": s1,
-                        "asset2": s2,
-                        "correlation": round(float(corr_matrix.loc[s1, s2]), 4),
-                    })
+                    pairs.append(
+                        {
+                            "asset1": s1,
+                            "asset2": s2,
+                            "correlation": round(float(corr_matrix.loc[s1, s2]), 4),
+                        }
+                    )
                     processed.add((s1, s2))
 
         # Calculate average correlation
@@ -1953,7 +1981,10 @@ async def get_portfolio_correlations() -> Dict[str, Any]:
                 "average_correlation": round(avg_corr, 4),
                 "highest_correlation": sorted_pairs[0] if sorted_pairs else None,
                 "lowest_correlation": sorted_pairs[-1] if sorted_pairs else None,
-                "matrix": {s: {s2: round(float(corr_matrix.loc[s, s2]), 4) for s2 in corr_matrix.columns} for s in corr_matrix.columns},
+                "matrix": {
+                    s: {s2: round(float(corr_matrix.loc[s, s2]), 4) for s2 in corr_matrix.columns}
+                    for s in corr_matrix.columns
+                },
             },
         }
 
@@ -1972,8 +2003,7 @@ async def get_portfolio_correlations() -> Dict[str, Any]:
 @app.post("/portfolio/optimizer/analyze")
 async def analyze_portfolio_allocation(
     symbols: List[str] = Query(
-        default=["BTC/USDT", "ETH/USDT", "SOL/USDT"],
-        description="Symbols to include in portfolio"
+        default=["BTC/USDT", "ETH/USDT", "SOL/USDT"], description="Symbols to include in portfolio"
     ),
     capital: float = Query(default=10000.0, description="Total capital"),
     method: str = Query(default="risk_parity", description="Optimization method"),
@@ -2006,6 +2036,7 @@ async def analyze_portfolio_allocation(
 
         try:
             import yfinance as yf
+
             for symbol in symbols:
                 yf_symbol = symbol.replace("/", "-").replace("USDT", "USD")
                 ticker = yf.Ticker(yf_symbol)
@@ -2059,10 +2090,7 @@ async def analyze_portfolio_allocation(
         }
 
     except ImportError as e:
-        raise HTTPException(
-            status_code=503,
-            detail=f"Required modules not available: {e}"
-        )
+        raise HTTPException(status_code=503, detail=f"Required modules not available: {e}")
 
 
 @app.get("/portfolio/optimizer/compare")
@@ -2081,13 +2109,15 @@ async def compare_optimization_methods(
 
         # Simulate correlated returns
         n_assets = len(symbols)
-        corr = np.array([
-            [1.0, 0.7, 0.5, 0.5, 0.6],
-            [0.7, 1.0, 0.6, 0.5, 0.5],
-            [0.5, 0.6, 1.0, 0.7, 0.6],
-            [0.5, 0.5, 0.7, 1.0, 0.5],
-            [0.6, 0.5, 0.6, 0.5, 1.0],
-        ])
+        corr = np.array(
+            [
+                [1.0, 0.7, 0.5, 0.5, 0.6],
+                [0.7, 1.0, 0.6, 0.5, 0.5],
+                [0.5, 0.6, 1.0, 0.7, 0.6],
+                [0.5, 0.5, 0.7, 1.0, 0.5],
+                [0.6, 0.5, 0.6, 0.5, 1.0],
+            ]
+        )
         L = np.linalg.cholesky(corr)
 
         daily_vol = np.array([0.04, 0.05, 0.06, 0.07, 0.06])
@@ -2117,17 +2147,19 @@ async def compare_optimization_methods(
         results = []
         for method in methods:
             result = optimizer.optimize(returns_df, method)
-            results.append({
-                "method": method.value,
-                "weights": {k: round(v, 4) for k, v in result.weights.items()},
-                "metrics": {
-                    "expected_return": round(result.metrics.expected_return, 4),
-                    "volatility": round(result.metrics.volatility, 4),
-                    "sharpe_ratio": round(result.metrics.sharpe_ratio, 4),
-                    "diversification_ratio": round(result.metrics.diversification_ratio, 4),
-                    "effective_n": round(result.metrics.effective_n, 2),
-                },
-            })
+            results.append(
+                {
+                    "method": method.value,
+                    "weights": {k: round(v, 4) for k, v in result.weights.items()},
+                    "metrics": {
+                        "expected_return": round(result.metrics.expected_return, 4),
+                        "volatility": round(result.metrics.volatility, 4),
+                        "sharpe_ratio": round(result.metrics.sharpe_ratio, 4),
+                        "diversification_ratio": round(result.metrics.diversification_ratio, 4),
+                        "effective_n": round(result.metrics.effective_n, 2),
+                    },
+                }
+            )
 
         # Find best by Sharpe ratio
         best = max(results, key=lambda r: r["metrics"]["sharpe_ratio"])
@@ -2141,10 +2173,7 @@ async def compare_optimization_methods(
         }
 
     except ImportError:
-        raise HTTPException(
-            status_code=503,
-            detail="Portfolio optimizer not available"
-        )
+        raise HTTPException(status_code=503, detail="Portfolio optimizer not available")
 
 
 # ============================================================================
@@ -2187,7 +2216,7 @@ async def get_market_summary(
         if market_type not in market_map and market_type != "all":
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid market_type. Must be one of: crypto, commodity, stock, all"
+                detail=f"Invalid market_type. Must be one of: crypto, commodity, stock, all",
             )
 
         data_service = MarketDataService(data_dir=str(STATE_DIR))
@@ -2195,6 +2224,7 @@ async def get_market_summary(
         # Get symbols for this market
         if market_type == "all":
             from bot.data import ALL_SYMBOLS
+
             symbols = list(ALL_SYMBOLS.keys())
         else:
             symbols_dict = get_symbols_by_market(market_map[market_type])
@@ -2205,7 +2235,7 @@ async def get_market_summary(
         bot_state = {}
         bot_signals = {}
         ai_features = {}
-        
+
         if unified_state_file.exists():
             try:
                 with open(unified_state_file) as f:
@@ -2215,24 +2245,34 @@ async def get_market_summary(
                     ai_features = unified_state.get("ai_features", {})
             except Exception:
                 pass
-        
+
         # For market-specific portfolio data, calculate from positions
         # Split total portfolio equally across 3 markets
         total_balance = bot_state.get("current_balance", 10000.0)
         initial_capital = bot_state.get("initial_capital", 10000.0)
         capital_per_market = total_balance / 3  # ✅ Use current balance, not initial capital
-        
+
         # Get positions for this market
         all_positions = bot_state.get("positions", {})
         symbol_to_market_mapping = {
             # Crypto
-            "BTC/USDT": "crypto", "ETH/USDT": "crypto", "SOL/USDT": "crypto", "AVAX/USDT": "crypto",
+            "BTC/USDT": "crypto",
+            "ETH/USDT": "crypto",
+            "SOL/USDT": "crypto",
+            "AVAX/USDT": "crypto",
             # Commodities
-            "XAU/USD": "commodity", "XAG/USD": "commodity", "USOIL/USD": "commodity", "NATGAS/USD": "commodity",
+            "XAU/USD": "commodity",
+            "XAG/USD": "commodity",
+            "USOIL/USD": "commodity",
+            "NATGAS/USD": "commodity",
             # Stocks
-            "AAPL": "stock", "MSFT": "stock", "GOOGL": "stock", "AMZN": "stock", "TSLA": "stock",
+            "AAPL": "stock",
+            "MSFT": "stock",
+            "GOOGL": "stock",
+            "AMZN": "stock",
+            "TSLA": "stock",
         }
-        
+
         # Calculate market-specific P&L and position value from positions
         market_pnl = 0.0
         market_position_count = 0
@@ -2280,22 +2320,26 @@ async def get_market_summary(
                     ticker = tickers.tickers.get(yahoo_sym)
                     if ticker:
                         info = ticker.fast_info
-                        price = info.last_price if hasattr(info, 'last_price') else 0
+                        price = info.last_price if hasattr(info, "last_price") else 0
                         if price and price > 0:
                             signal_data = bot_signals.get(our_symbol, {})
                             spread = price * 0.0002  # Estimate 0.02% spread
-                            assets.append({
-                                "symbol": our_symbol,
-                                "price": price,
-                                "change_24h_pct": 0,
-                                "bid": price - spread,
-                                "ask": price + spread,
-                                "spread_pct": 0.02,
-                                "market_type": market_type if market_type != "all" else "unknown",
-                                "signal": signal_data.get("signal"),
-                                "regime": signal_data.get("regime"),
-                                "confidence": signal_data.get("confidence"),
-                            })
+                            assets.append(
+                                {
+                                    "symbol": our_symbol,
+                                    "price": price,
+                                    "change_24h_pct": 0,
+                                    "bid": price - spread,
+                                    "ask": price + spread,
+                                    "spread_pct": 0.02,
+                                    "market_type": market_type
+                                    if market_type != "all"
+                                    else "unknown",
+                                    "signal": signal_data.get("signal"),
+                                    "regime": signal_data.get("regime"),
+                                    "confidence": signal_data.get("confidence"),
+                                }
+                            )
                 except Exception:
                     pass
         except Exception:
@@ -2320,7 +2364,11 @@ async def get_market_summary(
             "pnl": market_pnl,
             "pnl_pct": market_pnl_pct,
             "positions_count": market_position_count,
-            "positions": {k: v for k, v in all_positions.items() if symbol_to_market_mapping.get(k) == market_type},
+            "positions": {
+                k: v
+                for k, v in all_positions.items()
+                if symbol_to_market_mapping.get(k) == market_type
+            },
             "bot_running": bool(bot_state),
             "deep_learning_enabled": bot_state.get("deep_learning_enabled", False),
             # AI Enhancement features
@@ -2333,7 +2381,9 @@ async def get_market_summary(
                 "win_count": ai_features.get("win_count", 0),
                 "loss_count": ai_features.get("loss_count", 0),
                 "win_rate": ai_features.get("win_rate", 0.0),
-            } if ai_features else None,
+            }
+            if ai_features
+            else None,
         }
 
         # Skip cache - need fresh data
@@ -2342,10 +2392,7 @@ async def get_market_summary(
         return result
 
     except ImportError as e:
-        raise HTTPException(
-            status_code=503,
-            detail=f"Data service not available: {e}"
-        )
+        raise HTTPException(status_code=503, detail=f"Data service not available: {e}")
 
 
 @app.get("/api/markets/indexes")
@@ -2359,8 +2406,6 @@ async def get_market_indexes(
     """
     try:
         from bot.data import MarketDataService
-
- 
 
         data_service = MarketDataService(data_dir=str(STATE_DIR))
 
@@ -2402,6 +2447,7 @@ async def get_market_indexes(
             "indexes": {},
             "error": "Data service not available",
         }
+
 
 # --- Unified Reset Endpoint ---
 @app.post("/api/unified/reset")
@@ -2546,7 +2592,7 @@ async def get_bot_state(
     if market_type not in state_dirs:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid market_type. Must be one of: crypto, commodity, stock, all"
+            detail=f"Invalid market_type. Must be one of: crypto, commodity, stock, all",
         )
 
     state = find_best_state(state_dirs[market_type])
@@ -2592,13 +2638,15 @@ async def get_dashboard_aggregate(
             asset_data_dir = _resolve_asset_data_dir(symbol_key, asset_map, portfolio_dir)
             bot_state = load_bot_state_from_path(asset_data_dir)
             if bot_state:
-                portfolio_status.append({
-                    "symbol": symbol_key,
-                    "position": bot_state.position,
-                    "entry_price": bot_state.entry_price,
-                    "entry_time": bot_state.entry_time,
-                    "balance": bot_state.balance,
-                })
+                portfolio_status.append(
+                    {
+                        "symbol": symbol_key,
+                        "position": bot_state.position,
+                        "entry_price": bot_state.entry_price,
+                        "entry_time": bot_state.entry_time,
+                        "balance": bot_state.balance,
+                    }
+                )
         except Exception:
             pass
 
@@ -2609,7 +2657,10 @@ async def get_dashboard_aggregate(
             "balance": state.balance if state else 0,
         },
         "equity": [{"timestamp": e.timestamp, "value": e.value} for e in equity[-50:]],
-        "signals": [{"timestamp": s.timestamp, "action": s.action, "confidence": s.confidence} for s in signals[-20:]],
+        "signals": [
+            {"timestamp": s.timestamp, "action": s.action, "confidence": s.confidence}
+            for s in signals[-20:]
+        ],
         "portfolio_status": portfolio_status,
         "markets_available": ["crypto", "commodity", "stock"],
     }
@@ -2619,6 +2670,7 @@ async def get_dashboard_aggregate(
 async def dashboard_unified(request: Request):
     """Redirect /dashboard/unified to root for backwards compatibility."""
     from fastapi.responses import RedirectResponse
+
     return RedirectResponse(url="/", status_code=302)
 
 
@@ -2710,10 +2762,7 @@ async def get_chart_ohlcv(
         df = ticker.history(period=period, interval=interval)
 
         if df.empty:
-            raise HTTPException(
-                status_code=404,
-                detail=f"No data available for symbol {symbol}"
-            )
+            raise HTTPException(status_code=404, detail=f"No data available for symbol {symbol}")
 
         # Normalize column names
         df.columns = [c.lower() for c in df.columns]
@@ -2734,32 +2783,38 @@ async def get_chart_ohlcv(
         # Build candle data for TradingView
         candles = []
         for _, row in df.iterrows():
-            candles.append({
-                "time": int(row["time"]),
-                "open": round(float(row["open"]), 6),
-                "high": round(float(row["high"]), 6),
-                "low": round(float(row["low"]), 6),
-                "close": round(float(row["close"]), 6),
-            })
+            candles.append(
+                {
+                    "time": int(row["time"]),
+                    "open": round(float(row["open"]), 6),
+                    "high": round(float(row["high"]), 6),
+                    "low": round(float(row["low"]), 6),
+                    "close": round(float(row["close"]), 6),
+                }
+            )
 
         # Build volume data
         volume = []
         for _, row in df.iterrows():
             color = "#26a69a" if row["close"] >= row["open"] else "#ef5350"
-            volume.append({
-                "time": int(row["time"]),
-                "value": float(row["volume"]) if pd.notna(row["volume"]) else 0,
-                "color": color,
-            })
+            volume.append(
+                {
+                    "time": int(row["time"]),
+                    "value": float(row["volume"]) if pd.notna(row["volume"]) else 0,
+                    "color": color,
+                }
+            )
 
         # Build SMA data (skip NaN values)
         sma20 = []
         for _, row in df.iterrows():
             if pd.notna(row["sma20"]):
-                sma20.append({
-                    "time": int(row["time"]),
-                    "value": round(float(row["sma20"]), 6),
-                })
+                sma20.append(
+                    {
+                        "time": int(row["time"]),
+                        "value": round(float(row["sma20"]), 6),
+                    }
+                )
 
         # Cache the full result
         full_data = {
@@ -2780,19 +2835,16 @@ async def get_chart_ohlcv(
 
     except ImportError:
         raise HTTPException(
-            status_code=503,
-            detail="yfinance not installed. Run: pip install yfinance"
+            status_code=503, detail="yfinance not installed. Run: pip install yfinance"
         )
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to fetch OHLCV data: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to fetch OHLCV data: {str(e)}")
 
 
 # =============================================================================
 # WebSocket Endpoint for Real-Time Updates
 # =============================================================================
+
 
 @app.websocket("/ws/updates")
 async def websocket_updates(websocket: WebSocket) -> None:
@@ -2820,7 +2872,7 @@ async def websocket_updates(websocket: WebSocket) -> None:
                 # Wait for any client message (ping/pong or commands)
                 data = await asyncio.wait_for(
                     websocket.receive_text(),
-                    timeout=60.0  # 60 second timeout for client pings
+                    timeout=60.0,  # 60 second timeout for client pings
                 )
                 # Handle ping messages
                 if data == "ping":
@@ -2942,7 +2994,7 @@ async def prometheus_metrics() -> PlainTextResponse:
     """
     lines = []
     lines.append("# HELP trading_bot_info Trading bot version and configuration")
-    lines.append('# TYPE trading_bot_info gauge')
+    lines.append("# TYPE trading_bot_info gauge")
     lines.append('trading_bot_info{version="0.2.0"} 1')
 
     # API metrics
@@ -2998,26 +3050,34 @@ async def prometheus_metrics() -> PlainTextResponse:
                 lines.append("")
                 lines.append(f"# HELP trading_portfolio_value_{market_type} Portfolio value in USD")
                 lines.append(f"# TYPE trading_portfolio_value_{market_type} gauge")
-                lines.append(f'trading_portfolio_value_{market_type} {round(portfolio_value, 2)}')
+                lines.append(f"trading_portfolio_value_{market_type} {round(portfolio_value, 2)}")
 
                 # Cash balance
-                lines.append(f'trading_cash_balance_{market_type} {round(cash_balance, 2)}')
+                lines.append(f"trading_cash_balance_{market_type} {round(cash_balance, 2)}")
 
                 # P&L
-                lines.append(f'trading_pnl_{market_type} {round(pnl, 2)}')
-                lines.append(f'trading_pnl_pct_{market_type} {round(pnl_pct, 4)}')
+                lines.append(f"trading_pnl_{market_type} {round(pnl, 2)}")
+                lines.append(f"trading_pnl_pct_{market_type} {round(pnl_pct, 4)}")
 
                 # Position count
-                lines.append(f'trading_positions_count_{market_type} {positions_count}')
+                lines.append(f"trading_positions_count_{market_type} {positions_count}")
 
                 # Signal counts
-                long_count = sum(1 for s in signals.values() if isinstance(s, dict) and s.get("signal") == "LONG")
-                short_count = sum(1 for s in signals.values() if isinstance(s, dict) and s.get("signal") == "SHORT")
-                flat_count = sum(1 for s in signals.values() if isinstance(s, dict) and s.get("signal") == "FLAT")
+                long_count = sum(
+                    1 for s in signals.values() if isinstance(s, dict) and s.get("signal") == "LONG"
+                )
+                short_count = sum(
+                    1
+                    for s in signals.values()
+                    if isinstance(s, dict) and s.get("signal") == "SHORT"
+                )
+                flat_count = sum(
+                    1 for s in signals.values() if isinstance(s, dict) and s.get("signal") == "FLAT"
+                )
 
-                lines.append(f'trading_signals_long_{market_type} {long_count}')
-                lines.append(f'trading_signals_short_{market_type} {short_count}')
-                lines.append(f'trading_signals_flat_{market_type} {flat_count}')
+                lines.append(f"trading_signals_long_{market_type} {long_count}")
+                lines.append(f"trading_signals_short_{market_type} {short_count}")
+                lines.append(f"trading_signals_flat_{market_type} {flat_count}")
 
             except Exception:
                 pass
@@ -3053,22 +3113,22 @@ async def prometheus_metrics() -> PlainTextResponse:
                     lines.append("")
                     lines.append("# HELP trading_sharpe_ratio Annualized Sharpe ratio")
                     lines.append("# TYPE trading_sharpe_ratio gauge")
-                    lines.append(f'trading_sharpe_ratio {metrics["sharpe_ratio"]}')
+                    lines.append(f"trading_sharpe_ratio {metrics['sharpe_ratio']}")
 
                     lines.append("")
                     lines.append("# HELP trading_sortino_ratio Annualized Sortino ratio")
                     lines.append("# TYPE trading_sortino_ratio gauge")
-                    lines.append(f'trading_sortino_ratio {metrics["sortino_ratio"]}')
+                    lines.append(f"trading_sortino_ratio {metrics['sortino_ratio']}")
 
                     lines.append("")
                     lines.append("# HELP trading_max_drawdown_pct Maximum drawdown percentage")
                     lines.append("# TYPE trading_max_drawdown_pct gauge")
-                    lines.append(f'trading_max_drawdown_pct {metrics["max_drawdown_pct"]}')
+                    lines.append(f"trading_max_drawdown_pct {metrics['max_drawdown_pct']}")
 
                     lines.append("")
                     lines.append("# HELP trading_volatility Annualized volatility")
                     lines.append("# TYPE trading_volatility gauge")
-                    lines.append(f'trading_volatility {metrics["volatility"]}')
+                    lines.append(f"trading_volatility {metrics['volatility']}")
     except Exception:
         pass
 
@@ -3077,7 +3137,9 @@ async def prometheus_metrics() -> PlainTextResponse:
 
 @app.get("/api/portfolio/stats")
 async def get_portfolio_stats(
-    market_type: str = Query(default="all", description="Market type: crypto, commodity, stock, all"),
+    market_type: str = Query(
+        default="all", description="Market type: crypto, commodity, stock, all"
+    ),
     _: bool = Depends(verify_api_key),
 ) -> Dict[str, Any]:
     """
@@ -3199,7 +3261,9 @@ async def get_walk_forward_history() -> Dict[str, Any]:
 @app.get("/api/trade-history", tags=["Portfolio"])
 async def get_trade_history(
     limit: int = Query(default=50, description="Number of trades to return"),
-    market: str = Query(default="all", description="Filter by market: all, crypto, commodity, stock"),
+    market: str = Query(
+        default="all", description="Filter by market: all, crypto, commodity, stock"
+    ),
 ) -> Dict[str, Any]:
     """Get trade history from all sources."""
     import json
@@ -3233,7 +3297,9 @@ async def get_trade_history(
                     if isinstance(trade, dict):
                         # Normalize trade format
                         normalized = {
-                            "date": trade.get("exit_time", trade.get("entry_time", trade.get("timestamp", ""))),
+                            "date": trade.get(
+                                "exit_time", trade.get("entry_time", trade.get("timestamp", ""))
+                            ),
                             "symbol": trade.get("symbol", ""),
                             "side": trade.get("side", "long"),
                             "entry": trade.get("entry_price", 0),
@@ -3249,7 +3315,9 @@ async def get_trade_history(
                         symbol = normalized["symbol"].upper()
                         if "USDT" in symbol or "BTC" in symbol or "ETH" in symbol:
                             normalized["market"] = "crypto"
-                        elif any(c in symbol for c in ["XAU", "XAG", "OIL", "GAS", "GOLD", "SILVER"]):
+                        elif any(
+                            c in symbol for c in ["XAU", "XAG", "OIL", "GAS", "GOLD", "SILVER"]
+                        ):
                             normalized["market"] = "commodity"
                         else:
                             normalized["market"] = "stock"
@@ -3279,7 +3347,7 @@ async def get_trade_history(
             "wins": wins,
             "losses": losses,
             "win_rate": round(win_rate, 1),
-        }
+        },
     }
 
 
@@ -3293,6 +3361,7 @@ async def get_storage_stats() -> Dict[str, Any]:
     """Get storage statistics and metadata."""
     try:
         from bot.data_store import get_data_store
+
         store = get_data_store()
         return store.get_storage_stats()
     except ImportError:
@@ -3310,6 +3379,7 @@ async def get_stored_trades(
     """Get trades from persistent data store."""
     try:
         from bot.data_store import get_data_store
+
         store = get_data_store()
         trades = store.get_trades(market=market, symbol=symbol, limit=limit)
         summary = store.get_trade_summary()
@@ -3327,6 +3397,7 @@ async def get_portfolio_snapshots(
     """Get portfolio snapshots (equity curve data)."""
     try:
         from bot.data_store import get_data_store
+
         store = get_data_store()
         snapshots = store.get_equity_curve(days=days)
         return {"snapshots": snapshots, "count": len(snapshots)}
@@ -3345,6 +3416,7 @@ async def get_signal_history(
     """Get historical trading signals."""
     try:
         from bot.data_store import get_data_store
+
         store = get_data_store()
         signals = store.get_signals(symbol=symbol, market=market, limit=limit)
         return {"signals": signals, "count": len(signals)}
@@ -3359,6 +3431,7 @@ async def create_backup() -> Dict[str, Any]:
     """Create a full backup of all trading data."""
     try:
         from bot.data_store import get_data_store
+
         store = get_data_store()
         backup_path = store.create_backup()
         return {
@@ -3378,6 +3451,7 @@ async def export_all_data() -> Dict[str, Any]:
     """Export all data to a single JSON file for server migration."""
     try:
         from bot.data_store import get_data_store
+
         store = get_data_store()
         export_path = store.export_all()
         return {
@@ -3399,6 +3473,7 @@ async def get_strategy_performance(
     """Get strategy performance metrics."""
     try:
         from bot.data_store import get_data_store
+
         store = get_data_store()
         performance = store.get_strategy_performance(strategy_id=strategy_id)
         return {"strategies": performance}
@@ -3416,6 +3491,7 @@ async def get_registered_models(
     """Get registered ML models."""
     try:
         from bot.data_store import get_data_store
+
         store = get_data_store()
         models = store.get_models(model_type=model_type, symbol=symbol)
         return {"models": models, "count": len(models)}
@@ -3453,14 +3529,16 @@ async def get_ml_model_status(
             symbol = model.symbol
             if symbol not in symbols_with_models:
                 symbols_with_models[symbol] = []
-            symbols_with_models[symbol].append({
-                "model_type": model.model_type,
-                "accuracy": round(model.accuracy * 100, 1),
-                "val_accuracy": round(model.val_accuracy * 100, 1),
-                "created_at": model.created_at.isoformat(),
-                "is_active": model.is_active,
-                "source": "registry",
-            })
+            symbols_with_models[symbol].append(
+                {
+                    "model_type": model.model_type,
+                    "accuracy": round(model.accuracy * 100, 1),
+                    "val_accuracy": round(model.val_accuracy * 100, 1),
+                    "created_at": model.created_at.isoformat(),
+                    "is_active": model.is_active,
+                    "source": "registry",
+                }
+            )
             model_types_found.add(model.model_type)
     except Exception as e:
         print(f"Registry not available: {e}")
@@ -3523,7 +3601,9 @@ async def get_ml_model_status(
                                 else:
                                     accuracy = raw_accuracy
                                 if "saved_at" in meta:
-                                    created_at = datetime.fromisoformat(meta["saved_at"].replace("Z", "+00:00"))
+                                    created_at = datetime.fromisoformat(
+                                        meta["saved_at"].replace("Z", "+00:00")
+                                    )
                         except Exception as parse_err:
                             print(f"Error parsing meta file {meta_file}: {parse_err}")
                             pass
@@ -3531,14 +3611,16 @@ async def get_ml_model_status(
                     if symbol not in symbols_with_models:
                         symbols_with_models[symbol] = []
 
-                    symbols_with_models[symbol].append({
-                        "model_type": model_type,
-                        "accuracy": round(accuracy, 1),
-                        "val_accuracy": round(accuracy, 1),
-                        "created_at": created_at.isoformat(),
-                        "is_active": True,
-                        "source": "data/models",
-                    })
+                    symbols_with_models[symbol].append(
+                        {
+                            "model_type": model_type,
+                            "accuracy": round(accuracy, 1),
+                            "val_accuracy": round(accuracy, 1),
+                            "created_at": created_at.isoformat(),
+                            "is_active": True,
+                            "source": "data/models",
+                        }
+                    )
                     model_types_found.add(model_type)
 
         except Exception as e:
@@ -3546,7 +3628,16 @@ async def get_ml_model_status(
 
     # Define expected symbols per market
     expected_symbols = {
-        "crypto": ["BTC/USDT", "ETH/USDT", "SOL/USDT", "AVAX/USDT", "XRP/USDT", "ADA/USDT", "DOT/USDT", "LINK/USDT"],
+        "crypto": [
+            "BTC/USDT",
+            "ETH/USDT",
+            "SOL/USDT",
+            "AVAX/USDT",
+            "XRP/USDT",
+            "ADA/USDT",
+            "DOT/USDT",
+            "LINK/USDT",
+        ],
         "stock": ["AAPL", "MSFT", "GOOGL", "NVDA", "AMZN"],
         "commodity": ["XAU/USD", "XAG/USD", "USOIL/USD", "NATGAS/USD"],
     }
@@ -3558,7 +3649,9 @@ async def get_ml_model_status(
     total_models = sum(len(models) for models in symbols_with_models.values())
     avg_accuracy = 0
     if total_models > 0:
-        all_accuracies = [m["val_accuracy"] for models in symbols_with_models.values() for m in models]
+        all_accuracies = [
+            m["val_accuracy"] for models in symbols_with_models.values() for m in models
+        ]
         avg_accuracy = sum(all_accuracies) / len(all_accuracies)
 
     return {
@@ -3927,7 +4020,9 @@ async def get_orderbook_snapshot(
         analyzer = OrderBookAnalyzer()
 
         # Try to load cached orderbook data
-        orderbook_path = STATE_DIR / "market_data" / f"{sanitize_symbol_for_fs(symbol)}_orderbook.json"
+        orderbook_path = (
+            STATE_DIR / "market_data" / f"{sanitize_symbol_for_fs(symbol)}_orderbook.json"
+        )
 
         if orderbook_path.exists():
             with open(orderbook_path) as f:
@@ -4046,6 +4141,7 @@ def _get_safety_controller():
     global _safety_controller
     if _safety_controller is None:
         from bot.safety_controller import SafetyController
+
         _safety_controller = SafetyController()
     return _safety_controller
 
@@ -4077,6 +4173,7 @@ async def get_emergency_status() -> Dict[str, Any]:
             for path in state_paths:
                 if path.exists():
                     import time
+
                     mtime = path.stat().st_mtime
                     if time.time() - mtime < 120:  # Updated in last 2 minutes
                         active_markets.append(market)
@@ -4101,7 +4198,9 @@ async def get_emergency_status() -> Dict[str, Any]:
 
 @app.post("/api/emergency/stop", tags=["Status"])
 async def trigger_emergency_stop(
-    reason: str = Query(default="Manual emergency stop via dashboard", description="Reason for emergency stop"),
+    reason: str = Query(
+        default="Manual emergency stop via dashboard", description="Reason for emergency stop"
+    ),
     _auth: Optional[str] = Depends(verify_api_key),
 ) -> Dict[str, Any]:
     """
@@ -4131,6 +4230,7 @@ async def trigger_emergency_stop(
             symbols = portfolio.get("symbols", [])
             for symbol in symbols:
                 from bot.market_data import sanitize_symbol_for_fs
+
                 symbol_dir = STATE_DIR / sanitize_symbol_for_fs(symbol)
                 update_bot_control(symbol_dir, paused=True, reason=f"Emergency stop: {reason}")
     except Exception as e:
@@ -4139,6 +4239,7 @@ async def trigger_emergency_stop(
     # Send Telegram notification
     try:
         from bot.trade_alerts import TelegramTradeAlerts
+
         alerts = TelegramTradeAlerts()
         alerts.send_risk_alert(
             "EMERGENCY_STOP",
@@ -4201,6 +4302,7 @@ async def resume_trading(
             symbols = portfolio.get("symbols", [])
             for symbol in symbols:
                 from bot.market_data import sanitize_symbol_for_fs
+
                 symbol_dir = STATE_DIR / sanitize_symbol_for_fs(symbol)
                 update_bot_control(symbol_dir, paused=False, reason=f"Resumed by {approver}")
     except Exception:
@@ -4209,6 +4311,7 @@ async def resume_trading(
     # Send Telegram notification
     try:
         from bot.trade_alerts import TelegramTradeAlerts
+
         alerts = TelegramTradeAlerts()
         alerts._send_html(
             f"✅ <b>Trading Resumed</b>\n\n"
@@ -4308,7 +4411,7 @@ async def get_trading_control_panel() -> Dict[str, Any]:
     controller = _get_safety_controller()
     status = controller.get_status()
     result["master"]["emergency_stop"] = status["emergency_stop_active"]
-    
+
     # Check unified trading control file for pause status
     unified_control_path = STATE_DIR / "unified_trading" / "control.json"
     if unified_control_path.exists():
@@ -4332,7 +4435,7 @@ async def get_trading_control_panel() -> Dict[str, Any]:
         "NVDA": "stock",
         "GOOGL": "stock",
     }
-    
+
     # Initialize market summaries
     market_config = {
         "crypto": {"name": "Crypto", "emoji": "🪙"},
@@ -4342,43 +4445,43 @@ async def get_trading_control_panel() -> Dict[str, Any]:
 
     # Read from unified trading state
     unified_state_path = STATE_DIR / "unified_trading" / "state.json"
-    
+
     try:
         if unified_state_path.exists():
             mtime = unified_state_path.stat().st_mtime
             last_update = datetime.fromtimestamp(mtime)
             age_seconds = (datetime.now() - last_update).total_seconds()
-            
+
             with open(unified_state_path, "r") as f:
                 unified_state = json.load(f)
-            
+
             # Extract overall state
             current_balance = unified_state.get("current_balance", 10000.0)
             initial_capital = unified_state.get("initial_capital", 10000.0)
             total_pnl = current_balance - initial_capital
             total_pnl_pct = (total_pnl / initial_capital * 100) if initial_capital > 0 else 0
-            
+
             positions = unified_state.get("positions", {})
             is_active = age_seconds < 120  # Updated in last 2 minutes
             has_positions = len(positions) > 0
-            
+
             # Count positions by market and calculate per-market P&L
             market_positions = {"crypto": 0, "commodity": 0, "stock": 0}
             market_pnl = {"crypto": 0.0, "commodity": 0.0, "stock": 0.0}
-            
+
             for symbol, position in positions.items():
                 market = symbol_to_market.get(symbol, "stock")
                 market_positions[market] += 1
                 # Add unrealized P&L from this position to the market's total
                 unrealized = position.get("unrealized_pnl", 0.0)
                 market_pnl[market] += unrealized
-            
+
             # Calculate per-market balance based on equal capital allocation
             capital_per_market = current_balance / 3  # ✅ Use current balance, not initial capital
             market_balance = {}
             for market_id in market_config.keys():
                 market_balance[market_id] = capital_per_market + market_pnl[market_id]
-            
+
             # Determine health
             if is_active:
                 health = "healthy"
@@ -4387,13 +4490,15 @@ async def get_trading_control_panel() -> Dict[str, Any]:
                 health = "stale"
             else:
                 health = "offline"
-            
+
             # Build market status for each category
             for market_id, config in market_config.items():
                 market_balance_val = market_balance.get(market_id, capital_per_market)
                 market_pnl_val = market_pnl.get(market_id, 0.0)
-                market_pnl_pct_val = (market_pnl_val / capital_per_market * 100) if capital_per_market > 0 else 0.0
-                
+                market_pnl_pct_val = (
+                    (market_pnl_val / capital_per_market * 100) if capital_per_market > 0 else 0.0
+                )
+
                 market_status = {
                     "name": config["name"],
                     "emoji": config["emoji"],
@@ -4409,7 +4514,7 @@ async def get_trading_control_panel() -> Dict[str, Any]:
                     "pnl_pct": market_pnl_pct_val,
                     "health": health,
                 }
-                
+
                 result["markets"][market_id] = market_status
         else:
             # No state file found - return offline status
@@ -4429,7 +4534,7 @@ async def get_trading_control_panel() -> Dict[str, Any]:
                     "pnl_pct": 0.0,
                     "health": "offline",
                 }
-    
+
     except Exception as e:
         logger.error(f"Error reading unified state: {e}")
         # Return offline status on error
@@ -4509,7 +4614,7 @@ async def resume_market(
     if controller.get_status()["emergency_stop_active"]:
         raise HTTPException(
             status_code=400,
-            detail="Cannot resume: Emergency stop is active. Clear emergency stop first."
+            detail="Cannot resume: Emergency stop is active. Clear emergency stop first.",
         )
 
     update_bot_control(market_dir, paused=False, reason="Resumed via dashboard")
@@ -4532,7 +4637,7 @@ async def pause_all_markets(
         unified_dir = STATE_DIR / "unified_trading"
         unified_dir.mkdir(parents=True, exist_ok=True)
         update_bot_control(unified_dir, paused=True, reason=reason)
-        
+
         return {
             "success": True,
             "action": "pause_all",
@@ -4553,14 +4658,14 @@ async def resume_all_markets(
     if controller.get_status()["emergency_stop_active"]:
         raise HTTPException(
             status_code=400,
-            detail="Cannot resume: Emergency stop is active. Clear emergency stop first."
+            detail="Cannot resume: Emergency stop is active. Clear emergency stop first.",
         )
 
     try:
         unified_dir = STATE_DIR / "unified_trading"
         unified_dir.mkdir(parents=True, exist_ok=True)
         update_bot_control(unified_dir, paused=False, reason="Resumed via dashboard")
-        
+
         return {
             "success": True,
             "action": "resume_all",
@@ -4578,7 +4683,7 @@ async def start_trading_engine(
     """Start the unified trading engine in background."""
     import subprocess
     import sys
-    
+
     try:
         # Check if engine is already running
         check_result = subprocess.run(
@@ -4586,7 +4691,7 @@ async def start_trading_engine(
             capture_output=True,
             text=True,
         )
-        
+
         if check_result.returncode == 0:
             return {
                 "success": True,
@@ -4594,21 +4699,21 @@ async def start_trading_engine(
                 "message": "Trading engine is already running",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
-        
+
         # Start the unified trading engine
         venv_path = Path(__file__).parent.parent / ".venv" / "bin" / "python"
         if not venv_path.exists():
             venv_path = sys.executable
-        
+
         script_path = Path(__file__).parent.parent / "run_unified_trading.py"
-        
+
         subprocess.Popen(
             [str(venv_path), str(script_path)],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             start_new_session=True,
         )
-        
+
         return {
             "success": True,
             "status": "started",
@@ -4629,6 +4734,7 @@ async def start_trading_engine(
 # =============================================================================
 
 RISK_SETTINGS_FILE = STATE_DIR / "risk_settings.json"
+
 
 def _load_risk_settings() -> Dict[str, bool]:
     """Load risk settings from file."""
@@ -4765,7 +4871,9 @@ async def _apply_risk_settings(settings: Dict[str, bool]) -> None:
         with open(unified_control_file, "w") as f:
             json.dump(control, f, indent=2)
 
-        print(f"Risk settings applied: shorting={settings.get('shorting')}, leverage={settings.get('leverage')}")
+        print(
+            f"Risk settings applied: shorting={settings.get('shorting')}, leverage={settings.get('leverage')}"
+        )
     except Exception as e:
         print(f"Warning: Could not apply risk settings to unified trading: {e}")
 
@@ -4804,7 +4912,10 @@ async def run_monte_carlo_simulation(
                 equity = [e for e in equity if isinstance(e, (int, float))]
 
                 if len(equity) < 30:
-                    return {"status": "insufficient_data", "message": "Need at least 30 data points"}
+                    return {
+                        "status": "insufficient_data",
+                        "message": "Need at least 30 data points",
+                    }
 
                 simulator.load_equity_curve(equity)
                 result = simulator.run_simulation()
@@ -4918,8 +5029,12 @@ async def get_factor_analysis() -> Dict[str, Any]:
                 market_data = json.load(f)
 
             if isinstance(market_data, list) and len(market_data) > 50:
-                prices = np.array([d.get("close", d) if isinstance(d, dict) else d for d in market_data])
-                volumes = np.array([d.get("volume", 0) if isinstance(d, dict) else 0 for d in market_data])
+                prices = np.array(
+                    [d.get("close", d) if isinstance(d, dict) else d for d in market_data]
+                )
+                volumes = np.array(
+                    [d.get("volume", 0) if isinstance(d, dict) else 0 for d in market_data]
+                )
 
                 # Calculate factors from prices
                 factors = analyzer.calculate_factors_from_prices(prices, volumes)
@@ -4953,8 +5068,12 @@ async def get_factor_correlations() -> Dict[str, Any]:
                 market_data = json.load(f)
 
             if isinstance(market_data, list) and len(market_data) > 50:
-                prices = np.array([d.get("close", d) if isinstance(d, dict) else d for d in market_data])
-                volumes = np.array([d.get("volume", 0) if isinstance(d, dict) else 0 for d in market_data])
+                prices = np.array(
+                    [d.get("close", d) if isinstance(d, dict) else d for d in market_data]
+                )
+                volumes = np.array(
+                    [d.get("volume", 0) if isinstance(d, dict) else 0 for d in market_data]
+                )
 
                 factors = analyzer.calculate_factors_from_prices(prices, volumes)
                 analyzer._factor_data = factors
@@ -5022,6 +5141,7 @@ async def generate_report(
         # Calculate risk metrics
         if equity and len(equity) > 10:
             from bot.risk_metrics import RiskMetricsCalculator
+
             calc = RiskMetricsCalculator()
             calc.load_equity_curve(equity)
             metrics = calc.calculate()
@@ -5060,12 +5180,14 @@ async def list_reports() -> Dict[str, Any]:
 
         reports = []
         for report_file in sorted(reports_dir.glob("*.html"), reverse=True):
-            reports.append({
-                "filename": report_file.name,
-                "path": str(report_file),
-                "size_kb": round(report_file.stat().st_size / 1024, 1),
-                "created": datetime.fromtimestamp(report_file.stat().st_ctime).isoformat(),
-            })
+            reports.append(
+                {
+                    "filename": report_file.name,
+                    "path": str(report_file),
+                    "size_kb": round(report_file.stat().st_size / 1024, 1),
+                    "created": datetime.fromtimestamp(report_file.stat().st_ctime).isoformat(),
+                }
+            )
 
         return {"reports": reports[:20]}  # Return last 20 reports
     except Exception as e:
@@ -5082,6 +5204,7 @@ async def get_daily_reporter_status() -> Dict[str, Any]:
     """Get status of the daily reporter scheduler."""
     try:
         from bot.regime.daily_reporter import get_daily_reporter
+
         reporter = get_daily_reporter()
         return {
             "status": "ok",
@@ -5104,6 +5227,7 @@ async def send_daily_report(
     """Send a performance report immediately via Telegram."""
     try:
         from bot.regime.performance_tracker import get_performance_tracker
+
         tracker = get_performance_tracker()
 
         # Generate the report message
@@ -5121,6 +5245,7 @@ async def send_daily_report(
 
         if telegram_token and telegram_chat_id:
             import httpx
+
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     f"https://api.telegram.org/bot{telegram_token}/sendMessage",
@@ -5160,6 +5285,7 @@ async def get_performance_summary(
     """Get trading performance summary for the specified period."""
     try:
         from bot.regime.performance_tracker import get_performance_tracker
+
         tracker = get_performance_tracker()
 
         if period == "daily":
@@ -5171,8 +5297,7 @@ async def get_performance_summary(
                 **paper_metrics.to_dict(),
                 "comparison": tracker.compare_performance(),
                 "regime_performance": {
-                    k: v.to_dict()
-                    for k, v in tracker.get_regime_performance("paper").items()
+                    k: v.to_dict() for k, v in tracker.get_regime_performance("paper").items()
                 },
             }
         else:
@@ -5234,8 +5359,12 @@ async def get_performance_attribution(
                                 model=trade.get("model", "ml"),
                                 regime=trade.get("regime", "unknown"),
                                 confidence=trade.get("confidence", 0.5),
-                                entry_time=datetime.fromisoformat(trade["entry_time"]) if trade.get("entry_time") else datetime.now(),
-                                exit_time=datetime.fromisoformat(trade["exit_time"]) if trade.get("exit_time") else None,
+                                entry_time=datetime.fromisoformat(trade["entry_time"])
+                                if trade.get("entry_time")
+                                else datetime.now(),
+                                exit_time=datetime.fromisoformat(trade["exit_time"])
+                                if trade.get("exit_time")
+                                else None,
                             )
                 break
 
@@ -5275,8 +5404,11 @@ async def get_daily_performance(
 
                     for trade in trades:
                         if isinstance(trade, dict) and trade.get("entry_price"):
-                            entry_time = (datetime.fromisoformat(trade["entry_time"])
-                                         if trade.get("entry_time") else datetime.now())
+                            entry_time = (
+                                datetime.fromisoformat(trade["entry_time"])
+                                if trade.get("entry_time")
+                                else datetime.now()
+                            )
                             attributor.log_trade(
                                 trade_id=trade.get("trade_id", f"T{len(attributor.trades)}"),
                                 symbol=trade.get("symbol", "unknown"),
@@ -5314,6 +5446,7 @@ def get_data_fetcher():
     global _data_fetcher
     if _data_fetcher is None:
         from bot.data_fetcher import SmartDataFetcher
+
         _data_fetcher = SmartDataFetcher(provider="binance", data_dir="data/training")
     return _data_fetcher
 
@@ -5327,6 +5460,7 @@ async def get_fetch_capacity(provider: str = "binance") -> Dict[str, Any]:
     """
     try:
         from bot.data_fetcher import SmartDataFetcher
+
         fetcher = SmartDataFetcher(provider=provider)
         return fetcher.get_available_capacity()
     except Exception as e:
@@ -5351,6 +5485,7 @@ async def estimate_fetch_time(
     """
     try:
         from bot.data_fetcher import SmartDataFetcher
+
         symbol_list = [s.strip() for s in symbols.split(",")]
         fetcher = SmartDataFetcher(provider=provider)
         return fetcher.estimate_fetch_time(symbol_list, timeframe, days)
@@ -5459,6 +5594,7 @@ async def list_training_datasets() -> Dict[str, Any]:
             # Get record count
             try:
                 import pandas as pd
+
                 df = pd.read_parquet(file)
                 record_count = len(df)
                 if len(df) > 0:
@@ -5472,15 +5608,17 @@ async def list_training_datasets() -> Dict[str, Any]:
                 record_count = 0
                 date_range = None
 
-            datasets.append({
-                "filename": file.name,
-                "symbol": symbol,
-                "timeframe": timeframe,
-                "records": record_count,
-                "size_mb": round(size / 1024 / 1024, 2),
-                "date_range": date_range,
-                "modified": datetime.fromtimestamp(file.stat().st_mtime).isoformat(),
-            })
+            datasets.append(
+                {
+                    "filename": file.name,
+                    "symbol": symbol,
+                    "timeframe": timeframe,
+                    "records": record_count,
+                    "size_mb": round(size / 1024 / 1024, 2),
+                    "date_range": date_range,
+                    "modified": datetime.fromtimestamp(file.stat().st_mtime).isoformat(),
+                }
+            )
 
         return {
             "datasets": datasets,
@@ -5546,6 +5684,7 @@ async def get_strategy_dashboard() -> Dict[str, Any]:
     """
     try:
         from bot.regime import get_tracker
+
         tracker = get_tracker()
         return tracker.get_dashboard()
     except Exception as e:
@@ -5557,6 +5696,7 @@ async def list_strategies() -> Dict[str, Any]:
     """List all registered trading strategies with their performance."""
     try:
         from bot.regime import get_tracker
+
         tracker = get_tracker()
         strategies = tracker.get_all_strategies()
         return {
@@ -5572,6 +5712,7 @@ async def get_strategy_performance(strategy_id: str) -> Dict[str, Any]:
     """Get performance metrics for a specific strategy."""
     try:
         from bot.regime import get_tracker
+
         tracker = get_tracker()
         perf = tracker.get_performance(strategy_id)
         if perf is None:
@@ -5588,6 +5729,7 @@ async def get_strategy_comparison_text() -> Dict[str, str]:
     """Get a text-formatted comparison of all strategies."""
     try:
         from bot.regime import get_tracker
+
         tracker = get_tracker()
         return {"comparison": tracker.get_strategy_comparison()}
     except Exception as e:
@@ -5691,23 +5833,28 @@ async def get_trading_mode() -> Dict[str, Any]:
     if has_keys:
         try:
             import ccxt
+
             # Check testnet
             if config["mode"] == "testnet":
-                exchange = ccxt.binance({
-                    "apiKey": api_key,
-                    "secret": api_secret,
-                    "sandbox": True,
-                    "options": {"defaultType": "spot"},
-                })
+                exchange = ccxt.binance(
+                    {
+                        "apiKey": api_key,
+                        "secret": api_secret,
+                        "sandbox": True,
+                        "options": {"defaultType": "spot"},
+                    }
+                )
                 balance = exchange.fetch_balance()
                 testnet_value = float(balance.get("total", {}).get("USDT", 0))
             elif config["mode"] == "live":
-                exchange = ccxt.binance({
-                    "apiKey": api_key,
-                    "secret": api_secret,
-                    "sandbox": False,
-                    "options": {"defaultType": "spot"},
-                })
+                exchange = ccxt.binance(
+                    {
+                        "apiKey": api_key,
+                        "secret": api_secret,
+                        "sandbox": False,
+                        "options": {"defaultType": "spot"},
+                    }
+                )
                 balance = exchange.fetch_balance()
                 live_value = float(balance.get("total", {}).get("USDT", 0))
         except Exception:
@@ -5759,32 +5906,35 @@ async def set_trading_mode(
         if not api_key or not api_secret or len(api_key) < 10:
             raise HTTPException(
                 status_code=400,
-                detail="Binance API keys not configured. Add BINANCE_API_KEY and BINANCE_API_SECRET to .env file."
+                detail="Binance API keys not configured. Add BINANCE_API_KEY and BINANCE_API_SECRET to .env file.",
             )
 
         # Live mode requires additional confirmation
         if mode == "live" and not confirm:
             raise HTTPException(
                 status_code=400,
-                detail="Switching to live trading requires confirmation. Set confirm=true to proceed."
+                detail="Switching to live trading requires confirmation. Set confirm=true to proceed.",
             )
 
         # Verify API keys work
         try:
             import ccxt
+
             sandbox = mode == "testnet"
-            exchange = ccxt.binance({
-                "apiKey": api_key,
-                "secret": api_secret,
-                "sandbox": sandbox,
-                "options": {"defaultType": "spot"},
-            })
+            exchange = ccxt.binance(
+                {
+                    "apiKey": api_key,
+                    "secret": api_secret,
+                    "sandbox": sandbox,
+                    "options": {"defaultType": "spot"},
+                }
+            )
             balance = exchange.fetch_balance()
             capital = float(balance.get("total", {}).get("USDT", 0))
         except Exception as e:
             raise HTTPException(
                 status_code=400,
-                detail=f"Failed to connect to Binance {'testnet' if mode == 'testnet' else 'mainnet'}: {str(e)}"
+                detail=f"Failed to connect to Binance {'testnet' if mode == 'testnet' else 'mainnet'}: {str(e)}",
             )
 
         if mode == "live":
@@ -5824,6 +5974,7 @@ async def get_ai_status() -> Dict[str, Any]:
     """
     try:
         from bot.ai_trading_advisor import get_advisor
+
         advisor = get_advisor()
         available = await advisor.check_availability()
 
@@ -5864,6 +6015,7 @@ async def get_ai_trading_advice(
     """
     try:
         from bot.ai_trading_advisor import get_ai_advice
+
         advice = await get_ai_advice(
             symbol=symbol,
             current_price=current_price,
@@ -6028,7 +6180,9 @@ async def get_optimal_action(
             "state_key": state.to_state_key(),
             "optimal_action": action.value,
             "expected_value": round(expected_value, 4),
-            "based_on": "historical_data" if state.to_state_key() in tracker._q_table else "heuristic",
+            "based_on": "historical_data"
+            if state.to_state_key() in tracker._q_table
+            else "heuristic",
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
     except Exception as e:
@@ -6106,11 +6260,14 @@ async def get_live_balance() -> Dict[str, Any]:
 
     try:
         import ccxt
-        exchange = ccxt.binance({
-            "apiKey": api_key,
-            "secret": api_secret,
-            "sandbox": False,
-        })
+
+        exchange = ccxt.binance(
+            {
+                "apiKey": api_key,
+                "secret": api_secret,
+                "sandbox": False,
+            }
+        )
 
         balance = exchange.fetch_balance()
 
@@ -6139,6 +6296,7 @@ async def get_live_balance() -> Dict[str, Any]:
 # AI TRADING BRAIN ENDPOINTS
 # =============================================================================
 
+
 @app.get("/api/ai-brain/status", tags=["AI Brain"])
 async def get_ai_brain_status() -> Dict[str, Any]:
     """
@@ -6152,13 +6310,14 @@ async def get_ai_brain_status() -> Dict[str, Any]:
     """
     try:
         from bot.ai_trading_brain import get_ai_brain
+
         brain = get_ai_brain()
         return brain.get_brain_status()
     except Exception as e:
         return {
             "status": "ERROR",
             "error": str(e),
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
 
@@ -6175,6 +6334,7 @@ async def get_daily_target_status() -> Dict[str, Any]:
     """
     try:
         from bot.ai_trading_brain import get_ai_brain
+
         brain = get_ai_brain()
         return brain.daily_tracker.get_status()
     except Exception as e:
@@ -6190,12 +6350,13 @@ async def get_ai_strategies() -> Dict[str, Any]:
     """
     try:
         from bot.ai_trading_brain import get_ai_brain
+
         brain = get_ai_brain()
         return {
             "strategies": brain.get_all_strategies(),
             "active_count": len([s for s in brain.strategy_generator.strategies if s.is_active]),
             "total_count": len(brain.strategy_generator.strategies),
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
     except Exception as e:
         return {"strategies": [], "error": str(e)}
@@ -6211,6 +6372,7 @@ async def generate_new_strategy() -> Dict[str, Any]:
     """
     try:
         from bot.ai_trading_brain import get_ai_brain
+
         brain = get_ai_brain()
         strategy = brain.generate_new_strategy()
 
@@ -6218,12 +6380,9 @@ async def generate_new_strategy() -> Dict[str, Any]:
             return {
                 "success": True,
                 "strategy": strategy,
-                "message": f"Created strategy: {strategy['name']}"
+                "message": f"Created strategy: {strategy['name']}",
             }
-        return {
-            "success": False,
-            "message": "Not enough pattern data to generate strategy"
-        }
+        return {"success": False, "message": "Not enough pattern data to generate strategy"}
     except Exception as e:
         return {"success": False, "error": str(e)}
 
@@ -6233,13 +6392,14 @@ async def activate_strategy(name: str) -> Dict[str, Any]:
     """Activate a strategy for live trading."""
     try:
         from bot.ai_trading_brain import get_ai_brain
+
         brain = get_ai_brain()
         success = brain.activate_strategy(name)
 
         return {
             "success": success,
             "strategy": name,
-            "action": "activated" if success else "not found"
+            "action": "activated" if success else "not found",
         }
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -6250,13 +6410,14 @@ async def deactivate_strategy(name: str) -> Dict[str, Any]:
     """Deactivate a strategy."""
     try:
         from bot.ai_trading_brain import get_ai_brain
+
         brain = get_ai_brain()
         success = brain.deactivate_strategy(name)
 
         return {
             "success": success,
             "strategy": name,
-            "action": "deactivated" if success else "not found"
+            "action": "deactivated" if success else "not found",
         }
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -6264,7 +6425,7 @@ async def deactivate_strategy(name: str) -> Dict[str, Any]:
 
 @app.get("/api/ai-brain/patterns/best", tags=["AI Brain"])
 async def get_best_patterns(
-    action: str = Query("buy", description="Action type: buy, sell, or hold")
+    action: str = Query("buy", description="Action type: buy, sell, or hold"),
 ) -> Dict[str, Any]:
     """
     Get best performing patterns for a specific action.
@@ -6274,14 +6435,16 @@ async def get_best_patterns(
     """
     try:
         from bot.ai_trading_brain import get_ai_brain
+
         brain = get_ai_brain()
         patterns = brain.pattern_learner.get_best_conditions_for_action(action, min_samples=5)
 
         return {
             "action": action,
             "best_patterns": patterns,
-            "total_patterns": len(brain.pattern_learner.profitable_patterns) + len(brain.pattern_learner.losing_patterns),
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "total_patterns": len(brain.pattern_learner.profitable_patterns)
+            + len(brain.pattern_learner.losing_patterns),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
     except Exception as e:
         return {"action": action, "best_patterns": [], "error": str(e)}
@@ -6300,13 +6463,18 @@ async def get_trade_insights() -> Dict[str, Any]:
     """
     try:
         from bot.ai_trading_brain import get_ai_brain
+
         brain = get_ai_brain()
         return brain.trade_analyzer.get_insights()
     except Exception as e:
         return {"error": str(e)}
 
 
+from bot.core.circuit_breaker import circuit_breaker, CommonCircuitBreakers
+
+
 @app.post("/api/ai-brain/record-trade", tags=["AI Brain"])
+@circuit_breaker(CommonCircuitBreakers.AI_PREDICTION, failure_threshold=3, timeout=30)
 async def record_trade_for_learning(request: Request) -> Dict[str, Any]:
     """
     Record a completed trade for AI learning.
@@ -6315,41 +6483,96 @@ async def record_trade_for_learning(request: Request) -> Dict[str, Any]:
     """
     try:
         from bot.ai_trading_brain import get_ai_brain, MarketSnapshot, MarketCondition
+
         brain = get_ai_brain()
 
         data = await request.json()
 
-        # Create a market snapshot from the data
+        # Validate input data
+        if not isinstance(data, dict):
+            raise ValueError("Invalid JSON data format")
+        
+        required_fields = ["symbol", "action", "entry_price"]
+        for field in required_fields:
+            if field not in data:
+                raise ValueError(f"Missing required field: {field}")
+
+        # Validate symbol
+        validated_symbol = APIRequestValidator.sanitize_string(data.get("symbol", ""))
+        if not validated_symbol:
+            raise ValueError("Symbol is required and cannot be empty")
+
+        # Validate action
+        action = data.get("action", "").lower().strip()
+        if action not in ["buy", "sell", "long", "short"]:
+            raise ValueError("Action must be one of: buy, sell, long, short")
+
+        # Validate prices
+        try:
+            entry_price = float(data.get("entry_price", 0))
+            exit_price = float(data.get("exit_price", 0))
+            
+            if entry_price <= 0:
+                raise ValueError("Entry price must be positive")
+            
+            if exit_price < 0:
+                raise ValueError("Exit price cannot be negative")
+        except (ValueError, TypeError) as e:
+            raise ValueError(f"Invalid price format: {e}")
+
+        # Create a market snapshot from data
         snapshot = MarketSnapshot(
-            timestamp=datetime.fromisoformat(data.get("timestamp", datetime.now(timezone.utc).isoformat())),
-            symbol=data.get("symbol", ""),
-            price=data.get("entry_price", 0),
+            timestamp=datetime.fromisoformat(
+                data.get("timestamp", datetime.now(timezone.utc).isoformat())
+            ),
+            symbol=validated_symbol,
+            price=entry_price,
             trend_1h=data.get("trend", "neutral"),
-            rsi=data.get("rsi", 50),
-            volatility_percentile=data.get("volatility", 50),
-            condition=MarketCondition(data.get("market_condition", "sideways"))
+            rsi=float(data.get("rsi", 50)),
+            volatility_percentile=float(data.get("volatility", 50)),
+            condition=MarketCondition(data.get("market_condition", "sideways")),
         )
 
         result = brain.record_trade_result(
-            trade_id=data.get("trade_id", f"trade_{int(time.time())}"),
-            symbol=data.get("symbol", ""),
+            trade_id=APIRequestValidator.sanitize_string(data.get("trade_id", f"trade_{int(time.time())}")),
+            symbol=validated_symbol,
             entry_snapshot=snapshot,
-            action=data.get("action", "buy"),
-            entry_price=data.get("entry_price", 0),
-            exit_price=data.get("exit_price", 0),
-            position_size=data.get("position_size", 1.0),
+            action=action,
+            entry_price=entry_price,
+            exit_price=exit_price,
+            position_size=float(data.get("position_size", 1.0)),
             price_history=data.get("price_history", []),
-            holding_hours=data.get("holding_hours", 0)
+            holding_hours=float(data.get("holding_hours", 0)),
         )
 
+        logger.info(f"Trade recorded for learning: {validated_symbol} {action}", extra={
+            "trade_id": result.get("trade_id"),
+            "symbol": validated_symbol,
+            "action": action,
+            "entry_price": entry_price,
+            "exit_price": exit_price,
+        })
+
         return result
+
+    except ValueError as e:
+        logger.warning(f"Validation error in record_trade_for_learning: {e}")
+        return {"success": False, "error": f"Validation error: {e}"}
+    except ImportError as e:
+        logger.error(f"AI brain module not available: {e}")
+        return {"success": False, "error": "AI learning module not available"}
+    except AttributeError as e:
+        logger.error(f"AI brain interface error: {e}")
+        return {"success": False, "error": "AI brain interface error"}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        logger.error(f"Unexpected error in record_trade_for_learning: {e}", exc_info=True)
+        return {"success": False, "error": f"Internal server error: {e}"}
 
 
 # =============================================================================
 # ML MODEL PERFORMANCE TRACKING ENDPOINTS
 # =============================================================================
+
 
 @app.get("/api/ml/model-performance", tags=["ML/AI"])
 async def get_ml_model_performance(
@@ -6369,9 +6592,7 @@ async def get_ml_model_performance(
 
         if model_type:
             return tracker.get_model_performance(
-                model_type=model_type,
-                market_condition=market_condition,
-                days=days
+                model_type=model_type, market_condition=market_condition, days=days
             )
         else:
             return tracker.get_summary(days=days)
@@ -6394,18 +6615,16 @@ async def get_ml_model_ranking(
         tracker = get_ml_tracker()
         ranking = tracker.get_model_ranking(days=days)
 
-        return {
-            "period_days": days,
-            "ranking": ranking,
-            "total_models": len(ranking)
-        }
+        return {"period_days": days, "ranking": ranking, "total_models": len(ranking)}
     except Exception as e:
         return {"error": str(e)}
 
 
 @app.get("/api/ml/best-model", tags=["ML/AI"])
 async def get_best_model_for_condition(
-    market_condition: str = Query(..., description="Market condition (bull, bear, sideways, volatile)"),
+    market_condition: str = Query(
+        ..., description="Market condition (bull, bear, sideways, volatile)"
+    ),
     min_predictions: int = Query(default=10, description="Minimum predictions required"),
 ) -> Dict[str, Any]:
     """
@@ -6418,8 +6637,7 @@ async def get_best_model_for_condition(
 
         tracker = get_ml_tracker()
         best = tracker.get_best_model_for_condition(
-            market_condition=market_condition,
-            min_predictions=min_predictions
+            market_condition=market_condition, min_predictions=min_predictions
         )
 
         if best:
@@ -6428,13 +6646,13 @@ async def get_best_model_for_condition(
                 "recommended_model": best["model_type"],
                 "accuracy": best["accuracy"],
                 "total_predictions": best["total_predictions"],
-                "avg_return": best.get("avg_return", 0)
+                "avg_return": best.get("avg_return", 0),
             }
         else:
             return {
                 "market_condition": market_condition,
                 "recommended_model": None,
-                "message": f"No models with at least {min_predictions} predictions for this condition"
+                "message": f"No models with at least {min_predictions} predictions for this condition",
             }
     except Exception as e:
         return {"error": str(e)}
@@ -6473,10 +6691,7 @@ async def get_performance_matrix(
         tracker = get_ml_tracker()
         matrix = tracker.get_condition_performance_matrix(days=days)
 
-        return {
-            "period_days": days,
-            "matrix": matrix
-        }
+        return {"period_days": days, "matrix": matrix}
     except Exception as e:
         return {"error": str(e)}
 
@@ -6502,11 +6717,7 @@ async def record_prediction_outcome(request: Request) -> Dict[str, Any]:
 
         tracker.record_outcome(prediction_id, actual_return)
 
-        return {
-            "success": True,
-            "prediction_id": prediction_id,
-            "actual_return": actual_return
-        }
+        return {"success": True, "prediction_id": prediction_id, "actual_return": actual_return}
     except Exception as e:
         return {"success": False, "error": str(e)}
 
@@ -6514,6 +6725,7 @@ async def record_prediction_outcome(request: Request) -> Dict[str, Any]:
 # =============================================================================
 # SYSTEM LOG ENDPOINTS
 # =============================================================================
+
 
 @app.get("/api/system/status", tags=["System"])
 async def get_system_status() -> Dict[str, Any]:
@@ -6549,17 +6761,10 @@ async def get_system_events(
 
         syslog = get_system_logger()
         events = syslog.get_recent_events(
-            limit=limit,
-            event_type=event_type,
-            component=component,
-            severity=severity,
-            since=since
+            limit=limit, event_type=event_type, component=component, severity=severity, since=since
         )
 
-        return {
-            "total": len(events),
-            "events": events
-        }
+        return {"total": len(events), "events": events}
     except Exception as e:
         return {"error": str(e)}
 
@@ -6613,17 +6818,9 @@ async def get_recent_errors(
 
         syslog = get_system_logger()
         since = (datetime.now() - timedelta(hours=hours)).isoformat()
-        errors = syslog.get_recent_events(
-            limit=limit,
-            severity="error",
-            since=since
-        )
+        errors = syslog.get_recent_events(limit=limit, severity="error", since=since)
 
-        return {
-            "period_hours": hours,
-            "total_errors": len(errors),
-            "errors": errors
-        }
+        return {"period_hours": hours, "total_errors": len(errors), "errors": errors}
     except Exception as e:
         return {"error": str(e)}
 
@@ -6649,7 +6846,7 @@ async def get_last_entry() -> Dict[str, Any]:
             "system_status": status["status"],
             "last_event": events[0] if events else None,
             "bots": [b["id"] for b in status["bots"]],
-            "ai_components": [a["id"] for a in status["ai_components"]]
+            "ai_components": [a["id"] for a in status["ai_components"]],
         }
     except Exception as e:
         return {"error": str(e)}
@@ -6658,6 +6855,7 @@ async def get_last_entry() -> Dict[str, Any]:
 # ============================================================================
 # AI INTELLIGENCE ENDPOINTS
 # ============================================================================
+
 
 @app.get("/api/ai/brain/status", tags=["AI"])
 async def get_brain_status() -> Dict[str, Any]:
@@ -6677,6 +6875,7 @@ async def get_brain_status() -> Dict[str, Any]:
         # Try to get live price data and detect regime
         try:
             import yfinance as yf
+
             btc = yf.Ticker("BTC-USD")
             hist = btc.history(period="5d", interval="1h")
             if len(hist) >= 50:
@@ -6685,7 +6884,9 @@ async def get_brain_status() -> Dict[str, Any]:
                 health["regime_adapter"]["current_regime"] = regime_state.regime.value
                 health["regime_adapter"]["confidence"] = round(regime_state.confidence * 100, 1)
                 health["regime_adapter"]["volatility"] = round(regime_state.volatility * 100, 2)
-                health["regime_adapter"]["trend_strength"] = round(regime_state.trend_strength * 100, 2)
+                health["regime_adapter"]["trend_strength"] = round(
+                    regime_state.trend_strength * 100, 2
+                )
         except Exception as e:
             pass  # Keep default values if price fetch fails
 
@@ -6809,21 +7010,26 @@ async def get_pnl_calendar(days: int = 30) -> Dict[str, Any]:
             try:
                 conn = sqlite3.connect(str(db_path))
                 cursor = conn.cursor()
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT date(timestamp) as day, SUM(pnl), COUNT(*)
                     FROM trades
                     WHERE timestamp >= date('now', ?)
                     GROUP BY date(timestamp)
                     ORDER BY day DESC
-                """, (f'-{days} days',))
+                """,
+                    (f"-{days} days",),
+                )
                 rows = cursor.fetchall()
                 conn.close()
                 for row in rows:
-                    all_trades.append({
-                        "date": row[0],
-                        "pnl": row[1] or 0,
-                        "trades": row[2] or 0,
-                    })
+                    all_trades.append(
+                        {
+                            "date": row[0],
+                            "pnl": row[1] or 0,
+                            "trades": row[2] or 0,
+                        }
+                    )
             except (sqlite3.Error, sqlite3.OperationalError) as e:
                 logger.debug(f"Failed to read trades from {db_path}: {e}")
 
@@ -6860,14 +7066,18 @@ async def get_pnl_calendar(days: int = 30) -> Dict[str, Any]:
             if pnl < stats["worst_day"]:
                 stats["worst_day"] = pnl
 
-        calendar.append({
-            "date": date,
-            "pnl": round(pnl, 2),
-            "pnl_pct": round(pnl_pct, 2),
-            "trades": data["trades"],
-            "target_hit": target_hit,
-            "status": "hit" if target_hit else ("loss" if pnl < 0 else ("profit" if pnl > 0 else "neutral")),
-        })
+        calendar.append(
+            {
+                "date": date,
+                "pnl": round(pnl, 2),
+                "pnl_pct": round(pnl_pct, 2),
+                "trades": data["trades"],
+                "target_hit": target_hit,
+                "status": "hit"
+                if target_hit
+                else ("loss" if pnl < 0 else ("profit" if pnl > 0 else "neutral")),
+            }
+        )
 
     return {
         "calendar": calendar,
@@ -6885,5 +7095,5 @@ async def get_pnl_calendar(days: int = 30) -> Dict[str, Any]:
             "pnl": calendar[0]["pnl"] if calendar else 0,
             "pnl_pct": calendar[0]["pnl_pct"] if calendar else 0,
             "target_hit": calendar[0]["target_hit"] if calendar else False,
-        }
+        },
     }

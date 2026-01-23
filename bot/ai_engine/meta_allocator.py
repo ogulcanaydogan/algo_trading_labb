@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class StrategyAllocation:
     """Allocation for a single strategy."""
+
     strategy_id: str
     weight: float  # 0.0 to 1.0
     regime: str
@@ -42,6 +43,7 @@ class StrategyAllocation:
 @dataclass
 class AllocationPlan:
     """Complete allocation plan across strategies."""
+
     timestamp: str
     total_capital: float
     regime: str
@@ -197,14 +199,16 @@ class MetaAllocator:
         allocations = []
         for strategy_id, weight in final_weights.items():
             metrics = self.strategy_metrics.get(strategy_id, {})
-            allocations.append(StrategyAllocation(
-                strategy_id=strategy_id,
-                weight=weight,
-                regime=current_regime,
-                reason=self._get_allocation_reason(strategy_id, current_regime, weight),
-                expected_sharpe=metrics.get("sharpe_ratio", 0),
-                is_active=weight >= self.min_allocation,
-            ))
+            allocations.append(
+                StrategyAllocation(
+                    strategy_id=strategy_id,
+                    weight=weight,
+                    regime=current_regime,
+                    reason=self._get_allocation_reason(strategy_id, current_regime, weight),
+                    expected_sharpe=metrics.get("sharpe_ratio", 0),
+                    is_active=weight >= self.min_allocation,
+                )
+            )
 
         # Calculate portfolio metrics
         diversification = self._calculate_diversification(final_weights)
@@ -299,16 +303,12 @@ class MetaAllocator:
 
         # Redistribute excess
         if excess > 0:
-            eligible = [
-                k for k, v in constrained.items()
-                if v < self.max_allocation
-            ]
+            eligible = [k for k, v in constrained.items() if v < self.max_allocation]
             if eligible:
                 per_strategy = excess / len(eligible)
                 for strategy_id in eligible:
                     constrained[strategy_id] = min(
-                        self.max_allocation,
-                        constrained[strategy_id] + per_strategy
+                        self.max_allocation, constrained[strategy_id] + per_strategy
                     )
 
         # Second pass: apply min constraint
@@ -368,7 +368,7 @@ class MetaAllocator:
             return 0.0
 
         # Use Herfindahl-Hirschman Index (HHI)
-        hhi = sum(w ** 2 for w in weights.values())
+        hhi = sum(w**2 for w in weights.values())
 
         # Convert to diversification score (1 - HHI)
         # Normalize so that equal weights = 1.0
@@ -458,10 +458,7 @@ class MetaAllocator:
         if not self.current_plan:
             return True, "No current plan"
 
-        target_weights = {
-            a.strategy_id: a.weight
-            for a in self.current_plan.allocations
-        }
+        target_weights = {a.strategy_id: a.weight for a in self.current_plan.allocations}
 
         # Check drift from target
         max_drift = 0.0
@@ -508,13 +505,15 @@ class MetaAllocator:
             diff = target_value - current_value
 
             if abs(diff) > total_capital * 0.01:  # Min 1% trade size
-                trades.append({
-                    "strategy_id": strategy_id,
-                    "action": "BUY" if diff > 0 else "SELL",
-                    "amount": abs(diff),
-                    "target_weight": allocation.weight,
-                    "current_weight": current_value / total_capital if total_capital > 0 else 0,
-                })
+                trades.append(
+                    {
+                        "strategy_id": strategy_id,
+                        "action": "BUY" if diff > 0 else "SELL",
+                        "amount": abs(diff),
+                        "target_weight": allocation.weight,
+                        "current_weight": current_value / total_capital if total_capital > 0 else 0,
+                    }
+                )
 
         return trades
 
@@ -532,9 +531,7 @@ class MetaAllocator:
             "regime": self.current_plan.regime,
             "total_capital": self.current_plan.total_capital,
             "num_strategies": len(self.current_plan.allocations),
-            "active_strategies": sum(
-                1 for a in self.current_plan.allocations if a.is_active
-            ),
+            "active_strategies": sum(1 for a in self.current_plan.allocations if a.is_active),
             "diversification_score": self.current_plan.diversification_score,
             "expected_sharpe": self.current_plan.expected_portfolio_sharpe,
             "allocations": self.current_plan.to_dict()["allocations"],

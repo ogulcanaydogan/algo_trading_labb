@@ -65,13 +65,15 @@ class TestEMACrossoverStrategy:
         noise = np.random.randn(n) * 2
         close = base + noise
 
-        return pd.DataFrame({
-            "open": close - np.random.rand(n) * 0.5,
-            "high": close + np.random.rand(n) * 1,
-            "low": close - np.random.rand(n) * 1,
-            "close": close,
-            "volume": np.random.randint(1000, 10000, n),
-        })
+        return pd.DataFrame(
+            {
+                "open": close - np.random.rand(n) * 0.5,
+                "high": close + np.random.rand(n) * 1,
+                "low": close - np.random.rand(n) * 1,
+                "close": close,
+                "volume": np.random.randint(1000, 10000, n),
+            }
+        )
 
     @pytest.fixture
     def trending_down_data(self):
@@ -83,24 +85,28 @@ class TestEMACrossoverStrategy:
         noise = np.random.randn(n) * 2
         close = base + noise
 
-        return pd.DataFrame({
-            "open": close + np.random.rand(n) * 0.5,
-            "high": close + np.random.rand(n) * 1,
-            "low": close - np.random.rand(n) * 1,
-            "close": close,
-            "volume": np.random.randint(1000, 10000, n),
-        })
+        return pd.DataFrame(
+            {
+                "open": close + np.random.rand(n) * 0.5,
+                "high": close + np.random.rand(n) * 1,
+                "low": close - np.random.rand(n) * 1,
+                "close": close,
+                "volume": np.random.randint(1000, 10000, n),
+            }
+        )
 
     @pytest.fixture
     def short_data(self):
         """Create insufficient data."""
-        return pd.DataFrame({
-            "open": [100, 101, 102],
-            "high": [102, 103, 104],
-            "low": [99, 100, 101],
-            "close": [101, 102, 103],
-            "volume": [1000, 1000, 1000],
-        })
+        return pd.DataFrame(
+            {
+                "open": [100, 101, 102],
+                "high": [102, 103, 104],
+                "low": [99, 100, 101],
+                "close": [101, 102, 103],
+                "volume": [1000, 1000, 1000],
+            }
+        )
 
     def test_strategy_properties(self, strategy):
         """Test strategy name and description."""
@@ -242,18 +248,22 @@ class TestTrendAlignment:
         n = 100
 
         # Start below, then create conditions for bullish cross
-        close = np.concatenate([
-            np.linspace(100, 90, 50),  # Downward movement
-            np.linspace(90, 95, 50),   # Slight recovery but still low
-        ])
+        close = np.concatenate(
+            [
+                np.linspace(100, 90, 50),  # Downward movement
+                np.linspace(90, 95, 50),  # Slight recovery but still low
+            ]
+        )
 
-        df = pd.DataFrame({
-            "open": close - 0.5,
-            "high": close + 1,
-            "low": close - 1,
-            "close": close,
-            "volume": [1000] * n,
-        })
+        df = pd.DataFrame(
+            {
+                "open": close - 0.5,
+                "high": close + 1,
+                "low": close - 1,
+                "close": close,
+                "volume": [1000] * n,
+            }
+        )
 
         signal = strategy.generate_signal(df)
         # Should be FLAT or have reason mentioning trend
@@ -289,13 +299,15 @@ class TestEdgeCases:
         strategy = EMACrossoverStrategy(config)
 
         n = 50
-        df = pd.DataFrame({
-            "open": [100.0] * n,
-            "high": [100.0] * n,
-            "low": [100.0] * n,
-            "close": [100.0] * n,
-            "volume": [1000] * n,
-        })
+        df = pd.DataFrame(
+            {
+                "open": [100.0] * n,
+                "high": [100.0] * n,
+                "low": [100.0] * n,
+                "close": [100.0] * n,
+                "volume": [1000] * n,
+            }
+        )
 
         signal = strategy.generate_signal(df)
         assert signal.decision in ["FLAT", "LONG", "SHORT"]  # Should handle gracefully

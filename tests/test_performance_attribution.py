@@ -292,10 +292,7 @@ class TestPerformanceAttributor:
 
     def test_init_custom_capital(self, temp_data_dir):
         """Test custom initial capital."""
-        attributor = PerformanceAttributor(
-            data_dir=temp_data_dir,
-            initial_capital=50000
-        )
+        attributor = PerformanceAttributor(data_dir=temp_data_dir, initial_capital=50000)
         assert attributor.initial_capital == 50000
 
     def test_log_trade_basic(self, attributor):
@@ -764,8 +761,7 @@ class TestAttributionCalculations:
 
         # Find momentum attribution
         momentum_attr = next(
-            (a for a in report.attributions_by_strategy if a.category == "momentum"),
-            None
+            (a for a in report.attributions_by_strategy if a.category == "momentum"), None
         )
 
         assert momentum_attr is not None
@@ -787,8 +783,7 @@ class TestAttributionCalculations:
         report = attributor_with_trades.generate_report(days=30)
 
         momentum_attr = next(
-            (a for a in report.attributions_by_strategy if a.category == "momentum"),
-            None
+            (a for a in report.attributions_by_strategy if a.category == "momentum"), None
         )
 
         # Profit factor = sum(wins) / abs(sum(losses)) = 300 / 100 = 3
@@ -799,8 +794,7 @@ class TestAttributionCalculations:
         report = attributor_with_trades.generate_report(days=30)
 
         momentum_attr = next(
-            (a for a in report.attributions_by_strategy if a.category == "momentum"),
-            None
+            (a for a in report.attributions_by_strategy if a.category == "momentum"), None
         )
 
         # All momentum trades have 2 hour holding period

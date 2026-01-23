@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 
 class RiskLevel(Enum):
     """Risk level classifications."""
+
     NORMAL = "normal"
     ELEVATED = "elevated"
     HIGH = "high"
@@ -42,6 +43,7 @@ class RiskLevel(Enum):
 
 class VetoReason(Enum):
     """Reasons for vetoing a trade."""
+
     NONE = "none"
     DAILY_LOSS_LIMIT = "daily_loss_limit_reached"
     DRAWDOWN_LIMIT = "max_drawdown_reached"
@@ -66,6 +68,7 @@ RiskViolationType = VetoReason
 @dataclass
 class RiskLimits:
     """Hard risk limits that cannot be exceeded."""
+
     # Additional attributes for test compatibility
     max_position_pct: float = 25.0  # Alias for max_position_size_pct
     max_correlation: float = 0.8  # Max correlation between positions
@@ -108,6 +111,7 @@ class RiskLimits:
 @dataclass
 class RiskState:
     """Current risk state tracking."""
+
     # Daily tracking
     daily_pnl_pct: float = 0.0
     daily_trades: int = 0
@@ -172,6 +176,7 @@ RiskMetrics = RiskState
 @dataclass
 class RiskCheckResult:
     """Result of a risk check."""
+
     approved: bool
     veto_reasons: List[VetoReason] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
@@ -199,6 +204,7 @@ class RiskCheckResult:
 @dataclass
 class TradeRequest:
     """A trade request to be checked by Risk Guardian."""
+
     symbol: str
     action: str  # BUY, SELL, CLOSE
     direction: str  # LONG, SHORT
@@ -250,10 +256,12 @@ class RiskGuardian:
         # Load existing state
         self._load_state()
 
-        logger.info("Risk Guardian initialized with limits: "
-                   f"max_daily_loss={self.limits.max_daily_loss_pct}%, "
-                   f"max_drawdown={self.limits.max_drawdown_pct}%, "
-                   f"max_leverage={self.limits.max_leverage}x")
+        logger.info(
+            "Risk Guardian initialized with limits: "
+            f"max_daily_loss={self.limits.max_daily_loss_pct}%, "
+            f"max_drawdown={self.limits.max_drawdown_pct}%, "
+            f"max_leverage={self.limits.max_leverage}x"
+        )
 
     def check_trade(self, request: TradeRequest) -> RiskCheckResult:
         """
@@ -363,8 +371,7 @@ class RiskGuardian:
             result.approved = False
             result.veto_reasons.append(VetoReason.SPREAD_TOO_WIDE)
             result.warnings.append(
-                f"Spread too wide: {request.spread_pct:.2f}% "
-                f"(limit: {self.limits.max_spread_pct}%)"
+                f"Spread too wide: {request.spread_pct:.2f}% (limit: {self.limits.max_spread_pct}%)"
             )
 
     def _check_volatility(self, request: TradeRequest, result: RiskCheckResult):
@@ -434,10 +441,7 @@ class RiskGuardian:
             )
             # Reduce allowed leverage
             margin_headroom = (self.limits.margin_critical_pct - self.state.margin_used_pct) / 100
-            result.max_allowed_leverage = min(
-                result.max_allowed_leverage,
-                1 + margin_headroom * 10
-            )
+            result.max_allowed_leverage = min(result.max_allowed_leverage, 1 + margin_headroom * 10)
 
     def _check_liquidation_distance(self, request: TradeRequest, result: RiskCheckResult):
         """Check distance to liquidation."""
@@ -480,7 +484,9 @@ class RiskGuardian:
             return f"TRADE VETOED: {reasons}"
 
         if result.warnings:
-            return f"APPROVED with {len(result.warnings)} warnings: {'; '.join(result.warnings[:3])}"
+            return (
+                f"APPROVED with {len(result.warnings)} warnings: {'; '.join(result.warnings[:3])}"
+            )
 
         return "APPROVED: All risk checks passed"
 
@@ -522,7 +528,9 @@ class RiskGuardian:
             # Update daily PnL
             if self.state.day_start_equity > 0:
                 self.state.daily_pnl_pct = (
-                    (current_equity - self.state.day_start_equity) / self.state.day_start_equity * 100
+                    (current_equity - self.state.day_start_equity)
+                    / self.state.day_start_equity
+                    * 100
                 )
 
             self.state.last_updated = datetime.now(timezone.utc).isoformat()
@@ -673,9 +681,10 @@ class RiskGuardian:
             return {
                 "risk_level": self.state.risk_level,
                 "kill_switch_active": self.state.kill_switch_active,
-                "cooldown_active": self.state.cooldown_until is not None and
-                    datetime.now(timezone.utc) < datetime.fromisoformat(self.state.cooldown_until)
-                    if self.state.cooldown_until else False,
+                "cooldown_active": self.state.cooldown_until is not None
+                and datetime.now(timezone.utc) < datetime.fromisoformat(self.state.cooldown_until)
+                if self.state.cooldown_until
+                else False,
                 "daily_stats": {
                     "pnl_pct": round(self.state.daily_pnl_pct, 4),
                     "trades": self.state.daily_trades,
@@ -753,7 +762,7 @@ class RiskGuardian:
         """Save state to file."""
         try:
             self.state_file.parent.mkdir(parents=True, exist_ok=True)
-            with open(self.state_file, 'w') as f:
+            with open(self.state_file, "w") as f:
                 json.dump(self.state.to_dict(), f, indent=2)
         except Exception as e:
             logger.error(f"Failed to save risk state: {e}")
@@ -765,31 +774,33 @@ class RiskGuardian:
             return
 
         try:
-            with open(self.state_file, 'r') as f:
+            with open(self.state_file, "r") as f:
                 data = json.load(f)
 
-            self.state.daily_pnl_pct = data.get('daily_pnl_pct', 0)
-            self.state.daily_trades = data.get('daily_trades', 0)
-            self.state.daily_wins = data.get('daily_wins', 0)
-            self.state.daily_losses = data.get('daily_losses', 0)
-            self.state.day_start_equity = data.get('day_start_equity', 0)
-            self.state.peak_equity = data.get('peak_equity', 0)
-            self.state.current_equity = data.get('current_equity', 0)
-            self.state.current_drawdown_pct = data.get('current_drawdown_pct', 0)
-            self.state.total_exposure_pct = data.get('total_exposure_pct', 0)
-            self.state.positions = data.get('positions', {})
-            self.state.current_leverage = data.get('current_leverage', 1)
-            self.state.margin_used_pct = data.get('margin_used_pct', 0)
-            self.state.liquidation_distance_pct = data.get('liquidation_distance_pct', 100)
-            self.state.consecutive_losses = data.get('consecutive_losses', 0)
-            self.state.consecutive_failures = data.get('consecutive_failures', 0)
-            self.state.kill_switch_active = data.get('kill_switch_active', False)
-            self.state.cooldown_until = data.get('cooldown_until')
-            self.state.risk_level = data.get('risk_level', 'normal')
-            self.state.last_updated = data.get('last_updated', '')
+            self.state.daily_pnl_pct = data.get("daily_pnl_pct", 0)
+            self.state.daily_trades = data.get("daily_trades", 0)
+            self.state.daily_wins = data.get("daily_wins", 0)
+            self.state.daily_losses = data.get("daily_losses", 0)
+            self.state.day_start_equity = data.get("day_start_equity", 0)
+            self.state.peak_equity = data.get("peak_equity", 0)
+            self.state.current_equity = data.get("current_equity", 0)
+            self.state.current_drawdown_pct = data.get("current_drawdown_pct", 0)
+            self.state.total_exposure_pct = data.get("total_exposure_pct", 0)
+            self.state.positions = data.get("positions", {})
+            self.state.current_leverage = data.get("current_leverage", 1)
+            self.state.margin_used_pct = data.get("margin_used_pct", 0)
+            self.state.liquidation_distance_pct = data.get("liquidation_distance_pct", 100)
+            self.state.consecutive_losses = data.get("consecutive_losses", 0)
+            self.state.consecutive_failures = data.get("consecutive_failures", 0)
+            self.state.kill_switch_active = data.get("kill_switch_active", False)
+            self.state.cooldown_until = data.get("cooldown_until")
+            self.state.risk_level = data.get("risk_level", "normal")
+            self.state.last_updated = data.get("last_updated", "")
 
-            logger.info(f"Loaded risk state: risk_level={self.state.risk_level}, "
-                       f"daily_pnl={self.state.daily_pnl_pct:.2f}%")
+            logger.info(
+                f"Loaded risk state: risk_level={self.state.risk_level}, "
+                f"daily_pnl={self.state.daily_pnl_pct:.2f}%"
+            )
         except Exception as e:
             logger.error(f"Failed to load risk state: {e}")
 

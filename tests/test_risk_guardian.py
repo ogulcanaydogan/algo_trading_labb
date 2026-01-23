@@ -119,7 +119,9 @@ class TestRiskGuardian:
             max_trades_per_day=100,
         )
         state_file = tmp_path / "test_risk_state.json"
-        return RiskGuardian(limits=limits, initial_capital=100000.0, state_file=state_file, auto_save=False)
+        return RiskGuardian(
+            limits=limits, initial_capital=100000.0, state_file=state_file, auto_save=False
+        )
 
     def test_initialization(self, guardian):
         """Test RiskGuardian initialization."""
@@ -324,7 +326,9 @@ class TestRiskGuardianAsync:
             max_drawdown_pct=10.0,
         )
         state_file = tmp_path / "test_risk_state.json"
-        return RiskGuardian(limits=limits, initial_capital=100000.0, state_file=state_file, auto_save=False)
+        return RiskGuardian(
+            limits=limits, initial_capital=100000.0, state_file=state_file, auto_save=False
+        )
 
     @pytest.mark.asyncio
     async def test_async_check_trade(self, guardian):
@@ -358,13 +362,17 @@ class TestRiskGuardianEdgeCases:
         """Create RiskGuardian instance for testing."""
         limits = RiskLimits()
         state_file = tmp_path / "test_risk_state.json"
-        return RiskGuardian(limits=limits, initial_capital=100000.0, state_file=state_file, auto_save=False)
+        return RiskGuardian(
+            limits=limits, initial_capital=100000.0, state_file=state_file, auto_save=False
+        )
 
     def test_zero_capital(self, tmp_path):
         """Test handling of zero capital."""
         limits = RiskLimits()
         state_file = tmp_path / "test_risk_state.json"
-        guardian = RiskGuardian(limits=limits, initial_capital=0.0, state_file=state_file, auto_save=False)
+        guardian = RiskGuardian(
+            limits=limits, initial_capital=0.0, state_file=state_file, auto_save=False
+        )
 
         # Should handle gracefully
         request = TradeRequest(

@@ -239,10 +239,16 @@ class CCXTAdapter(DataAdapter):
                 timestamp=datetime.now(timezone.utc),
                 bid=float(ticker.get("bid", 0) or 0),
                 ask=float(ticker.get("ask", 0) or 0),
-                bid_size=float(ticker.get("bidVolume", 0) or 0) if ticker.get("bidVolume") else None,
-                ask_size=float(ticker.get("askVolume", 0) or 0) if ticker.get("askVolume") else None,
+                bid_size=float(ticker.get("bidVolume", 0) or 0)
+                if ticker.get("bidVolume")
+                else None,
+                ask_size=float(ticker.get("askVolume", 0) or 0)
+                if ticker.get("askVolume")
+                else None,
                 last_price=float(ticker.get("last", 0) or 0),
-                last_size=float(ticker.get("quoteVolume", 0) or 0) if ticker.get("quoteVolume") else None,
+                last_size=float(ticker.get("quoteVolume", 0) or 0)
+                if ticker.get("quoteVolume")
+                else None,
                 market_type=MarketType.CRYPTO,
                 data_source=self.data_source,
                 exchange=self.exchange_id,
@@ -347,7 +353,9 @@ class CCXTAdapter(DataAdapter):
         return {
             "exchange": self.exchange_id,
             "rate_limit": self.exchange.rateLimit,
-            "requests_per_second": 1000 / self.exchange.rateLimit if self.exchange.rateLimit else None,
+            "requests_per_second": 1000 / self.exchange.rateLimit
+            if self.exchange.rateLimit
+            else None,
         }
 
 

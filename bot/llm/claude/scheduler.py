@@ -17,6 +17,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 class SummaryType(Enum):
     """Types of scheduled summaries."""
+
     DAILY_MARKET = "daily_market"
     WEEKLY_REVIEW = "weekly_review"
     TRADE_EXPLANATION = "trade_explanation"
@@ -25,6 +26,7 @@ class SummaryType(Enum):
 @dataclass
 class ScheduleConfig:
     """Configuration for a scheduled summary."""
+
     summary_type: SummaryType
     enabled: bool = True
     preferred_hour: int = 18  # Default to 6 PM
@@ -53,6 +55,7 @@ class ScheduleConfig:
 @dataclass
 class SendRecord:
     """Record of a sent summary."""
+
     summary_type: SummaryType
     timestamp: datetime
     success: bool
@@ -165,19 +168,14 @@ class SummaryScheduler:
             try:
                 with open(self.history_file, "r") as f:
                     data = json.load(f)
-                    self.send_history = [
-                        SendRecord.from_dict(r) for r in data
-                    ]
+                    self.send_history = [SendRecord.from_dict(r) for r in data]
             except (json.JSONDecodeError, IOError):
                 pass
 
     def _save_state(self) -> None:
         """Save scheduler state to disk."""
         state_data = {
-            "last_send": {
-                st.value: ts.isoformat()
-                for st, ts in self.last_send.items()
-            },
+            "last_send": {st.value: ts.isoformat() for st, ts in self.last_send.items()},
             "configs": [cfg.to_dict() for cfg in self.configs.values()],
         }
         with open(self.state_file, "w") as f:
@@ -447,8 +445,7 @@ class SummaryScheduler:
         # Count today's sends
         today = date.today()
         status["total_sends_today"] = sum(
-            1 for r in self.send_history
-            if r.timestamp.date() == today and r.success
+            1 for r in self.send_history if r.timestamp.date() == today and r.success
         )
 
         # Get last error
@@ -505,10 +502,7 @@ class SummaryScheduler:
             self.send_history = []
         else:
             original_count = len(self.send_history)
-            self.send_history = [
-                r for r in self.send_history
-                if r.timestamp.date() >= before_date
-            ]
+            self.send_history = [r for r in self.send_history if r.timestamp.date() >= before_date]
             count = original_count - len(self.send_history)
 
         self._save_history()

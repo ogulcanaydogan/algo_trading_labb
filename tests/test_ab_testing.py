@@ -178,7 +178,9 @@ class TestABTestManager:
         assert exp.winner == WinnerDecision.TREATMENT
         assert exp.ended_at is not None
 
-    def test_get_model_returns_control_when_not_running(self, manager, control_model, treatment_model):
+    def test_get_model_returns_control_when_not_running(
+        self, manager, control_model, treatment_model
+    ):
         """Test that non-running experiments return control."""
         manager.create_experiment(
             name="exp",

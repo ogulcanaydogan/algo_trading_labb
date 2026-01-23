@@ -286,7 +286,9 @@ class TestCrossMarketAnalyzer:
     ) -> None:
         """Test correlation matrix generation."""
         for symbol, returns in sample_returns.items():
-            market_type = "crypto" if "USDT" in symbol else ("commodity" if "XAU" in symbol else "stock")
+            market_type = (
+                "crypto" if "USDT" in symbol else ("commodity" if "XAU" in symbol else "stock")
+            )
             analyzer.add_returns(symbol, returns, market_type)
 
         matrix = analyzer.get_correlation_matrix()

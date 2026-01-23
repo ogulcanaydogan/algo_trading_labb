@@ -144,7 +144,7 @@ class AutoRecovery:
 
         # Calculate backoff
         backoff = min(
-            self.config.backoff_base ** attempts,
+            self.config.backoff_base**attempts,
             self.config.backoff_max,
         )
 
@@ -206,8 +206,7 @@ class AutoRecovery:
 
             # Check escalation threshold
             total_failures = sum(
-                1 for r in self.recovery_history[-10:]
-                if r.result == RecoveryResult.FAILED
+                1 for r in self.recovery_history[-10:] if r.result == RecoveryResult.FAILED
             )
 
             if total_failures >= self.config.escalation_threshold:
@@ -388,16 +387,18 @@ class AutoRecovery:
             if state_file:
                 path = Path(state_file)
 
-                # Backup existing state
-                if path.exists():
-                    backup = path.with_suffix(".backup")
-                    path.rename(backup)
-                    logger.info(f"Backed up state to: {backup}")
+                # Backup existing state (run in thread to avoid blocking)
+                def _backup_and_write():
+                    if path.exists():
+                        backup = path.with_suffix(".backup")
+                        path.rename(backup)
+                        logger.info(f"Backed up state to: {backup}")
 
-                # Write default state
-                with open(path, "w") as f:
-                    json.dump(default_state, f, indent=2, default=str)
+                    # Write default state
+                    with open(path, "w") as f:
+                        json.dump(default_state, f, indent=2, default=str)
 
+                await asyncio.to_thread(_backup_and_write)
                 logger.info(f"Reset state: {state_file}")
 
             return True
@@ -418,6 +419,7 @@ class AutoRecovery:
             # Try to import and reconnect
             if provider == "binance":
                 from bot.data_fetcher import SmartDataFetcher
+
                 fetcher = SmartDataFetcher()
                 # Test connection
                 data = await fetcher.fetch_with_retry("BTC-USD", "1h")
@@ -425,6 +427,7 @@ class AutoRecovery:
 
             elif provider == "yahoo":
                 import yfinance as yf
+
                 ticker = yf.Ticker("SPY")
                 info = ticker.info
                 return info is not None
@@ -546,6 +549,7 @@ class AutoRecovery:
 
 
 # ==================== Convenience Functions ====================
+
 
 async def create_auto_recovery(
     notification_callback: Optional[Callable] = None,

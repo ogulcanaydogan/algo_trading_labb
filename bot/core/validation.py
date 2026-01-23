@@ -146,11 +146,11 @@ class OHLCVValidator:
 
         # Check OHLC relationships
         invalid_ohlc = (
-            (df["high"] < df["low"]) |
-            (df["high"] < df["open"]) |
-            (df["high"] < df["close"]) |
-            (df["low"] > df["open"]) |
-            (df["low"] > df["close"])
+            (df["high"] < df["low"])
+            | (df["high"] < df["open"])
+            | (df["high"] < df["close"])
+            | (df["low"] > df["open"])
+            | (df["low"] > df["close"])
         )
         invalid_count = invalid_ohlc.sum()
         if invalid_count > 0:
@@ -293,9 +293,7 @@ class OrderValidator:
         if current_price and price:
             slippage_pct = abs(price - current_price) / current_price * 100
             if slippage_pct > self.max_slippage_pct:
-                result.add_warning(
-                    f"Large price deviation: {slippage_pct:.2f}% from current price"
-                )
+                result.add_warning(f"Large price deviation: {slippage_pct:.2f}% from current price")
 
         return result
 

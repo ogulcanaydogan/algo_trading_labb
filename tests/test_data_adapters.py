@@ -187,13 +187,15 @@ class TestYahooFinanceAdapter:
     def test_fetch_ohlcv_success(self, mock_ticker):
         """Test successful OHLCV fetch."""
         # Setup mock
-        mock_data = pd.DataFrame({
-            "Open": [100, 101, 102],
-            "High": [105, 106, 107],
-            "Low": [99, 100, 101],
-            "Close": [103, 104, 105],
-            "Volume": [1000, 1100, 1200],
-        })
+        mock_data = pd.DataFrame(
+            {
+                "Open": [100, 101, 102],
+                "High": [105, 106, 107],
+                "Low": [99, 100, 101],
+                "Close": [103, 104, 105],
+                "Volume": [1000, 1100, 1200],
+            }
+        )
         mock_ticker.return_value.history.return_value = mock_data
 
         adapter = YahooFinanceAdapter()
@@ -347,13 +349,15 @@ class TestMultiSourceDataFetcher:
     @patch.object(YahooFinanceAdapter, "fetch_ohlcv")
     def test_fetch_from_primary(self, mock_fetch, temp_cache_dir):
         """Test fetching from primary source."""
-        mock_df = pd.DataFrame({
-            "open": [100, 101],
-            "high": [105, 106],
-            "low": [99, 100],
-            "close": [103, 104],
-            "volume": [1000, 1100],
-        })
+        mock_df = pd.DataFrame(
+            {
+                "open": [100, 101],
+                "high": [105, 106],
+                "low": [99, 100],
+                "close": [103, 104],
+                "volume": [1000, 1100],
+            }
+        )
         mock_fetch.return_value = mock_df
 
         fetcher = MultiSourceDataFetcher(
@@ -368,13 +372,15 @@ class TestMultiSourceDataFetcher:
     @patch.object(YahooFinanceAdapter, "fetch_ohlcv")
     def test_fetch_with_cache(self, mock_fetch, temp_cache_dir):
         """Test fetching with cache."""
-        mock_df = pd.DataFrame({
-            "open": [100, 101],
-            "high": [105, 106],
-            "low": [99, 100],
-            "close": [103, 104],
-            "volume": [1000, 1100],
-        })
+        mock_df = pd.DataFrame(
+            {
+                "open": [100, 101],
+                "high": [105, 106],
+                "low": [99, 100],
+                "close": [103, 104],
+                "volume": [1000, 1100],
+            }
+        )
         mock_fetch.return_value = mock_df
 
         fetcher = MultiSourceDataFetcher(

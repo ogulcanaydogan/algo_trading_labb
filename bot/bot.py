@@ -59,7 +59,9 @@ class BotConfig:
     playbook_assets_path: Optional[Path] = None
     # Advanced position sizing
     use_kelly_sizing: bool = False
-    sizing_method: str = "volatility_adjusted"  # fixed_fraction, kelly, half_kelly, volatility_adjusted, atr_based
+    sizing_method: str = (
+        "volatility_adjusted"  # fixed_fraction, kelly, half_kelly, volatility_adjusted, atr_based
+    )
     max_position_pct: float = 0.25  # Maximum 25% of portfolio per position
     # Multi-timeframe filtering
     use_htf_filter: bool = True
@@ -87,9 +89,7 @@ class BotConfig:
                 if os.getenv("MACRO_EVENTS_PATH")
                 else None
             ),
-            macro_refresh_seconds=int(
-                os.getenv("MACRO_REFRESH_SECONDS", "300")
-            ),
+            macro_refresh_seconds=int(os.getenv("MACRO_REFRESH_SECONDS", "300")),
             playbook_assets_path=(
                 Path(os.getenv("PLAYBOOK_ASSETS_PATH", "")).expanduser()
                 if os.getenv("PLAYBOOK_ASSETS_PATH")
@@ -246,9 +246,7 @@ def run_loop(config: BotConfig) -> None:
     playbook_horizons: Sequence[HorizonConfig] | None = None
     if config.playbook_assets_path:
         try:
-            asset_file: PlaybookAssetFile = load_playbook_asset_file(
-                config.playbook_assets_path
-            )
+            asset_file: PlaybookAssetFile = load_playbook_asset_file(config.playbook_assets_path)
             playbook_assets = asset_file.assets
             playbook_horizons = asset_file.horizons
             logger.info(
@@ -278,10 +276,7 @@ def run_loop(config: BotConfig) -> None:
             control_state = load_bot_control(config.data_dir)
             if control_state.paused:
                 note = control_state.reason or "Manual safety pause active."
-                if (
-                    store.state.last_signal != "PAUSED"
-                    or store.state.last_signal_reason != note
-                ):
+                if store.state.last_signal != "PAUSED" or store.state.last_signal_reason != note:
                     store.update_state(
                         last_signal="PAUSED",
                         last_signal_reason=note,
@@ -359,8 +354,7 @@ def run_loop(config: BotConfig) -> None:
             if signal["decision"] != "FLAT":
                 try:
                     sizing_method = sizing_method_map.get(
-                        config.sizing_method,
-                        SizingMethod.VOLATILITY_ADJUSTED
+                        config.sizing_method, SizingMethod.VOLATILITY_ADJUSTED
                     )
                     # Get volatility and ATR from signal
                     atr = signal.get("atr")
@@ -478,7 +472,7 @@ def update_state(
             entry_price = price
 
     # Use advanced sizing if available, otherwise fall back to basic calculation
-    if advanced_sizing and hasattr(advanced_sizing, 'shares_or_units'):
+    if advanced_sizing and hasattr(advanced_sizing, "shares_or_units"):
         position_size = advanced_sizing.shares_or_units
     else:
         # Get ATR from signal for better position sizing

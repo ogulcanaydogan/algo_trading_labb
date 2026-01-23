@@ -54,6 +54,7 @@ try:
         AdaptiveRiskController,
         get_adaptive_risk_controller,
     )
+
     SELF_LEARNING_AVAILABLE = True
 except ImportError:
     SELF_LEARNING_AVAILABLE = False
@@ -66,6 +67,7 @@ try:
         MarketCondition,
         get_ai_brain,
     )
+
     AI_BRAIN_AVAILABLE = True
 except ImportError:
     AI_BRAIN_AVAILABLE = False
@@ -78,6 +80,7 @@ try:
         TradeOutcome,
         get_intelligent_brain,
     )
+
     INTELLIGENT_BRAIN_AVAILABLE = True
 except ImportError:
     INTELLIGENT_BRAIN_AVAILABLE = False
@@ -86,6 +89,7 @@ except ImportError:
 try:
     from bot.regime.regime_risk_engine import RegimeRiskEngine, PortfolioState, TradeRequest
     from bot.regime.regime_detector import MarketRegime, RegimeState, RegimeIndicators
+
     REGIME_RISK_AVAILABLE = True
 except ImportError:
     REGIME_RISK_AVAILABLE = False
@@ -93,6 +97,7 @@ except ImportError:
 # Position sizing imports
 try:
     from bot.position_sizer import PositionSizer, SizingMethod
+
     POSITION_SIZER_AVAILABLE = True
 except ImportError:
     POSITION_SIZER_AVAILABLE = False
@@ -100,6 +105,7 @@ except ImportError:
 # Master AI imports (new unified AI system)
 try:
     from bot.master_ai import MasterAI, get_master_ai, MasterTradeDecision
+
     MASTER_AI_AVAILABLE = True
 except ImportError:
     MASTER_AI_AVAILABLE = False
@@ -109,8 +115,9 @@ try:
     from bot.enhanced_signal_processor import (
         EnhancedSignalProcessor,
         get_enhanced_processor,
-        enhance_signal
+        enhance_signal,
     )
+
     ENHANCED_PROCESSOR_AVAILABLE = True
 except ImportError:
     ENHANCED_PROCESSOR_AVAILABLE = False
@@ -118,6 +125,7 @@ except ImportError:
 # Online Learning imports (continuous model improvement from trades)
 try:
     from bot.ml.online_learning import OnlineLearningManager
+
     ONLINE_LEARNING_AVAILABLE = True
 except ImportError:
     ONLINE_LEARNING_AVAILABLE = False
@@ -125,6 +133,7 @@ except ImportError:
 # Auto-Retrainer imports (drift detection and automatic retraining)
 try:
     from bot.ml.auto_retrainer import AutoRetrainer, RetrainingPipeline
+
     AUTO_RETRAINER_AVAILABLE = True
 except ImportError:
     AUTO_RETRAINER_AVAILABLE = False
@@ -141,9 +150,7 @@ class EngineConfig:
     initial_capital: float = 10000.0
 
     # Trading settings
-    symbols: List[str] = field(
-        default_factory=lambda: ["BTC/USDT", "ETH/USDT"]
-    )
+    symbols: List[str] = field(default_factory=lambda: ["BTC/USDT", "ETH/USDT"])
     loop_interval_seconds: int = 300  # 5 minutes
     max_positions: int = 3
 
@@ -162,7 +169,9 @@ class EngineConfig:
     # ML settings
     use_ml_signals: bool = True
     ml_model_type: str = "gradient_boosting"
-    ml_confidence_threshold: float = 0.40  # Lowered from 0.45 to allow counter-trend signals through
+    ml_confidence_threshold: float = (
+        0.40  # Lowered from 0.45 to allow counter-trend signals through
+    )
 
     # Multi-asset trading (crypto + forex + commodities via different brokers)
     multi_asset: bool = False
@@ -182,11 +191,11 @@ class EngineConfig:
 
     # Self-learning settings
     use_action_tracker: bool = True  # Track optimal actions per market state
-    use_adaptive_risk: bool = True   # Auto-adjust risk settings
+    use_adaptive_risk: bool = True  # Auto-adjust risk settings
 
     # AI Trading Brain settings
-    use_ai_brain: bool = True        # Use AI brain for learning and strategy generation
-    daily_target_pct: float = 1.0    # Daily target gain (%)
+    use_ai_brain: bool = True  # Use AI brain for learning and strategy generation
+    daily_target_pct: float = 1.0  # Daily target gain (%)
     max_daily_loss_pct: float = 2.0  # Max daily loss before stopping (%)
 
     # Intelligent Trading Brain settings (new AI system)
@@ -266,7 +275,9 @@ class UnifiedTradingEngine:
         self.action_tracker: Optional[OptimalActionTracker] = None
         self.adaptive_risk_controller: Optional[AdaptiveRiskController] = None
         self._action_record_ids: Dict[str, int] = {}  # Track open positions for outcome recording
-        self._prediction_ids: Dict[str, str] = {}  # Track ML prediction IDs for performance tracking
+        self._prediction_ids: Dict[
+            str, str
+        ] = {}  # Track ML prediction IDs for performance tracking
 
         if SELF_LEARNING_AVAILABLE:
             if config.use_action_tracker:
@@ -300,7 +311,9 @@ class UnifiedTradingEngine:
         if INTELLIGENT_BRAIN_AVAILABLE and config.use_intelligent_brain:
             try:
                 self.intelligent_brain = get_intelligent_brain()
-                logger.info("Intelligent Trading Brain initialized - Explanations and learning enabled")
+                logger.info(
+                    "Intelligent Trading Brain initialized - Explanations and learning enabled"
+                )
             except Exception as e:
                 logger.warning(f"Could not initialize intelligent brain: {e}")
 
@@ -309,6 +322,7 @@ class UnifiedTradingEngine:
         if config.use_discord_alerts:
             try:
                 from bot.discord_alerts import create_discord_alerts
+
                 self.discord_alerts = create_discord_alerts()
                 logger.info("Discord alerts initialized")
             except Exception as e:
@@ -319,6 +333,7 @@ class UnifiedTradingEngine:
         if config.use_advanced_risk:
             try:
                 from bot.advanced_risk import create_advanced_risk_manager
+
                 self.risk_manager = create_advanced_risk_manager(
                     risk_tolerance=config.risk_tolerance,
                 )
@@ -346,13 +361,13 @@ class UnifiedTradingEngine:
 
         # Master AI - unified AI trading system with all advanced features
         self.master_ai: Optional[MasterAI] = None
-        if MASTER_AI_AVAILABLE and getattr(config, 'use_master_ai', True):
+        if MASTER_AI_AVAILABLE and getattr(config, "use_master_ai", True):
             try:
                 self.master_ai = get_master_ai(
-                    max_leverage=getattr(config, 'max_leverage', 20.0),
+                    max_leverage=getattr(config, "max_leverage", 20.0),
                     enable_rl=True,
                     enable_intelligence=True,
-                    enable_advanced=True
+                    enable_advanced=True,
                 )
                 logger.info("Master AI initialized - All AI systems active")
             except Exception as e:
@@ -373,6 +388,7 @@ class UnifiedTradingEngine:
             try:
                 # Get the ML predictor model for online learning
                 from bot.ml.predictor import get_predictor
+
                 ml_predictor = get_predictor()
                 if ml_predictor:
                     self.online_learning_manager = OnlineLearningManager(
@@ -380,9 +396,11 @@ class UnifiedTradingEngine:
                         buffer_size=2000,
                         update_frequency=50,  # Update model every 50 trades
                         min_samples_for_update=100,
-                        data_dir="data/online_learning"
+                        data_dir="data/online_learning",
                     )
-                    logger.info("Online Learning Manager initialized - models will adapt from trades")
+                    logger.info(
+                        "Online Learning Manager initialized - models will adapt from trades"
+                    )
             except Exception as e:
                 logger.warning(f"Could not initialize Online Learning Manager: {e}")
 
@@ -423,6 +441,7 @@ class UnifiedTradingEngine:
             if self.config.multi_asset:
                 # Use multi-broker routing for different asset classes
                 from bot.broker_router import create_multi_asset_adapter
+
                 self.execution_adapter = create_multi_asset_adapter(
                     mode=self._state.mode.value,
                     config=None,  # Will use env vars for OANDA, Alpaca
@@ -453,9 +472,7 @@ class UnifiedTradingEngine:
                         confidence_threshold=self.config.ml_confidence_threshold,
                     )
                     self._signal_generator = ml_generator.generate_signal
-                    logger.info(
-                        f"ML signal generator initialized: {self.config.ml_model_type}"
-                    )
+                    logger.info(f"ML signal generator initialized: {self.config.ml_model_type}")
                 except Exception as e:
                     logger.warning(f"Failed to initialize ML signals: {e}")
 
@@ -564,9 +581,7 @@ class UnifiedTradingEngine:
         if not is_downgrade and not force:
             # Validate transition
             mode_state = self.state_store.get_mode_state()
-            result = self.transition_validator.can_transition(
-                current_mode, new_mode, mode_state
-            )
+            result = self.transition_validator.can_transition(current_mode, new_mode, mode_state)
 
             if not result.allowed:
                 reasons = ", ".join(result.blocking_reasons)
@@ -637,6 +652,7 @@ class UnifiedTradingEngine:
                 break
             except Exception as e:
                 import traceback
+
                 logger.error(f"Error in trading loop: {e}\n{traceback.format_exc()}")
                 if self.safety_controller:
                     self.safety_controller.record_api_error()
@@ -695,12 +711,12 @@ class UnifiedTradingEngine:
             await self._process_symbol(symbol)
 
         # Update balance with unrealized P&L from all open positions
-        total_unrealized_pnl = sum(
-            pos.unrealized_pnl for pos in self._state.positions.values()
-        )
+        total_unrealized_pnl = sum(pos.unrealized_pnl for pos in self._state.positions.values())
         # Balance = initial capital + realized trades P&L + unrealized position P&L
-        marked_to_market_balance = self._state.initial_capital + self._state.total_pnl + total_unrealized_pnl
-        
+        marked_to_market_balance = (
+            self._state.initial_capital + self._state.total_pnl + total_unrealized_pnl
+        )
+
         # Only update if different (to avoid constant writes)
         if abs(marked_to_market_balance - self._state.current_balance) > 0.01:
             self._state.current_balance = marked_to_market_balance
@@ -766,7 +782,9 @@ class UnifiedTradingEngine:
 
         # Learning feedback gating (OptimalActionTracker + AI brain daily guard)
         if not self._should_take_signal(signal):
-            logger.info(f"Signal rejected by learning guard for {symbol}: {signal.get('reason', 'n/a')}")
+            logger.info(
+                f"Signal rejected by learning guard for {symbol}: {signal.get('reason', 'n/a')}"
+            )
             return
 
         # Process signal
@@ -818,9 +836,7 @@ class UnifiedTradingEngine:
         else:
             logger.debug(f"No action for signal: {action}")
 
-    async def _generate_signal(
-        self, symbol: str, current_price: float
-    ) -> Optional[Dict[str, Any]]:
+    async def _generate_signal(self, symbol: str, current_price: float) -> Optional[Dict[str, Any]]:
         """Generate trading signal using all AI systems."""
         base_signal = None
 
@@ -838,41 +854,48 @@ class UnifiedTradingEngine:
         if self.enhanced_processor and ENHANCED_PROCESSOR_AVAILABLE:
             try:
                 enhanced_result = await self.enhanced_processor.process_signal(
-                    symbol=symbol,
-                    base_signal=base_signal,
-                    current_price=current_price
+                    symbol=symbol, base_signal=base_signal, current_price=current_price
                 )
                 if enhanced_result:
                     # Update base_signal with enhancements
-                    if 'signal_meta' not in base_signal:
-                        base_signal['signal_meta'] = {}
+                    if "signal_meta" not in base_signal:
+                        base_signal["signal_meta"] = {}
 
-                    base_signal['signal_meta']['enhanced_processor'] = True
-                    base_signal['signal_meta']['mtf_alignment'] = enhanced_result.mtf_alignment
-                    base_signal['signal_meta']['mtf_trend'] = enhanced_result.mtf_primary_trend
-                    base_signal['signal_meta']['detected_regime'] = enhanced_result.detected_regime
-                    base_signal['signal_meta']['orderbook_imbalance'] = enhanced_result.orderbook_imbalance
-                    base_signal['signal_meta']['whale_activity'] = enhanced_result.whale_activity
-                    base_signal['signal_meta']['rl_action'] = enhanced_result.rl_action
-                    base_signal['signal_meta']['rl_confidence'] = enhanced_result.rl_confidence
-                    base_signal['signal_meta']['fear_greed'] = enhanced_result.fear_greed_index
-                    base_signal['signal_meta']['sentiment_composite'] = enhanced_result.sentiment_composite
-                    base_signal['signal_meta']['enhancements'] = enhanced_result.enhancements_applied
-
-                    # Apply position adjustments from enhanced processor
-                    base_signal['position_size_multiplier'] = enhanced_result.position_size_multiplier
-                    base_signal['stop_loss_adjustment'] = enhanced_result.stop_loss_adjustment
-                    base_signal['take_profit_adjustment'] = enhanced_result.take_profit_adjustment
-
-                    # Blend confidence with enhanced confidence
-                    base_signal['confidence'] = (
-                        base_signal.get('confidence', 0.5) * 0.6 +
-                        enhanced_result.confidence * 0.4
+                    base_signal["signal_meta"]["enhanced_processor"] = True
+                    base_signal["signal_meta"]["mtf_alignment"] = enhanced_result.mtf_alignment
+                    base_signal["signal_meta"]["mtf_trend"] = enhanced_result.mtf_primary_trend
+                    base_signal["signal_meta"]["detected_regime"] = enhanced_result.detected_regime
+                    base_signal["signal_meta"]["orderbook_imbalance"] = (
+                        enhanced_result.orderbook_imbalance
+                    )
+                    base_signal["signal_meta"]["whale_activity"] = enhanced_result.whale_activity
+                    base_signal["signal_meta"]["rl_action"] = enhanced_result.rl_action
+                    base_signal["signal_meta"]["rl_confidence"] = enhanced_result.rl_confidence
+                    base_signal["signal_meta"]["fear_greed"] = enhanced_result.fear_greed_index
+                    base_signal["signal_meta"]["sentiment_composite"] = (
+                        enhanced_result.sentiment_composite
+                    )
+                    base_signal["signal_meta"]["enhancements"] = (
+                        enhanced_result.enhancements_applied
                     )
 
-                    logger.info(f"[{symbol}] Enhanced: MTF={enhanced_result.mtf_alignment:.0%}, "
-                               f"Regime={enhanced_result.detected_regime}, "
-                               f"Orderbook={enhanced_result.orderbook_imbalance:+.2f}")
+                    # Apply position adjustments from enhanced processor
+                    base_signal["position_size_multiplier"] = (
+                        enhanced_result.position_size_multiplier
+                    )
+                    base_signal["stop_loss_adjustment"] = enhanced_result.stop_loss_adjustment
+                    base_signal["take_profit_adjustment"] = enhanced_result.take_profit_adjustment
+
+                    # Blend confidence with enhanced confidence
+                    base_signal["confidence"] = (
+                        base_signal.get("confidence", 0.5) * 0.6 + enhanced_result.confidence * 0.4
+                    )
+
+                    logger.info(
+                        f"[{symbol}] Enhanced: MTF={enhanced_result.mtf_alignment:.0%}, "
+                        f"Regime={enhanced_result.detected_regime}, "
+                        f"Orderbook={enhanced_result.orderbook_imbalance:+.2f}"
+                    )
             except Exception as e:
                 logger.warning(f"Enhanced signal processing failed for {symbol}: {e}")
 
@@ -880,35 +903,43 @@ class UnifiedTradingEngine:
         if self.master_ai and MASTER_AI_AVAILABLE:
             try:
                 # Build market data from signal metadata
-                signal_meta = base_signal.get('signal_meta', {})
+                signal_meta = base_signal.get("signal_meta", {})
                 market_data = {
-                    'price': current_price,
-                    'rsi': signal_meta.get('rsi', 50),
-                    'trend': signal_meta.get('trend', 'neutral'),
-                    'volatility': signal_meta.get('volatility_score', 0.02) if isinstance(signal_meta.get('volatility_score'), float) else 0.02,
-                    'regime': signal_meta.get('regime', 'unknown'),
-                    'volume_ratio': 1.0,
-                    'high_24h': current_price * 1.02,
-                    'low_24h': current_price * 0.98,
-                    'change_24h': 0,
+                    "price": current_price,
+                    "rsi": signal_meta.get("rsi", 50),
+                    "trend": signal_meta.get("trend", "neutral"),
+                    "volatility": signal_meta.get("volatility_score", 0.02)
+                    if isinstance(signal_meta.get("volatility_score"), float)
+                    else 0.02,
+                    "regime": signal_meta.get("regime", "unknown"),
+                    "volume_ratio": 1.0,
+                    "high_24h": current_price * 1.02,
+                    "low_24h": current_price * 0.98,
+                    "change_24h": 0,
                 }
 
                 # Get existing positions
                 existing_positions = []
                 if self._state and self._state.positions:
                     for sym, pos in self._state.positions.items():
-                        existing_positions.append({
-                            'symbol': sym,
-                            'side': pos.side,
-                            'entry_price': pos.entry_price,
-                            'unrealized_pnl': pos.unrealized_pnl
-                        })
+                        existing_positions.append(
+                            {
+                                "symbol": sym,
+                                "side": pos.side,
+                                "entry_price": pos.entry_price,
+                                "unrealized_pnl": pos.unrealized_pnl,
+                            }
+                        )
 
                 # Get account info
-                account_balance = self._state.current_balance if self._state else self.config.initial_capital
-                current_exposure = sum(
-                    p.quantity * p.entry_price for p in self._state.positions.values()
-                ) if self._state and self._state.positions else 0
+                account_balance = (
+                    self._state.current_balance if self._state else self.config.initial_capital
+                )
+                current_exposure = (
+                    sum(p.quantity * p.entry_price for p in self._state.positions.values())
+                    if self._state and self._state.positions
+                    else 0
+                )
 
                 # Get Master AI decision
                 master_decision = await self.master_ai.get_trade_decision(
@@ -918,46 +949,50 @@ class UnifiedTradingEngine:
                     market_data=market_data,
                     account_balance=account_balance,
                     current_exposure=current_exposure,
-                    existing_positions=existing_positions
+                    existing_positions=existing_positions,
                 )
 
                 # Enhance base signal with Master AI decision
-                base_signal['action'] = master_decision.action
-                base_signal['confidence'] = master_decision.confidence
-                base_signal['master_ai'] = {
-                    'leverage': master_decision.leverage,
-                    'position_size_pct': master_decision.position_size_pct,
-                    'stop_loss': master_decision.stop_loss,
-                    'stop_loss_pct': master_decision.stop_loss_pct,
-                    'take_profit_1': master_decision.take_profit_1,
-                    'take_profit_2': master_decision.take_profit_2,
-                    'take_profit_3': master_decision.take_profit_3,
-                    'trailing_stop_enabled': master_decision.trailing_stop_enabled,
-                    'dca_enabled': master_decision.dca_enabled,
-                    'short_score': master_decision.short_score,
-                    'squeeze_risk': master_decision.squeeze_risk,
-                    'reasoning': master_decision.reasoning,
-                    'warnings': master_decision.warnings,
-                    'catalysts': master_decision.catalysts
+                base_signal["action"] = master_decision.action
+                base_signal["confidence"] = master_decision.confidence
+                base_signal["master_ai"] = {
+                    "leverage": master_decision.leverage,
+                    "position_size_pct": master_decision.position_size_pct,
+                    "stop_loss": master_decision.stop_loss,
+                    "stop_loss_pct": master_decision.stop_loss_pct,
+                    "take_profit_1": master_decision.take_profit_1,
+                    "take_profit_2": master_decision.take_profit_2,
+                    "take_profit_3": master_decision.take_profit_3,
+                    "trailing_stop_enabled": master_decision.trailing_stop_enabled,
+                    "dca_enabled": master_decision.dca_enabled,
+                    "short_score": master_decision.short_score,
+                    "squeeze_risk": master_decision.squeeze_risk,
+                    "reasoning": master_decision.reasoning,
+                    "warnings": master_decision.warnings,
+                    "catalysts": master_decision.catalysts,
                 }
 
                 # Update signal_meta with Master AI insights
-                if 'signal_meta' not in base_signal:
-                    base_signal['signal_meta'] = {}
-                base_signal['signal_meta']['master_ai_active'] = True
-                base_signal['signal_meta']['ml_action'] = master_decision.ml_action
-                base_signal['signal_meta']['rl_action'] = master_decision.rl_action
-                base_signal['signal_meta']['sentiment_score'] = master_decision.sentiment_score
-                base_signal['signal_meta']['fear_greed'] = master_decision.fear_greed
+                if "signal_meta" not in base_signal:
+                    base_signal["signal_meta"] = {}
+                base_signal["signal_meta"]["master_ai_active"] = True
+                base_signal["signal_meta"]["ml_action"] = master_decision.ml_action
+                base_signal["signal_meta"]["rl_action"] = master_decision.rl_action
+                base_signal["signal_meta"]["sentiment_score"] = master_decision.sentiment_score
+                base_signal["signal_meta"]["fear_greed"] = master_decision.fear_greed
 
-                logger.info(f"[{symbol}] Master AI enhanced signal: {master_decision.action} @ {master_decision.confidence:.0%} "
-                           f"(ML: {master_decision.ml_action}, RL: {master_decision.rl_action})")
+                logger.info(
+                    f"[{symbol}] Master AI enhanced signal: {master_decision.action} @ {master_decision.confidence:.0%} "
+                    f"(ML: {master_decision.ml_action}, RL: {master_decision.rl_action})"
+                )
 
             except Exception as e:
                 logger.warning(f"Master AI enhancement failed for {symbol}: {e}")
 
         if base_signal:
-            logger.info(f"Signal generated for {symbol}: {base_signal.get('action')} @ {base_signal.get('confidence', 0):.0%}")
+            logger.info(
+                f"Signal generated for {symbol}: {base_signal.get('action')} @ {base_signal.get('confidence', 0):.0%}"
+            )
 
         return base_signal
 
@@ -966,7 +1001,10 @@ class UnifiedTradingEngine:
         confidence = float(signal.get("confidence", 0.0) or 0.0)
 
         # In paper mode, relax guards to accumulate trades for learning
-        is_paper_mode = self._state and self._state.mode in (TradingMode.PAPER_SYNTHETIC, TradingMode.PAPER_LIVE_DATA)
+        is_paper_mode = self._state and self._state.mode in (
+            TradingMode.PAPER_SYNTHETIC,
+            TradingMode.PAPER_LIVE_DATA,
+        )
 
         # AI brain daily guard (relaxed in paper mode)
         if self.ai_brain and AI_BRAIN_AVAILABLE and not is_paper_mode:
@@ -1107,7 +1145,9 @@ class UnifiedTradingEngine:
             last_trade_time=self._last_trade_time,
         )
 
-    def _sync_regime_risk_engine(self, symbol: Optional[str], signal: Optional[Dict[str, Any]] = None) -> None:
+    def _sync_regime_risk_engine(
+        self, symbol: Optional[str], signal: Optional[Dict[str, Any]] = None
+    ) -> None:
         """Sync portfolio/regime state to risk engine."""
         if not self.regime_risk_engine:
             return
@@ -1144,12 +1184,16 @@ class UnifiedTradingEngine:
         if self.regime_risk_engine:
             try:
                 self._sync_regime_risk_engine(symbol, signal)
-                stop_loss_price = price * (
-                    1 - self.config.stop_loss_pct
-                ) if side == "long" else price * (1 + self.config.stop_loss_pct)
-                take_profit_price = price * (
-                    1 + self.config.take_profit_pct
-                ) if side == "long" else price * (1 - self.config.take_profit_pct)
+                stop_loss_price = (
+                    price * (1 - self.config.stop_loss_pct)
+                    if side == "long"
+                    else price * (1 + self.config.stop_loss_pct)
+                )
+                take_profit_price = (
+                    price * (1 + self.config.take_profit_pct)
+                    if side == "long"
+                    else price * (1 - self.config.take_profit_pct)
+                )
 
                 trade_request = TradeRequest(
                     symbol=symbol,
@@ -1203,7 +1247,9 @@ class UnifiedTradingEngine:
             return
 
         if result.average_price is None or result.filled_quantity is None:
-            logger.error(f"Order incomplete: price={result.average_price}, qty={result.filled_quantity}")
+            logger.error(
+                f"Order incomplete: price={result.average_price}, qty={result.filled_quantity}"
+            )
             return
 
         # Use regime strategy overrides for stops
@@ -1309,7 +1355,9 @@ class UnifiedTradingEngine:
                 portfolio_context = {
                     "position_value": position_value,
                     "portfolio_value": portfolio_value,
-                    "position_pct": (position_value / portfolio_value * 100) if portfolio_value > 0 else 0,
+                    "position_pct": (position_value / portfolio_value * 100)
+                    if portfolio_value > 0
+                    else 0,
                 }
 
                 # Store regime for learning later
@@ -1324,7 +1372,7 @@ class UnifiedTradingEngine:
                         quantity=result.filled_quantity,
                         signal=signal,
                         portfolio_context=portfolio_context,
-                    )
+                    ),
                 )
                 logger.info(f"Intelligent Brain: Entry explained for {symbol}")
             except Exception as e:
@@ -1371,7 +1419,7 @@ class UnifiedTradingEngine:
 
         pnl -= result.commission or 0
         pnl_pct = pnl / (position.quantity * position.entry_price) * 100
-        
+
         logger.info(f"Position closed for {symbol}: P&L=${pnl:.2f} ({pnl_pct:.2f}%)")
 
         # Record trade
@@ -1480,6 +1528,7 @@ class UnifiedTradingEngine:
 
                 if features is None:
                     import numpy as np
+
                     features = np.zeros(30)  # Fallback empty features
 
                 # Determine action type
@@ -1496,7 +1545,7 @@ class UnifiedTradingEngine:
                     exit_price=result.average_price,
                     hold_time_minutes=int(holding_hours * 60),
                     confidence=getattr(position, "signal_confidence", 0.5) or 0.5,
-                    regime=signal_meta.get("regime", "unknown")
+                    regime=signal_meta.get("regime", "unknown"),
                 )
 
                 if model_updated:
@@ -1517,6 +1566,7 @@ class UnifiedTradingEngine:
         if symbol in self._prediction_ids:
             try:
                 from bot.ml_performance_tracker import track_outcome
+
                 track_outcome(self._prediction_ids[symbol], pnl_pct)
                 del self._prediction_ids[symbol]
             except Exception as e:
@@ -1541,7 +1591,7 @@ class UnifiedTradingEngine:
                         pnl_pct=pnl_pct,
                         exit_reason=reason,
                         hold_duration_minutes=hold_duration_minutes,
-                    )
+                    ),
                 )
 
                 # Learn from the trade outcome
@@ -1554,13 +1604,12 @@ class UnifiedTradingEngine:
                     pnl=pnl,
                     pnl_pct=pnl_pct,
                     hold_duration_minutes=hold_duration_minutes,
-                    regime=getattr(self, '_last_regime', 'unknown'),
-                    confidence_at_entry=getattr(position, 'signal_confidence', 0.5),
+                    regime=getattr(self, "_last_regime", "unknown"),
+                    confidence_at_entry=getattr(position, "signal_confidence", 0.5),
                 )
 
                 learning_result = await asyncio.get_event_loop().run_in_executor(
-                    None,
-                    lambda: self.intelligent_brain.learn_from_trade(trade_outcome)
+                    None, lambda: self.intelligent_brain.learn_from_trade(trade_outcome)
                 )
 
                 logger.info(
@@ -1642,7 +1691,7 @@ class UnifiedTradingEngine:
         level_drawdown = dca_info["level_drawdown"]
 
         logger.info(
-            f"DCA opportunity: {symbol} at {dca_info['drawdown_pct']*100:.1f}% drawdown, "
+            f"DCA opportunity: {symbol} at {dca_info['drawdown_pct'] * 100:.1f}% drawdown, "
             f"adding {dca_quantity:.6f} @ ${current_price:.2f}"
         )
 
@@ -1653,7 +1702,7 @@ class UnifiedTradingEngine:
             order_type=OrderType.MARKET,
             quantity=dca_quantity,
             price=current_price,
-            signal_reason=f"DCA at {level_drawdown*100:.0f}% drawdown",
+            signal_reason=f"DCA at {level_drawdown * 100:.0f}% drawdown",
         )
 
         # Execute order
@@ -1773,7 +1822,7 @@ class UnifiedTradingEngine:
             trend = "neutral"
 
             # Try to get market data from signal generator if available
-            if hasattr(self, '_signal_generator') and self._signal_generator:
+            if hasattr(self, "_signal_generator") and self._signal_generator:
                 # Use first symbol as market indicator
                 symbol = self.config.symbols[0] if self.config.symbols else "BTC/USDT"
                 try:
@@ -1879,7 +1928,9 @@ class UnifiedTradingEngine:
 
                 # Map volatility
                 vol_str = signal.get("volatility", "normal")
-                vol_percentile = {"low": 25, "normal": 50, "high": 75, "extreme": 95}.get(vol_str, 50)
+                vol_percentile = {"low": 25, "normal": 50, "high": 75, "extreme": 95}.get(
+                    vol_str, 50
+                )
 
                 # Create snapshot for later outcome recording
                 snapshot = MarketSnapshot(
@@ -1890,7 +1941,7 @@ class UnifiedTradingEngine:
                     rsi=signal.get("rsi", 50.0),
                     volatility_percentile=vol_percentile,
                     condition=condition,
-                    confidence=signal.get("confidence", 0.5)
+                    confidence=signal.get("confidence", 0.5),
                 )
 
                 self._trade_snapshots[symbol] = snapshot
@@ -1900,8 +1951,13 @@ class UnifiedTradingEngine:
                 logger.warning(f"Failed to create AI brain snapshot: {e}")
 
     async def _record_action_outcome(
-        self, symbol: str, entry_price: float, exit_price: float,
-        pnl: float, pnl_pct: float, holding_hours: float
+        self,
+        symbol: str,
+        entry_price: float,
+        exit_price: float,
+        pnl: float,
+        pnl_pct: float,
+        holding_hours: float,
     ) -> None:
         """Record action outcome for learning."""
         # Record to optimal action tracker
@@ -1941,7 +1997,7 @@ class UnifiedTradingEngine:
                         exit_price=exit_price,
                         position_size=position.quantity if position else 1.0,
                         price_history=[],  # We don't track price history currently
-                        holding_hours=holding_hours
+                        holding_hours=holding_hours,
                     )
 
                     # Update daily tracker
@@ -1968,13 +2024,18 @@ class UnifiedTradingEngine:
             # Send Telegram alert
             try:
                 from bot.trade_alerts import create_trade_alert_manager
+
                 alerts = create_trade_alert_manager()
                 if alerts.is_configured():
-                    daily_pnl = self._state.daily_pnl / self._state.initial_capital * 100 if self._state.initial_capital > 0 else 0
+                    daily_pnl = (
+                        self._state.daily_pnl / self._state.initial_capital * 100
+                        if self._state.initial_capital > 0
+                        else 0
+                    )
                     alerts.send_auto_pause_alert(
                         reason=reason,
                         current_pnl=daily_pnl,
-                        recommendation="Review your trades and wait for next trading day."
+                        recommendation="Review your trades and wait for next trading day.",
                     )
             except Exception as e:
                 logger.warning(f"Could not send auto-pause alert: {e}")
@@ -1991,9 +2052,7 @@ class UnifiedTradingEngine:
         if not self._state:
             return {"error": "Engine not initialized"}
 
-        safety_status = (
-            self.safety_controller.get_status() if self.safety_controller else {}
-        )
+        safety_status = self.safety_controller.get_status() if self.safety_controller else {}
 
         # AI Brain status
         ai_brain_status = None
@@ -2006,7 +2065,8 @@ class UnifiedTradingEngine:
                     "target_achieved": daily_target.get("target_achieved", False),
                     "can_trade": daily_target.get("can_still_trade", True),
                     "recommendation": daily_target.get("recommendation", ""),
-                    "patterns_learned": len(self.ai_brain.pattern_learner.profitable_patterns) + len(self.ai_brain.pattern_learner.losing_patterns),
+                    "patterns_learned": len(self.ai_brain.pattern_learner.profitable_patterns)
+                    + len(self.ai_brain.pattern_learner.losing_patterns),
                 }
             except Exception:
                 ai_brain_status = {"error": "Could not get AI Brain status"}

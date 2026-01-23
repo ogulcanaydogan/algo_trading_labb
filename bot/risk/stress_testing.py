@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 class ScenarioType(Enum):
     """Types of stress scenarios."""
+
     HISTORICAL = "historical"
     HYPOTHETICAL = "hypothetical"
     SENSITIVITY = "sensitivity"
@@ -32,6 +33,7 @@ class ScenarioType(Enum):
 
 class RiskFactor(Enum):
     """Risk factors for stress testing."""
+
     EQUITY = "equity"
     RATES = "rates"
     CREDIT = "credit"
@@ -45,6 +47,7 @@ class RiskFactor(Enum):
 @dataclass
 class StressScenario:
     """Definition of a stress scenario."""
+
     name: str
     description: str
     scenario_type: ScenarioType
@@ -69,6 +72,7 @@ class StressScenario:
 @dataclass
 class StressResult:
     """Result of a stress test."""
+
     scenario_name: str
     portfolio_pnl: float
     portfolio_pnl_pct: float
@@ -104,6 +108,7 @@ class StressResult:
 @dataclass
 class StressTestReport:
     """Complete stress test report."""
+
     portfolio_value: float
     test_date: datetime
     scenarios_tested: int
@@ -127,6 +132,7 @@ class StressTestReport:
 @dataclass
 class Position:
     """Portfolio position for stress testing."""
+
     symbol: str
     quantity: float
     current_price: float
@@ -162,7 +168,6 @@ class HistoricalScenarios:
                 duration_days=90,
                 probability=0.01,
             ),
-
             # COVID-19 Crash (March 2020)
             StressScenario(
                 name="covid_crash_2020",
@@ -178,7 +183,6 @@ class HistoricalScenarios:
                 duration_days=30,
                 probability=0.02,
             ),
-
             # Flash Crash (2010)
             StressScenario(
                 name="flash_crash_2010",
@@ -193,7 +197,6 @@ class HistoricalScenarios:
                 duration_days=1,
                 probability=0.05,
             ),
-
             # Dot-com Bubble (2000-2002)
             StressScenario(
                 name="dotcom_crash",
@@ -206,7 +209,6 @@ class HistoricalScenarios:
                 duration_days=365,
                 probability=0.01,
             ),
-
             # 2022 Crypto Winter
             StressScenario(
                 name="crypto_winter_2022",
@@ -221,7 +223,6 @@ class HistoricalScenarios:
                 duration_days=180,
                 probability=0.03,
             ),
-
             # Black Monday (1987)
             StressScenario(
                 name="black_monday_1987",
@@ -256,7 +257,6 @@ class HypotheticalScenarios:
                 duration_days=5,
                 probability=0.02,
             ),
-
             # Liquidity Crisis
             StressScenario(
                 name="liquidity_crisis",
@@ -270,7 +270,6 @@ class HypotheticalScenarios:
                 duration_days=7,
                 probability=0.02,
             ),
-
             # Stagflation
             StressScenario(
                 name="stagflation",
@@ -284,7 +283,6 @@ class HypotheticalScenarios:
                 duration_days=180,
                 probability=0.03,
             ),
-
             # Geopolitical Crisis
             StressScenario(
                 name="geopolitical_crisis",
@@ -299,7 +297,6 @@ class HypotheticalScenarios:
                 duration_days=30,
                 probability=0.05,
             ),
-
             # Exchange Failure
             StressScenario(
                 name="exchange_failure",
@@ -313,7 +310,6 @@ class HypotheticalScenarios:
                 duration_days=3,
                 probability=0.01,
             ),
-
             # Rate Shock
             StressScenario(
                 name="rate_shock",
@@ -342,10 +338,7 @@ class StressTestEngine:
     - Liquidity stress testing
     """
 
-    def __init__(
-        self,
-        risk_limits: Optional[Dict[str, float]] = None
-    ):
+    def __init__(self, risk_limits: Optional[Dict[str, float]] = None):
         self._scenarios: Dict[str, StressScenario] = {}
         self._positions: List[Position] = []
         self._portfolio_value: float = 0.0
@@ -375,9 +368,7 @@ class StressTestEngine:
         self._scenarios[scenario.name] = scenario
 
     def set_portfolio(
-        self,
-        positions: List[Position],
-        correlation_matrix: Optional[np.ndarray] = None
+        self, positions: List[Position], correlation_matrix: Optional[np.ndarray] = None
     ):
         """Set portfolio for stress testing."""
         self._positions = positions
@@ -385,9 +376,7 @@ class StressTestEngine:
         self._correlation_matrix = correlation_matrix
 
     def run_scenario(
-        self,
-        scenario_name: str,
-        custom_shocks: Optional[Dict[str, float]] = None
+        self, scenario_name: str, custom_shocks: Optional[Dict[str, float]] = None
     ) -> StressResult:
         """
         Run a single stress scenario.
@@ -417,11 +406,7 @@ class StressTestEngine:
         portfolio_pnl_pct = total_pnl / self._portfolio_value if self._portfolio_value > 0 else 0
 
         # Check limit breaches
-        breach_limits = self._check_limit_breaches(
-            portfolio_pnl_pct,
-            position_impacts,
-            scenario
-        )
+        breach_limits = self._check_limit_breaches(portfolio_pnl_pct, position_impacts, scenario)
 
         # Calculate additional metrics
         var_impact = self._calculate_var_impact(shocks)
@@ -442,10 +427,7 @@ class StressTestEngine:
         )
 
     def _calculate_position_impact(
-        self,
-        position: Position,
-        shocks: Dict[str, float],
-        scenario: StressScenario
+        self, position: Position, shocks: Dict[str, float], scenario: StressScenario
     ) -> float:
         """Calculate impact on a single position."""
         base_impact = 0.0
@@ -478,16 +460,15 @@ class StressTestEngine:
         return base_impact
 
     def _check_limit_breaches(
-        self,
-        portfolio_pnl_pct: float,
-        position_impacts: Dict[str, float],
-        scenario: StressScenario
+        self, portfolio_pnl_pct: float, position_impacts: Dict[str, float], scenario: StressScenario
     ) -> List[str]:
         """Check which risk limits are breached."""
         breaches = []
 
         if abs(portfolio_pnl_pct) > self.risk_limits["max_drawdown"]:
-            breaches.append(f"max_drawdown: {portfolio_pnl_pct:.1%} > {self.risk_limits['max_drawdown']:.1%}")
+            breaches.append(
+                f"max_drawdown: {portfolio_pnl_pct:.1%} > {self.risk_limits['max_drawdown']:.1%}"
+            )
 
         for symbol, impact in position_impacts.items():
             position = next((p for p in self._positions if p.symbol == symbol), None)
@@ -497,7 +478,9 @@ class StressTestEngine:
                     breaches.append(f"position_loss_{symbol}: {position_pct:.1%}")
 
         if scenario.liquidity_multiplier < self.risk_limits["min_liquidity_ratio"]:
-            breaches.append(f"liquidity: {scenario.liquidity_multiplier:.1%} < {self.risk_limits['min_liquidity_ratio']:.1%}")
+            breaches.append(
+                f"liquidity: {scenario.liquidity_multiplier:.1%} < {self.risk_limits['min_liquidity_ratio']:.1%}"
+            )
 
         return breaches
 
@@ -516,11 +499,7 @@ class StressTestEngine:
         # Higher volatility typically increases margin requirements
         return (vol_multiplier - 1) * 0.2
 
-    def _estimate_recovery(
-        self,
-        pnl_pct: float,
-        scenario: StressScenario
-    ) -> int:
+    def _estimate_recovery(self, pnl_pct: float, scenario: StressScenario) -> int:
         """Estimate days to recover from drawdown."""
         if pnl_pct >= 0:
             return 0
@@ -548,7 +527,7 @@ class StressTestEngine:
 
         # Calculate expected shortfall
         sorted_pnls = sorted([r.portfolio_pnl_pct for r in results])
-        tail_pnls = sorted_pnls[:max(1, len(sorted_pnls) // 10)]
+        tail_pnls = sorted_pnls[: max(1, len(sorted_pnls) // 10)]
         expected_shortfall = np.mean(tail_pnls) if tail_pnls else 0
 
         # Generate recommendations
@@ -565,9 +544,7 @@ class StressTestEngine:
         )
 
     def _generate_recommendations(
-        self,
-        results: List[StressResult],
-        worst_case: Optional[StressResult]
+        self, results: List[StressResult], worst_case: Optional[StressResult]
     ) -> List[str]:
         """Generate risk recommendations based on results."""
         recommendations = []
@@ -586,14 +563,20 @@ class StressTestEngine:
         # Check concentration
         if self._positions:
             max_position = max(self._positions, key=lambda p: p.market_value)
-            concentration = max_position.market_value / self._portfolio_value if self._portfolio_value > 0 else 0
+            concentration = (
+                max_position.market_value / self._portfolio_value
+                if self._portfolio_value > 0
+                else 0
+            )
             if concentration > 0.3:
                 recommendations.append(
                     f"High concentration in {max_position.symbol} ({concentration:.1%})"
                 )
 
         # Check liquidity
-        avg_liquidity = np.mean([p.liquidity_score for p in self._positions]) if self._positions else 1
+        avg_liquidity = (
+            np.mean([p.liquidity_score for p in self._positions]) if self._positions else 1
+        )
         if avg_liquidity < 0.5:
             recommendations.append(
                 "Portfolio has low average liquidity - may face execution challenges in stress"
@@ -605,10 +588,7 @@ class StressTestEngine:
         return recommendations
 
     def sensitivity_analysis(
-        self,
-        factor: str,
-        shock_range: Tuple[float, float] = (-0.30, 0.30),
-        steps: int = 10
+        self, factor: str, shock_range: Tuple[float, float] = (-0.30, 0.30), steps: int = 10
     ) -> pd.DataFrame:
         """
         Run sensitivity analysis for a single factor.
@@ -634,18 +614,21 @@ class StressTestEngine:
             self._scenarios[scenario.name] = scenario
 
             result = self.run_scenario(scenario.name)
-            results.append({
-                "shock": shock,
-                "portfolio_pnl": result.portfolio_pnl,
-                "portfolio_pnl_pct": result.portfolio_pnl_pct,
-            })
+            results.append(
+                {
+                    "shock": shock,
+                    "portfolio_pnl": result.portfolio_pnl,
+                    "portfolio_pnl_pct": result.portfolio_pnl_pct,
+                }
+            )
 
         return pd.DataFrame(results)
 
     def monte_carlo_stress(
         self,
         num_simulations: int = 1000,
-        confidence_level: float = 0.99
+        confidence_level: float = 0.99,
+        random_seed: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         Run Monte Carlo stress simulation.
@@ -653,6 +636,7 @@ class StressTestEngine:
         Args:
             num_simulations: Number of simulations
             confidence_level: Confidence level for VaR
+            random_seed: Optional seed for reproducibility (None for true randomness)
 
         Returns:
             Monte Carlo results including VaR and ES
@@ -660,8 +644,9 @@ class StressTestEngine:
         if not self._positions:
             return {"error": "No positions set"}
 
-        # Generate random shocks
-        np.random.seed(42)
+        # Set seed only if provided (for reproducibility in testing)
+        if random_seed is not None:
+            np.random.seed(random_seed)
         portfolio_returns = []
 
         for _ in range(num_simulations):
@@ -678,7 +663,9 @@ class StressTestEngine:
                 vol_impact = position.market_value * 0.01 * (shocks["volatility"] - 1)
                 total_pnl += equity_impact - abs(vol_impact)
 
-            portfolio_returns.append(total_pnl / self._portfolio_value if self._portfolio_value > 0 else 0)
+            portfolio_returns.append(
+                total_pnl / self._portfolio_value if self._portfolio_value > 0 else 0
+            )
 
         portfolio_returns = np.array(portfolio_returns)
 
@@ -711,8 +698,6 @@ class StressTestEngine:
         return list(self._scenarios.keys())
 
 
-def create_stress_test_engine(
-    risk_limits: Optional[Dict[str, float]] = None
-) -> StressTestEngine:
+def create_stress_test_engine(risk_limits: Optional[Dict[str, float]] = None) -> StressTestEngine:
     """Factory function to create stress test engine."""
     return StressTestEngine(risk_limits=risk_limits)

@@ -426,7 +426,7 @@ class TestMacroSentimentEngine:
 
     def test_load_events_from_json(self):
         """Test loading events from JSON file."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             data = [
                 {"title": "Event 1", "sentiment": "bullish"},
                 {"title": "Event 2", "sentiment": "bearish"},
@@ -452,7 +452,7 @@ class TestMacroSentimentEngine:
 
     def test_load_events_invalid_json(self):
         """Test loading invalid JSON returns empty list."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             f.write("not valid json")
             temp_path = Path(f.name)
 
@@ -471,7 +471,7 @@ class TestMacroSentimentEngine:
 
     def test_refresh_if_needed_with_path(self):
         """Test refresh with events path."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             data = [{"title": "New Event", "sentiment": "bullish"}]
             json.dump(data, f)
             temp_path = Path(f.name)
@@ -609,7 +609,7 @@ class TestEdgeCases:
 
     def test_invalid_event_in_json_skipped(self):
         """Test invalid events in JSON are skipped."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             data = [
                 {"title": "Valid Event"},
                 {"invalid": "structure"},  # Missing required field
@@ -629,8 +629,7 @@ class TestEdgeCases:
     def test_drivers_limited_to_top_4(self):
         """Test drivers are limited to top 4."""
         events = [
-            MacroEvent(title=f"Event {i}", sentiment="bullish", impact="high")
-            for i in range(10)
+            MacroEvent(title=f"Event {i}", sentiment="bullish", impact="high") for i in range(10)
         ]
         engine = MacroSentimentEngine(baseline_events=events)
 
@@ -641,8 +640,7 @@ class TestEdgeCases:
     def test_events_limited_to_top_6(self):
         """Test events in response are limited to 6."""
         events = [
-            MacroEvent(title=f"Event {i}", sentiment="bullish", impact="high")
-            for i in range(10)
+            MacroEvent(title=f"Event {i}", sentiment="bullish", impact="high") for i in range(10)
         ]
         engine = MacroSentimentEngine(baseline_events=events)
 
@@ -656,8 +654,7 @@ class TestEdgeCases:
             MacroEvent(title="Event 1", sentiment="bullish"),
         ]
         events_many = [
-            MacroEvent(title=f"Event {i}", sentiment="bullish", impact="high")
-            for i in range(5)
+            MacroEvent(title=f"Event {i}", sentiment="bullish", impact="high") for i in range(5)
         ]
 
         engine_few = MacroSentimentEngine(baseline_events=events_few)

@@ -119,9 +119,7 @@ class EnhancedExecutionAdapter:
             self.circuit_breaker = None
 
         # Position sizer
-        self.position_sizer = create_dynamic_position_sizer(
-            circuit_breaker=self.circuit_breaker
-        )
+        self.position_sizer = create_dynamic_position_sizer(circuit_breaker=self.circuit_breaker)
 
         # Stress test engine
         if self.config.enable_stress_testing:
@@ -361,7 +359,9 @@ class EnhancedExecutionAdapter:
             return OrderResult(
                 success=execution.filled_quantity > 0,
                 order_id=execution.order_id,
-                status=OrderStatus.FILLED if execution.fill_rate >= 0.99 else OrderStatus.PARTIALLY_FILLED,
+                status=OrderStatus.FILLED
+                if execution.fill_rate >= 0.99
+                else OrderStatus.PARTIALLY_FILLED,
                 filled_quantity=execution.filled_quantity,
                 average_price=execution.average_price,
                 commission=0,
@@ -405,9 +405,7 @@ class EnhancedExecutionAdapter:
                 "portfolio_value": self._portfolio_value,
                 "current_regime": self._current_regime.value if self._current_regime else None,
                 "circuit_breaker": (
-                    self.circuit_breaker.get_status().to_dict()
-                    if self.circuit_breaker
-                    else None
+                    self.circuit_breaker.get_status().to_dict() if self.circuit_breaker else None
                 ),
                 "risk_level": self.position_sizer.get_portfolio_risk_level().value,
             },

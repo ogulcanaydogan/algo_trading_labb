@@ -23,11 +23,12 @@ from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
 
 logger = logging.getLogger(__name__)
 
-F = TypeVar('F', bound=Callable[..., Any])
+F = TypeVar("F", bound=Callable[..., Any])
 
 
 class SpanKind(Enum):
     """Type of span."""
+
     INTERNAL = "internal"
     CLIENT = "client"
     SERVER = "server"
@@ -37,6 +38,7 @@ class SpanKind(Enum):
 
 class SpanStatus(Enum):
     """Span completion status."""
+
     UNSET = "unset"
     OK = "ok"
     ERROR = "error"
@@ -45,6 +47,7 @@ class SpanStatus(Enum):
 @dataclass
 class SpanContext:
     """Context for trace propagation."""
+
     trace_id: str
     span_id: str
     parent_span_id: Optional[str] = None
@@ -96,6 +99,7 @@ class SpanContext:
 @dataclass
 class SpanEvent:
     """Event within a span."""
+
     name: str
     timestamp: datetime
     attributes: Dict[str, Any] = field(default_factory=dict)
@@ -111,6 +115,7 @@ class SpanEvent:
 @dataclass
 class Span:
     """A single span in a trace."""
+
     name: str
     context: SpanContext
     kind: SpanKind = SpanKind.INTERNAL
@@ -140,11 +145,13 @@ class Span:
 
     def add_event(self, name: str, attributes: Optional[Dict] = None):
         """Add an event to the span."""
-        self.events.append(SpanEvent(
-            name=name,
-            timestamp=datetime.now(),
-            attributes=attributes or {},
-        ))
+        self.events.append(
+            SpanEvent(
+                name=name,
+                timestamp=datetime.now(),
+                attributes=attributes or {},
+            )
+        )
 
     def set_status(self, status: SpanStatus, message: Optional[str] = None):
         """Set span status."""
@@ -217,13 +224,10 @@ class InMemorySpanProcessor(SpanProcessor):
         with self._lock:
             self._spans.append(span)
             if len(self._spans) > self.max_spans:
-                self._spans = self._spans[-self.max_spans:]
+                self._spans = self._spans[-self.max_spans :]
 
     def get_spans(
-        self,
-        trace_id: Optional[str] = None,
-        name: Optional[str] = None,
-        min_duration_ms: float = 0
+        self, trace_id: Optional[str] = None, name: Optional[str] = None, min_duration_ms: float = 0
     ) -> List[Span]:
         """Query stored spans."""
         with self._lock:
@@ -280,11 +284,7 @@ class Tracer:
             # ... do work
     """
 
-    def __init__(
-        self,
-        service_name: str,
-        processors: Optional[List[SpanProcessor]] = None
-    ):
+    def __init__(self, service_name: str, processors: Optional[List[SpanProcessor]] = None):
         self.service_name = service_name
         self._processors = processors or []
         self._sampling_rate = 1.0
@@ -299,7 +299,7 @@ class Tracer:
 
     def get_current_span(self) -> Optional[Span]:
         """Get the current active span."""
-        return getattr(_current_span, 'span', None)
+        return getattr(_current_span, "span", None)
 
     @contextmanager
     def start_span(
@@ -307,7 +307,7 @@ class Tracer:
         name: str,
         kind: SpanKind = SpanKind.INTERNAL,
         parent: Optional[Union[Span, SpanContext]] = None,
-        attributes: Optional[Dict[str, Any]] = None
+        attributes: Optional[Dict[str, Any]] = None,
     ):
         """
         Start a new span as a context manager.
@@ -337,6 +337,7 @@ class Tracer:
             context.sampled = parent_context.sampled
         else:
             import random
+
             context.sampled = random.random() < self._sampling_rate
 
         # Create span
@@ -372,10 +373,7 @@ class Tracer:
                     processor.on_end(span)
 
     def start_span_from_context(
-        self,
-        name: str,
-        context: SpanContext,
-        kind: SpanKind = SpanKind.SERVER
+        self, name: str, context: SpanContext, kind: SpanKind = SpanKind.SERVER
     ):
         """Start a span from an incoming context (e.g., from HTTP header)."""
         return self.start_span(name, kind=kind, parent=context)
@@ -385,7 +383,7 @@ def trace(
     tracer: Tracer,
     name: Optional[str] = None,
     kind: SpanKind = SpanKind.INTERNAL,
-    attributes: Optional[Dict[str, Any]] = None
+    attributes: Optional[Dict[str, Any]] = None,
 ):
     """
     Decorator to trace a function.
@@ -396,6 +394,7 @@ def trace(
         kind: Span kind
         attributes: Additional attributes
     """
+
     def decorator(func: F) -> F:
         span_name = name or func.__name__
 
@@ -413,9 +412,10 @@ def async_trace(
     tracer: Tracer,
     name: Optional[str] = None,
     kind: SpanKind = SpanKind.INTERNAL,
-    attributes: Optional[Dict[str, Any]] = None
+    attributes: Optional[Dict[str, Any]] = None,
 ):
     """Decorator to trace an async function."""
+
     def decorator(func: F) -> F:
         span_name = name or func.__name__
 
@@ -444,13 +444,7 @@ class TradingTracer:
         self.tracer = tracer or Tracer("trading-system")
 
     @contextmanager
-    def trace_order(
-        self,
-        order_id: str,
-        symbol: str,
-        side: str,
-        size: float
-    ):
+    def trace_order(self, order_id: str, symbol: str, side: str, size: float):
         """Trace order lifecycle."""
         with self.tracer.start_span(
             "order.process",
@@ -460,7 +454,7 @@ class TradingTracer:
                 "order.symbol": symbol,
                 "order.side": side,
                 "order.size": size,
-            }
+            },
         ) as span:
             yield span
 
@@ -472,7 +466,7 @@ class TradingTracer:
             attributes={
                 "signal.strategy": strategy,
                 "signal.symbol": symbol,
-            }
+            },
         ) as span:
             yield span
 
@@ -480,8 +474,7 @@ class TradingTracer:
     def trace_risk_check(self, check_type: str):
         """Trace risk check."""
         with self.tracer.start_span(
-            f"risk.{check_type}",
-            attributes={"risk.check_type": check_type}
+            f"risk.{check_type}", attributes={"risk.check_type": check_type}
         ) as span:
             yield span
 
@@ -494,7 +487,7 @@ class TradingTracer:
             attributes={
                 "data.source": source,
                 "data.symbol": symbol,
-            }
+            },
         ) as span:
             yield span
 
@@ -506,7 +499,7 @@ class TradingTracer:
             attributes={
                 "ml.model": model,
                 "ml.symbol": symbol,
-            }
+            },
         ) as span:
             yield span
 
@@ -519,7 +512,7 @@ class TradingTracer:
             attributes={
                 "exchange.name": exchange,
                 "exchange.operation": operation,
-            }
+            },
         ) as span:
             yield span
 
@@ -530,11 +523,7 @@ class TraceAnalyzer:
     def __init__(self, processor: InMemorySpanProcessor):
         self.processor = processor
 
-    def get_slow_spans(
-        self,
-        min_duration_ms: float = 100,
-        limit: int = 10
-    ) -> List[Dict]:
+    def get_slow_spans(self, min_duration_ms: float = 100, limit: int = 10) -> List[Dict]:
         """Get slowest spans."""
         spans = self.processor.get_spans(min_duration_ms=min_duration_ms)
         spans.sort(key=lambda s: s.duration_ms, reverse=True)
@@ -542,10 +531,7 @@ class TraceAnalyzer:
 
     def get_error_spans(self, limit: int = 10) -> List[Dict]:
         """Get spans with errors."""
-        spans = [
-            s for s in self.processor.get_spans()
-            if s.status == SpanStatus.ERROR
-        ]
+        spans = [s for s in self.processor.get_spans() if s.status == SpanStatus.ERROR]
         return [s.to_dict() for s in spans[:limit]]
 
     def get_trace_summary(self, trace_id: str) -> Dict:
@@ -615,7 +601,7 @@ def create_tracer(
     service_name: str,
     enable_console: bool = True,
     enable_memory: bool = True,
-    console_min_duration_ms: float = 10
+    console_min_duration_ms: float = 10,
 ) -> Tracer:
     """
     Factory function to create a configured tracer.

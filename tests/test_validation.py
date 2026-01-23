@@ -71,13 +71,16 @@ class TestOHLCVValidator:
 
         prices = np.array(prices)
 
-        return pd.DataFrame({
-            "open": prices * (1 + np.random.randn(n) * 0.001),
-            "high": prices * (1 + abs(np.random.randn(n)) * 0.005),
-            "low": prices * (1 - abs(np.random.randn(n)) * 0.005),
-            "close": prices,
-            "volume": np.random.uniform(1000, 10000, n),
-        }, index=dates)
+        return pd.DataFrame(
+            {
+                "open": prices * (1 + np.random.randn(n) * 0.001),
+                "high": prices * (1 + abs(np.random.randn(n)) * 0.005),
+                "low": prices * (1 - abs(np.random.randn(n)) * 0.005),
+                "close": prices,
+                "volume": np.random.uniform(1000, 10000, n),
+            },
+            index=dates,
+        )
 
     def test_valid_ohlcv(self, valid_ohlcv):
         result = validate_ohlcv(valid_ohlcv)
@@ -100,26 +103,30 @@ class TestOHLCVValidator:
         assert "Missing" in result.errors[0]
 
     def test_insufficient_rows(self):
-        df = pd.DataFrame({
-            "open": [1, 2, 3],
-            "high": [1.1, 2.1, 3.1],
-            "low": [0.9, 1.9, 2.9],
-            "close": [1, 2, 3],
-            "volume": [100, 100, 100],
-        })
+        df = pd.DataFrame(
+            {
+                "open": [1, 2, 3],
+                "high": [1.1, 2.1, 3.1],
+                "low": [0.9, 1.9, 2.9],
+                "close": [1, 2, 3],
+                "volume": [100, 100, 100],
+            }
+        )
         validator = OHLCVValidator(min_rows=10)
         result = validator.validate(df)
         assert result.is_valid is False
         assert "Insufficient" in result.errors[0]
 
     def test_negative_prices(self):
-        df = pd.DataFrame({
-            "open": [1, 2, -3],
-            "high": [1.1, 2.1, 3.1],
-            "low": [0.9, 1.9, 2.9],
-            "close": [1, 2, 3],
-            "volume": [100, 100, 100],
-        })
+        df = pd.DataFrame(
+            {
+                "open": [1, 2, -3],
+                "high": [1.1, 2.1, 3.1],
+                "low": [0.9, 1.9, 2.9],
+                "close": [1, 2, 3],
+                "volume": [100, 100, 100],
+            }
+        )
         validator = OHLCVValidator(min_rows=1)
         result = validator.validate(df)
         assert result.is_valid is False

@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class RegimeState:
     """Information about a regime state."""
+
     name: str
     description: str
     color: str
@@ -35,6 +36,7 @@ class RegimeState:
 @dataclass
 class Transition:
     """A single regime transition."""
+
     from_regime: str
     to_regime: str
     timestamp: datetime
@@ -45,6 +47,7 @@ class Transition:
 @dataclass
 class TransitionMatrix:
     """Complete transition matrix with probabilities."""
+
     matrix: Dict[str, Dict[str, float]]
     regimes: List[str]
     total_transitions: int
@@ -109,8 +112,7 @@ class RegimeTransitionAnalyzer:
 
         if timestamps is None:
             timestamps = [
-                datetime.now() - timedelta(hours=len(regimes) - i)
-                for i in range(len(regimes))
+                datetime.now() - timedelta(hours=len(regimes) - i) for i in range(len(regimes))
             ]
 
         if prices is None:
@@ -164,13 +166,15 @@ class RegimeTransitionAnalyzer:
             curr_ts, curr_regime, curr_price = self._regime_history[i]
 
             if prev_regime != curr_regime:
-                self._transitions.append(Transition(
-                    from_regime=prev_regime,
-                    to_regime=curr_regime,
-                    timestamp=curr_ts,
-                    price_at_transition=curr_price,
-                    confidence=1.0,  # Can be adjusted based on classification confidence
-                ))
+                self._transitions.append(
+                    Transition(
+                        from_regime=prev_regime,
+                        to_regime=curr_regime,
+                        timestamp=curr_ts,
+                        price_at_transition=curr_price,
+                        confidence=1.0,  # Can be adjusted based on classification confidence
+                    )
+                )
 
     def _calculate_regime_states(self) -> None:
         """Calculate statistics for each regime."""
@@ -213,7 +217,9 @@ class RegimeTransitionAnalyzer:
                 description=self.REGIME_DESCRIPTIONS.get(regime, "Unknown regime"),
                 color=self.REGIME_COLORS.get(regime, "#616161"),
                 avg_duration_hours=float(np.mean(durations)) if durations else 0,
-                frequency=regime_counts[regime] / total_observations * 100 if total_observations > 0 else 0,
+                frequency=regime_counts[regime] / total_observations * 100
+                if total_observations > 0
+                else 0,
                 avg_return=float(np.mean(returns)) * 100 if returns else 0,
                 avg_volatility=float(np.std(returns)) * 100 if len(returns) > 1 else 0,
             )
@@ -226,8 +232,10 @@ class RegimeTransitionAnalyzer:
             TransitionMatrix with probabilities and counts
         """
         # Get unique regimes
-        regimes = sorted(set(t.from_regime for t in self._transitions) |
-                        set(t.to_regime for t in self._transitions))
+        regimes = sorted(
+            set(t.from_regime for t in self._transitions)
+            | set(t.to_regime for t in self._transitions)
+        )
 
         if not regimes:
             regimes = list(self.REGIME_COLORS.keys())[:6]
@@ -268,9 +276,7 @@ class RegimeTransitionAnalyzer:
             return self._regime_history[-1][1]
         return None
 
-    def get_transition_history(
-        self, limit: int = 50
-    ) -> List[Dict[str, Any]]:
+    def get_transition_history(self, limit: int = 50) -> List[Dict[str, Any]]:
         """Get recent transition history."""
         return [
             {
@@ -310,19 +316,19 @@ class RegimeTransitionAnalyzer:
         else:
             return {}
 
-    def get_regime_timeline(
-        self, limit: int = 100
-    ) -> List[Dict[str, Any]]:
+    def get_regime_timeline(self, limit: int = 100) -> List[Dict[str, Any]]:
         """Get regime timeline for visualization."""
         timeline = []
 
         for ts, regime, price in self._regime_history[-limit:]:
-            timeline.append({
-                "timestamp": ts.isoformat(),
-                "regime": regime,
-                "price": price,
-                "color": self.REGIME_COLORS.get(regime, "#616161"),
-            })
+            timeline.append(
+                {
+                    "timestamp": ts.isoformat(),
+                    "regime": regime,
+                    "price": price,
+                    "color": self.REGIME_COLORS.get(regime, "#616161"),
+                }
+            )
 
         return timeline
 
