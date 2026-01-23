@@ -319,7 +319,7 @@ class SelfEvaluator:
                     daily[["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][dt.weekday()]].append(
                         trade.get("pnl_percent", 0)
                     )
-                except:
+                except (ValueError, TypeError, AttributeError):
                     pass
 
         return {

@@ -4316,8 +4316,8 @@ async def get_trading_control_panel() -> Dict[str, Any]:
             with open(unified_control_path, "r") as f:
                 unified_control = json.load(f)
                 result["master"]["all_paused"] = unified_control.get("paused", False)
-        except:
-            pass
+        except (json.JSONDecodeError, KeyError, IOError) as e:
+            logger.debug(f"Failed to read unified control: {e}")
 
     # Map unified symbols to market categories
     symbol_to_market = {
@@ -6824,8 +6824,8 @@ async def get_pnl_calendar(days: int = 30) -> Dict[str, Any]:
                         "pnl": row[1] or 0,
                         "trades": row[2] or 0,
                     })
-            except:
-                pass
+            except (sqlite3.Error, sqlite3.OperationalError) as e:
+                logger.debug(f"Failed to read trades from {db_path}: {e}")
 
     # Aggregate by date
     daily_data = {}

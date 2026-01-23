@@ -107,7 +107,7 @@ def test_live():
             # Try to get account info for permissions
             account_info = exchange.fapiPrivateGetAccount() if hasattr(exchange, 'fapiPrivateGetAccount') else None
             print(f"[OK] Trading permissions verified")
-        except:
+        except (AttributeError, ccxt.ExchangeError):
             print(f"[OK] Spot trading access (futures not enabled)")
 
         return True

@@ -837,8 +837,8 @@ class ProductionTrader:
             try:
                 with open(trades_file, "r") as f:
                     self.trade_history = json.load(f)
-            except:
-                pass
+            except (json.JSONDecodeError, IOError) as e:
+                logger.warning(f"Failed to load trade history: {e}")
 
     def get_summary(self) -> Dict:
         """Get trading summary."""

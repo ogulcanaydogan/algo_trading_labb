@@ -700,15 +700,15 @@ class MasterAI:
         if self.ai_brain:
             try:
                 status['ai_brain_v2'] = self.ai_brain.get_performance_report()
-            except:
-                pass
+            except (AttributeError, RuntimeError) as e:
+                logger.debug(f"Failed to get AI brain report: {e}")
 
         # Continuous Learner stats
         if self.continuous_learner:
             try:
                 status['continuous_learner'] = self.continuous_learner.get_all_summaries()
-            except:
-                pass
+            except (AttributeError, RuntimeError) as e:
+                logger.debug(f"Failed to get continuous learner report: {e}")
 
         return status
 

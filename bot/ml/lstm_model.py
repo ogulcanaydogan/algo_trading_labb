@@ -5,7 +5,7 @@ Deep learning model using LSTM layers for sequence prediction.
 """
 
 import logging
-import pickle
+import joblib
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -288,8 +288,7 @@ class LSTMPredictor:
         }
 
         meta_path = path / "lstm_meta.pkl"
-        with open(meta_path, "wb") as f:
-            pickle.dump(meta, f)
+        joblib.dump(meta, meta_path)
 
         logger.info(f"LSTM model saved to {path}")
 
@@ -309,8 +308,7 @@ class LSTMPredictor:
 
         try:
             # Load metadata
-            with open(meta_path, "rb") as f:
-                meta = pickle.load(f)
+            meta = joblib.load(meta_path)
 
             self.sequence_length = meta["sequence_length"]
             self.n_features = meta["n_features"]

@@ -108,8 +108,8 @@ def run_strategy_comparison(symbol: str, df: pd.DataFrame) -> dict:
                 "sharpe": result.get("sharpe_ratio", 0),
                 "win_rate": result.get("win_rate", 0),
             })
-        except:
-            pass
+        except (ImportError, ValueError, KeyError, RuntimeError) as e:
+            logger.debug(f"Backtest failed for params {params}: {e}")
 
     # Find best params
     if results:
@@ -188,8 +188,8 @@ def monitor_performance() -> dict:
                         "price": ticker["last"],
                         "value": value,
                     })
-                except:
-                    pass
+                except (KeyError, TypeError, ConnectionError) as e:
+                    logger.debug(f"Failed to fetch ticker for {symbol}: {e}")
 
         return {
             "status": "success",

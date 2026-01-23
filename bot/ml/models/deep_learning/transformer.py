@@ -8,7 +8,7 @@ Includes positional encoding and MPS optimization for Apple Silicon.
 from __future__ import annotations
 
 import math
-import pickle
+import joblib
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -486,8 +486,7 @@ class TransformerModel(BaseMLModel):
             torch.save(self.optimizer.state_dict(), save_dir / "optimizer.pt")
 
         if self.scaler is not None:
-            with open(save_dir / "scaler.pkl", "wb") as f:
-                pickle.dump(self.scaler, f)
+            joblib.dump(self.scaler, save_dir / "scaler.pkl")
 
         self._save_metadata(
             save_dir,
@@ -531,8 +530,7 @@ class TransformerModel(BaseMLModel):
 
         scaler_path = load_dir / "scaler.pkl"
         if scaler_path.exists():
-            with open(scaler_path, "rb") as f:
-                self.scaler = pickle.load(f)
+            self.scaler = joblib.load(scaler_path)
 
         print(f"Transformer model loaded from {load_dir}")
         return True

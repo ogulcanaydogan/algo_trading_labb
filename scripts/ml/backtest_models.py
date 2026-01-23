@@ -7,7 +7,7 @@ Tests model predictions against actual price movements.
 
 import json
 import logging
-import pickle
+import joblib
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -110,10 +110,8 @@ def load_models(symbol: str, model_dir: Path) -> Dict:
 
         if model_path.exists() and scaler_path.exists():
             try:
-                with open(model_path, "rb") as f:
-                    model = pickle.load(f)
-                with open(scaler_path, "rb") as f:
-                    scaler = pickle.load(f)
+                model = joblib.load(model_path)
+                scaler = joblib.load(scaler_path)
                 with open(meta_path, "r") as f:
                     meta = json.load(f)
                 models[model_type] = {"model": model, "scaler": scaler, "accuracy": meta.get("accuracy", 0)}
@@ -150,7 +148,8 @@ def backtest_strategy(
                 pred = model_data["model"].predict(X_scaled)[0]
                 votes.append(pred)
                 weights.append(model_data["accuracy"])
-            except:
+            except (ValueError, KeyError, AttributeError) as e:
+                logger.debug(f"Prediction failed for {model_type}: {e}")
                 continue
 
         if votes:

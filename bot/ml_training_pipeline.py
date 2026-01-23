@@ -15,7 +15,7 @@ Features:
 
 import logging
 import os
-import pickle
+import joblib
 import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -472,15 +472,13 @@ class XGBoostModel(BaseModel):
 
     def save(self, path: str) -> None:
         """Save model."""
-        with open(path, 'wb') as f:
-            pickle.dump(self.model, f)
+        joblib.dump(self.model, path)
 
     @classmethod
     def load(cls, path: str) -> 'XGBoostModel':
         """Load model."""
         instance = cls(TrainingConfig())
-        with open(path, 'rb') as f:
-            instance.model = pickle.load(f)
+        instance.model = joblib.load(path)
         return instance
 
 
@@ -538,14 +536,12 @@ class LightGBMModel(BaseModel):
         return {}
 
     def save(self, path: str) -> None:
-        with open(path, 'wb') as f:
-            pickle.dump(self.model, f)
+        joblib.dump(self.model, path)
 
     @classmethod
     def load(cls, path: str) -> 'LightGBMModel':
         instance = cls(TrainingConfig())
-        with open(path, 'rb') as f:
-            instance.model = pickle.load(f)
+        instance.model = joblib.load(path)
         return instance
 
 
@@ -605,16 +601,14 @@ class NeuralNetModel(BaseModel):
         return {name: 1.0 / len(feature_names) for name in feature_names}
 
     def save(self, path: str) -> None:
-        with open(path, 'wb') as f:
-            pickle.dump({'model': self.model, 'scaler': self.scaler}, f)
+        joblib.dump({'model': self.model, 'scaler': self.scaler}, path)
 
     @classmethod
     def load(cls, path: str) -> 'NeuralNetModel':
         instance = cls(TrainingConfig())
-        with open(path, 'rb') as f:
-            data = pickle.load(f)
-            instance.model = data['model']
-            instance.scaler = data['scaler']
+        data = joblib.load(path)
+        instance.model = data['model']
+        instance.scaler = data['scaler']
         return instance
 
 

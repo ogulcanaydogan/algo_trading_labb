@@ -127,11 +127,12 @@ async def get_prices() -> Dict[str, float]:
             try:
                 ticker = exchange.fetch_ticker(symbol)
                 prices[symbol] = ticker['last']
-            except:
-                pass
+            except (KeyError, TypeError) as e:
+                logger.debug(f"Failed to get price for {symbol}: {e}")
 
         return prices
-    except:
+    except Exception as e:
+        logger.warning(f"Failed to get prices: {e}")
         return {}
 
 

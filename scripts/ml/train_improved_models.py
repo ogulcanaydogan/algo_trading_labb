@@ -10,7 +10,7 @@ Uses trend-following labels based on:
 
 import json
 import logging
-import pickle
+import joblib
 import sys
 import warnings
 from datetime import datetime
@@ -236,10 +236,8 @@ def train_model(X: pd.DataFrame, y: pd.Series, model_type: str, symbol: str, out
 
     # Save
     symbol_safe = symbol.replace("/", "_")
-    with open(output_dir / f"{symbol_safe}_{model_type}_model.pkl", "wb") as f:
-        pickle.dump(model, f)
-    with open(output_dir / f"{symbol_safe}_{model_type}_scaler.pkl", "wb") as f:
-        pickle.dump(scaler, f)
+    joblib.dump(model, output_dir / f"{symbol_safe}_{model_type}_model.pkl")
+    joblib.dump(scaler, output_dir / f"{symbol_safe}_{model_type}_scaler.pkl")
 
     meta = {
         "symbol": symbol,

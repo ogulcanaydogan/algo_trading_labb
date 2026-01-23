@@ -448,7 +448,8 @@ async def get_position_correlations() -> Dict[str, Any]:
                     ret = (ohlcv[i][4] - ohlcv[i-1][4]) / ohlcv[i-1][4]
                     returns.append(ret)
                 price_data[symbol] = returns
-            except:
+            except (KeyError, IndexError, ZeroDivisionError, Exception) as e:
+                logger.debug(f"Failed to fetch data for {symbol}: {e}")
                 continue
 
         # Calculate correlations

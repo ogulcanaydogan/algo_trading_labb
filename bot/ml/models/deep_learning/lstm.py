@@ -7,7 +7,7 @@ dropout regularization, and attention mechanism.
 
 from __future__ import annotations
 
-import pickle
+import joblib
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -483,8 +483,7 @@ class LSTMModel(BaseMLModel):
 
         # Save scaler if exists
         if self.scaler is not None:
-            with open(save_dir / "scaler.pkl", "wb") as f:
-                pickle.dump(self.scaler, f)
+            joblib.dump(self.scaler, save_dir / "scaler.pkl")
 
         # Save metadata
         self._save_metadata(
@@ -535,8 +534,7 @@ class LSTMModel(BaseMLModel):
         # Load scaler
         scaler_path = load_dir / "scaler.pkl"
         if scaler_path.exists():
-            with open(scaler_path, "rb") as f:
-                self.scaler = pickle.load(f)
+            self.scaler = joblib.load(scaler_path)
 
         print(f"LSTM model loaded from {load_dir}")
         return True

@@ -89,7 +89,7 @@ def scan_models_directory(models_dir: Path) -> List[Dict]:
                                 with open(meta_file) as f:
                                     meta = json.load(f)
                                     accuracy = meta.get("accuracy", 0.55)
-                            except:
+                            except (json.JSONDecodeError, IOError, KeyError):
                                 pass
 
                         found_models.append({

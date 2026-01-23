@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import json
 import os
-import pickle
 import joblib
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -351,11 +350,8 @@ class MLPredictor:
         scaler_path = self.model_dir / f"{name}_scaler.pkl"
         meta_path = self.model_dir / f"{name}_meta.json"
 
-        with open(model_path, "wb") as f:
-            pickle.dump(self.model, f)
-
-        with open(scaler_path, "wb") as f:
-            pickle.dump(self.scaler, f)
+        joblib.dump(self.model, model_path)
+        joblib.dump(self.scaler, scaler_path)
 
         meta = {
             "model_type": self.model_type,
@@ -386,17 +382,9 @@ class MLPredictor:
             return False
 
         # Try joblib first (newer models), fall back to pickle
-        try:
-            self.model = joblib.load(model_path)
-        except Exception:
-            with open(model_path, "rb") as f:
-                self.model = pickle.load(f)
-
-        try:
-            self.scaler = joblib.load(scaler_path)
-        except Exception:
-            with open(scaler_path, "rb") as f:
-                self.scaler = pickle.load(f)
+        # joblib can load both joblib and pickle files
+        self.model = joblib.load(model_path)
+        self.scaler = joblib.load(scaler_path)
 
         with open(meta_path, "r") as f:
             meta = json.load(f)

@@ -340,10 +340,9 @@ def save_model(
     torch.save(model.state_dict(), model_path)
 
     # Save scaler
-    import pickle
+    import joblib
     scaler_path = output_dir / f"{symbol_safe}_dl_{model_type}_scaler.pkl"
-    with open(scaler_path, "wb") as f:
-        pickle.dump(scaler, f)
+    joblib.dump(scaler, scaler_path)
 
     # Save metadata
     meta = {

@@ -1,318 +1,232 @@
-"""Unit tests for logging configuration module."""
-from __future__ import annotations
+"""Tests for structured logging configuration."""
 
-import json
+import asyncio
 import logging
-from io import StringIO
-from unittest.mock import patch
+import time
 
 import pytest
 
-from bot.logging_config import (
-    JSONFormatter,
-    StructuredLogger,
-    get_structured_logger,
+from bot.core.logging_config import (
+    MetricsCollector,
+    OperationMetrics,
+    TradeLogEntry,
+    get_logger,
+    log_operation,
+    log_timed,
+    log_timed_async,
     setup_logging,
 )
 
 
-class TestJSONFormatter:
-    """Tests for JSONFormatter class."""
+class TestTradeLogEntry:
+    """Tests for TradeLogEntry."""
 
-    def test_format_basic_message(self):
-        """Test basic message formatting."""
-        formatter = JSONFormatter()
-        record = logging.LogRecord(
-            name="test.logger",
-            level=logging.INFO,
-            pathname="test.py",
-            lineno=42,
-            msg="Test message",
-            args=(),
-            exc_info=None,
+    def test_basic_entry(self):
+        entry = TradeLogEntry(
+            symbol="BTC/USDT",
+            side="buy",
+            quantity=0.1,
+            price=50000,
         )
 
-        result = formatter.format(record)
-        data = json.loads(result)
+        data = entry.to_dict()
+        assert data["symbol"] == "BTC/USDT"
+        assert data["side"] == "buy"
+        assert data["quantity"] == 0.1
+        assert data["price"] == 50000
+        assert data["notional"] == 5000
 
-        assert data["message"] == "Test message"
-        assert data["level"] == "INFO"
-        assert data["logger"] == "test.logger"
-
-    def test_format_includes_timestamp(self):
-        """Test that timestamp is included."""
-        formatter = JSONFormatter(include_timestamp=True)
-        record = logging.LogRecord(
-            name="test",
-            level=logging.INFO,
-            pathname="test.py",
-            lineno=1,
-            msg="Test",
-            args=(),
-            exc_info=None,
+    def test_entry_with_pnl(self):
+        entry = TradeLogEntry(
+            symbol="ETH/USDT",
+            side="sell",
+            quantity=1.0,
+            price=3000,
+            pnl=150,
+            pnl_pct=5.0,
         )
 
-        result = formatter.format(record)
-        data = json.loads(result)
+        data = entry.to_dict()
+        assert data["pnl"] == 150
+        assert data["pnl_pct"] == 5.0
 
-        assert "timestamp" in data
-        assert "T" in data["timestamp"]  # ISO format check
-
-    def test_format_excludes_timestamp_when_disabled(self):
-        """Test that timestamp can be excluded."""
-        formatter = JSONFormatter(include_timestamp=False)
-        record = logging.LogRecord(
-            name="test",
-            level=logging.INFO,
-            pathname="test.py",
-            lineno=1,
-            msg="Test",
-            args=(),
-            exc_info=None,
+    def test_entry_with_extra(self):
+        entry = TradeLogEntry(
+            symbol="BTC/USDT",
+            side="buy",
+            quantity=0.1,
+            price=50000,
+            extra={"reason": "signal", "confidence": 0.8},
         )
 
-        result = formatter.format(record)
-        data = json.loads(result)
+        data = entry.to_dict()
+        assert data["reason"] == "signal"
+        assert data["confidence"] == 0.8
 
-        assert "timestamp" not in data
 
-    def test_format_includes_location(self):
-        """Test that location info is included."""
-        formatter = JSONFormatter(include_location=True)
-        record = logging.LogRecord(
-            name="test",
-            level=logging.INFO,
-            pathname="test.py",
-            lineno=42,
-            msg="Test",
-            args=(),
-            exc_info=None,
-        )
-        record.funcName = "test_function"
+class TestOperationMetrics:
+    """Tests for OperationMetrics."""
 
-        result = formatter.format(record)
-        data = json.loads(result)
-
-        assert "location" in data
-        assert data["location"]["line"] == 42
-        assert data["location"]["function"] == "test_function"
-
-    def test_format_excludes_location_when_disabled(self):
-        """Test that location can be excluded."""
-        formatter = JSONFormatter(include_location=False)
-        record = logging.LogRecord(
-            name="test",
-            level=logging.INFO,
-            pathname="test.py",
-            lineno=42,
-            msg="Test",
-            args=(),
-            exc_info=None,
+    def test_metrics_to_dict(self):
+        metrics = OperationMetrics(
+            name="fetch_data",
+            duration_ms=123.45,
+            success=True,
         )
 
-        result = formatter.format(record)
-        data = json.loads(result)
-
-        assert "location" not in data
-
-    def test_format_with_extra_fields(self):
-        """Test that extra fields are included."""
-        formatter = JSONFormatter(extra_fields={"service": "test-service", "env": "test"})
-        record = logging.LogRecord(
-            name="test",
-            level=logging.INFO,
-            pathname="test.py",
-            lineno=1,
-            msg="Test",
-            args=(),
-            exc_info=None,
-        )
-
-        result = formatter.format(record)
-        data = json.loads(result)
-
-        assert data["service"] == "test-service"
-        assert data["env"] == "test"
-
-    def test_format_with_exception(self):
-        """Test that exception info is formatted."""
-        formatter = JSONFormatter()
-
-        try:
-            raise ValueError("Test error")
-        except ValueError:
-            import sys
-            exc_info = sys.exc_info()
-
-        record = logging.LogRecord(
-            name="test",
-            level=logging.ERROR,
-            pathname="test.py",
-            lineno=1,
-            msg="Error occurred",
-            args=(),
-            exc_info=exc_info,
-        )
-
-        result = formatter.format(record)
-        data = json.loads(result)
-
-        assert "exception" in data
-        assert "ValueError" in data["exception"]
-        assert "Test error" in data["exception"]
-
-    def test_format_with_extra_data(self):
-        """Test that extra_data attribute is included."""
-        formatter = JSONFormatter()
-        record = logging.LogRecord(
-            name="test",
-            level=logging.INFO,
-            pathname="test.py",
-            lineno=1,
-            msg="Test",
-            args=(),
-            exc_info=None,
-        )
-        record.extra_data = {"symbol": "BTC/USDT", "price": 50000.0}
-
-        result = formatter.format(record)
-        data = json.loads(result)
-
-        assert "data" in data
-        assert data["data"]["symbol"] == "BTC/USDT"
-        assert data["data"]["price"] == 50000.0
+        data = metrics.to_dict()
+        assert data["operation"] == "fetch_data"
+        assert data["duration_ms"] == 123.45
+        assert data["success"] is True
 
 
-class TestStructuredLogger:
-    """Tests for StructuredLogger class."""
+class TestLogOperation:
+    """Tests for log_operation context manager."""
 
-    def test_info_with_data(self):
-        """Test info_with_data method."""
-        logging.setLoggerClass(StructuredLogger)
-        logger = logging.getLogger("test.structured")
-        logger.setLevel(logging.DEBUG)
+    def test_successful_operation(self):
+        with log_operation("test_op") as metrics:
+            time.sleep(0.01)
 
-        # Capture log output
-        stream = StringIO()
-        handler = logging.StreamHandler(stream)
-        handler.setFormatter(JSONFormatter())
-        logger.addHandler(handler)
+        assert metrics.success is True
+        assert metrics.duration_ms >= 10
+        assert metrics.error is None
 
-        try:
-            logger.info_with_data("Signal generated", symbol="BTC/USDT", decision="LONG")
+    def test_failed_operation(self):
+        with pytest.raises(ValueError):
+            with log_operation("failing_op") as metrics:
+                raise ValueError("Test error")
 
-            output = stream.getvalue()
-            data = json.loads(output)
+        assert metrics.success is False
+        assert "Test error" in metrics.error
 
-            assert data["message"] == "Signal generated"
-            assert data["data"]["symbol"] == "BTC/USDT"
-            assert data["data"]["decision"] == "LONG"
-        finally:
-            logger.removeHandler(handler)
+    def test_records_timing(self):
+        start = time.perf_counter()
+        with log_operation("timed_op") as metrics:
+            time.sleep(0.02)
+        elapsed = (time.perf_counter() - start) * 1000
 
-    def test_debug_with_data(self):
-        """Test debug_with_data method."""
-        logging.setLoggerClass(StructuredLogger)
-        logger = logging.getLogger("test.structured.debug")
-        logger.setLevel(logging.DEBUG)
+        assert metrics.duration_ms >= 20
+        assert metrics.duration_ms <= elapsed + 5
 
-        stream = StringIO()
-        handler = logging.StreamHandler(stream)
-        handler.setFormatter(JSONFormatter())
-        logger.addHandler(handler)
 
-        try:
-            logger.debug_with_data("Debug info", key="value")
+class TestLogTimed:
+    """Tests for log_timed decorator."""
 
-            output = stream.getvalue()
-            data = json.loads(output)
+    def test_timed_function(self):
+        @log_timed()
+        def slow_function():
+            time.sleep(0.01)
+            return 42
 
-            assert data["level"] == "DEBUG"
-            assert data["data"]["key"] == "value"
-        finally:
-            logger.removeHandler(handler)
+        result = slow_function()
+        assert result == 42
 
-    def test_error_with_data(self):
-        """Test error_with_data method."""
-        logging.setLoggerClass(StructuredLogger)
-        logger = logging.getLogger("test.structured.error")
-        logger.setLevel(logging.DEBUG)
+    def test_preserves_function_metadata(self):
+        @log_timed()
+        def documented_function():
+            """This is documented."""
+            return True
 
-        stream = StringIO()
-        handler = logging.StreamHandler(stream)
-        handler.setFormatter(JSONFormatter())
-        logger.addHandler(handler)
+        assert documented_function.__name__ == "documented_function"
+        assert "documented" in documented_function.__doc__
 
-        try:
-            logger.error_with_data("Error occurred", error_code=500)
 
-            output = stream.getvalue()
-            data = json.loads(output)
+class TestLogTimedAsync:
+    """Tests for log_timed_async decorator."""
 
-            assert data["level"] == "ERROR"
-            assert data["data"]["error_code"] == 500
-        finally:
-            logger.removeHandler(handler)
+    @pytest.mark.asyncio
+    async def test_async_timed_function(self):
+        @log_timed_async()
+        async def async_slow():
+            await asyncio.sleep(0.01)
+            return "async_result"
+
+        result = await async_slow()
+        assert result == "async_result"
+
+    @pytest.mark.asyncio
+    async def test_async_timed_exception(self):
+        @log_timed_async()
+        async def async_fail():
+            raise ValueError("Async fail")
+
+        with pytest.raises(ValueError):
+            await async_fail()
+
+
+class TestMetricsCollector:
+    """Tests for MetricsCollector."""
+
+    def test_increment_counter(self):
+        collector = MetricsCollector()
+        collector.increment("requests")
+        collector.increment("requests")
+        collector.increment("requests", 3)
+
+        data = collector.get_all()
+        assert data["counters"]["requests"] == 5
+
+    def test_gauge(self):
+        collector = MetricsCollector()
+        collector.gauge("memory_mb", 512)
+        collector.gauge("memory_mb", 1024)
+
+        data = collector.get_all()
+        assert data["gauges"]["memory_mb"] == 1024
+
+    def test_timing(self):
+        collector = MetricsCollector()
+        collector.timing("latency", 10)
+        collector.timing("latency", 20)
+        collector.timing("latency", 30)
+
+        data = collector.get_all()
+        assert data["timings"]["latency"]["count"] == 3
+        assert data["timings"]["latency"]["avg_ms"] == 20
+        assert data["timings"]["latency"]["min_ms"] == 10
+        assert data["timings"]["latency"]["max_ms"] == 30
+
+    def test_reset(self):
+        collector = MetricsCollector()
+        collector.increment("count")
+        collector.gauge("value", 100)
+        collector.timing("time", 50)
+
+        collector.reset()
+        data = collector.get_all()
+
+        assert data["counters"] == {}
+        assert data["gauges"] == {}
+        assert data["timings"] == {}
+
+
+class TestGetLogger:
+    """Tests for get_logger."""
+
+    def test_basic_logger(self):
+        logger = get_logger("test_module")
+        assert isinstance(logger, logging.Logger)
+        assert logger.name == "test_module"
+
+    def test_logger_with_extra(self):
+        logger = get_logger("test_module", component="api", version="1.0")
+        # Should return LoggerAdapter with extra context
+        assert hasattr(logger, "extra")
+        assert logger.extra["component"] == "api"
 
 
 class TestSetupLogging:
-    """Tests for setup_logging function."""
+    """Tests for setup_logging."""
 
-    def test_setup_json_format(self):
-        """Test setting up JSON format logging."""
-        setup_logging(level="INFO", json_format=True)
+    def test_sets_level(self):
+        setup_logging(level="WARNING")
+        root = logging.getLogger()
+        assert root.level == logging.WARNING
 
-        logger = logging.getLogger()
-        assert logger.level == logging.INFO
-        assert len(logger.handlers) > 0
+        # Reset
+        setup_logging(level="INFO")
 
-        # Check that handler has JSON formatter
-        handler = logger.handlers[0]
-        assert isinstance(handler.formatter, JSONFormatter)
-
-    def test_setup_text_format(self):
-        """Test setting up text format logging."""
-        setup_logging(level="DEBUG", json_format=False)
-
-        logger = logging.getLogger()
-        assert logger.level == logging.DEBUG
-
-        # Check that handler has standard formatter
-        handler = logger.handlers[0]
-        assert not isinstance(handler.formatter, JSONFormatter)
-
-    def test_setup_with_log_file(self, tmp_path):
-        """Test setting up logging with file output."""
-        log_file = tmp_path / "test.log"
-        setup_logging(level="INFO", json_format=True, log_file=str(log_file))
-
-        logger = logging.getLogger()
-
-        # Should have both console and file handlers
-        assert len(logger.handlers) >= 2
-
-        # Log something
-        logger.info("Test message")
-
-        # Check file was created and has content
-        assert log_file.exists()
-
-
-class TestGetStructuredLogger:
-    """Tests for get_structured_logger function."""
-
-    def test_returns_structured_logger(self):
-        """Test that function returns StructuredLogger."""
-        logger = get_structured_logger("test.module")
-
-        # Should have structured logging methods
-        assert hasattr(logger, "info_with_data")
-        assert hasattr(logger, "debug_with_data")
-        assert hasattr(logger, "error_with_data")
-        assert hasattr(logger, "warning_with_data")
-        assert hasattr(logger, "critical_with_data")
-
-    def test_logger_has_correct_name(self):
-        """Test that logger has correct name."""
-        logger = get_structured_logger("my.custom.logger")
-        assert logger.name == "my.custom.logger"
+    def test_adds_handler(self):
+        setup_logging(level="INFO")
+        root = logging.getLogger()
+        assert len(root.handlers) >= 1

@@ -570,7 +570,8 @@ class HighAccuracyTrainer:
 
                 try:
                     auc = roc_auc_score(y_test, y_proba)
-                except:
+                except ValueError:
+                    # Only one class present in y_test, AUC undefined
                     auc = 0.5
 
                 logger.info(f"Results: Accuracy={accuracy:.2%}, AUC={auc:.2%}, F1={f1:.2%}")

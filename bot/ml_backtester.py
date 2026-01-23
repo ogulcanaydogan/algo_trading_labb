@@ -531,7 +531,7 @@ class MLBacktester:
                         win_hold_times.append(duration)
                     else:
                         loss_hold_times.append(duration)
-                except:
+                except (TypeError, AttributeError):
                     pass
 
         metrics.avg_hold_time_hours = np.mean(hold_times) if hold_times else 0

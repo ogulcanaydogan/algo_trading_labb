@@ -11,7 +11,7 @@ Uses:
 
 import json
 import logging
-import pickle
+import joblib
 import sys
 import warnings
 from datetime import datetime
@@ -284,11 +284,8 @@ def train_model(
     scaler_path = output_dir / f"{symbol_safe}_{model_type}_scaler.pkl"
     meta_path = output_dir / f"{symbol_safe}_{model_type}_meta.json"
 
-    with open(model_path, "wb") as f:
-        pickle.dump(model, f)
-
-    with open(scaler_path, "wb") as f:
-        pickle.dump(scaler, f)
+    joblib.dump(model, model_path)
+    joblib.dump(scaler, scaler_path)
 
     # Save metadata with feature names for inference
     meta = {

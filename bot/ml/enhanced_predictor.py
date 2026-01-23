@@ -648,24 +648,20 @@ class EnhancedMLPredictor:
 
     def save(self, name: str = "enhanced_predictor"):
         """Save model to disk."""
-        import pickle
+        import joblib
 
         model_path = self.model_dir / f"{name}_model.pkl"
         scaler_path = self.model_dir / f"{name}_scaler.pkl"
         meta_path = self.model_dir / f"{name}_meta.json"
 
-        with open(model_path, "wb") as f:
-            pickle.dump(self.model, f)
-
-        with open(scaler_path, "wb") as f:
-            pickle.dump(self.scaler, f)
+        joblib.dump(self.model, model_path)
+        joblib.dump(self.scaler, scaler_path)
 
         # Save regime models
         if self.regime_models:
             for regime, model in self.regime_models.items():
                 regime_path = self.model_dir / f"{name}_regime_{regime}.pkl"
-                with open(regime_path, "wb") as f:
-                    pickle.dump(model, f)
+                joblib.dump(model, regime_path)
 
         meta = {
             "config": {
@@ -693,7 +689,7 @@ class EnhancedMLPredictor:
 
     def load(self, name: str = "enhanced_predictor") -> bool:
         """Load model from disk."""
-        import pickle
+        import joblib
 
         model_path = self.model_dir / f"{name}_model.pkl"
         scaler_path = self.model_dir / f"{name}_scaler.pkl"
@@ -703,11 +699,9 @@ class EnhancedMLPredictor:
             logger.warning(f"Model files not found at {self.model_dir}")
             return False
 
-        with open(model_path, "rb") as f:
-            self.model = pickle.load(f)
-
-        with open(scaler_path, "rb") as f:
-            self.scaler = pickle.load(f)
+        # joblib can load both joblib and pickle files
+        self.model = joblib.load(model_path)
+        self.scaler = joblib.load(scaler_path)
 
         with open(meta_path, "r") as f:
             meta = json.load(f)
@@ -723,8 +717,7 @@ class EnhancedMLPredictor:
         for regime in meta.get("regime_models", []):
             regime_path = self.model_dir / f"{name}_regime_{regime}.pkl"
             if regime_path.exists():
-                with open(regime_path, "rb") as f:
-                    self.regime_models[regime] = pickle.load(f)
+                self.regime_models[regime] = joblib.load(regime_path)
 
         logger.info(f"Enhanced model loaded from {self.model_dir}")
         return True

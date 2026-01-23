@@ -183,8 +183,8 @@ async def check_transition(args) -> None:
 
     try:
         state = store.initialize(TradingMode.PAPER_LIVE_DATA, 10000, resume=True)
-    except:
-        print("No state found.")
+    except (FileNotFoundError, ValueError, KeyError) as e:
+        print(f"No state found: {e}")
         return
 
     validator = create_transition_validator()
