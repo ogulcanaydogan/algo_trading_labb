@@ -45,6 +45,23 @@ from .smart_router import (
     create_smart_router,
 )
 
+from .execution_algos import (
+    AlgoStatus,
+    UrgencyLevel,
+    AlgoOrder,
+    AlgoSlice,
+    AlgoExecution,
+    ExecutionAlgorithm as BaseExecutionAlgorithm,
+    TWAPAlgorithm,
+    VWAPAlgorithm,
+    POVAlgorithm,
+    ImplementationShortfallAlgorithm,
+    IcebergAlgorithm,
+    AdaptiveAlgorithm,
+    AlgorithmFactory,
+    create_execution_algorithm,
+)
+
 __all__ = [
     # Slippage tracking
     "SlippageTracker",
@@ -75,4 +92,19 @@ __all__ = [
     "RoutingStrategy",
     "RoutingConfig",
     "create_smart_router",
+    # Advanced Execution Algorithms
+    "AlgoStatus",
+    "UrgencyLevel",
+    "AlgoOrder",
+    "AlgoSlice",
+    "AlgoExecution",
+    "BaseExecutionAlgorithm",
+    "TWAPAlgorithm",
+    "VWAPAlgorithm",
+    "POVAlgorithm",
+    "ImplementationShortfallAlgorithm",
+    "IcebergAlgorithm",
+    "AdaptiveAlgorithm",
+    "AlgorithmFactory",
+    "create_execution_algorithm",
 ]

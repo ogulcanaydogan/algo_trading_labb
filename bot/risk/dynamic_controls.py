@@ -386,7 +386,10 @@ class PositionSizeResult:
             "kelly_suggested_size": round(self.kelly_suggested_size, 4),
             "final_size": round(self.final_size, 4),
             "adjustments_applied": {k: round(v, 4) for k, v in self.adjustments_applied.items()},
-            "risk_metrics": {k: round(v, 4) for k, v in self.risk_metrics.items()},
+            "risk_metrics": {
+                k: round(v, 4) if isinstance(v, (int, float)) else v
+                for k, v in self.risk_metrics.items()
+            },
         }
 
 

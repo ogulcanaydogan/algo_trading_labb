@@ -79,6 +79,16 @@ from .daily_reporter import (
     get_daily_reporter,
     setup_daily_reporter,
 )
+from .strategy_selector import (
+    StrategyType,
+    StrategyConfig as AdvancedStrategyConfig,
+    StrategyPerformance as AdvancedStrategyPerformance,
+    SelectionResult,
+    SelectorConfig,
+    RegimeStrategySelector as AdvancedRegimeStrategySelector,
+    create_default_strategies,
+    create_regime_strategy_selector,
+)
 
 __all__ = [
     # Detector
@@ -141,4 +151,13 @@ __all__ = [
     "ReporterConfig",
     "get_daily_reporter",
     "setup_daily_reporter",
+    # Advanced Strategy Selector
+    "StrategyType",
+    "AdvancedStrategyConfig",
+    "AdvancedStrategyPerformance",
+    "SelectionResult",
+    "SelectorConfig",
+    "AdvancedRegimeStrategySelector",
+    "create_default_strategies",
+    "create_regime_strategy_selector",
 ]
