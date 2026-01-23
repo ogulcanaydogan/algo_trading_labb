@@ -1,0 +1,128 @@
+{
+  "execution": {
+    "default_algorithm": "adaptive",
+    "urgency": "medium",
+    "algorithms": {
+      "twap": {
+        "interval_seconds": 60,
+        "enabled": true
+      },
+      "vwap": {
+        "interval_seconds": 60,
+        "use_custom_profile": false,
+        "enabled": true
+      },
+      "pov": {
+        "target_participation": 0.1,
+        "max_participation": 0.25,
+        "enabled": true
+      },
+      "is": {
+        "risk_aversion": 0.5,
+        "enabled": true
+      },
+      "iceberg": {
+        "visible_fraction": 0.1,
+        "enabled": true
+      },
+      "adaptive": {
+        "volatility_threshold": 0.02,
+        "spread_threshold_bps": 50,
+        "enabled": true
+      }
+    }
+  },
+  "strategy_selection": {
+    "enabled": true,
+    "max_concurrent_strategies": 3,
+    "min_trade_count_for_scoring": 10,
+    "performance_lookback_days": 90,
+    "regime_transition_cooldown_minutes": 15,
+    "strategies": {
+      "trend_ema": {
+        "enabled": true,
+        "position_sizing_factor": 1.0
+      },
+      "trend_macd": {
+        "enabled": true,
+        "position_sizing_factor": 1.0
+      },
+      "mean_rev_bb": {
+        "enabled": true,
+        "position_sizing_factor": 0.8
+      },
+      "mean_rev_rsi": {
+        "enabled": true,
+        "position_sizing_factor": 0.8
+      },
+      "momentum_breakout": {
+        "enabled": true,
+        "position_sizing_factor": 0.9
+      },
+      "vol_expansion": {
+        "enabled": true,
+        "position_sizing_factor": 0.7
+      },
+      "defensive_cash": {
+        "enabled": true,
+        "position_sizing_factor": 0.3
+      }
+    }
+  },
+  "risk_controls": {
+    "circuit_breaker": {
+      "enabled": true,
+      "correlation_spike_threshold": 0.3,
+      "correlation_critical_threshold": 0.5,
+      "average_correlation_limit": 0.8,
+      "historical_window_days": 60,
+      "recent_window_days": 5,
+      "cooldown_minutes": 30,
+      "warning_reduction_factor": 0.7,
+      "triggered_reduction_factor": 0.3
+    },
+    "position_sizing": {
+      "base_risk_per_trade": 0.02,
+      "max_position_size": 0.2,
+      "target_volatility": 0.15,
+      "vol_scaling_enabled": true,
+      "regime_scaling_enabled": true,
+      "kelly_enabled": true,
+      "kelly_fraction": 0.25,
+      "drawdown_scaling_enabled": true,
+      "drawdown_threshold": 0.1,
+      "regime_multipliers": {
+        "bull": 1.2,
+        "bear": 0.8,
+        "crash": 0.3,
+        "sideways": 1.0
+      }
+    },
+    "stress_testing": {
+      "enabled": true,
+      "run_before_trade": true,
+      "max_acceptable_loss_pct": 0.25,
+      "scenarios": {
+        "historical": ["2008_financial_crisis", "covid_crash_2020", "flash_crash_2010"],
+        "hypothetical": ["correlation_breakdown", "liquidity_crisis"]
+      },
+      "risk_limits": {
+        "max_drawdown": 0.25,
+        "max_position_loss": 0.5,
+        "min_liquidity_ratio": 0.1,
+        "max_var": 0.1
+      }
+    }
+  },
+  "regime_detection": {
+    "lookback_bars": 100,
+    "ma_fast": 20,
+    "ma_slow": 50,
+    "adx_period": 14,
+    "adx_threshold": 25,
+    "atr_period": 14,
+    "high_vol_percentile": 90,
+    "crash_drawdown_threshold": 0.1,
+    "crash_return_threshold": -0.05
+  }
+}
