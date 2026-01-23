@@ -49,6 +49,39 @@ from .logging_config import (
     setup_logging,
 )
 
+from .health import (
+    ComponentHealth,
+    GracefulShutdown,
+    HealthChecker,
+    HealthStatus,
+    SystemHealth,
+    create_database_health_check,
+    create_exchange_health_check,
+    graceful_shutdown,
+    health_checker,
+)
+
+from .prometheus import (
+    Counter,
+    Gauge,
+    Histogram,
+    PrometheusRegistry,
+    Summary,
+    counter,
+    gauge,
+    histogram,
+    summary,
+    default_registry,
+    trading_registry,
+    trades_total,
+    trade_pnl,
+    position_size,
+    order_latency,
+    data_fetch_errors,
+    model_predictions,
+    signal_strength,
+)
+
 __all__ = [
     # Container
     "Container",
@@ -89,4 +122,33 @@ __all__ = [
     "log_trade",
     "metrics",
     "setup_logging",
+    # Health
+    "ComponentHealth",
+    "GracefulShutdown",
+    "HealthChecker",
+    "HealthStatus",
+    "SystemHealth",
+    "create_database_health_check",
+    "create_exchange_health_check",
+    "graceful_shutdown",
+    "health_checker",
+    # Prometheus
+    "Counter",
+    "Gauge",
+    "Histogram",
+    "PrometheusRegistry",
+    "Summary",
+    "counter",
+    "gauge",
+    "histogram",
+    "summary",
+    "default_registry",
+    "trading_registry",
+    "trades_total",
+    "trade_pnl",
+    "position_size",
+    "order_latency",
+    "data_fetch_errors",
+    "model_predictions",
+    "signal_strength",
 ]

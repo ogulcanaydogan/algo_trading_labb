@@ -480,6 +480,18 @@ class MetricsCollector:
         self._gauges.clear()
         self._timings.clear()
 
+    def get_counters(self) -> Dict[str, int]:
+        """Get all counter values."""
+        return self._counters.copy()
+
+    def get_gauges(self) -> Dict[str, float]:
+        """Get all gauge values."""
+        return self._gauges.copy()
+
+    def get_timings(self) -> Dict[str, list]:
+        """Get all timing values."""
+        return {k: v.copy() for k, v in self._timings.items()}
+
 
 # Global metrics collector
 metrics = MetricsCollector()
