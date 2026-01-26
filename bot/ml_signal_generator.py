@@ -827,62 +827,40 @@ class MLSignalGenerator:
             return await self._technical_signal(symbol, df, current_price)
 
     def _extract_features(self, df: pd.DataFrame) -> Optional[np.ndarray]:
-        """Extract features from price DataFrame for ML prediction using FeatureEngineer."""
+        """Extract features matching the improved_training.py feature set (43 features)."""
         try:
             import json
-            from bot.ml.feature_engineer import FeatureEngineer
 
-            # Use the same FeatureEngineer that was used during training
-            feature_engineer = FeatureEngineer()
-            df_features = feature_engineer.extract_features(df)
+            # Use the same feature engineering as improved_training.py
+            df_features = self._engineer_training_features(df.copy())
 
             if len(df_features) == 0:
                 logger.warning("Feature engineering returned empty DataFrame")
                 return None
 
-            # Try to load expected feature names from meta file
-            # This ensures we provide exactly the features the model expects
-            expected_features = None
-            meta_path = self.model_dir / "BTC_USDT_random_forest_meta.json"
-            if meta_path.exists():
-                try:
-                    with open(meta_path) as f:
-                        meta = json.load(f)
-                        expected_features = meta.get("feature_names", [])
-                except Exception:
-                    pass
+            # The 43 features from improved_training.py in exact order
+            feature_names = [
+                "ema_7", "ema_7_dist", "ema_14", "ema_14_dist", "ema_21", "ema_21_dist",
+                "ema_50", "ema_50_dist", "ema_100", "ema_100_dist", "ema_200", "ema_200_dist",
+                "rsi_7", "rsi_14", "rsi_28",
+                "macd", "macd_signal", "macd_hist",
+                "bb_20_mid", "bb_20_std", "bb_20_upper", "bb_20_lower", "bb_20_position",
+                "bb_50_mid", "bb_50_std", "bb_50_upper", "bb_50_lower", "bb_50_position",
+                "roc_3", "momentum_3", "roc_5", "momentum_5", "roc_10", "momentum_10", "roc_20", "momentum_20",
+                "volume_sma_20", "volume_ratio", "volume_roc",
+                "atr_14", "volatility_20", "high_low_ratio", "close_open_ratio"
+            ]
 
-            if expected_features:
-                # Build feature array matching expected order
-                features = []
-                for feat_name in expected_features:
-                    if feat_name in df_features.columns:
-                        val = df_features[feat_name].iloc[-1]
-                    else:
-                        # Feature not available - use 0 (happens for minute_sin/cos, future targets)
-                        val = 0.0
-                    features.append(val)
-                X = np.array(features).reshape(1, -1)
-            else:
-                # Fallback: use all non-target columns
-                exclude_cols = [
-                    "target_return",
-                    "target_direction",
-                    "target_class",
-                    "target_strong_trend",
-                    "target_risk_adjusted",
-                    "future_return_1",
-                    "future_return_3",
-                    "future_return_5",
-                    "future_return_10",
-                    "open",
-                    "high",
-                    "low",
-                    "close",
-                    "volume",
-                ]
-                feature_cols = [col for col in df_features.columns if col not in exclude_cols]
-                X = df_features[feature_cols].iloc[-1:].values
+            # Build feature array
+            features = []
+            for feat_name in feature_names:
+                if feat_name in df_features.columns:
+                    val = df_features[feat_name].iloc[-1]
+                else:
+                    val = 0.0
+                features.append(val)
+
+            X = np.array(features).reshape(1, -1)
 
             # Sanitize: replace inf/-inf with NaN, then fill with 0
             X = np.where(np.isinf(X), np.nan, X)
@@ -894,6 +872,61 @@ class MLSignalGenerator:
         except Exception as e:
             logger.warning(f"Feature extraction failed: {e}")
             return None
+
+    def _engineer_training_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Engineer features matching improved_training.py exactly.
+
+        This ensures inference uses the same 43 features as training.
+        """
+        # Multiple timeframe EMAs
+        for period in [7, 14, 21, 50, 100, 200]:
+            df[f'ema_{period}'] = df['close'].ewm(span=period).mean()
+            df[f'ema_{period}_dist'] = (df['close'] - df[f'ema_{period}']) / df[f'ema_{period}'] * 100
+
+        # RSI features (manual calculation)
+        for period in [7, 14, 28]:
+            delta = df['close'].diff()
+            gain = delta.where(delta > 0, 0).rolling(period).mean()
+            loss = -delta.where(delta < 0, 0).rolling(period).mean()
+            rs = gain / (loss + 1e-10)
+            df[f'rsi_{period}'] = 100 - (100 / (1 + rs))
+
+        # MACD
+        ema_12 = df['close'].ewm(span=12).mean()
+        ema_26 = df['close'].ewm(span=26).mean()
+        df['macd'] = ema_12 - ema_26
+        df['macd_signal'] = df['macd'].ewm(span=9).mean()
+        df['macd_hist'] = df['macd'] - df['macd_signal']
+
+        # Bollinger Band features
+        for period in [20, 50]:
+            rolling = df['close'].rolling(period)
+            df[f'bb_{period}_mid'] = rolling.mean()
+            df[f'bb_{period}_std'] = rolling.std()
+            df[f'bb_{period}_upper'] = df[f'bb_{period}_mid'] + 2 * df[f'bb_{period}_std']
+            df[f'bb_{period}_lower'] = df[f'bb_{period}_mid'] - 2 * df[f'bb_{period}_std']
+            df[f'bb_{period}_position'] = (df['close'] - df[f'bb_{period}_lower']) / (df[f'bb_{period}_upper'] - df[f'bb_{period}_lower'] + 1e-10)
+
+        # Price momentum features
+        for period in [3, 5, 10, 20]:
+            df[f'roc_{period}'] = df['close'].pct_change(period) * 100
+            df[f'momentum_{period}'] = df['close'] - df['close'].shift(period)
+
+        # Volume features
+        df['volume_sma_20'] = df['volume'].rolling(20).mean()
+        df['volume_ratio'] = df['volume'] / (df['volume_sma_20'] + 1e-10)
+        df['volume_roc'] = df['volume'].pct_change(5) * 100
+
+        # Volatility features
+        df['atr_14'] = df['high'].rolling(14).max() - df['low'].rolling(14).min()
+        df['volatility_20'] = df['close'].pct_change().rolling(20).std() * 100
+
+        # Price action
+        df['high_low_ratio'] = (df['high'] - df['low']) / (df['close'] + 1e-10)
+        df['close_open_ratio'] = (df['close'] - df['open']) / (df['open'] + 1e-10)
+
+        return df.dropna()
 
     async def _ml_signal(
         self, symbol: str, df: pd.DataFrame, current_price: float

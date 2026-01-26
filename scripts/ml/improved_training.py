@@ -336,8 +336,8 @@ def train_improved_models(
 
 def main():
     parser = argparse.ArgumentParser(description="Train improved ML models for >80% accuracy with ensemble")
-    parser.add_argument("--symbols", nargs="+", 
-                       default=["BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT", "ADA/USDT", "MATIC/USDT"],
+    parser.add_argument("--symbols", nargs="+",
+                       default=["BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT", "ADA/USDT", "AVAX/USDT"],
                        help="Symbols to train (default: 6 crypto symbols)")
     parser.add_argument("--days", type=int, default=730, help="Days of history to use (default: 730)")
     parser.add_argument("--save-dir", default="data/models", help="Model save directory")

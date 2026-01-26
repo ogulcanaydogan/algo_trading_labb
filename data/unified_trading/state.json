@@ -1,7 +1,7 @@
 {
   "mode": "paper_live_data",
   "status": "stopped",
-  "timestamp": "2026-01-25T23:30:35.018764",
+  "timestamp": "2026-01-26T19:42:04.236985",
   "initial_capital": 50000.0,
   "current_balance": 50000.0,
   "peak_balance": 50000.0,
@@ -15,5 +15,5 @@
   "days_in_mode": 0,
   "daily_trades": 0,
   "daily_pnl": 0.0,
-  "daily_date": "2026-01-25"
+  "daily_date": "2026-01-26"
 }

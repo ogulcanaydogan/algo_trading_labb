@@ -432,5 +432,138 @@
     "positions_value": 0,
     "total_equity": 50000.0,
     "unrealized_pnl": 0
+  },
+  {
+    "timestamp": "2026-01-26T19:22:43.269430",
+    "balance": 50000.0,
+    "positions_value": 0,
+    "total_equity": 50000.0,
+    "unrealized_pnl": 0
+  },
+  {
+    "timestamp": "2026-01-26T19:23:44.485909",
+    "balance": 50000.0,
+    "positions_value": 0,
+    "total_equity": 50000.0,
+    "unrealized_pnl": 0
+  },
+  {
+    "timestamp": "2026-01-26T19:24:45.703495",
+    "balance": 50000.0,
+    "positions_value": 0,
+    "total_equity": 50000.0,
+    "unrealized_pnl": 0
+  },
+  {
+    "timestamp": "2026-01-26T19:25:46.944502",
+    "balance": 50000.0,
+    "positions_value": 0,
+    "total_equity": 50000.0,
+    "unrealized_pnl": 0
+  },
+  {
+    "timestamp": "2026-01-26T19:26:48.006151",
+    "balance": 50000.0,
+    "positions_value": 0,
+    "total_equity": 50000.0,
+    "unrealized_pnl": 0
+  },
+  {
+    "timestamp": "2026-01-26T19:27:49.213342",
+    "balance": 50000.0,
+    "positions_value": 0,
+    "total_equity": 50000.0,
+    "unrealized_pnl": 0
+  },
+  {
+    "timestamp": "2026-01-26T19:28:50.427860",
+    "balance": 50000.0,
+    "positions_value": 0,
+    "total_equity": 50000.0,
+    "unrealized_pnl": 0
+  },
+  {
+    "timestamp": "2026-01-26T19:29:51.607997",
+    "balance": 50000.0,
+    "positions_value": 0,
+    "total_equity": 50000.0,
+    "unrealized_pnl": 0
+  },
+  {
+    "timestamp": "2026-01-26T19:30:52.772996",
+    "balance": 50000.0,
+    "positions_value": 0,
+    "total_equity": 50000.0,
+    "unrealized_pnl": 0
+  },
+  {
+    "timestamp": "2026-01-26T19:31:53.938456",
+    "balance": 50000.0,
+    "positions_value": 0,
+    "total_equity": 50000.0,
+    "unrealized_pnl": 0
+  },
+  {
+    "timestamp": "2026-01-26T19:32:55.138259",
+    "balance": 50000.0,
+    "positions_value": 0,
+    "total_equity": 50000.0,
+    "unrealized_pnl": 0
+  },
+  {
+    "timestamp": "2026-01-26T19:33:56.375504",
+    "balance": 50000.0,
+    "positions_value": 0,
+    "total_equity": 50000.0,
+    "unrealized_pnl": 0
+  },
+  {
+    "timestamp": "2026-01-26T19:34:57.541337",
+    "balance": 50000.0,
+    "positions_value": 0,
+    "total_equity": 50000.0,
+    "unrealized_pnl": 0
+  },
+  {
+    "timestamp": "2026-01-26T19:35:58.788570",
+    "balance": 50000.0,
+    "positions_value": 0,
+    "total_equity": 50000.0,
+    "unrealized_pnl": 0
+  },
+  {
+    "timestamp": "2026-01-26T19:36:59.936093",
+    "balance": 50000.0,
+    "positions_value": 0,
+    "total_equity": 50000.0,
+    "unrealized_pnl": 0
+  },
+  {
+    "timestamp": "2026-01-26T19:38:01.115655",
+    "balance": 50000.0,
+    "positions_value": 0,
+    "total_equity": 50000.0,
+    "unrealized_pnl": 0
+  },
+  {
+    "timestamp": "2026-01-26T19:39:02.269310",
+    "balance": 50000.0,
+    "positions_value": 0,
+    "total_equity": 50000.0,
+    "unrealized_pnl": 0
+  },
+  {
+    "timestamp": "2026-01-26T19:40:03.442920",
+    "balance": 50000.0,
+    "positions_value": 0,
+    "total_equity": 50000.0,
+    "unrealized_pnl": 0
+  },
+  {
+    "timestamp": "2026-01-26T19:41:04.601121",
+    "balance": 50000.0,
+    "positions_value": 0,
+    "total_equity": 50000.0,
+    "unrealized_pnl": 0
   }
 ]
