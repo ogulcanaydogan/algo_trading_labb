@@ -1,124 +1,19 @@
 {
   "mode": "paper_live_data",
-  "status": "active",
-  "timestamp": "2026-01-22T20:47:35.401626",
-  "initial_capital": 10000.0,
-  "current_balance": 10000.724875428863,
-  "peak_balance": 10495.572591800785,
-  "positions": {
-    "BTC/USDT": {
-      "symbol": "BTC/USDT",
-      "quantity": 0.00995660905396707,
-      "entry_price": 49773.229933471295,
-      "side": "short",
-      "entry_time": "2026-01-22T17:27:22.862146",
-      "stop_loss": 50768.694532140726,
-      "take_profit": 47782.30073613244,
-      "unrealized_pnl": -3.433506012070706,
-      "current_price": 50118.07685810802,
-      "signal_confidence": 0.7212339467503983,
-      "signal_reason": "Ensemble (3 models): SHORT (67.3%)",
-      "signal_meta": {
-        "model_type": "ensemble",
-        "prediction_id": "7448",
-        "threshold_used": 0.4,
-        "raw_confidence": 0.6733819894688706,
-        "calibrated_confidence": 0.6733819894688706,
-        "monitor_threshold_adjustment": 0.0,
-        "monitor_notes": [],
-        "regime": "unknown",
-        "regime_strategy": {
-          "regime": "unknown",
-          "position_size_multiplier": 1.0,
-          "stop_loss_pct": 0.02,
-          "take_profit_pct": 0.04,
-          "strategy_type": "trend_following",
-          "confidence_adjustment": 0.0
-        },
-        "trend": "down",
-        "volatility": "low",
-        "rsi": 39.45462256387499,
-        "risk_engine": {
-          "decision": "size_reduced",
-          "approved_quantity": 0.00995660905396707,
-          "original_quantity": 0.04480474074285182,
-          "block_reasons": [],
-          "warnings": [
-            "Size reduced from 0.0448 to 0.0100"
-          ],
-          "applied_limits": {
-            "regime": "unknown",
-            "regime_limits": {
-              "max_leverage": 1.5,
-              "max_position_pct": 0.1,
-              "risk_per_trade_pct": 0.01
-            }
-          },
-          "timestamp": "2026-01-22T17:27:22.862011"
-        }
-      }
-    },
-    "ETH/USDT": {
-      "symbol": "ETH/USDT",
-      "quantity": 0.1748800856166281,
-      "entry_price": 2997.8860985219167,
-      "side": "long",
-      "entry_time": "2026-01-22T17:28:31.651870",
-      "stop_loss": 2937.9283765514783,
-      "take_profit": 3117.8015424627933,
-      "unrealized_pnl": -1.9268516944366607,
-      "current_price": 2986.8679675115013,
-      "signal_confidence": 0.5226049660059675,
-      "signal_reason": "Ensemble (3 models): BUY (71.6%)",
-      "signal_meta": {
-        "model_type": "ensemble",
-        "prediction_id": "7455",
-        "threshold_used": 0.4,
-        "raw_confidence": 0.7157571778905222,
-        "calibrated_confidence": 0.7157571778905222,
-        "monitor_threshold_adjustment": 0.0,
-        "monitor_notes": [],
-        "regime": "unknown",
-        "regime_strategy": {
-          "regime": "unknown",
-          "position_size_multiplier": 1.0,
-          "stop_loss_pct": 0.02,
-          "take_profit_pct": 0.04,
-          "strategy_type": "trend_following",
-          "confidence_adjustment": 0.0
-        },
-        "trend": "down",
-        "volatility": "low",
-        "rsi": 24.420287875891077,
-        "risk_engine": {
-          "decision": "size_reduced",
-          "approved_quantity": 0.1748800856166281,
-          "original_quantity": 0.7869603852748266,
-          "block_reasons": [],
-          "warnings": [
-            "Size reduced from 0.7870 to 0.1749"
-          ],
-          "applied_limits": {
-            "regime": "unknown",
-            "regime_limits": {
-              "max_leverage": 1.5,
-              "max_position_pct": 0.1,
-              "risk_per_trade_pct": 0.01
-            }
-          },
-          "timestamp": "2026-01-22T17:28:31.651727"
-        }
-      }
-    }
-  },
+  "status": "stopped",
+  "timestamp": "2026-01-25T23:30:35.018764",
+  "initial_capital": 50000.0,
+  "current_balance": 50000.0,
+  "peak_balance": 50000.0,
+  "positions": {},
   "total_trades": 0,
   "winning_trades": 0,
   "losing_trades": 0,
   "total_pnl": 0.0,
-  "max_drawdown_pct": 0.04781051958386504,
-  "mode_started_at": "2026-01-22T17:27:20.674708",
+  "max_drawdown_pct": 0.0,
+  "mode_started_at": "2026-01-25T22:26:24.843432",
   "days_in_mode": 0,
   "daily_trades": 0,
   "daily_pnl": 0.0,
-  "daily_date": "2026-01-22"
+  "daily_date": "2026-01-25"
 }

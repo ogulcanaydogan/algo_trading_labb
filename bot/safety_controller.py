@@ -462,8 +462,11 @@ class SafetyController:
                 },
                 "limits": {
                     "max_daily_loss_usd": self.limits.max_daily_loss_usd,
+                    "max_daily_loss_pct": self.limits.max_daily_loss_pct,
                     "max_position_size_usd": self.limits.max_position_size_usd,
+                    "max_position_size_pct": self.limits.max_position_size_pct,
                     "max_trades_per_day": self.limits.max_trades_per_day,
+                    "max_open_positions": self.limits.max_open_positions,
                     "daily_loss_remaining": self.limits.max_daily_loss_usd
                     - self._daily_stats.total_loss,
                     "trades_remaining": self.limits.max_trades_per_day - self._daily_stats.trades,

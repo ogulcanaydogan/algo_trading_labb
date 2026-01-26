@@ -38,6 +38,9 @@ crypto:
     - BTC/USDT
     - ETH/USDT
     - SOL/USDT
+    - XRP/USDT     # Added for faster trade accumulation
+    - ADA/USDT     # Added for faster trade accumulation
+    - AVAX/USDT    # Avalanche (more stable than MATIC)
   # Enable/disable crypto trading
   enabled: true
   # Maximum weight per asset in portfolio
@@ -184,6 +187,15 @@ strategy:
   rsi_oversold: 40    # Raised from 30 for more trading opportunities
   # Default timeframe for analysis
   timeframe: 1h
+
+ml:
+  # ML signal generation configuration
+  confidence_threshold: 0.65              # Raised from 0.45 to filter weak signals, improves win rate
+  mtf_strict_mode: true                  # Enforce higher timeframe alignment, reject counter-trend
+  use_mtf_filter: true                   # Enable multi-timeframe confirmation
+  regime_adaptive_threshold: true        # Adjust threshold based on market regime
+  use_ensemble: true                     # Use ensemble predictor for higher accuracy (target: 80%)
+  ensemble_voting_strategy: "performance"  # "majority", "weighted", or "performance"
 
 portfolio:
   # Portfolio optimization method: equal_weight, risk_parity, min_volatility, max_sharpe

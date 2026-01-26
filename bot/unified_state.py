@@ -3,17 +3,30 @@ Unified State Management Module.
 
 Provides consistent state persistence across all trading modes with
 support for positions, trades, equity tracking, and mode state.
+
+Features:
+- Sync JSON persistence for quick state recovery
+- Async SQLite database for trade analytics and history
+- Connection pooling for high-performance writes
 """
 
+import asyncio
 import json
 import logging
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
 from threading import Lock
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from bot.trading_mode import ModeState, TradingMode, TradingStatus
+
+# Async database for high-performance trade storage
+try:
+    from bot.async_database import AsyncTradingDatabase, get_async_database
+    ASYNC_DB_AVAILABLE = True
+except ImportError:
+    ASYNC_DB_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -35,12 +48,15 @@ class PositionState:
     signal_reason: Optional[str] = None
     signal_meta: Dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict:
+    def __hash__(self) -> int:
+        return hash((self.symbol, self.entry_time))
+
+    def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict) -> "PositionState":
+    def from_dict(cls, data: Dict[str, Any]) -> "PositionState":
         """Create from dictionary."""
         return cls(**data)
 
@@ -66,12 +82,12 @@ class TradeRecord:
     signal_reasons: List[str] = field(default_factory=list)
     signal_metadata: Dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict) -> "TradeRecord":
+    def from_dict(cls, data: Dict[str, Any]) -> "TradeRecord":
         """Create from dictionary."""
         return cls(**data)
 
@@ -191,6 +207,11 @@ class UnifiedStateStore:
     - Trade history
     - Equity curve
     - Mode state
+
+    Features:
+    - Sync JSON for quick state recovery on restart
+    - Async SQLite database for trade analytics (via AsyncTradingDatabase)
+    - Background async writes don't block trading loop
     """
 
     def __init__(
@@ -198,16 +219,23 @@ class UnifiedStateStore:
         data_dir: Path = Path("data/unified_trading"),
         max_trades: int = 1000,
         max_equity_points: int = 10000,
+        use_async_db: bool = True,
     ):
         self.data_dir = Path(data_dir)
         self.max_trades = max_trades
         self.max_equity_points = max_equity_points
+        self.use_async_db = use_async_db and ASYNC_DB_AVAILABLE
 
         self._lock = Lock()
         self._state: Optional[UnifiedState] = None
         self._trades: List[TradeRecord] = []
         self._equity_curve: List[EquityPoint] = []
         self._mode_history: List[Dict] = []
+
+        # Async database for high-performance trade storage
+        self._async_db: Optional[AsyncTradingDatabase] = None
+        self._async_db_initialized = False
+        self._pending_async_tasks: List[asyncio.Task] = []
 
         # File paths
         self.state_path = self.data_dir / "state.json"
@@ -262,26 +290,38 @@ class UnifiedStateStore:
         """Load all persisted data."""
         # Load state
         if self.state_path.exists():
-            with open(self.state_path, "r") as f:
-                data = json.load(f)
-                self._state = UnifiedState.from_dict(data)
+            try:
+                with open(self.state_path, "r") as f:
+                    data: Dict[str, Any] = json.load(f)
+                    self._state = UnifiedState.from_dict(data)
+            except (OSError, json.JSONDecodeError, ValueError):
+                logger.warning(f"Failed to load state from {self.state_path}")
 
         # Load trades
         if self.trades_path.exists():
-            with open(self.trades_path, "r") as f:
-                data = json.load(f)
-                self._trades = [TradeRecord.from_dict(t) for t in data]
+            try:
+                with open(self.trades_path, "r") as f:
+                    data = json.load(f)
+                    self._trades = [TradeRecord.from_dict(t) for t in data]
+            except (OSError, json.JSONDecodeError, ValueError):
+                logger.warning(f"Failed to load trades from {self.trades_path}")
 
         # Load equity curve
         if self.equity_path.exists():
-            with open(self.equity_path, "r") as f:
-                data = json.load(f)
-                self._equity_curve = [EquityPoint(**p) for p in data[-self.max_equity_points :]]
+            try:
+                with open(self.equity_path, "r") as f:
+                    data = json.load(f)
+                    self._equity_curve = [EquityPoint(**p) for p in data[-self.max_equity_points :]]
+            except (OSError, json.JSONDecodeError, TypeError, ValueError):
+                logger.warning(f"Failed to load equity curve from {self.equity_path}")
 
         # Load mode history
         if self.mode_history_path.exists():
-            with open(self.mode_history_path, "r") as f:
-                self._mode_history = json.load(f)
+            try:
+                with open(self.mode_history_path, "r") as f:
+                    self._mode_history = json.load(f)
+            except (OSError, json.JSONDecodeError, TypeError):
+                logger.warning(f"Failed to load mode history from {self.mode_history_path}")
 
     def _save_state(self) -> None:
         """Save current state to disk."""
@@ -458,7 +498,7 @@ class UnifiedStateStore:
         with self._lock:
             return self._equity_curve[-limit:]
 
-    def get_mode_history(self) -> List[Dict]:
+    def get_mode_history(self) -> List[Dict[str, Any]]:
         """Get mode transition history."""
         with self._lock:
             return self._mode_history.copy()
@@ -516,3 +556,109 @@ class UnifiedStateStore:
                 "daily_trades": self._state.daily_trades,
                 "daily_pnl": self._state.daily_pnl,
             }
+
+    # ========== Async Database Methods ==========
+
+    async def initialize_async_db(self) -> bool:
+        """
+        Initialize async database for high-performance trade storage.
+
+        Returns True if initialized successfully.
+        """
+        if not self.use_async_db:
+            return False
+
+        if self._async_db_initialized:
+            return True
+
+        try:
+            db_path = str(self.data_dir / "portfolio.db")
+            self._async_db = await get_async_database(db_path)
+            self._async_db_initialized = True
+            logger.info(f"Async database initialized: {db_path}")
+            return True
+        except Exception as e:
+            logger.warning(f"Failed to initialize async database: {e}")
+            self.use_async_db = False
+            return False
+
+    async def record_trade_async(self, trade: TradeRecord) -> Optional[int]:
+        """
+        Record trade to async database (non-blocking).
+
+        Returns the trade ID if successful.
+        """
+        if not self._async_db or not self._async_db_initialized:
+            return None
+
+        try:
+            trade_data = {
+                "symbol": trade.symbol,
+                "direction": trade.side,
+                "entry_time": trade.entry_time,
+                "exit_time": trade.exit_time,
+                "entry_price": trade.entry_price,
+                "exit_price": trade.exit_price,
+                "size": trade.quantity,
+                "pnl": trade.pnl,
+                "pnl_pct": trade.pnl_pct,
+                "commission": trade.commission,
+                "slippage": 0,
+                "exit_reason": trade.exit_reason,
+                "strategy": "unified_engine",
+                "regime": trade.signal_metadata.get("regime", "unknown"),
+                "confidence": trade.signal_confidence,
+                "metadata": trade.signal_metadata,
+            }
+            trade_id = await self._async_db.insert_trade(trade_data)
+            logger.debug(f"Trade recorded to async DB: id={trade_id}")
+            return trade_id
+        except Exception as e:
+            logger.warning(f"Failed to record trade to async DB: {e}")
+            return None
+
+    async def record_equity_async(self) -> None:
+        """Record equity snapshot to async database."""
+        if not self._async_db or not self._async_db_initialized or not self._state:
+            return
+
+        try:
+            positions_value = sum(
+                pos.quantity * (pos.current_price or pos.entry_price)
+                for pos in self._state.positions.values()
+            )
+            unrealized_pnl = sum(pos.unrealized_pnl for pos in self._state.positions.values())
+
+            snapshot = {
+                "timestamp": datetime.now().isoformat(),
+                "balance": self._state.current_balance,
+                "equity": self._state.current_balance + positions_value,
+                "unrealized_pnl": unrealized_pnl,
+                "realized_pnl": self._state.total_pnl,
+                "open_positions": len(self._state.positions),
+                "mode": self._state.mode.value,
+            }
+            await self._async_db.insert_equity_snapshot(snapshot)
+        except Exception as e:
+            logger.debug(f"Failed to record equity to async DB: {e}")
+
+    async def get_trade_stats_async(self, days: int = 30) -> Dict[str, Any]:
+        """Get trade statistics from async database."""
+        if not self._async_db or not self._async_db_initialized:
+            return {}
+
+        try:
+            return await self._async_db.get_trade_stats(days)
+        except Exception as e:
+            logger.warning(f"Failed to get trade stats: {e}")
+            return {}
+
+    async def close_async_db(self) -> None:
+        """Close async database connection pool."""
+        if self._async_db:
+            try:
+                await self._async_db.close()
+                self._async_db_initialized = False
+                logger.info("Async database closed")
+            except Exception as e:
+                logger.warning(f"Error closing async database: {e}")

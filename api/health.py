@@ -2,17 +2,16 @@
 Health check and readiness probe endpoints for Kubernetes and Docker health checks.
 """
 
-from fastapi import APIRouter, Response, HTTPException
-from datetime import datetime
+from fastapi import APIRouter, HTTPException
+from datetime import datetime, timezone
 import psutil
-import asyncio
 
 router = APIRouter(prefix="/health", tags=["health"])
 
 
 class HealthStatus:
     def __init__(self):
-        self.startup_time = datetime.utcnow()
+        self.startup_time = datetime.now(timezone.utc)
         self.is_ready = False
         self.components = {}
 
@@ -21,7 +20,7 @@ class HealthStatus:
         try:
             # Import your database connection here
             # await db.connection.scalar("SELECT 1")
-            return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
+            return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
         except Exception as e:
             return {"status": "unhealthy", "error": str(e)}
 
@@ -29,7 +28,7 @@ class HealthStatus:
         """Check Redis/cache connectivity."""
         try:
             # Check cache
-            return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
+            return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
         except Exception as e:
             return {"status": "unhealthy", "error": str(e)}
 
@@ -50,8 +49,8 @@ async def liveness():
     """Liveness probe: is the service running?"""
     return {
         "status": "alive",
-        "timestamp": datetime.utcnow().isoformat(),
-        "uptime_seconds": (datetime.utcnow() - health_status.startup_time).total_seconds(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "uptime_seconds": (datetime.now(timezone.utc) - health_status.startup_time).total_seconds(),
     }
 
 
@@ -61,7 +60,7 @@ async def readiness():
     if not health_status.is_ready:
         raise HTTPException(status_code=503, detail="Service not ready")
 
-    return {"status": "ready", "timestamp": datetime.utcnow().isoformat()}
+    return {"status": "ready", "timestamp": datetime.now(timezone.utc).isoformat()}
 
 
 @router.get("/detailed")
@@ -81,7 +80,7 @@ async def health_detailed():
 
     return {
         "status": "healthy" if all_healthy else "degraded",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "components": {
             "database": db_status,
             "cache": cache_status,

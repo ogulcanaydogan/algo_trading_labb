@@ -3017,6 +3017,7 @@ async def prometheus_metrics() -> PlainTextResponse:
         ],
         "commodity": [STATE_DIR / "commodity_trading" / "state.json"],
         "stock": [STATE_DIR / "stock_trading" / "state.json"],
+        "unified": [Path("data/unified_trading/state.json")],  # Unified engine
     }
 
     total_portfolio_value = 0.0
@@ -3035,12 +3036,30 @@ async def prometheus_metrics() -> PlainTextResponse:
                 with open(state_file, "r") as f:
                     state_data = json.load(f)
 
-                portfolio_value = state_data.get("total_value", 0)
-                cash_balance = state_data.get("cash_balance", 0)
-                pnl = state_data.get("pnl", 0)
-                pnl_pct = state_data.get("pnl_pct", 0)
-                positions_count = state_data.get("positions_count", 0)
+                # Handle both unified and legacy state formats
+                portfolio_value = state_data.get("total_value", state_data.get("current_balance", 0))
+                cash_balance = state_data.get("cash_balance", state_data.get("current_balance", 0))
+                pnl = state_data.get("pnl", state_data.get("total_pnl", 0))
+                initial_capital = state_data.get("initial_capital", 10000)
+                pnl_pct = state_data.get("pnl_pct", pnl / initial_capital * 100 if initial_capital else 0)
+                positions_count = state_data.get("positions_count", len(state_data.get("positions", {})))
                 signals = state_data.get("signals", {})
+
+                # Add unified trading specific metrics
+                if market_type == "unified":
+                    total_trades = state_data.get("total_trades", 0)
+                    win_rate = state_data.get("win_rate", 0)
+                    max_drawdown = state_data.get("max_drawdown_pct", 0)
+                    mode = state_data.get("mode", "paper")
+                    status = state_data.get("status", "stopped")
+                    lines.append("")
+                    lines.append("# HELP trading_unified_total_trades Total trades in unified engine")
+                    lines.append("# TYPE trading_unified_total_trades counter")
+                    lines.append(f"trading_unified_total_trades {total_trades}")
+                    lines.append(f"trading_unified_win_rate {round(win_rate * 100, 2)}")
+                    lines.append(f"trading_unified_max_drawdown_pct {round(max_drawdown * 100, 2)}")
+                    lines.append(f'trading_unified_mode{{mode="{mode}"}} 1')
+                    lines.append(f'trading_unified_status{{status="{status}"}} 1')
 
                 total_portfolio_value += portfolio_value
                 total_pnl += pnl

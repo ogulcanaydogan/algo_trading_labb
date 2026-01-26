@@ -4,9 +4,9 @@ Exposes portfolio management and monitoring capabilities.
 """
 
 from fastapi import APIRouter, HTTPException, Query
-from typing import Dict, List, Optional
-from datetime import datetime
-from bot.portfolio_config import PortfolioLoader, RebalanceStrategy
+from typing import Dict, Optional
+from datetime import datetime, timezone
+from bot.portfolio_config import PortfolioLoader
 from bot.portfolio_manager import PortfolioManager
 from bot.multi_asset_signals import MultiAssetSignalAggregator
 
@@ -44,7 +44,7 @@ async def get_allocations():
     current = portfolio_manager.state.allocation_pcts
 
     return {
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "target_allocations": target,
         "current_allocations": current,
         "drifts": {
@@ -71,7 +71,7 @@ async def get_rebalancing_status():
         "reason": f"Strategy: {portfolio_manager.portfolio.rebalance_strategy.value}",
         "assets_affected": assets,
         "recommended_trades": trades,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -87,7 +87,7 @@ async def rebalance_portfolio():
     return {
         "status": "rebalancing_initiated",
         "trades": trades,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -116,7 +116,7 @@ async def get_positions(symbol: Optional[str] = None):
             }
             for sym, pos in positions.items()
         },
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -138,7 +138,7 @@ async def get_diversification():
         if hhi < 5000
         else "poor",
         "target_hhi": portfolio_manager.portfolio.diversification_target,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -190,7 +190,7 @@ async def get_performance(period_days: int = Query(30, ge=1, le=365)):
         "starting_capital": portfolio_manager.portfolio.total_capital,
         "current_equity": state.total_equity,
         "avg_return_pct_daily": total_pnl_pct / period_days,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -205,5 +205,5 @@ async def update_prices(prices: Dict[str, float]):
     return {
         "status": "prices_updated",
         "count": len(prices),
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }

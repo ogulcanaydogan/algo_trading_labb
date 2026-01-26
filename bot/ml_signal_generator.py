@@ -56,9 +56,9 @@ class MLSignalGenerator:
         self,
         model_dir: Path = Path("data/models"),
         model_type: str = "gradient_boosting",
-        confidence_threshold: float = 0.65,  # Raised to 0.65 to filter weak signals and improve win rate
+        confidence_threshold: float = 0.55,  # Balanced: filters noise while allowing quality signals
         use_mtf_filter: bool = True,
-        mtf_strict_mode: bool = False,  # Relaxed MTF filtering - allow counter-trend with reduced confidence
+        mtf_strict_mode: bool = False,  # Relaxed MTF filtering - allow signals with confidence penalty
         regime_adaptive_threshold: bool = True,  # Adjust threshold based on market regime
         use_ensemble: bool = True,  # Use ensemble predictor for higher accuracy
         ensemble_voting_strategy: str = "performance",  # "majority", "weighted", "performance"
@@ -1180,7 +1180,7 @@ def create_signal_generator(
     model_type: str = "gradient_boosting",
     confidence_threshold: float = 0.65,
     use_mtf_filter: bool = True,
-    mtf_strict_mode: bool = False,
+    mtf_strict_mode: bool = True,
     use_ensemble: bool = True,
     ensemble_voting_strategy: str = "performance",
 ) -> MLSignalGenerator:
@@ -1189,9 +1189,9 @@ def create_signal_generator(
     Args:
         symbols: List of symbols to trade
         model_type: Fallback model type if ensemble unavailable
-        confidence_threshold: Minimum confidence to generate signal (0.60 recommended)
+        confidence_threshold: Minimum confidence to generate signal (0.65 recommended for 60%+ win rate)
         use_mtf_filter: Enable multi-timeframe trend filtering
-        mtf_strict_mode: Reject signals that don't align with higher timeframes
+        mtf_strict_mode: Reject signals that don't align with higher timeframes (True improves quality)
         use_ensemble: Use ensemble predictor for higher accuracy (recommended)
         ensemble_voting_strategy: "majority", "weighted", or "performance" (recommended)
     """

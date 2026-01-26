@@ -9,11 +9,14 @@ Provides REST API endpoints for the unified trading engine:
 """
 
 import json
+import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/unified", tags=["Unified Trading"])
 
@@ -91,6 +94,21 @@ class SafetyStatusResponse(BaseModel):
     current_balance: float
     peak_balance: float
     open_positions: int
+
+
+class SafetyLimitsResponse(BaseModel):
+    """Response model for current safety limits and utilization."""
+
+    max_position_size_usd: float
+    max_position_size_pct: float
+    max_daily_loss_usd: float
+    max_daily_loss_pct: float
+    max_trades_per_day: int
+    max_open_positions: int
+    daily_loss_used_pct: float
+    trades_remaining: int
+    positions_open: int
+    emergency_stop_active: bool
 
 
 class ModeSwitchRequest(BaseModel):
@@ -394,6 +412,43 @@ async def get_safety_status():
     status = controller.get_status()
 
     return SafetyStatusResponse(**status)
+
+
+@router.get("/safety/limits", response_model=SafetyLimitsResponse)
+async def get_safety_limits():
+    """Get safety limits and current utilization for dashboards/monitoring."""
+    from bot.safety_controller import SafetyController
+
+    controller = SafetyController()
+    status = controller.get_status()
+
+    limits = status.get("limits", {})
+    daily_loss = status.get("daily_stats", {}).get("total_loss", 0.0) or 0.0
+    max_daily_loss_usd = float(limits.get("max_daily_loss_usd", 0.0) or 0.0)
+    daily_loss_used_pct = (daily_loss / max_daily_loss_usd) * 100 if max_daily_loss_usd > 0 else 0.0
+
+    trades_remaining = int(limits.get("trades_remaining", 0) or 0)
+    positions_open = int(status.get("open_positions", 0) or 0)
+
+    # Some limits may not be present in compact status; default to 0/False
+    return SafetyLimitsResponse(
+        max_position_size_usd=float(limits.get("max_position_size_usd", 0.0) or 0.0),
+        max_position_size_pct=float(limits.get("max_position_size_pct", 0.0) or 0.0)
+        if "max_position_size_pct" in limits
+        else 0.05,
+        max_daily_loss_usd=max_daily_loss_usd,
+        max_daily_loss_pct=float(limits.get("max_daily_loss_pct", 0.0) or 0.0)
+        if "max_daily_loss_pct" in limits
+        else 0.02,
+        max_trades_per_day=int(limits.get("max_trades_per_day", 0) or 0),
+        max_open_positions=int(limits.get("max_open_positions", 0) or 0)
+        if "max_open_positions" in limits
+        else 3,
+        daily_loss_used_pct=round(daily_loss_used_pct, 2),
+        trades_remaining=trades_remaining,
+        positions_open=positions_open,
+        emergency_stop_active=bool(status.get("emergency_stop_active", False)),
+    )
 
 
 @router.post("/switch-mode")

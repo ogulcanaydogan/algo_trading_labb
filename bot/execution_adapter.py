@@ -402,7 +402,13 @@ class PaperExecutionAdapter(ExecutionAdapter):
 
 
 class TestnetExecutionAdapter(ExecutionAdapter):
-    """Testnet execution - real orders on exchange testnet."""
+    """
+    Testnet execution - real orders on exchange testnet.
+
+    Features:
+    - Connection pooling via aiohttp
+    - Rate limiting to avoid throttling
+    """
 
     def __init__(
         self,
@@ -414,33 +420,52 @@ class TestnetExecutionAdapter(ExecutionAdapter):
         self.api_key = api_key
         self.api_secret = api_secret
         self._exchange = None
+        self._session = None
 
     async def connect(self) -> bool:
-        """Connect to testnet exchange."""
+        """Connect to testnet exchange with connection pooling."""
         try:
+            import aiohttp
             import ccxt.async_support as ccxt
+
+            # Connection pooling for better performance
+            connector = aiohttp.TCPConnector(
+                limit=10,
+                limit_per_host=5,
+                ttl_dns_cache=300,
+                keepalive_timeout=30,
+            )
+            self._session = aiohttp.ClientSession(connector=connector)
 
             self._exchange = ccxt.binance(
                 {
                     "apiKey": self.api_key,
                     "secret": self.api_secret,
                     "sandbox": True,  # Enable testnet (testnet.binance.vision)
-                    "options": {"defaultType": "spot"},  # Spot trading, not futures
+                    "session": self._session,
+                    "enableRateLimit": True,
+                    "rateLimit": 100,
+                    "options": {
+                        "defaultType": "spot",
+                        "adjustForTimeDifference": True,
+                    },
                 }
             )
-            # Test connection
             await self._exchange.load_markets()
             self._connected = True
-            logger.info("Testnet execution adapter connected to Binance testnet")
+            logger.info("Testnet execution adapter connected with connection pooling")
             return True
         except Exception as e:
             logger.error(f"Failed to connect to testnet: {e}")
             return False
 
     async def disconnect(self) -> None:
-        """Disconnect from exchange."""
+        """Disconnect from exchange and close connection pool."""
         if self._exchange:
             await self._exchange.close()
+        if self._session:
+            await self._session.close()
+            self._session = None
         self._connected = False
         logger.info("Testnet execution adapter disconnected")
 
@@ -595,7 +620,14 @@ class TestnetExecutionAdapter(ExecutionAdapter):
 
 
 class LiveExecutionAdapter(ExecutionAdapter):
-    """Live execution - real orders on production exchange."""
+    """
+    Live execution - real orders on production exchange.
+
+    Features:
+    - Connection pooling via aiohttp (reduces latency)
+    - Rate limiting to avoid API throttling
+    - Automatic retry with exponential backoff
+    """
 
     def __init__(
         self,
@@ -609,34 +641,55 @@ class LiveExecutionAdapter(ExecutionAdapter):
         self.api_secret = api_secret
         self.safety_controller = safety_controller
         self._exchange = None
+        self._session = None  # Shared aiohttp session for connection pooling
 
     async def connect(self) -> bool:
-        """Connect to live exchange."""
+        """Connect to live exchange with connection pooling."""
         try:
+            import aiohttp
             import ccxt.async_support as ccxt
+
+            # Create shared aiohttp session with connection pooling
+            # This reuses TCP connections instead of creating new ones per request
+            connector = aiohttp.TCPConnector(
+                limit=10,  # Max simultaneous connections
+                limit_per_host=5,  # Max connections per host
+                ttl_dns_cache=300,  # DNS cache TTL in seconds
+                keepalive_timeout=30,  # Keep connections alive for 30s
+            )
+            self._session = aiohttp.ClientSession(connector=connector)
 
             self._exchange = ccxt.binance(
                 {
                     "apiKey": self.api_key,
                     "secret": self.api_secret,
                     "sandbox": False,  # Production
-                    "options": {"defaultType": "spot"},
+                    "session": self._session,  # Use shared session for pooling
+                    "enableRateLimit": True,  # Built-in rate limiting
+                    "rateLimit": 100,  # ms between requests
+                    "options": {
+                        "defaultType": "spot",
+                        "adjustForTimeDifference": True,
+                    },
                 }
             )
             await self._exchange.load_markets()
             self._connected = True
-            logger.warning("LIVE execution adapter connected - REAL MONEY AT RISK")
+            logger.warning("LIVE execution adapter connected with connection pooling - REAL MONEY AT RISK")
             return True
         except Exception as e:
             logger.error(f"Failed to connect to live exchange: {e}")
             return False
 
     async def disconnect(self) -> None:
-        """Disconnect from exchange."""
+        """Disconnect from exchange and close connection pool."""
         if self._exchange:
             await self._exchange.close()
+        if self._session:
+            await self._session.close()
+            self._session = None
         self._connected = False
-        logger.info("Live execution adapter disconnected")
+        logger.info("Live execution adapter disconnected (connection pool closed)")
 
     async def get_current_price(self, symbol: str) -> float:
         """Get current market price."""

@@ -4,10 +4,11 @@ Improved ML Model Training for >80% Accuracy and >60% Win Rate.
 
 Optimizations:
 1. Enhanced feature engineering (more technical indicators)
-2. Better hyperparameters for XGBoost/RandomForest
-3. Walk-forward validation with proper splits
+2. Better hyperparameters for XGBoost/RandomForest/GradientBoosting
+3. Walk-forward validation with proper TimeSeriesSplit (5 folds)
 4. Ensemble voting for higher confidence
 5. Stricter confidence thresholds
+6. Data quality reports
 """
 
 import argparse
@@ -23,6 +24,13 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.metrics import accuracy_score, classification_report
 import yfinance as yf
 import joblib
+
+# XGBoost optional import
+try:
+    from xgboost import XGBClassifier
+    XGBOOST_AVAILABLE = True
+except ImportError:
+    XGBOOST_AVAILABLE = False
 
 from bot.ml.data_quality import (
     build_quality_report,
@@ -267,14 +275,58 @@ def train_improved_models(
     }
     logger.info(f"  Gradient Boosting CV Accuracy: {np.mean(gb_scores):.2%} ± {np.std(gb_scores):.2%}")
     
-    # Save feature names
+    # 3. XGBoost (if available)
+    xgb_scores = []
+    if XGBOOST_AVAILABLE:
+        logger.info(f"Training XGBoost for {symbol}...")
+        xgb_model = XGBClassifier(
+            n_estimators=200,
+            max_depth=6,
+            learning_rate=0.05,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            min_child_weight=1,
+            reg_alpha=0.1,
+            reg_lambda=1.0,
+            random_state=42,
+            n_jobs=-1,
+            use_label_encoder=False,
+            eval_metric='logloss'
+        )
+        
+        for train_idx, test_idx in tscv.split(X):
+            X_train, X_test = X[train_idx], X[test_idx]
+            y_train, y_test = y_binary[train_idx], y_binary[test_idx]
+            
+            xgb_model.fit(X_train, y_train)
+            score = accuracy_score(y_test, xgb_model.predict(X_test))
+            xgb_scores.append(score)
+        
+        xgb_model.fit(X, y_binary)
+        joblib.dump(xgb_model, save_path / f"{symbol_clean}_xgboost_model.pkl")
+        
+        results['xgboost'] = {
+            'cv_accuracy': np.mean(xgb_scores),
+            'cv_std': np.std(xgb_scores),
+            'final_accuracy': xgb_scores[-1]
+        }
+        logger.info(f"  XGBoost CV Accuracy: {np.mean(xgb_scores):.2%} ± {np.std(xgb_scores):.2%}")
+    else:
+        logger.warning("  XGBoost not installed, skipping")
+    
+    # Save feature names and metadata
     import json
     metadata = {
         'symbol': symbol,
         'features': feature_cols,
         'n_features': len(feature_cols),
         'models': results,
-        'training_samples': len(X)
+        'training_samples': len(X),
+        'ensemble': {
+            'enabled': True,
+            'voting_strategy': 'performance',
+            'models': list(results.keys())
+        }
     }
     with open(save_path / f"{symbol_clean}_metadata.json", 'w') as f:
         json.dump(metadata, f, indent=2)
@@ -283,13 +335,14 @@ def train_improved_models(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Train improved ML models for >80% accuracy")
+    parser = argparse.ArgumentParser(description="Train improved ML models for >80% accuracy with ensemble")
     parser.add_argument("--symbols", nargs="+", 
-                       default=["BTC/USDT", "ETH/USDT", "SOL/USDT", "AVAX/USDT"],
-                       help="Symbols to train")
-    parser.add_argument("--days", type=int, default=730, help="Days of history")
+                       default=["BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT", "ADA/USDT", "MATIC/USDT"],
+                       help="Symbols to train (default: 6 crypto symbols)")
+    parser.add_argument("--days", type=int, default=730, help="Days of history to use (default: 730)")
     parser.add_argument("--save-dir", default="data/models", help="Model save directory")
-    parser.add_argument("--label-horizon", type=int, default=6, help="Forward label horizon")
+    parser.add_argument("--label-horizon", type=int, default=6, help="Forward label horizon (hours)")
+    parser.add_argument("--ensemble", action="store_true", default=True, help="Train ensemble models (default: True)")
     parser.add_argument("--use-triple-barrier", action="store_true", help="Use triple-barrier labels")
     parser.add_argument("--atr-multiplier", type=float, default=2.0, help="ATR multiplier for labels")
     parser.add_argument("--min-return", type=float, default=0.001, help="Minimum return threshold")

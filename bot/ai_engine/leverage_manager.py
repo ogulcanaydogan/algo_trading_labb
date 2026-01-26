@@ -21,7 +21,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
-from .learning_db import LearningDatabase, get_learning_db
+from .learning_db import LearningDatabase, OptimizationResult, get_learning_db
 from .leverage_rl_agent import (
     LeverageRLAgent,
     LeverageState,
@@ -71,8 +71,8 @@ class AILeverageManager:
 
     def __init__(
         self,
-        rl_agent: LeverageRLAgent = None,
-        db: LearningDatabase = None,
+        rl_agent: Optional[LeverageRLAgent] = None,
+        db: Optional[LearningDatabase] = None,
         max_leverage: float = 10.0,
         min_leverage: float = 1.0,
         base_position_size: float = 0.1,  # 10% of capital
@@ -92,7 +92,7 @@ class AILeverageManager:
         self.liquidation_buffer = liquidation_buffer
 
         # Performance tracking
-        self.leverage_history: List[Dict] = []
+        self.leverage_history: List[Dict[str, Any]] = []
         self.performance_by_leverage: Dict[float, List[float]] = {
             1.0: [],
             2.0: [],
@@ -104,7 +104,7 @@ class AILeverageManager:
     def calculate_optimal_leverage(
         self,
         indicators: Dict[str, float],
-        current_position: Dict[str, float] = None,
+        current_position: Optional[Dict[str, float]] = None,
         risk_budget: float = 0.02,  # Max 2% portfolio risk per trade
         account_balance: float = 10000,
         regime: str = "neutral",
@@ -357,7 +357,6 @@ class AILeverageManager:
         max_loss_pct = max_adverse_move * leverage * position_size
 
         # Liquidation distance (simplified)
-        liquidation_threshold = 0.8  # 80% margin used
         margin_per_leverage = 1 / leverage
         liquidation_distance = (1 - margin_per_leverage) * 100  # As percentage
 
@@ -378,7 +377,7 @@ class AILeverageManager:
         leverage: float,
         confidence: float,
         indicators: Dict[str, float],
-        analysis: Dict,
+        analysis: Dict[str, Any],
     ) -> str:
         """Build human-readable reasoning for the decision."""
         parts = []
@@ -421,7 +420,7 @@ class AILeverageManager:
     def get_margin_status(
         self,
         account_info: Dict[str, float],
-        position_info: Dict[str, float] = None,
+        position_info: Optional[Dict[str, float]] = None,
     ) -> MarginStatus:
         """Calculate current margin status."""
         pos = position_info or {}
@@ -517,12 +516,20 @@ class AILeverageManager:
 
         # Save to database
         try:
-            self.db.record_optimization_result(
+            result = OptimizationResult(
+                id=None,
+                timestamp=datetime.now(timezone.utc).isoformat(),
                 symbol=market_conditions.get("symbol", "unknown"),
                 regime=market_conditions.get("regime", "unknown"),
                 parameters={"leverage": leverage, "direction": direction},
-                score=pnl_pct,
+                sharpe_ratio=0, # Simplified
+                win_rate=0, # Simplified
+                total_return=pnl_pct, # Simplified
+                max_drawdown=0, # Simplified
+                num_trades=1, # Simplified
+                backtest_period_days=0, # Simplified
             )
+            self.db.save_optimization_result(result)
         except Exception as e:
             logger.warning(f"Failed to record leverage trade: {e}")
 

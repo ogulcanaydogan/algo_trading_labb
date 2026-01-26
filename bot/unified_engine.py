@@ -9,7 +9,7 @@ import asyncio
 import logging
 import os
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
@@ -23,20 +23,18 @@ from bot.execution_adapter import (
 )
 from bot.safety_controller import (
     SafetyController,
-    SafetyStatus,
     create_safety_controller_for_mode,
 )
 from bot.control import load_bot_control
 from bot.trading_mode import ModeConfig, TradingMode, TradingStatus
-from bot.transition_validator import TransitionValidator, create_transition_validator
+from bot.transition_validator import create_transition_validator
 from bot.unified_state import (
-    EquityPoint,
     PositionState,
     TradeRecord,
     UnifiedState,
     UnifiedStateStore,
 )
-from bot.ml_signal_generator import MLSignalGenerator, create_signal_generator
+from bot.ml_signal_generator import create_signal_generator
 from bot.trailing_stop import TrailingStopManager, create_trailing_stop_manager
 from bot.dca_manager import DCAManager, create_dca_manager
 
@@ -76,7 +74,6 @@ except ImportError:
 try:
     from bot.intelligence import (
         IntelligentTradingBrain,
-        BrainConfig,
         TradeOutcome,
         get_intelligent_brain,
     )
@@ -104,7 +101,7 @@ except ImportError:
 
 # Master AI imports (new unified AI system)
 try:
-    from bot.master_ai import MasterAI, get_master_ai, MasterTradeDecision
+    from bot.master_ai import MasterAI, get_master_ai
 
     MASTER_AI_AVAILABLE = True
 except ImportError:
@@ -115,7 +112,6 @@ try:
     from bot.enhanced_signal_processor import (
         EnhancedSignalProcessor,
         get_enhanced_processor,
-        enhance_signal,
     )
 
     ENHANCED_PROCESSOR_AVAILABLE = True
@@ -132,7 +128,7 @@ except ImportError:
 
 # Auto-Retrainer imports (drift detection and automatic retraining)
 try:
-    from bot.ml.auto_retrainer import AutoRetrainer, RetrainingPipeline
+    from bot.ml.auto_retrainer import AutoRetrainer
 
     AUTO_RETRAINER_AVAILABLE = True
 except ImportError:
@@ -170,14 +166,14 @@ class EngineConfig:
     use_ml_signals: bool = True
     ml_model_type: str = "gradient_boosting"
     ml_confidence_threshold: float = (
-        0.40  # Lowered from 0.45 to allow counter-trend signals through
+        0.55  # Balanced threshold: filters noise while allowing quality signals
     )
 
     # Multi-asset trading (crypto + forex + commodities via different brokers)
     multi_asset: bool = False
 
     # Signal generator (injected or auto-created)
-    signal_generator: Optional[Callable] = None
+    signal_generator: Optional[Callable[[str, float], Optional[Dict[str, Any]]]] = None
 
     # Trailing stop settings
     use_trailing_stop: bool = True
@@ -247,7 +243,7 @@ class UnifiedTradingEngine:
         # Runtime state
         self._running = False
         self._state: Optional[UnifiedState] = None
-        self._loop_task: Optional[asyncio.Task] = None
+        self._loop_task: Optional[asyncio.Task[None]] = None
 
         # Signal handler
         self._signal_generator = config.signal_generator
@@ -282,14 +278,14 @@ class UnifiedTradingEngine:
         if SELF_LEARNING_AVAILABLE:
             if config.use_action_tracker:
                 try:
-                    self.action_tracker = get_action_tracker()
+                    self.action_tracker = get_action_tracker() # type: ignore
                     logger.info("Optimal action tracker initialized")
                 except Exception as e:
                     logger.warning(f"Could not initialize action tracker: {e}")
 
             if config.use_adaptive_risk:
                 try:
-                    self.adaptive_risk_controller = get_adaptive_risk_controller()
+                    self.adaptive_risk_controller = get_adaptive_risk_controller() # type: ignore
                     logger.info("Adaptive risk controller initialized")
                 except Exception as e:
                     logger.warning(f"Could not initialize adaptive risk controller: {e}")
@@ -300,7 +296,7 @@ class UnifiedTradingEngine:
 
         if AI_BRAIN_AVAILABLE and config.use_ai_brain:
             try:
-                self.ai_brain = get_ai_brain()
+                self.ai_brain = get_ai_brain() # type: ignore
                 logger.info("AI Trading Brain initialized - Target: 1% daily gain")
             except Exception as e:
                 logger.warning(f"Could not initialize AI brain: {e}")
@@ -310,7 +306,7 @@ class UnifiedTradingEngine:
 
         if INTELLIGENT_BRAIN_AVAILABLE and config.use_intelligent_brain:
             try:
-                self.intelligent_brain = get_intelligent_brain()
+                self.intelligent_brain = get_intelligent_brain() # type: ignore
                 logger.info(
                     "Intelligent Trading Brain initialized - Explanations and learning enabled"
                 )
@@ -345,7 +341,7 @@ class UnifiedTradingEngine:
         self.regime_risk_engine: Optional[RegimeRiskEngine] = None
         if REGIME_RISK_AVAILABLE:
             try:
-                self.regime_risk_engine = RegimeRiskEngine()
+                self.regime_risk_engine = RegimeRiskEngine() # type: ignore
                 logger.info("Regime risk engine initialized")
             except Exception as e:
                 logger.warning(f"Could not initialize regime risk engine: {e}")
@@ -354,7 +350,7 @@ class UnifiedTradingEngine:
         self.position_sizer: Optional[PositionSizer] = None
         if POSITION_SIZER_AVAILABLE:
             try:
-                self.position_sizer = PositionSizer(portfolio_value=config.initial_capital)
+                self.position_sizer = PositionSizer(portfolio_value=config.initial_capital) # type: ignore
                 logger.info("Position sizer initialized")
             except Exception as e:
                 logger.warning(f"Could not initialize position sizer: {e}")
@@ -363,7 +359,7 @@ class UnifiedTradingEngine:
         self.master_ai: Optional[MasterAI] = None
         if MASTER_AI_AVAILABLE and getattr(config, "use_master_ai", True):
             try:
-                self.master_ai = get_master_ai(
+                self.master_ai = get_master_ai( # type: ignore
                     max_leverage=getattr(config, "max_leverage", 20.0),
                     enable_rl=True,
                     enable_intelligence=True,
@@ -377,7 +373,7 @@ class UnifiedTradingEngine:
         self.enhanced_processor: Optional[EnhancedSignalProcessor] = None
         if ENHANCED_PROCESSOR_AVAILABLE:
             try:
-                self.enhanced_processor = get_enhanced_processor()
+                self.enhanced_processor = get_enhanced_processor() # type: ignore
                 logger.info("Enhanced Signal Processor initialized - MTF, Regime, OrderBook active")
             except Exception as e:
                 logger.warning(f"Could not initialize Enhanced Signal Processor: {e}")
@@ -391,7 +387,7 @@ class UnifiedTradingEngine:
 
                 ml_predictor = get_predictor()
                 if ml_predictor:
-                    self.online_learning_manager = OnlineLearningManager(
+                    self.online_learning_manager = OnlineLearningManager( # type: ignore
                         model=ml_predictor,
                         buffer_size=2000,
                         update_frequency=50,  # Update model every 50 trades
@@ -496,6 +492,12 @@ class UnifiedTradingEngine:
         if not self._state:
             raise RuntimeError("Engine not initialized")
 
+        # Initialize async database for high-performance trade storage
+        try:
+            await self.state_store.initialize_async_db()
+        except Exception as e:
+            logger.warning(f"Async DB initialization failed (non-critical): {e}")
+
         self._running = True
         self._state.status = TradingStatus.ACTIVE
         self.state_store.update_state(status=TradingStatus.ACTIVE)
@@ -526,6 +528,12 @@ class UnifiedTradingEngine:
         if self._state:
             self._state.status = TradingStatus.STOPPED
             self.state_store.update_state(status=TradingStatus.STOPPED)
+
+        # Close async database connection pool
+        try:
+            await self.state_store.close_async_db()
+        except Exception as e:
+            logger.debug(f"Error closing async DB: {e}")
 
         logger.info("Trading engine stopped")
 
@@ -728,8 +736,12 @@ class UnifiedTradingEngine:
                 f"(unrealized: ${total_unrealized_pnl:.2f})"
             )
 
-        # Record equity point
+        # Record equity point (sync JSON + async DB)
         self.state_store.record_equity_point()
+        try:
+            await self.state_store.record_equity_async()
+        except Exception as e:
+            logger.debug(f"Async equity recording failed: {e}")
 
         # Clear API errors on successful iteration
         if self.safety_controller:
@@ -1019,7 +1031,7 @@ class UnifiedTradingEngine:
         # Optimal action tracker gating - relaxed in paper mode
         if self.action_tracker and SELF_LEARNING_AVAILABLE:
             try:
-                state = MarketState(
+                state = MarketState( # type: ignore
                     regime=signal.get("regime", "unknown"),
                     regime_confidence=confidence,
                     trend_direction=signal.get("trend", "neutral"),
@@ -1073,19 +1085,19 @@ class UnifiedTradingEngine:
     def _map_regime(self, regime: Optional[str]) -> MarketRegime:
         """Map string regime to MarketRegime enum."""
         if not regime:
-            return MarketRegime.UNKNOWN
+            return MarketRegime.UNKNOWN # type: ignore
         regime_key = regime.lower()
         mapping = {
-            "strong_bull": MarketRegime.STRONG_BULL,
-            "bull": MarketRegime.BULL,
-            "strong_bear": MarketRegime.STRONG_BEAR,
-            "bear": MarketRegime.BEAR,
-            "crash": MarketRegime.CRASH,
-            "volatile": MarketRegime.HIGH_VOL,
-            "high_vol": MarketRegime.HIGH_VOL,
-            "sideways": MarketRegime.SIDEWAYS,
+            "strong_bull": MarketRegime.STRONG_BULL, # type: ignore
+            "bull": MarketRegime.BULL, # type: ignore
+            "strong_bear": MarketRegime.STRONG_BEAR, # type: ignore
+            "bear": MarketRegime.BEAR, # type: ignore
+            "crash": MarketRegime.CRASH, # type: ignore
+            "volatile": MarketRegime.HIGH_VOL, # type: ignore
+            "high_vol": MarketRegime.HIGH_VOL, # type: ignore
+            "sideways": MarketRegime.SIDEWAYS, # type: ignore
         }
-        return mapping.get(regime_key, MarketRegime.UNKNOWN)
+        return mapping.get(regime_key, MarketRegime.UNKNOWN) # type: ignore
 
     def _build_regime_state(self, symbol: str, signal: Dict[str, Any]) -> Optional[RegimeState]:
         """Build a lightweight regime state for risk engine integration."""
@@ -1094,7 +1106,7 @@ class UnifiedTradingEngine:
 
         regime_enum = self._map_regime(signal.get("regime"))
         confidence = float(signal.get("confidence", 0.5) or 0.5)
-        indicators = RegimeIndicators()
+        indicators = RegimeIndicators() # type: ignore
 
         trend = signal.get("trend")
         if trend == "up":
@@ -1108,7 +1120,7 @@ class UnifiedTradingEngine:
         elif volatility == "low":
             indicators.vol_spike_ratio = 0.5
 
-        return RegimeState(
+        return RegimeState( # type: ignore
             regime=regime_enum,
             confidence=confidence,
             indicators=indicators,
@@ -1116,10 +1128,10 @@ class UnifiedTradingEngine:
             timeframe="1h",
         )
 
-    def _build_portfolio_state(self) -> PortfolioState:
+    def _build_portfolio_state(self) -> PortfolioState: # type: ignore
         """Build portfolio snapshot for regime risk engine."""
         if not self._state:
-            return PortfolioState()
+            return PortfolioState() # type: ignore
 
         positions = {}
         positions_value = 0.0
@@ -1195,7 +1207,7 @@ class UnifiedTradingEngine:
                     else price * (1 - self.config.take_profit_pct)
                 )
 
-                trade_request = TradeRequest(
+                trade_request = TradeRequest( # type: ignore
                     symbol=symbol,
                     direction="long" if side == "long" else "short",
                     entry_price=price,
@@ -1267,7 +1279,7 @@ class UnifiedTradingEngine:
             quantity=result.filled_quantity,
             entry_price=result.average_price,
             side=side,
-            entry_time=datetime.now().isoformat(),
+            entry_time=datetime.now(timezone.utc).isoformat(),
             stop_loss=result.average_price * (1 - stop_loss_pct)
             if side == "long"
             else result.average_price * (1 + stop_loss_pct),
@@ -1342,7 +1354,7 @@ class UnifiedTradingEngine:
             self._prediction_ids[symbol] = prediction_id
 
         # Track last trade time for risk engine pacing
-        self._last_trade_time = datetime.now()
+        self._last_trade_time = datetime.now(timezone.utc)
 
         # Intelligent Brain: Explain entry and send via Telegram
         if self.intelligent_brain and INTELLIGENT_BRAIN_AVAILABLE:
@@ -1433,7 +1445,7 @@ class UnifiedTradingEngine:
             pnl=pnl,
             pnl_pct=pnl_pct,
             entry_time=position.entry_time,
-            exit_time=datetime.now().isoformat(),
+            exit_time=datetime.now(timezone.utc).isoformat(),
             exit_reason=reason,
             commission=result.commission,
             mode=self._state.mode.value,
@@ -1444,6 +1456,12 @@ class UnifiedTradingEngine:
             signal_metadata=getattr(position, "signal_meta", {}) or {},
         )
         self.state_store.record_trade(trade)
+
+        # Also record to async database (non-blocking)
+        try:
+            await self.state_store.record_trade_async(trade)
+        except Exception as e:
+            logger.debug(f"Async trade recording failed (non-critical): {e}")
 
         # Update balance
         self._state.current_balance += pnl
@@ -1501,7 +1519,7 @@ class UnifiedTradingEngine:
         # Record action outcome for learning
         try:
             entry_time = datetime.fromisoformat(position.entry_time)
-            holding_hours = (datetime.now() - entry_time).total_seconds() / 3600
+            holding_hours = (datetime.now(timezone.utc) - entry_time).total_seconds() / 3600
         except Exception:
             holding_hours = 0.0
 
@@ -1511,7 +1529,7 @@ class UnifiedTradingEngine:
             self._consecutive_losses += 1
         else:
             self._consecutive_losses = 0
-        self._last_trade_time = datetime.now()
+        self._last_trade_time = datetime.now(timezone.utc)
 
         if self.regime_risk_engine:
             try:
@@ -1595,7 +1613,7 @@ class UnifiedTradingEngine:
                 )
 
                 # Learn from the trade outcome
-                trade_outcome = TradeOutcome(
+                trade_outcome = TradeOutcome( # type: ignore
                     symbol=symbol,
                     action="BUY" if position.side == "long" else "SELL",
                     entry_price=position.entry_price,
@@ -1778,7 +1796,7 @@ class UnifiedTradingEngine:
             try:
                 sizing = self.position_sizer.calculate_size(
                     symbol=symbol,
-                    method=SizingMethod.CONFIDENCE_SCALED,
+                    method=SizingMethod.CONFIDENCE_SCALED, # type: ignore
                     price=price,
                     confidence=confidence,
                 )
@@ -1882,14 +1900,14 @@ class UnifiedTradingEngine:
                 )
 
                 # Build action outcome (entry only)
-                action_type = ActionType.BUY if side == "long" else ActionType.SELL
-                outcome = ActionOutcome(
+                action_type = ActionType.BUY if side == "long" else ActionType.SELL # type: ignore
+                outcome = ActionOutcome( # type: ignore
                     action=action_type,
                     entry_price=price,
                 )
 
                 # Create record
-                record = StateActionRecord(
+                record = StateActionRecord( # type: ignore
                     symbol=symbol,
                     state=state,
                     outcome=outcome,
@@ -1913,18 +1931,18 @@ class UnifiedTradingEngine:
             try:
                 # Map regime to MarketCondition
                 regime_map = {
-                    "strong_bull": MarketCondition.STRONG_BULL,
-                    "bull": MarketCondition.BULL,
-                    "weak_bull": MarketCondition.WEAK_BULL,
-                    "sideways": MarketCondition.SIDEWAYS,
-                    "weak_bear": MarketCondition.WEAK_BEAR,
-                    "bear": MarketCondition.BEAR,
-                    "strong_bear": MarketCondition.STRONG_BEAR,
-                    "crash": MarketCondition.CRASH,
-                    "volatile": MarketCondition.VOLATILE,
+                    "strong_bull": MarketCondition.STRONG_BULL, # type: ignore
+                    "bull": MarketCondition.BULL, # type: ignore
+                    "weak_bull": MarketCondition.WEAK_BULL, # type: ignore
+                    "sideways": MarketCondition.SIDEWAYS, # type: ignore
+                    "weak_bear": MarketCondition.WEAK_BEAR, # type: ignore
+                    "bear": MarketCondition.BEAR, # type: ignore
+                    "strong_bear": MarketCondition.STRONG_BEAR, # type: ignore
+                    "crash": MarketCondition.CRASH, # type: ignore
+                    "volatile": MarketCondition.VOLATILE, # type: ignore
                 }
                 regime = signal.get("regime", "sideways")
-                condition = regime_map.get(regime, MarketCondition.SIDEWAYS)
+                condition = regime_map.get(regime, MarketCondition.SIDEWAYS) # type: ignore
 
                 # Map volatility
                 vol_str = signal.get("volatility", "normal")
@@ -1933,8 +1951,8 @@ class UnifiedTradingEngine:
                 )
 
                 # Create snapshot for later outcome recording
-                snapshot = MarketSnapshot(
-                    timestamp=datetime.now(),
+                snapshot = MarketSnapshot( # type: ignore
+                    timestamp=datetime.now(timezone.utc),
                     symbol=symbol,
                     price=price,
                     trend_1h=signal.get("trend", "neutral"),
@@ -1965,8 +1983,8 @@ class UnifiedTradingEngine:
             try:
                 record_id = self._action_record_ids.pop(symbol, None)
                 if record_id:
-                    outcome = ActionOutcome(
-                        action=ActionType.CLOSE,
+                    outcome = ActionOutcome( # type: ignore
+                        action=ActionType.CLOSE, # type: ignore
                         entry_price=entry_price,
                         exit_price=exit_price,
                         pnl=pnl,
@@ -1989,7 +2007,7 @@ class UnifiedTradingEngine:
                     action = "buy" if position and position.side == "long" else "sell"
 
                     result = self.ai_brain.record_trade_result(
-                        trade_id=f"{symbol}_{int(datetime.now().timestamp())}",
+                        trade_id=f"{symbol}_{int(datetime.now(timezone.utc).timestamp())}",
                         symbol=symbol,
                         entry_snapshot=entry_snapshot,
                         action=action,

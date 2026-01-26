@@ -77,7 +77,7 @@ async def run_trading(args) -> None:
         ]
         logger.info("Multi-asset mode enabled: crypto + forex + indices + commodities + stocks")
     else:
-        symbols = args.symbols.split(",") if args.symbols else ["BTC/USDT", "ETH/USDT"]
+        symbols = args.symbols.split(",") if args.symbols else ["BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT", "ADA/USDT", "AVAX/USDT"]
 
     config = EngineConfig(
         initial_mode=mode,
@@ -214,7 +214,7 @@ def main():
     run_p = subparsers.add_parser("run", help="Run trading")
     run_p.add_argument("--mode", default="paper_live_data")
     run_p.add_argument("--capital", type=float, default=10000)
-    run_p.add_argument("--symbols", default="BTC/USDT,ETH/USDT,SOL/USDT")
+    run_p.add_argument("--symbols", default="BTC/USDT,ETH/USDT,SOL/USDT,XRP/USDT,ADA/USDT,MATIC/USDT", help="Trading symbols (comma-separated)")
     run_p.add_argument("--interval", type=int, default=60)
     run_p.add_argument("--confirm", action="store_true")
     run_p.add_argument("--fresh", action="store_true")
