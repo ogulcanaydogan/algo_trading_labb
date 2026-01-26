@@ -213,22 +213,67 @@ class PaperExecutionAdapter(ExecutionAdapter):
         self._prices[symbol] = price
 
     async def get_current_price(self, symbol: str) -> float:
-        """Get simulated current price with random variation."""
-        import random
+        """Get REAL current price from yfinance for paper trading with live data."""
+        import time as _time
 
-        if symbol in self._prices:
-            base_price = self._prices[symbol]
-        else:
-            # Default price for testing
-            base_price = 50000.0 if "BTC" in symbol else 3000.0
-            self._prices[symbol] = base_price
+        # Check cache (5 second TTL)
+        cache_key = f"{symbol}_price"
+        now = _time.time()
+        if cache_key in self._prices:
+            cached_price, cached_time = self._prices[cache_key]
+            if now - cached_time < 5:  # 5 second cache
+                return cached_price
 
-        # Add random price variation (±0.5% per call) to simulate market movement
-        # This makes the portfolio balance update in real-time as "market prices" change
-        variation_pct = random.uniform(-0.005, 0.005)  # ±0.5%
-        varied_price = base_price * (1 + variation_pct)
+        try:
+            import yfinance as yf
 
-        return varied_price
+            # Convert symbol format: BTC/USDT -> BTC-USD
+            yf_symbol = symbol.replace("/USDT", "-USD").replace("/USD", "-USD")
+
+            ticker = yf.Ticker(yf_symbol)
+            # Try multiple price sources
+            price = None
+            try:
+                price = ticker.info.get("regularMarketPrice")
+            except Exception:
+                pass
+            if not price:
+                try:
+                    price = ticker.fast_info.get("lastPrice")
+                except Exception:
+                    pass
+            if not price:
+                hist = ticker.history(period="1d", interval="1m")
+                if not hist.empty:
+                    price = hist["Close"].iloc[-1]
+
+            if price and price > 0:
+                self._prices[cache_key] = (price, now)
+                return price
+
+        except Exception as e:
+            logger.warning(f"yfinance price fetch failed for {symbol}: {e}")
+
+        # Fallback to ccxt if yfinance fails
+        try:
+            import ccxt.async_support as ccxt_async
+
+            exchange = ccxt_async.binance({"enableRateLimit": True})
+            ticker = await exchange.fetch_ticker(symbol)
+            await exchange.close()
+            price = ticker["last"]
+            if price:
+                self._prices[cache_key] = (price, now)
+                return price
+        except Exception as e:
+            logger.warning(f"ccxt price fetch failed for {symbol}: {e}")
+
+        # Last resort: return cached or default
+        if cache_key in self._prices:
+            return self._prices[cache_key][0]
+
+        logger.error(f"Could not fetch price for {symbol}, using fallback")
+        return 50000.0 if "BTC" in symbol else 100.0
 
     async def place_order(self, order: Order) -> OrderResult:
         """Simulate order placement."""

@@ -190,9 +190,9 @@ strategy:
 
 ml:
   # ML signal generation configuration
-  confidence_threshold: 0.65              # Raised from 0.45 to filter weak signals, improves win rate
-  mtf_strict_mode: true                  # Enforce higher timeframe alignment, reject counter-trend
-  use_mtf_filter: true                   # Enable multi-timeframe confirmation
+  confidence_threshold: 0.55              # Lowered for more trading opportunities
+  mtf_strict_mode: false                 # Disabled for more signals
+  use_mtf_filter: false                  # Disabled for faster signal generation
   regime_adaptive_threshold: true        # Adjust threshold based on market regime
   use_ensemble: true                     # Use ensemble predictor for higher accuracy (target: 80%)
   ensemble_voting_strategy: "performance"  # "majority", "weighted", or "performance"
