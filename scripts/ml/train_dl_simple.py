@@ -153,15 +153,18 @@ def train_model(
     val_loader: DataLoader,
     device: torch.device,
     epochs: int = 50,
-    lr: float = 0.001
+    lr: float = 0.001,
+    weight_decay: float = 0.01,  # L2 regularization
+    patience: int = 10  # Early stopping patience
 ) -> dict:
-    """Train the model."""
-    criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    """Train the model with regularization and early stopping."""
+    criterion = nn.CrossEntropyLoss(label_smoothing=0.1)  # Label smoothing
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=5, factor=0.5)
 
     best_val_acc = 0
     best_state = None
+    no_improve_count = 0
 
     for epoch in range(epochs):
         # Training
@@ -177,6 +180,7 @@ def train_model(
             outputs = model(X_batch)
             loss = criterion(outputs, y_batch)
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)  # Gradient clipping
             optimizer.step()
 
             train_loss += loss.item()
@@ -208,9 +212,17 @@ def train_model(
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             best_state = model.state_dict().copy()
+            no_improve_count = 0
+        else:
+            no_improve_count += 1
 
         if epoch % 10 == 0:
             logger.info(f"Epoch {epoch+1}/{epochs} - Train Acc: {train_acc:.1f}%, Val Acc: {val_acc:.1f}%")
+
+        # Early stopping
+        if no_improve_count >= patience:
+            logger.info(f"Early stopping at epoch {epoch+1} (no improvement for {patience} epochs)")
+            break
 
     # Load best state
     if best_state:
