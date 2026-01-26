@@ -6493,7 +6493,7 @@ from bot.core.circuit_breaker import circuit_breaker, CommonCircuitBreakers
 
 
 @app.post("/api/ai-brain/record-trade", tags=["AI Brain"])
-@circuit_breaker(CommonCircuitBreakers.AI_PREDICTION, failure_threshold=3, timeout=30)
+@circuit_breaker(CommonCircuitBreakers.ML_PREDICTION, failure_threshold=3, timeout=30)
 async def record_trade_for_learning(request: Request) -> Dict[str, Any]:
     """
     Record a completed trade for AI learning.

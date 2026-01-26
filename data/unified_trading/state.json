@@ -1,16 +1,205 @@
 {
   "mode": "paper_live_data",
-  "status": "stopped",
-  "timestamp": "2026-01-26T19:42:04.236985",
+  "status": "active",
+  "timestamp": "2026-01-26T19:46:56.029311",
   "initial_capital": 50000.0,
-  "current_balance": 50000.0,
-  "peak_balance": 50000.0,
-  "positions": {},
+  "current_balance": 49671.70731229229,
+  "peak_balance": 105425.835095038,
+  "positions": {
+    "BTC/USDT": {
+      "symbol": "BTC/USDT",
+      "quantity": 0.05007313518669986,
+      "entry_price": 49904.44711475832,
+      "side": "short",
+      "entry_time": "2026-01-26T19:42:23.685619+00:00",
+      "stop_loss": 50902.53605705348,
+      "take_profit": 47908.269230167985,
+      "unrealized_pnl": -0.3563491467867398,
+      "current_price": 49911.563688255424,
+      "signal_confidence": 0.7359428571428571,
+      "signal_reason": "Ensemble (2 models): SHORT (95.0%)",
+      "signal_meta": {
+        "model_type": "ensemble",
+        "prediction_id": "7462",
+        "threshold_used": 0.55,
+        "raw_confidence": 1.0,
+        "calibrated_confidence": 1.0,
+        "monitor_threshold_adjustment": 0.0,
+        "monitor_notes": [],
+        "regime": "unknown",
+        "regime_strategy": {
+          "regime": "unknown",
+          "position_size_multiplier": 1.0,
+          "stop_loss_pct": 0.02,
+          "take_profit_pct": 0.04,
+          "strategy_type": "trend_following",
+          "confidence_adjustment": 0.0
+        },
+        "trend": "neutral",
+        "volatility": "low",
+        "rsi": 57.49471210340776,
+        "risk_engine": {
+          "decision": "size_reduced",
+          "approved_quantity": 0.05007313518669986,
+          "original_quantity": 0.22532910834014938,
+          "block_reasons": [],
+          "warnings": [
+            "Size reduced from 0.2253 to 0.0501"
+          ],
+          "applied_limits": {
+            "regime": "unknown",
+            "regime_limits": {
+              "max_leverage": 1.5,
+              "max_position_pct": 0.1,
+              "risk_per_trade_pct": 0.01
+            }
+          },
+          "timestamp": "2026-01-26T19:42:23.685373"
+        }
+      }
+    },
+    "ETH/USDT": {
+      "symbol": "ETH/USDT",
+      "quantity": 3.7625414492488454,
+      "entry_price": 2986.8016206912666,
+      "side": "short",
+      "entry_time": "2026-01-26T19:42:30.390158+00:00",
+      "stop_loss": 3046.537653105092,
+      "take_profit": 2867.329555863616,
+      "unrealized_pnl": -54.112877006256966,
+      "current_price": 3001.18362225488,
+      "signal_confidence": 0.7359428571428571,
+      "signal_reason": "Ensemble (2 models): SHORT (95.0%)",
+      "signal_meta": {
+        "model_type": "ensemble",
+        "prediction_id": "7463",
+        "threshold_used": 0.55,
+        "raw_confidence": 1.0,
+        "calibrated_confidence": 1.0,
+        "monitor_threshold_adjustment": 0.0,
+        "monitor_notes": [],
+        "regime": "unknown",
+        "regime_strategy": {
+          "regime": "unknown",
+          "position_size_multiplier": 1.0,
+          "stop_loss_pct": 0.02,
+          "take_profit_pct": 0.04,
+          "strategy_type": "trend_following",
+          "confidence_adjustment": 0.0
+        },
+        "trend": "up",
+        "volatility": "low",
+        "rsi": 67.88148607334563
+      }
+    },
+    "SOL/USDT": {
+      "symbol": "SOL/USDT",
+      "quantity": 3.7659604533689937,
+      "entry_price": 2985.9968016315643,
+      "side": "short",
+      "entry_time": "2026-01-26T19:42:34.070256+00:00",
+      "stop_loss": 3045.7167376641955,
+      "take_profit": 2866.5569295663017,
+      "unrealized_pnl": -28.66010669384573,
+      "current_price": 2993.6071063728705,
+      "signal_confidence": 0.7359428571428571,
+      "signal_reason": "Ensemble (3 models): SHORT (95.0%)",
+      "signal_meta": {
+        "model_type": "ensemble",
+        "prediction_id": "7464",
+        "threshold_used": 0.55,
+        "raw_confidence": 1.0,
+        "calibrated_confidence": 1.0,
+        "monitor_threshold_adjustment": 0.0,
+        "monitor_notes": [],
+        "regime": "unknown",
+        "regime_strategy": {
+          "regime": "unknown",
+          "position_size_multiplier": 1.0,
+          "stop_loss_pct": 0.02,
+          "take_profit_pct": 0.04,
+          "strategy_type": "trend_following",
+          "confidence_adjustment": 0.0
+        },
+        "trend": "up",
+        "volatility": "low",
+        "rsi": 72.4976514288939
+      }
+    },
+    "XRP/USDT": {
+      "symbol": "XRP/USDT",
+      "quantity": 3.749971306601006,
+      "entry_price": 2984.888338241314,
+      "side": "short",
+      "entry_time": "2026-01-26T19:42:40.436193+00:00",
+      "stop_loss": 3044.5861050061403,
+      "take_profit": 2865.4928047116614,
+      "unrealized_pnl": -94.31964615863242,
+      "current_price": 3010.0404363367325,
+      "signal_confidence": 0.673519280564568,
+      "signal_reason": "Ensemble (3 models): SHORT (62.2%)",
+      "signal_meta": {
+        "model_type": "ensemble",
+        "prediction_id": "7465",
+        "threshold_used": 0.55,
+        "raw_confidence": 0.6222173658014669,
+        "calibrated_confidence": 0.6222173658014669,
+        "monitor_threshold_adjustment": 0.0,
+        "monitor_notes": [],
+        "regime": "unknown",
+        "regime_strategy": {
+          "regime": "unknown",
+          "position_size_multiplier": 1.0,
+          "stop_loss_pct": 0.02,
+          "take_profit_pct": 0.04,
+          "strategy_type": "trend_following",
+          "confidence_adjustment": 0.0
+        },
+        "trend": "up",
+        "volatility": "low",
+        "rsi": 68.74208022747132
+      }
+    },
+    "ADA/USDT": {
+      "symbol": "ADA/USDT",
+      "quantity": 6.442702966130096,
+      "entry_price": 2987.970527318626,
+      "side": "short",
+      "entry_time": "2026-01-26T19:43:44.635969+00:00",
+      "stop_loss": 3047.7299378649986,
+      "take_profit": 2868.451706225881,
+      "unrealized_pnl": -150.84370870219234,
+      "current_price": 3011.383636613776,
+      "signal_confidence": 0.7359428571428571,
+      "signal_reason": "Ensemble (3 models): SHORT (95.0%)",
+      "signal_meta": {
+        "model_type": "ensemble",
+        "prediction_id": "7472",
+        "threshold_used": 0.55,
+        "raw_confidence": 1.0,
+        "calibrated_confidence": 1.0,
+        "monitor_threshold_adjustment": 0.0,
+        "monitor_notes": [],
+        "regime": "unknown",
+        "regime_strategy": {
+          "regime": "unknown",
+          "position_size_multiplier": 1.0,
+          "stop_loss_pct": 0.02,
+          "take_profit_pct": 0.04,
+          "strategy_type": "trend_following",
+          "confidence_adjustment": 0.0
+        },
+        "trend": "up",
+        "volatility": "low",
+        "rsi": 67.88792092215775
+      }
+    }
+  },
   "total_trades": 0,
   "winning_trades": 0,
   "losing_trades": 0,
   "total_pnl": 0.0,
-  "max_drawdown_pct": 0.0,
+  "max_drawdown_pct": 0.5288469162467165,
   "mode_started_at": "2026-01-25T22:26:24.843432",
   "days_in_mode": 0,
   "daily_trades": 0,
