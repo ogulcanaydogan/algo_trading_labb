@@ -600,5 +600,75 @@
     "positions_value": 55754.127782745716,
     "total_equity": 105425.835095038,
     "unrealized_pnl": -328.2926877077142
+  },
+  {
+    "timestamp": "2026-01-26T19:47:59.680449",
+    "balance": 49688.942371735146,
+    "positions_value": 55736.89272330285,
+    "total_equity": 105425.835095038,
+    "unrealized_pnl": -311.0576282648513
+  },
+  {
+    "timestamp": "2026-01-26T19:49:00.614312",
+    "balance": 49650.999662804796,
+    "positions_value": 55774.8354322332,
+    "total_equity": 105425.835095038,
+    "unrealized_pnl": -349.00033719520377
+  },
+  {
+    "timestamp": "2026-01-26T19:50:01.548024",
+    "balance": 49697.4160982227,
+    "positions_value": 55728.4189968153,
+    "total_equity": 105425.835095038,
+    "unrealized_pnl": -302.5839017773015
+  },
+  {
+    "timestamp": "2026-01-26T19:51:02.417445",
+    "balance": 49796.21198051701,
+    "positions_value": 55629.623114521,
+    "total_equity": 105425.835095038,
+    "unrealized_pnl": -203.78801948299437
+  },
+  {
+    "timestamp": "2026-01-26T19:52:03.685370",
+    "balance": 49822.03833988992,
+    "positions_value": 55603.796755148076,
+    "total_equity": 105425.835095038,
+    "unrealized_pnl": -177.9616601100771
+  },
+  {
+    "timestamp": "2026-01-26T19:52:17.329233",
+    "balance": 49673.94824733308,
+    "positions_value": 55781.55970382044,
+    "total_equity": 105455.50795115353,
+    "unrealized_pnl": -326.05175266691936
+  },
+  {
+    "timestamp": "2026-01-26T19:53:20.127439",
+    "balance": 49682.35227164274,
+    "positions_value": 55816.7275760823,
+    "total_equity": 105499.07984772505,
+    "unrealized_pnl": -317.6477283572592
+  },
+  {
+    "timestamp": "2026-01-26T19:54:23.163530",
+    "balance": 49660.31726655328,
+    "positions_value": 55731.928893381,
+    "total_equity": 105392.24615993428,
+    "unrealized_pnl": -339.6827334467229
+  },
+  {
+    "timestamp": "2026-01-26T19:55:26.209007",
+    "balance": 49748.33189952506,
+    "positions_value": 55721.36481798835,
+    "total_equity": 105469.6967175134,
+    "unrealized_pnl": -251.66810047493732
+  },
+  {
+    "timestamp": "2026-01-26T19:56:31.529061",
+    "balance": 49835.67023871401,
+    "positions_value": 55537.30597091436,
+    "total_equity": 105372.97620962837,
+    "unrealized_pnl": -164.32976128599103
   }
 ]

@@ -1,10 +1,10 @@
 {
   "mode": "paper_live_data",
   "status": "active",
-  "timestamp": "2026-01-26T19:46:56.029311",
+  "timestamp": "2026-01-26T19:56:31.528669",
   "initial_capital": 50000.0,
-  "current_balance": 49671.70731229229,
-  "peak_balance": 105425.835095038,
+  "current_balance": 49835.67023871401,
+  "peak_balance": 200000.0,
   "positions": {
     "BTC/USDT": {
       "symbol": "BTC/USDT",
@@ -14,8 +14,8 @@
       "entry_time": "2026-01-26T19:42:23.685619+00:00",
       "stop_loss": 50902.53605705348,
       "take_profit": 47908.269230167985,
-      "unrealized_pnl": -0.3563491467867398,
-      "current_price": 49911.563688255424,
+      "unrealized_pnl": -7.1016718688789515,
+      "current_price": 50046.27310273371,
       "signal_confidence": 0.7359428571428571,
       "signal_reason": "Ensemble (2 models): SHORT (95.0%)",
       "signal_meta": {
@@ -66,8 +66,8 @@
       "entry_time": "2026-01-26T19:42:30.390158+00:00",
       "stop_loss": 3046.537653105092,
       "take_profit": 2867.329555863616,
-      "unrealized_pnl": -54.112877006256966,
-      "current_price": 3001.18362225488,
+      "unrealized_pnl": 2.7662486350720923,
+      "current_price": 2986.0664132065426,
       "signal_confidence": 0.7359428571428571,
       "signal_reason": "Ensemble (2 models): SHORT (95.0%)",
       "signal_meta": {
@@ -100,8 +100,8 @@
       "entry_time": "2026-01-26T19:42:34.070256+00:00",
       "stop_loss": 3045.7167376641955,
       "take_profit": 2866.5569295663017,
-      "unrealized_pnl": -28.66010669384573,
-      "current_price": 2993.6071063728705,
+      "unrealized_pnl": -5.694754360779018,
+      "current_price": 2987.508966836508,
       "signal_confidence": 0.7359428571428571,
       "signal_reason": "Ensemble (3 models): SHORT (95.0%)",
       "signal_meta": {
@@ -134,8 +134,8 @@
       "entry_time": "2026-01-26T19:42:40.436193+00:00",
       "stop_loss": 3044.5861050061403,
       "take_profit": 2865.4928047116614,
-      "unrealized_pnl": -94.31964615863242,
-      "current_price": 3010.0404363367325,
+      "unrealized_pnl": -56.95599284791196,
+      "current_price": 2989.4110162068846,
       "signal_confidence": 0.673519280564568,
       "signal_reason": "Ensemble (3 models): SHORT (62.2%)",
       "signal_meta": {
@@ -168,8 +168,8 @@
       "entry_time": "2026-01-26T19:43:44.635969+00:00",
       "stop_loss": 3047.7299378649986,
       "take_profit": 2868.451706225881,
-      "unrealized_pnl": -150.84370870219234,
-      "current_price": 3011.383636613776,
+      "unrealized_pnl": -97.34359084349319,
+      "current_price": 3001.083158170307,
       "signal_confidence": 0.7359428571428571,
       "signal_reason": "Ensemble (3 models): SHORT (95.0%)",
       "signal_meta": {
@@ -199,7 +199,7 @@
   "winning_trades": 0,
   "losing_trades": 0,
   "total_pnl": 0.0,
-  "max_drawdown_pct": 0.5288469162467165,
+  "max_drawdown_pct": 0.7516984136672336,
   "mode_started_at": "2026-01-25T22:26:24.843432",
   "days_in_mode": 0,
   "daily_trades": 0,
