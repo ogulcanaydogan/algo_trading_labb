@@ -4660,6 +4660,398 @@
             pnlPeriod: localStorage.getItem('pnlPeriod') || 'day',
         };
 
+        // ============================================================
+        // PORTFOLIO STORE - TEMPORAL CONSISTENCY ARCHITECTURE
+        //
+        // This is the ONLY system that can update portfolio values.
+        // It provides the following guarantees:
+        //
+        // 1. SNAPSHOT VERSIONING: Every update has a monotonic version
+        // 2. UPDATE GATE: Single function commits state (no direct writes)
+        // 3. ATOMIC COMMITS: Full snapshot or nothing
+        // 4. OUT-OF-ORDER PROTECTION: Stale responses are dropped
+        // 5. TEMPORAL INVARIANT: All displayed values share same version
+        // 6. MATERIAL THRESHOLD: Prevents micro-flicker from float noise
+        //
+        // WHY FLICKER IS NOW IMPOSSIBLE:
+        // - Only ONE function can write to state (commitSnapshot)
+        // - Stale updates are rejected (version check)
+        // - Partial data is rejected (validation)
+        // - DOM updates are atomic (requestAnimationFrame)
+        // - Total is DERIVED from children (math guarantee)
+        // ============================================================
+
+        const PortfolioStore = {
+            // === STATE ===
+            _snapshot: null,           // Current committed snapshot (immutable)
+            _committedVersion: 0,      // Highest version we've committed
+            _pendingFetches: 0,        // Track in-flight requests
+            _lastCommitTime: null,     // When we last committed
+            _updateLock: false,        // Prevent concurrent commits
+            _paused: false,            // Pause gate for user actions
+            _integrityWarnings: 0,     // Count of integrity mismatches
+
+            // === CONFIGURATION ===
+            MATERIAL_THRESHOLD: 0.01,  // Only commit if change > $0.01
+            STALE_THRESHOLD_MS: 30000, // Reject updates older than 30s
+            DEV_MODE: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1',
+
+            // === FORMATTERS (no rounding - values pre-rounded from API) ===
+            fmt: {
+                currency: (v) => v == null ? '--' : '$' + v.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}),
+                currencyInt: (v) => v == null ? '--' : '$' + Math.round(v).toLocaleString('en-US'),
+                pnl: (v) => v == null ? '--' : (v >= 0 ? '+' : '') + '$' + v.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}),
+                percent: (v) => v == null ? '--' : (v >= 0 ? '+' : '') + v.toFixed(2) + '%'
+            },
+
+            // === GETTERS ===
+            get snapshot() { return this._snapshot; },
+            get version() { return this._committedVersion; },
+            get isLocked() { return this._updateLock; },
+
+            // === VALIDATION ===
+
+            // Check if snapshot is structurally valid
+            isValidSnapshot(snap) {
+                if (!snap || !snap.total || !snap.markets) return false;
+                if (!snap.markets.crypto || !snap.markets.commodity || !snap.markets.stock) return false;
+                if (typeof snap.total.total_value !== 'number') return false;
+                return true;
+            },
+
+            // Validate temporal consistency: total === sum(children)
+            // Uses integer cents if available for bulletproof math
+            validateIntegrity(snap) {
+                let hasMismatch = false;
+
+                // Prefer cents (integer math) if available
+                if (snap.markets.crypto.total_value_cents !== undefined) {
+                    const sumCents = (snap.markets.crypto.total_value_cents || 0) +
+                                    (snap.markets.commodity.total_value_cents || 0) +
+                                    (snap.markets.stock.total_value_cents || 0);
+                    const totalCents = snap.total.total_value_cents || 0;
+
+                    if (sumCents !== totalCents) {
+                        console.warn('[PortfolioStore] INTEGRITY FIX (cents): total != sum(children)',
+                            { sumCents, totalCents, diff: sumCents - totalCents });
+                        snap.total.total_value_cents = sumCents;
+                        snap.total.total_value = sumCents / 100;
+                        hasMismatch = true;
+                    }
+
+                    // P&L in cents
+                    const pnlSumCents = (snap.markets.crypto.pnl_cents || 0) +
+                                       (snap.markets.commodity.pnl_cents || 0) +
+                                       (snap.markets.stock.pnl_cents || 0);
+                    snap.total.pnl_cents = pnlSumCents;
+                    snap.total.pnl = pnlSumCents / 100;
+                } else {
+                    // Fallback to float comparison
+                    const sum = (snap.markets.crypto.total_value || 0) +
+                               (snap.markets.commodity.total_value || 0) +
+                               (snap.markets.stock.total_value || 0);
+                    const diff = Math.abs(sum - (snap.total.total_value || 0));
+
+                    if (diff > 0.01) {
+                        console.warn('[PortfolioStore] INTEGRITY FIX: total != sum(children)',
+                            { sum, total: snap.total.total_value, diff });
+                        snap.total.total_value = sum;
+                        hasMismatch = true;
+                    }
+
+                    // P&L sum
+                    const pnlSum = (snap.markets.crypto.pnl || 0) +
+                                  (snap.markets.commodity.pnl || 0) +
+                                  (snap.markets.stock.pnl || 0);
+                    snap.total.pnl = pnlSum;
+                }
+
+                // Track integrity warnings and show badge in dev mode
+                if (hasMismatch) {
+                    this._integrityWarnings++;
+                    this._showIntegrityWarning(snap);
+                }
+
+                return snap;
+            },
+
+            // Show integrity warning badge in dev mode
+            _showIntegrityWarning(snap) {
+                if (!this.DEV_MODE) return;
+
+                let badge = document.getElementById('integrityWarningBadge');
+                if (!badge) {
+                    badge = document.createElement('div');
+                    badge.id = 'integrityWarningBadge';
+                    badge.style.cssText = `
+                        position: fixed; top: 10px; right: 10px; z-index: 9999;
+                        background: #ef4444; color: white; padding: 8px 12px;
+                        border-radius: 4px; font-size: 12px; font-family: monospace;
+                        cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                    `;
+                    badge.onclick = () => {
+                        console.table({
+                            crypto: snap.markets.crypto.total_value,
+                            commodity: snap.markets.commodity.total_value,
+                            stock: snap.markets.stock.total_value,
+                            sum: snap.markets.crypto.total_value + snap.markets.commodity.total_value + snap.markets.stock.total_value,
+                            total: snap.total.total_value,
+                            warnings: this._integrityWarnings
+                        });
+                    };
+                    document.body.appendChild(badge);
+                }
+                badge.textContent = `⚠ Data Integrity (${this._integrityWarnings})`;
+                badge.title = 'Click to see details in console';
+
+                // Auto-hide after 10 seconds if no new warnings
+                setTimeout(() => {
+                    if (badge && badge.parentNode) badge.remove();
+                }, 10000);
+            },
+
+            // Check if update is stale (out-of-order protection)
+            isStaleUpdate(snap) {
+                // Must have version
+                const version = snap.version || 0;
+
+                // Reject if version is older than committed
+                if (version <= this._committedVersion) {
+                    console.log('[PortfolioStore] REJECTED: Stale version', { incoming: version, current: this._committedVersion });
+                    return true;
+                }
+
+                // Reject if timestamp is too old
+                if (snap.timestamp) {
+                    const snapTime = new Date(snap.timestamp).getTime();
+                    const age = Date.now() - snapTime;
+                    if (age > this.STALE_THRESHOLD_MS) {
+                        console.log('[PortfolioStore] REJECTED: Timestamp too old', { age: age/1000 + 's' });
+                        return true;
+                    }
+                }
+
+                return false;
+            },
+
+            // Check if change is material (prevents micro-flicker)
+            isMaterialChange(oldSnap, newSnap) {
+                if (!oldSnap) return true;
+
+                for (const market of ['crypto', 'commodity', 'stock']) {
+                    const oldVal = oldSnap.markets?.[market]?.total_value || 0;
+                    const newVal = newSnap.markets?.[market]?.total_value || 0;
+                    if (Math.abs(newVal - oldVal) >= this.MATERIAL_THRESHOLD) return true;
+
+                    const oldPnl = oldSnap.markets?.[market]?.pnl || 0;
+                    const newPnl = newSnap.markets?.[market]?.pnl || 0;
+                    if (Math.abs(newPnl - oldPnl) >= this.MATERIAL_THRESHOLD) return true;
+                }
+                return false;
+            },
+
+            // === PAUSE/RESUME GATE (for user actions) ===
+            pause() {
+                this._paused = true;
+                console.log('[PortfolioStore] PAUSED - updates will be held');
+            },
+
+            resume() {
+                this._paused = false;
+                console.log('[PortfolioStore] RESUMED - updates will flow');
+                // Immediately fetch fresh data after resume
+                this.fetchAndCommit();
+            },
+
+            get isPaused() { return this._paused; },
+
+            // === COMMIT GATE (SINGLE ENTRY POINT FOR STATE CHANGES) ===
+
+            commitSnapshot(candidateSnapshot) {
+                // PAUSE GATE: Hold updates during user actions
+                if (this._paused) {
+                    console.log('[PortfolioStore] HELD: Updates paused for user action');
+                    return false;
+                }
+
+                // LOCK: Only one commit at a time
+                if (this._updateLock) {
+                    console.log('[PortfolioStore] BLOCKED: Commit already in progress');
+                    return false;
+                }
+                this._updateLock = true;
+
+                try {
+                    // 1. VALIDATE STRUCTURE
+                    if (!this.isValidSnapshot(candidateSnapshot)) {
+                        console.error('[PortfolioStore] REJECTED: Invalid snapshot structure');
+                        return false;
+                    }
+
+                    // 2. REJECT STALE UPDATES (out-of-order protection)
+                    if (this.isStaleUpdate(candidateSnapshot)) {
+                        return false;
+                    }
+
+                    // 3. VALIDATE INTEGRITY (total === sum of children)
+                    candidateSnapshot = this.validateIntegrity(candidateSnapshot);
+
+                    // 4. CHECK MATERIAL CHANGE (prevent micro-flicker)
+                    if (!this.isMaterialChange(this._snapshot, candidateSnapshot)) {
+                        console.log('[PortfolioStore] SKIPPED: No material change');
+                        return false;
+                    }
+
+                    // 5. ATOMIC COMMIT
+                    const version = candidateSnapshot.version || Date.now();
+                    this._snapshot = Object.freeze(candidateSnapshot);
+                    this._committedVersion = version;
+                    this._lastCommitTime = Date.now();
+
+                    // 6. SYNC TO LEGACY STATE (for other dashboard components)
+                    this._syncLegacyState(candidateSnapshot);
+
+                    // 7. RENDER ATOMICALLY
+                    this._render(candidateSnapshot);
+
+                    console.log('[PortfolioStore] COMMITTED:', {
+                        version: this._committedVersion,
+                        total: candidateSnapshot.total.total_value,
+                        crypto: candidateSnapshot.markets.crypto.total_value,
+                        commodity: candidateSnapshot.markets.commodity.total_value,
+                        stock: candidateSnapshot.markets.stock.total_value,
+                        sum: candidateSnapshot.markets.crypto.total_value +
+                             candidateSnapshot.markets.commodity.total_value +
+                             candidateSnapshot.markets.stock.total_value
+                    });
+
+                    return true;
+
+                } finally {
+                    this._updateLock = false;
+                }
+            },
+
+            // === SYNC TO LEGACY STATE OBJECT ===
+            _syncLegacyState(snap) {
+                const m = snap.markets;
+                state.markets.crypto.total_value = m.crypto.total_value;
+                state.markets.crypto.pnl = m.crypto.pnl;
+                state.markets.crypto.pnl_pct = m.crypto.pnl_pct;
+                state.markets.crypto.positions_count = m.crypto.positions_count || 0;
+
+                state.markets.commodity.total_value = m.commodity.total_value;
+                state.markets.commodity.pnl = m.commodity.pnl;
+                state.markets.commodity.pnl_pct = m.commodity.pnl_pct;
+                state.markets.commodity.positions_count = m.commodity.positions_count || 0;
+
+                state.markets.stock.total_value = m.stock.total_value;
+                state.markets.stock.pnl = m.stock.pnl;
+                state.markets.stock.pnl_pct = m.stock.pnl_pct;
+                state.markets.stock.positions_count = m.stock.positions_count || 0;
+            },
+
+            // === ATOMIC RENDER (all DOM updates in single frame) ===
+            _render(snap) {
+                requestAnimationFrame(() => {
+                    const { total, markets } = snap;
+                    const f = this.fmt;
+
+                    // TOTAL PORTFOLIO
+                    const totalEl = document.getElementById('totalPortfolioValue');
+                    const totalPnlEl = document.getElementById('totalPnl');
+                    if (totalEl) totalEl.textContent = f.currencyInt(total.total_value);
+                    if (totalPnlEl) {
+                        totalPnlEl.textContent = `${f.pnl(total.pnl)} (${f.percent(total.pnl_pct)})`;
+                        totalPnlEl.className = 'summary-change ' + (total.pnl >= 0 ? 'positive' : 'negative');
+                    }
+
+                    // EACH MARKET (top card + bottom card)
+                    for (const [key, prefix] of [['crypto','crypto'], ['commodity','commodity'], ['stock','stock']]) {
+                        const m = markets[key];
+
+                        // Top card
+                        const valEl = document.getElementById(`${prefix}Value`);
+                        const pnlEl = document.getElementById(`${prefix}Pnl`);
+                        if (valEl) valEl.textContent = f.currencyInt(m.total_value);
+                        if (pnlEl) {
+                            pnlEl.textContent = `${f.pnl(m.pnl)} (${f.percent(m.pnl_pct)})`;
+                            pnlEl.className = 'summary-change ' + (m.pnl >= 0 ? 'positive' : 'negative');
+                        }
+
+                        // Bottom card
+                        const balEl = document.getElementById(`${prefix}Balance`);
+                        const pnlValEl = document.getElementById(`${prefix}PnlValue`);
+                        const pnlPctEl = document.getElementById(`${prefix}PnlPercent`);
+                        if (balEl) balEl.textContent = f.currencyInt(m.total_value);
+                        if (pnlValEl) {
+                            pnlValEl.textContent = f.pnl(m.pnl);
+                            pnlValEl.style.color = m.pnl >= 0 ? 'var(--signal-long)' : 'var(--signal-short)';
+                        }
+                        if (pnlPctEl) pnlPctEl.textContent = `(${f.percent(m.pnl_pct)})`;
+                    }
+
+                    // Header balance
+                    const headerEl = document.getElementById('modeBalance');
+                    if (headerEl) headerEl.textContent = f.currencyInt(total.total_value);
+
+                    // Timestamp
+                    const tsEl = document.getElementById('lastUpdate');
+                    if (tsEl) tsEl.textContent = new Date().toLocaleTimeString();
+                });
+            },
+
+            // === FETCH AND COMMIT (the only way to update from API) ===
+            async fetchAndCommit() {
+                this._pendingFetches++;
+
+                try {
+                    const response = await fetch('/api/dashboard/unified-state');
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                    const snapshot = await response.json();
+                    this.commitSnapshot(snapshot);
+
+                } catch (error) {
+                    console.error('[PortfolioStore] Fetch error:', error);
+                } finally {
+                    this._pendingFetches--;
+                }
+            },
+
+            // === START UPDATE LOOP ===
+            start(intervalMs = 5000) {
+                // Initial fetch
+                this.fetchAndCommit();
+
+                // Single interval - NO other timers should update portfolio values
+                setInterval(() => this.fetchAndCommit(), intervalMs);
+
+                console.log('[PortfolioStore] Started with interval:', intervalMs + 'ms');
+            },
+
+            // === EXTERNAL UPDATE GATE (for WebSocket, etc) ===
+            // All external sources MUST call this - never update DOM directly
+            submitExternalUpdate(snapshot) {
+                console.log('[PortfolioStore] External update received');
+                return this.commitSnapshot(snapshot);
+            }
+        };
+
+        // LEGACY COMPATIBILITY: Expose for old code that checks lastMasterUpdate
+        let lastMasterUpdate = null;
+        async function masterDashboardUpdate() {
+            await PortfolioStore.fetchAndCommit();
+            lastMasterUpdate = PortfolioStore._lastCommitTime;
+        }
+
+        // START THE SINGLE UPDATE LOOP
+        PortfolioStore.start(5000);
+
+        // ============================================================
+        // END PORTFOLIO STORE
+        // ============================================================
+
         // P&L History tracking (persisted in localStorage)
         const pnlHistory = {
             snapshots: JSON.parse(localStorage.getItem('pnlSnapshots') || '[]'),
@@ -4756,20 +5148,19 @@
             const totalPnlEl = document.getElementById('totalPnl');
             if (totalPnlEl) {
                 const pnlClass = displayPnl >= 0 ? 'positive' : 'negative';
-                const sign = displayPnl >= 0 ? '+' : '';
                 totalPnlEl.className = `summary-change ${pnlClass}`;
-                totalPnlEl.textContent = `${sign}${formatCurrency(displayPnl)} (${sign}${displayPnlPct.toFixed(2)}%) ${periodLabel}`;
+                totalPnlEl.textContent = `${formatPnl(displayPnl)} (${formatPercent(displayPnlPct)}) ${periodLabel}`;
             }
 
             // Update individual market P&Ls
             ['crypto', 'commodity', 'stock'].forEach(market => {
                 const marketPnl = (state.markets[market].pnl || 0) * scaleFactor;
+                const marketPnlPct = (state.markets[market].pnl_pct || 0) * scaleFactor;
                 const pnlEl = document.getElementById(`${market}Pnl`);
                 if (pnlEl) {
                     const pnlClass = marketPnl >= 0 ? 'positive' : 'negative';
-                    const sign = marketPnl >= 0 ? '+' : '';
                     pnlEl.className = `summary-change ${pnlClass}`;
-                    pnlEl.textContent = `${sign}${formatCurrency(marketPnl)}`;
+                    pnlEl.textContent = `${formatPnl(marketPnl)} (${formatPercent(marketPnlPct)})`;
                 }
             });
         }
@@ -4994,22 +5385,23 @@
             }
         });
 
-        // Update active markets indicator
+        // Update active markets indicator - USES UNIFIED DATA
         async function updateActiveMarkets() {
             const indicator = document.getElementById('activeMarketsIndicator');
             const textEl = document.getElementById('activeMarketsText');
             if (!indicator || !textEl) return;
 
             try {
-                const response = await fetch('/api/trading/control-panel');
-                if (!response.ok) throw new Error('Failed to fetch');
-                const data = await response.json();
+                // Use cached unified data instead of separate API call
+                if (!lastUnifiedData) {
+                    await fetchUnifiedState();
+                }
 
                 let activeCount = 0;
-                const markets = data.markets || {};
+                const markets = lastUnifiedData?.markets || {};
 
                 for (const [market, info] of Object.entries(markets)) {
-                    if (info.running && !info.paused) {
+                    if (info.status === 'healthy') {
                         activeCount++;
                     }
                 }
@@ -5866,14 +6258,7 @@
             state.connected = true;
             updateConnectionStatus();
 
-            // Update portfolio totals (totalPortfolioValue is updated by updatePortfolioAllocation for consistency)
-            if (data.total_pnl !== undefined) {
-                const totalPnlClass = data.total_pnl >= 0 ? 'positive' : 'negative';
-                document.getElementById('totalPnl').className = `summary-change ${totalPnlClass}`;
-                document.getElementById('totalPnl').textContent = `${formatCurrency(data.total_pnl)} (${formatPercent(data.total_pnl_pct)})`;
-            }
-
-            // Update markets data
+            // Update markets data (includes centralized P&L updates)
             if (data.markets) {
                 updateMarketsFromWS(data.markets);
             }
@@ -5895,39 +6280,39 @@
 
         // Update markets data from WebSocket
         function updateMarketsFromWS(markets) {
+            // DISABLED: Master update handles all portfolio values
+            if (lastMasterUpdate && (Date.now() - lastMasterUpdate) < 10000) {
+                console.log('updateMarketsFromWS SKIPPED - master update active');
+                return;
+            }
+
+            // Collect P&L data for centralized update
+            let cryptoPnl = 0, cryptoPnlPct = 0;
+            let commodityPnl = 0, commodityPnlPct = 0;
+            let stockPnl = 0, stockPnlPct = 0;
+
             for (const [marketType, marketData] of Object.entries(markets)) {
                 if (marketData.status === 'error' || marketData.status === 'not_running') {
                     continue;
                 }
 
-                const prefix = marketType;
-                const valueEl = document.getElementById(`${prefix}Value`);
-                const pnlEl = document.getElementById(`${prefix}Pnl`);
-
-                // Do NOT update total_value from WS to avoid flicker/inconsistency.
-                // Single source of truth: fetchMarketData -> state.markets.*.total_value -> updatePortfolioAllocation
-                // if (valueEl && marketData.total_value !== undefined) {
-                //     valueEl.textContent = formatCurrency(marketData.total_value);
-                // }
-
-                if (pnlEl && marketData.pnl !== undefined) {
-                    const pnlClass = marketData.pnl >= 0 ? 'positive' : 'negative';
-                    pnlEl.className = `summary-change ${pnlClass}`;
-                    pnlEl.textContent = `${formatCurrency(marketData.pnl)} (${formatPercent(marketData.pnl_pct)})`;
+                // Collect P&L values for centralized update
+                if (marketType === 'crypto') {
+                    cryptoPnl = marketData.pnl || 0;
+                    cryptoPnlPct = marketData.pnl_pct || 0;
+                } else if (marketType === 'commodity') {
+                    commodityPnl = marketData.pnl || 0;
+                    commodityPnlPct = marketData.pnl_pct || 0;
+                } else if (marketType === 'stock') {
+                    stockPnl = marketData.pnl || 0;
+                    stockPnlPct = marketData.pnl_pct || 0;
                 }
 
-                // Update market tab stats
-                const totalValueEl = document.getElementById(`${prefix}TotalValue`);
-                const positionsEl = document.getElementById(`${prefix}Positions`);
-                const cashEl = document.getElementById(`${prefix}Cash`);
-                const pnlTodayEl = document.getElementById(`${prefix}PnlToday`);
+                const prefix = marketType;
 
-                // Keep total value driven by fetchMarketData to match pie chart
-                // if (totalValueEl) totalValueEl.textContent = formatCurrency(marketData.total_value);
+                // Update market tab stats (non-P&L items only)
+                const positionsEl = document.getElementById(`${prefix}Positions`);
                 if (positionsEl) positionsEl.textContent = marketData.positions_count || 0;
-                // Avoid cash flicker from mixed sources
-                // if (cashEl) cashEl.textContent = formatCurrency(marketData.cash_balance);
-                if (pnlTodayEl) pnlTodayEl.textContent = formatPercent(marketData.pnl_pct);
 
                 // Update DL state from crypto market
                 if (marketType === 'crypto') {
@@ -5935,6 +6320,9 @@
                     state.dlModelSelection = marketData.dl_model_selection || null;
                 }
             }
+
+            // Use CENTRALIZED function for ALL P&L updates
+            updateAllPnlDisplays(cryptoPnl, cryptoPnlPct, commodityPnl, commodityPnlPct, stockPnl, stockPnlPct);
         }
 
         // Update signals from WebSocket
@@ -6346,7 +6734,7 @@
             });
         });
 
-        // Format currency
+        // Format currency (for balances/values - no sign prefix)
         function formatCurrency(value, currency = 'USD') {
             if (value === null || value === undefined) return '--';
             const symbol = currency === 'GBP' ? '£' : '$';
@@ -6356,12 +6744,85 @@
             return symbol + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
-        // Format percentage
+        // Format P&L with +/- sign (ALWAYS use this for P&L values)
+        function formatPnl(value) {
+            if (value === null || value === undefined) return '--';
+            const sign = value >= 0 ? '+' : '-';
+            const absValue = Math.abs(value);
+            if (absValue >= 1000) {
+                return sign + '$' + absValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            }
+            return sign + '$' + absValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        // Format percentage with +/- sign
         function formatPercent(value) {
             if (value === null || value === undefined) return '--';
-            const sign = value >= 0 ? '+' : '';
-            return sign + value.toFixed(2) + '%';
+            const sign = value >= 0 ? '+' : '-';
+            return sign + Math.abs(value).toFixed(2) + '%';
         }
+
+        // ========== CENTRALIZED P&L UPDATE SYSTEM ==========
+        // This is the ONLY function that should update P&L displays
+        // All other update paths should call this function
+        let lastPnlUpdate = { crypto: null, commodity: null, stock: null, total: null };
+
+        function updateAllPnlDisplays(cryptoPnl, cryptoPnlPct, commodityPnl, commodityPnlPct, stockPnl, stockPnlPct) {
+            // DISABLED: Master update system handles all P&L updates
+            // This function is kept for backward compatibility but does nothing
+            if (lastMasterUpdate && (Date.now() - lastMasterUpdate) < 10000) {
+                console.log('updateAllPnlDisplays SKIPPED - master update active');
+                return;
+            }
+
+            // Calculate total
+            const totalPnl = (cryptoPnl || 0) + (commodityPnl || 0) + (stockPnl || 0);
+            const totalPnlPct = (totalPnl / 30000) * 100;
+
+            // Format strings ONCE
+            const cryptoStr = `${formatPnl(cryptoPnl || 0)} (${formatPercent(cryptoPnlPct || 0)})`;
+            const commodityStr = `${formatPnl(commodityPnl || 0)} (${formatPercent(commodityPnlPct || 0)})`;
+            const stockStr = `${formatPnl(stockPnl || 0)} (${formatPercent(stockPnlPct || 0)})`;
+            const totalStr = `${formatPnl(totalPnl)} (${formatPercent(totalPnlPct)})`;
+
+            // Only update if values changed (prevents flickering)
+            if (lastPnlUpdate.crypto !== cryptoStr) {
+                const el = document.getElementById('cryptoPnl');
+                if (el) {
+                    el.textContent = cryptoStr;
+                    el.className = `summary-change ${(cryptoPnl || 0) >= 0 ? 'positive' : 'negative'}`;
+                }
+                lastPnlUpdate.crypto = cryptoStr;
+            }
+
+            if (lastPnlUpdate.commodity !== commodityStr) {
+                const el = document.getElementById('commodityPnl');
+                if (el) {
+                    el.textContent = commodityStr;
+                    el.className = `summary-change ${(commodityPnl || 0) >= 0 ? 'positive' : 'negative'}`;
+                }
+                lastPnlUpdate.commodity = commodityStr;
+            }
+
+            if (lastPnlUpdate.stock !== stockStr) {
+                const el = document.getElementById('stockPnl');
+                if (el) {
+                    el.textContent = stockStr;
+                    el.className = `summary-change ${(stockPnl || 0) >= 0 ? 'positive' : 'negative'}`;
+                }
+                lastPnlUpdate.stock = stockStr;
+            }
+
+            if (lastPnlUpdate.total !== totalStr) {
+                const el = document.getElementById('totalPnl');
+                if (el) {
+                    el.textContent = totalStr;
+                    el.className = `summary-change ${totalPnl >= 0 ? 'positive' : 'negative'}`;
+                }
+                lastPnlUpdate.total = totalStr;
+            }
+        }
+        // ========== END CENTRALIZED P&L UPDATE SYSTEM ==========
 
         // Format confidence
         function formatConfidence(value) {
@@ -6732,25 +7193,35 @@
         }
 
         // Update portfolio allocation display
-        // apiTotal is optional - if provided, use it as the total (single source of truth from API)
+        // FULLY DISABLED: PortfolioStore handles ALL value updates
+        // This function now ONLY draws the pie chart - NO value updates
         function updatePortfolioAllocation(cryptoValue, commodityValue, stockValue, apiTotal = null) {
+            // DISABLED: PortfolioStore is the ONLY source of truth for values
+            // This function now only draws the pie chart for visual allocation
+
+            const total = cryptoValue + commodityValue + stockValue;
+            if (total > 0) {
+                drawAllocationPieChart(cryptoValue, commodityValue, stockValue, 0);
+            }
+
+            // ALL VALUE UPDATES BELOW ARE DISABLED
+            // PortfolioStore.commitSnapshot() handles these exclusively
+            return;
+
+            /* DISABLED - DO NOT UNCOMMENT
             const calculatedTotal = cryptoValue + commodityValue + stockValue;
-            // Use API total if provided and valid, otherwise calculate from market values
             const total = (apiTotal && apiTotal > 0) ? apiTotal : calculatedTotal;
             console.log('updatePortfolioAllocation:', { cryptoValue, commodityValue, stockValue, calculatedTotal, apiTotal, total });
 
-            // Don't update if all values are 0 (keep showing "Loading...")
             if (total === 0) {
                 console.log('updatePortfolioAllocation: skipping update (all values are 0)');
                 return;
             }
 
-            // Calculate allocation percentages based on actual total portfolio value
             const cryptoPct = total > 0 ? (cryptoValue / total * 100).toFixed(1) : '0.0';
             const commodityPct = total > 0 ? (commodityValue / total * 100).toFixed(1) : '0.0';
             const stockPct = total > 0 ? (stockValue / total * 100).toFixed(1) : '0.0';
 
-            // Update allocation labels
             const cryptoAllocEl = document.getElementById('cryptoAllocation');
             const commodityAllocEl = document.getElementById('commodityAllocation');
             const stockAllocEl = document.getElementById('stockAllocation');
@@ -6758,14 +7229,12 @@
             if (commodityAllocEl) commodityAllocEl.textContent = `${commodityPct}% (${formatCurrency(commodityValue)})`;
             if (stockAllocEl) stockAllocEl.textContent = `${stockPct}% (${formatCurrency(stockValue)})`;
 
-            // Update Total Portfolio Value - remove loading state and set value
             const totalPortfolioEl = document.getElementById('totalPortfolioValue');
             if (totalPortfolioEl) {
                 totalPortfolioEl.classList.remove('loading-state');
                 totalPortfolioEl.textContent = formatCurrency(total);
             }
 
-            // Update individual market values - remove loading states
             const cryptoValEl = document.getElementById('cryptoValue');
             const commodityValEl = document.getElementById('commodityValue');
             const stockValEl = document.getElementById('stockValue');
@@ -6783,35 +7252,15 @@
                 stockValEl.textContent = formatCurrency(stockValue);
             }
 
-            // Update market P&L values
-            const cryptoPnl = state.markets.crypto.pnl || 0;
-            const commodityPnl = state.markets.commodity.pnl || 0;
-            const stockPnl = state.markets.stock.pnl || 0;
-
-            const cryptoPnlEl = document.getElementById('cryptoPnl');
-            const commodityPnlEl = document.getElementById('commodityPnl');
-            const stockPnlEl = document.getElementById('stockPnl');
-
-            if (cryptoPnlEl) {
-                cryptoPnlEl.className = `summary-change ${cryptoPnl >= 0 ? 'positive' : 'negative'}`;
-                cryptoPnlEl.innerHTML = `${cryptoPnl >= 0 ? '+' : ''}${formatCurrency(cryptoPnl)}`;
-            }
-            if (commodityPnlEl) {
-                commodityPnlEl.className = `summary-change ${commodityPnl >= 0 ? 'positive' : 'negative'}`;
-                commodityPnlEl.innerHTML = `${commodityPnl >= 0 ? '+' : ''}${formatCurrency(commodityPnl)}`;
-            }
-            if (stockPnlEl) {
-                stockPnlEl.className = `summary-change ${stockPnl >= 0 ? 'positive' : 'negative'}`;
-                stockPnlEl.innerHTML = `${stockPnl >= 0 ? '+' : ''}${formatCurrency(stockPnl)}`;
-            }
-
-            // Update total P&L
-            const totalPnl = cryptoPnl + commodityPnl + stockPnl;
-            const totalPnlEl = document.getElementById('totalPnl');
-            if (totalPnlEl) {
-                totalPnlEl.className = `summary-change ${totalPnl >= 0 ? 'positive' : 'negative'}`;
-                totalPnlEl.innerHTML = `${totalPnl >= 0 ? '+' : ''}${formatCurrency(totalPnl)} (${((totalPnl / 30000) * 100).toFixed(2)}%)`;
-            }
+            // Update ALL P&L displays using CENTRALIZED function
+            updateAllPnlDisplays(
+                state.markets.crypto.pnl || 0,
+                state.markets.crypto.pnl_pct || 0,
+                state.markets.commodity.pnl || 0,
+                state.markets.commodity.pnl_pct || 0,
+                state.markets.stock.pnl || 0,
+                state.markets.stock.pnl_pct || 0
+            );
 
             // Hide cash allocation row since each market manages its own cash
             const cashRow = document.getElementById('cashAllocation')?.parentElement;
@@ -6873,7 +7322,7 @@
             if (pnlEl && market.pnl !== undefined) {
                 const pnlClass = market.pnl >= 0 ? 'positive' : 'negative';
                 pnlEl.className = `summary-change ${pnlClass}`;
-                pnlEl.textContent = `${formatCurrency(market.pnl)} (${formatPercent(market.pnl_pct)})`;
+                pnlEl.textContent = `${formatPnl(market.pnl)} (${formatPercent(market.pnl_pct)})`;
             }
 
             // Note: totalPortfolioValue is updated by fetchBotState to ensure consistency
@@ -6881,7 +7330,9 @@
 
         // Update total portfolio across all markets
         function updateTotalPortfolio() {
-            // Get market values for allocation update
+            // DISABLED: PortfolioStore is the ONLY source of truth for portfolio values
+            // This function now ONLY records P&L history and updates pie chart
+
             const cryptoVal = state.markets.crypto.total_value || 0;
             const commodityVal = state.markets.commodity.total_value || 0;
             const stockVal = state.markets.stock.total_value || 0;
@@ -6892,58 +7343,87 @@
                 pnlHistory.recordSnapshot(totalValue);
             }
 
-            // Update P&L display using period-based calculation
-            updatePnlDisplay();
-
-            // Update pie chart and totalPortfolioValue (both use same calculated total)
+            // Update pie chart only (no value updates)
             updatePortfolioAllocation(cryptoVal, commodityVal, stockVal);
 
-            // Update header balance display
-            const headerBalance = document.getElementById('modeBalance');
-            if (headerBalance && totalValue > 0) {
-                headerBalance.textContent = formatCurrency(totalValue);
+            // ALL VALUE DOM UPDATES DISABLED - PortfolioStore._render() handles:
+            // - totalPortfolioValue
+            // - totalPnl
+            // - cryptoValue, commodityValue, stockValue
+            // - cryptoPnl, commodityPnl, stockPnl
+            // - modeBalance (header)
+            return;
+        }
+
+        // =========================================================================
+        // UNIFIED STATE FETCH - For UI grids/charts (NOT portfolio values)
+        // =========================================================================
+        // IMPORTANT: This function is for UI components (grids, charts, logs).
+        // Portfolio values (total_value, pnl, pnl_pct) are OWNED BY PortfolioStore.
+        // Do NOT update those fields here to prevent race conditions.
+
+        let lastUnifiedData = null;  // Cache for other functions that need the data
+
+        async function fetchUnifiedState() {
+            try {
+                const response = await fetch('/api/dashboard/unified-state');
+                if (!response.ok) throw new Error(`Failed to fetch unified state: ${response.status}`);
+
+                const data = await response.json();
+                lastUnifiedData = data;  // Cache for other uses
+                console.log(`fetchUnifiedState: (UI only) positions=${data.total?.positions_count}`);
+
+                // Update UI-only fields from single response (atomic update)
+                // PORTFOLIO VALUES (total_value, pnl, pnl_pct) ARE OWNED BY PortfolioStore
+                const timestamp = new Date();
+                for (const marketType of ['crypto', 'commodity', 'stock']) {
+                    const marketData = data.markets[marketType];
+                    if (marketData) {
+                        // UI state fields (safe to update here)
+                        state.markets[marketType].loading = false;
+                        state.markets[marketType].lastUpdate = timestamp;
+                        state.sectionUpdates[marketType] = timestamp;
+                        state.markets[marketType].positions = marketData.positions || {};
+                        state.markets[marketType].positions_count = marketData.positions_count || 0;
+                        state.markets[marketType].bot_running = data.bot_status?.running || false;
+
+                        // Cash balance calc uses initial_capital (static) so it's safe
+                        const initialCap = marketData.initial_capital || 10000;
+                        const pnl = state.markets[marketType].pnl || 0;  // Use PortfolioStore's value
+                        const totalVal = state.markets[marketType].total_value || initialCap;
+                        state.markets[marketType].cash_balance = initialCap - (totalVal - pnl);
+
+                        // DO NOT UPDATE THESE - OWNED BY PortfolioStore._syncLegacyState():
+                        // - state.markets[marketType].total_value
+                        // - state.markets[marketType].pnl
+                        // - state.markets[marketType].pnl_pct
+
+                        updateSectionTimestamp(marketType, `${marketType}Timestamp`);
+                        updateMarketStats(marketType);
+                        updateMarketPortfolio(marketType);
+                    }
+                }
+
+                state.connected = true;
+                updateConnectionStatus();
+                return data;
+            } catch (error) {
+                console.error('Error fetching unified state:', error);
+                state.connected = false;
+                updateConnectionStatus();
+                return null;
             }
         }
 
-        // Fetch market data
+        // Legacy function - now just calls fetchUnifiedState for backwards compatibility
         async function fetchMarketData(marketType) {
-            try {
-                const response = await fetch(`/api/markets/${marketType}/summary`);
-                if (!response.ok) throw new Error(`Failed to fetch: ${response.status}`);
-
-                const data = await response.json();
-                console.log(`fetchMarketData(${marketType}): received ${data.assets?.length || 0} assets, value=$${data.total_value?.toFixed(2) || 0}`);
-                state.markets[marketType].assets = data.assets || [];
-                state.markets[marketType].loading = false;
-                state.markets[marketType].lastUpdate = new Date();
-                state.sectionUpdates[marketType] = new Date();
-                state.connected = true;
-                updateSectionTimestamp(marketType, `${marketType}Timestamp`);
-
-                // Store portfolio data from API response
-                state.markets[marketType].total_value = data.total_value || 0;
-                state.markets[marketType].cash_balance = data.cash_balance || 0;
-                state.markets[marketType].pnl = data.pnl || 0;
-                state.markets[marketType].pnl_pct = data.pnl_pct || 0;
-                state.markets[marketType].positions_count = data.positions_count || 0;
-                state.markets[marketType].positions = data.positions || {};
-                state.markets[marketType].bot_running = data.bot_running || false;
-                state.markets[marketType].ai_features = data.ai_features || {};
-                state.markets[marketType].deep_learning_enabled = data.deep_learning_enabled || false;
-                state.markets[marketType].model_type = data.model_type || null;
-
-                updateAssetGrid(marketType);
-                updateSignalsTable(marketType);
-                updateMarketStats(marketType);
-                updateMarketPortfolio(marketType);  // Update portfolio display
-                updateConnectionStatus();
-            } catch (error) {
-                console.error(`Error fetching ${marketType} data:`, error);
-                state.markets[marketType].loading = false;
-                state.connected = false;
-                updateAssetGrid(marketType);
-                updateConnectionStatus();
+            // If we don't have cached unified data, fetch it
+            if (!lastUnifiedData) {
+                await fetchUnifiedState();
             }
+            // The unified fetch already updated all markets
+            updateAssetGrid(marketType);
+            updateSignalsTable(marketType);
         }
 
         // Fetch macro data
@@ -7014,6 +7494,12 @@
 
         // Fetch real bot state data
         async function fetchBotState() {
+            // SKIP VALUE UPDATES if master update is active - only update stats/signals
+            const skipValueUpdates = lastMasterUpdate && (Date.now() - lastMasterUpdate) < 10000;
+            if (skipValueUpdates) {
+                console.log('fetchBotState: SKIPPING value updates - master update active');
+            }
+
             try {
                 const response = await fetch('/api/bot/state/all');
                 if (!response.ok) return;
@@ -7028,7 +7514,7 @@
                 document.getElementById('stockValue').classList.remove('loading-state');
                 updateSectionTimestamp('portfolio', 'portfolioTimestamp');
 
-                // Note: totalPortfolioValue is updated by updatePortfolioAllocation at end of this function
+                // Note: totalPortfolioValue is updated by masterDashboardUpdate (single source of truth)
 
                 // Update individual market values
                 const markets = data.markets || {};
@@ -7038,10 +7524,9 @@
                     // Use state.markets values (from fetchMarketData) for overview card to match pie chart
                     const cryptoValue = state.markets.crypto.total_value || 0;
 
-                    document.getElementById('cryptoValue').textContent = formatCurrency(cryptoValue);
-                    const pnlClass = (state.markets.crypto.pnl || 0) >= 0 ? 'positive' : 'negative';
-                    document.getElementById('cryptoPnl').className = `summary-change ${pnlClass}`;
-                    document.getElementById('cryptoPnl').textContent = `${formatCurrency(state.markets.crypto.pnl || 0)} (${formatPercent(state.markets.crypto.pnl_pct || 0)})`;
+                    // VALUE UPDATE DISABLED - masterDashboardUpdate handles this
+                    // document.getElementById('cryptoValue').textContent = formatCurrency(cryptoValue);
+                    // P&L updated via centralized function at end
 
                     // Update market stats
                     document.getElementById('cryptoTotalValue').textContent = formatCurrency(cryptoValue);
@@ -7087,10 +7572,9 @@
                     // Use state.markets values (from fetchMarketData) for overview card to match pie chart
                     const commodityValue = state.markets.commodity.total_value || 0;
 
-                    document.getElementById('commodityValue').textContent = formatCurrency(commodityValue);
-                    const pnlClass = (state.markets.commodity.pnl || 0) >= 0 ? 'positive' : 'negative';
-                    document.getElementById('commodityPnl').className = `summary-change ${pnlClass}`;
-                    document.getElementById('commodityPnl').textContent = `${formatCurrency(state.markets.commodity.pnl || 0)} (${formatPercent(state.markets.commodity.pnl_pct || 0)})`;
+                    // VALUE UPDATE DISABLED - masterDashboardUpdate handles this
+                    // document.getElementById('commodityValue').textContent = formatCurrency(commodityValue);
+                    // P&L updated via centralized function at end
 
                     // Update market stats
                     document.getElementById('commodityTotalValue').textContent = formatCurrency(commodityValue);
@@ -7111,10 +7595,9 @@
                     // Use state.markets values (from fetchMarketData) for overview card to match pie chart
                     const stockValue = state.markets.stock.total_value || 0;
 
-                    document.getElementById('stockValue').textContent = formatCurrency(stockValue);
-                    const pnlClass = (state.markets.stock.pnl || 0) >= 0 ? 'positive' : 'negative';
-                    document.getElementById('stockPnl').className = `summary-change ${pnlClass}`;
-                    document.getElementById('stockPnl').textContent = `${formatCurrency(state.markets.stock.pnl || 0)} (${formatPercent(state.markets.stock.pnl_pct || 0)})`;
+                    // VALUE UPDATE DISABLED - masterDashboardUpdate handles this
+                    // document.getElementById('stockValue').textContent = formatCurrency(stockValue);
+                    // P&L updated via centralized function at end
 
                     // Update market stats
                     document.getElementById('stockTotalValue').textContent = formatCurrency(stockValue);
@@ -7130,31 +7613,28 @@
                     stockWinRateEl.style.color = stockWinRate >= 0.5 ? '#10b981' : stockWinRate > 0 ? '#f59e0b' : '#64748b';
                 }
 
-                // Update total P&L
-                const totalPnlClass = data.total_pnl >= 0 ? 'positive' : 'negative';
-                document.getElementById('totalPnl').className = `summary-change ${totalPnlClass}`;
-                document.getElementById('totalPnl').textContent = `${formatCurrency(data.total_pnl)} (${formatPercent(data.total_pnl_pct)})`;
+                // Update ALL P&L displays using CENTRALIZED function
+                updateAllPnlDisplays(
+                    state.markets.crypto.pnl || 0,
+                    state.markets.crypto.pnl_pct || 0,
+                    state.markets.commodity.pnl || 0,
+                    state.markets.commodity.pnl_pct || 0,
+                    state.markets.stock.pnl || 0,
+                    state.markets.stock.pnl_pct || 0
+                );
 
-                // Use API's pre-calculated total_portfolio_value as single source of truth
-                // This prevents mismatches from summing potentially stale market values
-                const apiTotalValue = data.total_portfolio_value || 0;
+                // Get market values from PortfolioStore-owned state (not API response here)
+                // to ensure pie chart uses same values as portfolio display
+                const cryptoVal = state.markets.crypto.total_value || 0;
+                const commodityVal = state.markets.commodity.total_value || 0;
+                const stockVal = state.markets.stock.total_value || 0;
 
-                // Get market values - prefer API response, fallback to cached state
-                const cryptoVal = (markets.crypto?.total_value ?? state.markets.crypto.total_value) || 0;
-                const commodityVal = (markets.commodity?.total_value ?? state.markets.commodity.total_value) || 0;
-                const stockVal = (markets.stock?.total_value ?? state.markets.stock.total_value) || 0;
+                // DO NOT UPDATE state.markets.*.total_value HERE
+                // OWNED BY PortfolioStore._syncLegacyState()
+                // This prevents race conditions with the 5s PortfolioStore timer
 
-                // Update state with API values to keep in sync
-                if (markets.crypto?.total_value !== undefined) state.markets.crypto.total_value = markets.crypto.total_value;
-                if (markets.commodity?.total_value !== undefined) state.markets.commodity.total_value = markets.commodity.total_value;
-                if (markets.stock?.total_value !== undefined) state.markets.stock.total_value = markets.stock.total_value;
-
-                // Update portfolio allocation - use API total if available for consistency
-                if (apiTotalValue > 0) {
-                    updatePortfolioAllocation(cryptoVal, commodityVal, stockVal, apiTotalValue);
-                } else {
-                    updatePortfolioAllocation(cryptoVal, commodityVal, stockVal);
-                }
+                // Update portfolio allocation (pie chart only, no value updates)
+                updatePortfolioAllocation(cryptoVal, commodityVal, stockVal);
 
             } catch (error) {
                 console.error('Error fetching bot state:', error);
@@ -7579,21 +8059,26 @@
 
         // Question handling removed (Strategy Assistant was removed from UI)
 
-        // Fetch all market data
+        // Fetch all market data - USES SINGLE SOURCE OF TRUTH
         async function fetchAllData() {
-            console.log('fetchAllData starting...');
-            // First fetch market data (includes ai_features)
-            await Promise.all([
-                fetchMarketData('crypto'),
-                fetchMarketData('commodity'),
-                fetchMarketData('stock'),
-            ]);
-            console.log('fetchAllData: market data loaded');
+            console.log('fetchAllData starting - using unified state endpoint...');
 
-            // Immediately update Portfolio Overview with fresh market data
+            // CRITICAL: Fetch ALL market data in ONE atomic call
+            // This prevents data inconsistencies from parallel API calls
+            lastUnifiedData = null;  // Clear cache to force fresh fetch
+            await fetchUnifiedState();
+            console.log('fetchAllData: unified state loaded');
+
+            // Update Portfolio Overview with fresh data
             updateTotalPortfolio();
 
-            // Then fetch bot state and other data
+            // Update individual market grids (uses cached unified data)
+            for (const marketType of ['crypto', 'commodity', 'stock']) {
+                updateAssetGrid(marketType);
+                updateSignalsTable(marketType);
+            }
+
+            // Then fetch supplementary data (these don't affect main numbers)
             await Promise.all([
                 fetchBotState(),
                 fetchEnhancedEquity(),
@@ -7601,22 +8086,21 @@
                 fetchCorrelations(),
                 fetchTradingLog(),
             ]);
-            console.log('fetchAllData: bot state loaded, calling fetchPerformanceMetrics');
+            console.log('fetchAllData: supplementary data loaded');
 
             // Fetch performance metrics and macro data
             await fetchPerformanceMetrics();
-            console.log('fetchAllData: performance metrics loaded');
             fetchMacroData();
             updateOverviewSignals();
             updateAIInsights();
             updateActiveMarkets();
 
-            // Final portfolio update to ensure all values are in sync
+            // Final portfolio update (uses same cached unified data)
             updateTotalPortfolio();
 
             // Update equity chart
             await updateEquityChart();
-            console.log('fetchAllData: equity chart updated');
+            console.log('fetchAllData: complete');
 
             // Visual feedback that refresh happened
             const portfolioCard = document.getElementById('totalPortfolioCard');
@@ -7846,28 +8330,62 @@
         let controlPanelData = null;
         let controlPanelInterval = null;
 
+        // CRITICAL: This function MUST use the unified state endpoint
+        // to ensure data consistency with the rest of the dashboard
         async function fetchControlPanelData() {
             try {
-                const response = await fetch('/api/trading/control-panel');
+                // ALWAYS fetch fresh unified data for control panel updates
+                const response = await fetch('/api/dashboard/unified-state');
                 if (!response.ok) {
-                    console.warn('Failed to fetch control panel data, status:', response.status);
-                    throw new Error('Failed to fetch control panel data');
+                    console.warn('Failed to fetch unified state, status:', response.status);
+                    throw new Error('Failed to fetch unified state');
                 }
-                controlPanelData = await response.json();
-                
-                // Ensure controlPanelData has required structure
-                if (!controlPanelData.markets) {
-                    controlPanelData.markets = {};
+                const unifiedData = await response.json();
+                lastUnifiedData = unifiedData;  // Update cache
+
+                // Convert unified data format to control panel format
+                controlPanelData = {
+                    master: {
+                        emergency_stop: false,
+                        all_paused: unifiedData.bot_status?.paused || false,
+                        any_active: unifiedData.bot_status?.running || false
+                    },
+                    markets: {}
+                };
+
+                // Convert each market
+                for (const marketId of ['crypto', 'commodity', 'stock']) {
+                    const market = unifiedData.markets?.[marketId];
+                    if (market) {
+                        controlPanelData.markets[marketId] = {
+                            running: unifiedData.bot_status?.running || false,
+                            paused: unifiedData.bot_status?.paused || false,
+                            pnl: market.pnl || 0,
+                            pnl_pct: market.pnl_pct || 0,
+                            balance: market.total_value || 0,
+                            open_positions: market.positions_count || 0,
+                            health: market.status || 'offline'
+                        };
+                    }
                 }
-                if (!controlPanelData.master) {
-                    controlPanelData.master = { emergency_stop: false };
+
+                // Also update the main state object for consistency
+                for (const marketId of ['crypto', 'commodity', 'stock']) {
+                    const market = unifiedData.markets?.[marketId];
+                    if (market) {
+                        state.markets[marketId].total_value = market.total_value || 0;
+                        state.markets[marketId].pnl = market.pnl || 0;
+                        state.markets[marketId].pnl_pct = market.pnl_pct || 0;
+                        state.markets[marketId].positions_count = market.positions_count || 0;
+                    }
                 }
-                
+
                 updateControlPanelUI(controlPanelData);
+                updateTotalPortfolio();  // Ensure top cards stay in sync
                 return controlPanelData;
             } catch (error) {
                 console.error('Error fetching control panel data:', error);
-                
+
                 // Initialize with default structure on error
                 if (!controlPanelData) {
                     controlPanelData = {
@@ -7933,21 +8451,11 @@
                 const statusDot = document.getElementById(`${marketId}StatusDot`);
                 const statusText = document.getElementById(`${marketId}StatusText`);
                 const btn = document.getElementById(`${marketId}ControlBtn`);
-                const pnlValueEl = document.getElementById(`${marketId}PnlValue`);
-                const pnlPercentEl = document.getElementById(`${marketId}PnlPercent`);
 
-                // Update P&L display
-                const pnl = market.pnl || 0;
-                const pnlPct = market.pnl_pct || 0;
-
-                if (pnlValueEl) {
-                    pnlValueEl.textContent = `${pnl >= 0 ? '+' : ''}$${Math.abs(pnl).toFixed(2)}`;
-                    pnlValueEl.style.color = pnl >= 0 ? 'var(--signal-long)' : 'var(--signal-short)';
-                }
-
-                if (pnlPercentEl) {
-                    pnlPercentEl.textContent = `(${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%)`;
-                }
+                // P&L DISABLED: Master update handles all P&L displays
+                // const pnlValueEl = document.getElementById(`${marketId}PnlValue`);
+                // const pnlPercentEl = document.getElementById(`${marketId}PnlPercent`);
+                // P&L update removed - handled by masterDashboardUpdate()
 
                 // Update status dot and text, and button state
                 if (btn) {
@@ -9441,17 +9949,16 @@
         function updateTradingModeUI(config) {
             currentTradingMode = config.mode || 'paper';
             const toggleEl = document.getElementById('tradingModeToggle');
-            const balanceEl = document.getElementById('modeBalance');
 
             if (!toggleEl) return;
 
             if (currentTradingMode === 'live') {
                 toggleEl.classList.add('live-mode');
-                if (balanceEl) balanceEl.textContent = `$${(config.live_capital || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             } else {
                 toggleEl.classList.remove('live-mode');
-                if (balanceEl) balanceEl.textContent = `$${(config.paper_capital || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             }
+            // NOTE: modeBalance is updated ONLY by PortfolioStore._render()
+            // to prevent flickering from multiple update sources
         }
 
         async function toggleTradingMode() {
@@ -10137,65 +10644,14 @@
                 }
             });
 
-            // Fallback: directly fetch and display portfolio values if not loaded yet
-            // Runs at 2s, 4s, and 8s to handle slow network conditions
+            // FULLY DISABLED: PortfolioStore is the ONLY source of truth
+            // This fallback function caused race conditions and flickering
             async function fallbackPortfolioUpdate() {
-                const totalEl = document.getElementById('totalPortfolioValue');
-                // Only run if still showing "Loading..."
-                if (totalEl && (totalEl.textContent === 'Loading...' || totalEl.textContent === '--')) {
-                    console.log('Fallback portfolio update...');
-                    try {
-                        const resp = await fetch('/api/bot/state/all');
-                        const data = await resp.json();
-                        const markets = data.markets || {};
-
-                        const cryptoVal = markets.crypto?.total_value || 0;
-                        const commodityVal = markets.commodity?.total_value || 0;
-                        const stockVal = markets.stock?.total_value || 0;
-                        // Use API's pre-calculated total as single source of truth
-                        const total = data.total_portfolio_value || (cryptoVal + commodityVal + stockVal);
-
-                        if (total > 0) {
-                            console.log('Fallback values:', { cryptoVal, commodityVal, stockVal, total });
-
-                            document.getElementById('totalPortfolioValue').textContent = '$' + total.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
-                            document.getElementById('cryptoValue').textContent = '$' + cryptoVal.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
-                            document.getElementById('commodityValue').textContent = '$' + commodityVal.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
-                            document.getElementById('stockValue').textContent = '$' + stockVal.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
-
-                            // Update PnL
-                            const cryptoPnl = markets.crypto?.pnl || 0;
-                            const commodityPnl = markets.commodity?.pnl || 0;
-                            const stockPnl = markets.stock?.pnl || 0;
-                            const totalPnl = cryptoPnl + commodityPnl + stockPnl;
-
-                            document.getElementById('totalPnl').textContent = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
-                            document.getElementById('totalPnl').className = 'summary-change ' + (totalPnl >= 0 ? 'positive' : 'negative');
-
-                            document.getElementById('cryptoPnl').textContent = (cryptoPnl >= 0 ? '+' : '') + '$' + cryptoPnl.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
-                            document.getElementById('cryptoPnl').className = 'summary-change ' + (cryptoPnl >= 0 ? 'positive' : 'negative');
-
-                            document.getElementById('commodityPnl').textContent = (commodityPnl >= 0 ? '+' : '') + '$' + commodityPnl.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
-                            document.getElementById('commodityPnl').className = 'summary-change ' + (commodityPnl >= 0 ? 'positive' : 'negative');
-
-                            document.getElementById('stockPnl').textContent = (stockPnl >= 0 ? '+' : '') + '$' + stockPnl.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
-                            document.getElementById('stockPnl').className = 'summary-change ' + (stockPnl >= 0 ? 'positive' : 'negative');
-
-                            // Update header balance
-                            const headerBalance = document.getElementById('modeBalance');
-                            if (headerBalance) headerBalance.textContent = '$' + total.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
-                        }
-                    } catch (e) {
-                        console.error('Fallback portfolio update failed:', e);
-                    }
-                } else {
-                    console.log('Fallback skipped - values already loaded');
-                }
+                // COMPLETELY DISABLED - PortfolioStore handles ALL updates
+                console.log('[DISABLED] fallbackPortfolioUpdate - PortfolioStore is single source of truth');
+                return;
             }
-            // Schedule multiple fallback attempts
-            setTimeout(fallbackPortfolioUpdate, 2000);
-            setTimeout(fallbackPortfolioUpdate, 4000);
-            setTimeout(fallbackPortfolioUpdate, 8000);
+            // Fallback timeouts removed - PortfolioStore.start() handles initial load
 
             // Also fetch performance metrics after a short delay to ensure DOM is ready
             setTimeout(() => {

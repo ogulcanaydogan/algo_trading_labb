@@ -49,6 +49,10 @@ from .validation import validate_trading_request, APIRequestValidator
 
 STATE_DIR = Path(os.getenv("DATA_DIR", "./data"))
 
+# Monotonic version counter for dashboard snapshots
+# Strictly increasing, survives within process lifetime
+_snapshot_version_counter = int(time.time() * 1000)  # Start from current ms timestamp
+
 # Initialize logger
 logger = logging.getLogger(__name__)
 
@@ -185,7 +189,25 @@ ws_manager = ConnectionManager()
 
 
 def _get_ws_update_payload() -> Dict[str, Any]:
-    """Build the WebSocket update payload with portfolio data from UNIFIED trading state."""
+    """
+    Build the WebSocket update payload with portfolio data from UNIFIED trading state.
+
+    CRITICAL: This MUST use the EXACT same calculations as /api/dashboard/unified-state
+    to ensure data consistency across all dashboard components.
+    """
+    # Symbol to market mapping - MUST match the unified endpoint
+    symbol_to_market = {
+        "BTC/USDT": "crypto", "ETH/USDT": "crypto", "SOL/USDT": "crypto",
+        "XRP/USDT": "crypto", "ADA/USDT": "crypto", "AVAX/USDT": "crypto",
+        "DOGE/USDT": "crypto", "DOT/USDT": "crypto", "LINK/USDT": "crypto",
+        "MATIC/USDT": "crypto", "LTC/USDT": "crypto", "UNI/USDT": "crypto",
+        "XAU/USD": "commodity", "XAG/USD": "commodity", "USOIL/USD": "commodity",
+        "NATGAS/USD": "commodity", "WTICO/USD": "commodity",
+        "AAPL": "stock", "MSFT": "stock", "TSLA": "stock", "NVDA": "stock",
+        "GOOGL": "stock", "AMZN": "stock", "META": "stock",
+        "AAPL/USD": "stock", "MSFT/USD": "stock", "GOOGL/USD": "stock", "NVDA/USD": "stock",
+    }
+
     result: Dict[str, Any] = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "type": "portfolio_update",
@@ -200,11 +222,10 @@ def _get_ws_update_payload() -> Dict[str, Any]:
     unified_state_file = STATE_DIR / "unified_trading" / "state.json"
 
     if not unified_state_file.exists():
-        # Fallback to old multi-market approach if unified doesn't exist
         result["markets"] = {
-            "crypto": {"status": "not_running"},
-            "commodity": {"status": "not_running"},
-            "stock": {"status": "not_running"},
+            "crypto": {"status": "not_running", "total_value": 10000, "pnl": 0, "pnl_pct": 0, "positions_count": 0},
+            "commodity": {"status": "not_running", "total_value": 10000, "pnl": 0, "pnl_pct": 0, "positions_count": 0},
+            "stock": {"status": "not_running", "total_value": 10000, "pnl": 0, "pnl_pct": 0, "positions_count": 0},
         }
         return result
 
@@ -213,89 +234,61 @@ def _get_ws_update_payload() -> Dict[str, Any]:
             state = json.load(f)
     except (OSError, json.JSONDecodeError):
         result["markets"] = {
-            "crypto": {"status": "not_running"},
-            "commodity": {"status": "not_running"},
-            "stock": {"status": "not_running"},
+            "crypto": {"status": "not_running", "total_value": 10000, "pnl": 0, "pnl_pct": 0, "positions_count": 0},
+            "commodity": {"status": "not_running", "total_value": 10000, "pnl": 0, "pnl_pct": 0, "positions_count": 0},
+            "stock": {"status": "not_running", "total_value": 10000, "pnl": 0, "pnl_pct": 0, "positions_count": 0},
         }
         return result
 
     # Extract unified state data
-    current_balance = state.get("current_balance", 0)
-    initial_capital = state.get("initial_capital", 10000)
-    total_pnl = state.get("total_pnl", 0)
+    initial_capital = float(state.get("initial_capital", 30000))
     positions = state.get("positions", {})
 
-    # Calculate daily P&L
-    daily_pnl = state.get("daily_pnl", 0)
-    daily_pnl_pct = (daily_pnl / initial_capital * 100) if initial_capital > 0 else 0
+    # Calculate market-specific P&L from positions (SAME AS UNIFIED ENDPOINT)
+    market_pnl = {"crypto": 0.0, "commodity": 0.0, "stock": 0.0}
+    market_position_count = {"crypto": 0, "commodity": 0, "stock": 0}
 
-    # Portfolio totals
-    result["portfolio_value"] = current_balance
-    result["total_pnl"] = total_pnl
-    result["total_pnl_pct"] = (total_pnl / initial_capital * 100) if initial_capital > 0 else 0
-    result["daily_pnl"] = daily_pnl
-    result["daily_pnl_pct"] = daily_pnl_pct
-
-    # Extract positions
     for symbol, pos_data in positions.items():
+        market = symbol_to_market.get(symbol, "crypto")  # Default to crypto
+        unrealized_pnl = float(pos_data.get("unrealized_pnl", 0.0))
+        market_pnl[market] += unrealized_pnl
+        market_position_count[market] += 1
         result["positions"][symbol] = {
             "value": pos_data.get("value", 0),
             "quantity": pos_data.get("quantity", pos_data.get("qty", 0)),
             "entry_price": pos_data.get("entry_price", 0),
-            "unrealized_pnl": pos_data.get("unrealized_pnl", 0),
+            "unrealized_pnl": unrealized_pnl,
         }
 
-    # Divide portfolio equally across 3 markets for display
-    market_allocation = current_balance / 3
-    positions_per_market = {
-        "crypto": 0,
-        "commodity": 0,
-        "stock": 0,
-    }
+    # Calculate per-market values (SAME AS UNIFIED ENDPOINT)
+    capital_per_market = initial_capital / 3
+    total_pnl = sum(market_pnl.values())
 
-    # Count positions by market type
-    crypto_symbols = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "AVAX/USDT"]
-    commodity_symbols = ["XAU/USD", "XAG/USD", "USOIL/USD", "NATGAS/USD"]
+    # Portfolio totals
+    total_value = sum(capital_per_market + market_pnl[m] for m in ["crypto", "commodity", "stock"])
+    result["portfolio_value"] = total_value
+    result["total_pnl"] = total_pnl
+    result["total_pnl_pct"] = (total_pnl / initial_capital * 100) if initial_capital > 0 else 0
 
-    for symbol in positions.keys():
-        if any(s in symbol for s in crypto_symbols) or "USDT" in symbol:
-            positions_per_market["crypto"] += 1
-        elif any(s in symbol for s in commodity_symbols) or symbol.startswith("X"):
-            positions_per_market["commodity"] += 1
-        else:
-            positions_per_market["stock"] += 1
-
-    # Market status (all running if unified engine is active)
+    # Market status
     is_active = state.get("status") == "active"
 
-    result["markets"] = {
-        "crypto": {
-            "total_value": market_allocation,
-            "pnl": daily_pnl / 3,  # Divide daily P&L equally
-            "pnl_pct": daily_pnl_pct,
-            "cash_balance": market_allocation,
-            "positions_count": positions_per_market["crypto"],
-            "deep_learning_enabled": False,
+    # Build market data (SAME CALCULATION AS UNIFIED ENDPOINT)
+    for market_id in ["crypto", "commodity", "stock"]:
+        pnl = market_pnl[market_id]
+        market_value = capital_per_market + pnl
+        pnl_pct = (pnl / capital_per_market * 100) if capital_per_market > 0 else 0
+
+        result["markets"][market_id] = {
+            "total_value": market_value,
+            "pnl": pnl,
+            "pnl_pct": pnl_pct,
+            "cash_balance": capital_per_market,
+            "positions_count": market_position_count[market_id],
+            "deep_learning_enabled": False if market_id != "crypto" else False,
             "dl_model_selection": None,
             "status": "running" if is_active else "stopped",
-        },
-        "commodity": {
-            "total_value": market_allocation,
-            "pnl": daily_pnl / 3,
-            "pnl_pct": daily_pnl_pct,
-            "cash_balance": market_allocation,
-            "positions_count": positions_per_market["commodity"],
-            "status": "running" if is_active else "stopped",
-        },
-        "stock": {
-            "total_value": market_allocation,
-            "pnl": daily_pnl / 3,
-            "pnl_pct": daily_pnl_pct,
-            "cash_balance": market_allocation,
-            "positions_count": positions_per_market["stock"],
-            "status": "running" if is_active else "stopped",
-        },
-    }
+        }
 
     return result
 
@@ -2259,18 +2252,31 @@ async def get_market_summary(
             "BTC/USDT": "crypto",
             "ETH/USDT": "crypto",
             "SOL/USDT": "crypto",
+            "XRP/USDT": "crypto",
+            "ADA/USDT": "crypto",
             "AVAX/USDT": "crypto",
+            "DOGE/USDT": "crypto",
+            "DOT/USDT": "crypto",
+            "LINK/USDT": "crypto",
+            "MATIC/USDT": "crypto",
             # Commodities
             "XAU/USD": "commodity",
             "XAG/USD": "commodity",
             "USOIL/USD": "commodity",
             "NATGAS/USD": "commodity",
+            "WTICO/USD": "commodity",
             # Stocks
             "AAPL": "stock",
             "MSFT": "stock",
             "GOOGL": "stock",
             "AMZN": "stock",
             "TSLA": "stock",
+            "NVDA": "stock",
+            "META": "stock",
+            "AAPL/USD": "stock",
+            "MSFT/USD": "stock",
+            "GOOGL/USD": "stock",
+            "NVDA/USD": "stock",
         }
 
         # Calculate market-specific P&L and position value from positions
@@ -2622,9 +2628,9 @@ async def get_dashboard_aggregate(
     store = get_store()
 
     # Get basic status
-    state = store.load_state()
-    equity = store.load_equity_curve()
-    signals = store.load_signals()
+    state = store.get_state_dict()
+    equity = store.get_equity_curve()
+    signals = store.get_signals()
 
     # Get portfolio status if available
     portfolio_status = []
@@ -2653,14 +2659,14 @@ async def get_dashboard_aggregate(
     return {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "state": {
-            "position": state.position if state else "FLAT",
-            "balance": state.balance if state else 0,
+            "position": state.get("position", "FLAT") if state else "FLAT",
+            "balance": state.get("balance", 0) if state else 0,
         },
-        "equity": [{"timestamp": e.timestamp, "value": e.value} for e in equity[-50:]],
+        "equity": [{"timestamp": e.get("timestamp"), "value": e.get("value")} for e in equity[-50:]] if equity else [],
         "signals": [
-            {"timestamp": s.timestamp, "action": s.action, "confidence": s.confidence}
+            {"timestamp": s.get("timestamp"), "action": s.get("decision"), "confidence": s.get("confidence")}
             for s in signals[-20:]
-        ],
+        ] if signals else [],
         "portfolio_status": portfolio_status,
         "markets_available": ["crypto", "commodity", "stock"],
     }
@@ -4443,16 +4449,35 @@ async def get_trading_control_panel() -> Dict[str, Any]:
 
     # Map unified symbols to market categories
     symbol_to_market = {
+        # Crypto
         "BTC/USDT": "crypto",
         "ETH/USDT": "crypto",
+        "SOL/USDT": "crypto",
+        "XRP/USDT": "crypto",
+        "ADA/USDT": "crypto",
+        "AVAX/USDT": "crypto",
+        "DOGE/USDT": "crypto",
+        "DOT/USDT": "crypto",
+        "LINK/USDT": "crypto",
+        "MATIC/USDT": "crypto",
+        # Commodities
         "XAU/USD": "commodity",
         "XAG/USD": "commodity",
         "USOIL/USD": "commodity",
+        "NATGAS/USD": "commodity",
+        "WTICO/USD": "commodity",
+        # Stocks
         "AAPL": "stock",
         "MSFT": "stock",
         "TSLA": "stock",
         "NVDA": "stock",
         "GOOGL": "stock",
+        "AMZN": "stock",
+        "META": "stock",
+        "AAPL/USD": "stock",
+        "MSFT/USD": "stock",
+        "GOOGL/USD": "stock",
+        "NVDA/USD": "stock",
     }
 
     # Initialize market summaries
@@ -4489,7 +4514,7 @@ async def get_trading_control_panel() -> Dict[str, Any]:
             market_pnl = {"crypto": 0.0, "commodity": 0.0, "stock": 0.0}
 
             for symbol, position in positions.items():
-                market = symbol_to_market.get(symbol, "stock")
+                market = symbol_to_market.get(symbol, "crypto")  # Default to crypto for unknown symbols
                 market_positions[market] += 1
                 # Add unrealized P&L from this position to the market's total
                 unrealized = position.get("unrealized_pnl", 0.0)
@@ -4573,6 +4598,229 @@ async def get_trading_control_panel() -> Dict[str, Any]:
                 "pnl_pct": 0.0,
                 "health": "offline",
             }
+
+    return result
+
+
+@app.get("/api/dashboard/unified-state", tags=["Dashboard"])
+async def get_dashboard_unified_state() -> Dict[str, Any]:
+    """
+    SINGLE SOURCE OF TRUTH for dashboard data.
+
+    Returns ALL market data in ONE atomic read of the state file.
+    This prevents data inconsistencies from multiple parallel API calls.
+
+    CRITICAL GUARANTEES:
+    1. All values are PRE-ROUNDED at source (no rounding in UI)
+    2. total.total_value === crypto.total_value + commodity.total_value + stock.total_value
+    3. version is STRICTLY INCREASING (monotonic counter, never resets within process)
+    4. All values from same atomic snapshot
+    5. Integer cents provided for bulletproof math (_cents suffix)
+    """
+    global _snapshot_version_counter
+    from decimal import Decimal, ROUND_HALF_UP
+
+    # Increment version counter (strictly increasing, even on restart)
+    _snapshot_version_counter += 1
+    snapshot_version = _snapshot_version_counter
+    snapshot_ts_ms = int(time.time() * 1000)  # Server time in milliseconds
+
+    def round_money(value: float, places: int = 2) -> float:
+        """Deterministic rounding - done ONCE at source."""
+        return float(Decimal(str(value)).quantize(
+            Decimal(10) ** -places,
+            rounding=ROUND_HALF_UP
+        ))
+
+    def to_cents(value: float) -> int:
+        """Convert dollars to integer cents for bulletproof math."""
+        return int(round(value * 100))
+
+    # Symbol to market mapping - MUST match the trading engine
+    symbol_to_market = {
+        # Crypto
+        "BTC/USDT": "crypto", "ETH/USDT": "crypto", "SOL/USDT": "crypto",
+        "XRP/USDT": "crypto", "ADA/USDT": "crypto", "AVAX/USDT": "crypto",
+        "DOGE/USDT": "crypto", "DOT/USDT": "crypto", "LINK/USDT": "crypto",
+        "MATIC/USDT": "crypto", "LTC/USDT": "crypto", "UNI/USDT": "crypto",
+        # Commodities
+        "XAU/USD": "commodity", "XAG/USD": "commodity", "USOIL/USD": "commodity",
+        "NATGAS/USD": "commodity", "WTICO/USD": "commodity",
+        # Stocks
+        "AAPL": "stock", "MSFT": "stock", "TSLA": "stock", "NVDA": "stock",
+        "GOOGL": "stock", "AMZN": "stock", "META": "stock",
+        "AAPL/USD": "stock", "MSFT/USD": "stock", "GOOGL/USD": "stock", "NVDA/USD": "stock",
+    }
+
+    # Initialize result with defaults - use monotonic version
+    result = {
+        "version": snapshot_version,  # Strictly increasing monotonic counter
+        "snapshot_ts_ms": snapshot_ts_ms,  # Server time in milliseconds
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "source": "unified_trading",
+        "data_version": 3,  # API format version (bumped for cents support)
+        "total": {
+            "initial_capital": 30000.0,
+            "initial_capital_cents": 3000000,
+            "current_balance": 30000.0,
+            "current_balance_cents": 3000000,
+            "total_value": 30000.0,
+            "total_value_cents": 3000000,
+            "pnl": 0.0,
+            "pnl_cents": 0,
+            "pnl_pct": 0.0,
+            "positions_count": 0,
+        },
+        "markets": {
+            "crypto": {
+                "initial_capital": 10000.0,
+                "initial_capital_cents": 1000000,
+                "total_value": 10000.0,
+                "total_value_cents": 1000000,
+                "pnl": 0.0,
+                "pnl_cents": 0,
+                "pnl_pct": 0.0,
+                "positions_count": 0,
+                "positions": {},
+                "status": "offline",
+            },
+            "commodity": {
+                "initial_capital": 10000.0,
+                "initial_capital_cents": 1000000,
+                "total_value": 10000.0,
+                "total_value_cents": 1000000,
+                "pnl": 0.0,
+                "pnl_cents": 0,
+                "pnl_pct": 0.0,
+                "positions_count": 0,
+                "positions": {},
+                "status": "offline",
+            },
+            "stock": {
+                "initial_capital": 10000.0,
+                "initial_capital_cents": 1000000,
+                "total_value": 10000.0,
+                "total_value_cents": 1000000,
+                "pnl": 0.0,
+                "pnl_cents": 0,
+                "pnl_pct": 0.0,
+                "positions_count": 0,
+                "positions": {},
+                "status": "offline",
+            },
+        },
+        "bot_status": {
+            "running": False,
+            "paused": False,
+            "last_update": None,
+            "health": "offline",
+        },
+    }
+
+    # SINGLE atomic read of the state file
+    unified_state_path = STATE_DIR / "unified_trading" / "state.json"
+
+    try:
+        if not unified_state_path.exists():
+            return result
+
+        # Read file ONCE
+        mtime = unified_state_path.stat().st_mtime
+        last_update = datetime.fromtimestamp(mtime)
+        age_seconds = (datetime.now() - last_update).total_seconds()
+
+        with open(unified_state_path, "r") as f:
+            state = json.load(f)
+
+        # Extract values from single read
+        initial_capital = float(state.get("initial_capital", 30000.0))
+        current_balance = float(state.get("current_balance", initial_capital))
+        positions = state.get("positions", {})
+
+        # Calculate market-specific data from positions
+        market_pnl = {"crypto": 0.0, "commodity": 0.0, "stock": 0.0}
+        market_positions = {"crypto": {}, "commodity": {}, "stock": {}}
+        market_position_count = {"crypto": 0, "commodity": 0, "stock": 0}
+
+        for symbol, position in positions.items():
+            market = symbol_to_market.get(symbol, "crypto")  # Default to crypto
+            unrealized_pnl = float(position.get("unrealized_pnl", 0.0))
+            market_pnl[market] += unrealized_pnl
+            market_positions[market][symbol] = position
+            market_position_count[market] += 1
+
+        # Calculate per-market values (equal allocation: total / 3)
+        capital_per_market = initial_capital / 3
+        total_pnl = sum(market_pnl.values())
+
+        # Determine bot status
+        is_running = age_seconds < 120
+        is_paused = state.get("status") == "paused"
+        health = "healthy" if is_running else ("stale" if age_seconds < 600 else "offline")
+
+        # Build result
+        result["bot_status"] = {
+            "running": is_running,
+            "paused": is_paused,
+            "last_update": last_update.isoformat(),
+            "health": health,
+        }
+
+        # STEP 1: Calculate and ROUND each market's values FIRST
+        market_values = {}
+        for market_id in ["crypto", "commodity", "stock"]:
+            pnl = round_money(market_pnl[market_id])
+            market_value = round_money(capital_per_market + market_pnl[market_id])
+            pnl_pct = round_money((pnl / capital_per_market * 100) if capital_per_market > 0 else 0.0, 4)
+            initial_cap = round_money(capital_per_market)
+
+            market_values[market_id] = {
+                "initial_capital": initial_cap,
+                "initial_capital_cents": to_cents(initial_cap),
+                "total_value": market_value,
+                "total_value_cents": to_cents(market_value),
+                "pnl": pnl,
+                "pnl_cents": to_cents(pnl),
+                "pnl_pct": pnl_pct,
+                "positions_count": market_position_count[market_id],
+                "positions": market_positions[market_id],
+                "status": health,
+            }
+            result["markets"][market_id] = market_values[market_id]
+
+        # STEP 2: DERIVE total from children using CENTS - GUARANTEES total === sum(children)
+        # Using cents eliminates floating-point drift
+        derived_total_cents = (
+            market_values["crypto"]["total_value_cents"] +
+            market_values["commodity"]["total_value_cents"] +
+            market_values["stock"]["total_value_cents"]
+        )
+        derived_pnl_cents = (
+            market_values["crypto"]["pnl_cents"] +
+            market_values["commodity"]["pnl_cents"] +
+            market_values["stock"]["pnl_cents"]
+        )
+
+        # Convert back to dollars for display
+        derived_total_value = derived_total_cents / 100.0
+        derived_total_pnl = derived_pnl_cents / 100.0
+
+        result["total"] = {
+            "initial_capital": round_money(initial_capital),
+            "initial_capital_cents": to_cents(initial_capital),
+            "current_balance": round_money(current_balance),
+            "current_balance_cents": to_cents(current_balance),
+            "total_value": derived_total_value,  # DERIVED from children (cents -> dollars)
+            "total_value_cents": derived_total_cents,  # DERIVED from children
+            "pnl": derived_total_pnl,  # DERIVED from children (cents -> dollars)
+            "pnl_cents": derived_pnl_cents,  # DERIVED from children
+            "pnl_pct": round_money((derived_total_pnl / initial_capital * 100) if initial_capital > 0 else 0.0, 4),
+            "positions_count": len(positions),
+        }
+
+    except Exception as e:
+        logger.error(f"Error in unified-state endpoint: {e}")
+        result["error"] = str(e)
 
     return result
 

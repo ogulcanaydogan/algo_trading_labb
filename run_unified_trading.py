@@ -213,7 +213,7 @@ def main():
     # Run
     run_p = subparsers.add_parser("run", help="Run trading")
     run_p.add_argument("--mode", default="paper_live_data")
-    run_p.add_argument("--capital", type=float, default=10000)
+    run_p.add_argument("--capital", type=float, default=30000)
     run_p.add_argument("--symbols", default="BTC/USDT,ETH/USDT,SOL/USDT,XRP/USDT,ADA/USDT,AVAX/USDT", help="Trading symbols (comma-separated)")
     run_p.add_argument("--interval", type=int, default=60)
     run_p.add_argument("--confirm", action="store_true")
@@ -236,7 +236,7 @@ def main():
     if args.command is None:
         args.command = "run"
         args.mode = "paper_live_data"
-        args.capital = 10000
+        args.capital = 30000
         args.symbols = "BTC/USDT,ETH/USDT,SOL/USDT"
         args.interval = 60
         args.confirm = False

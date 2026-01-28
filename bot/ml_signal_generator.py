@@ -600,12 +600,36 @@ class MLSignalGenerator:
             return self._price_cache.get(symbol)
 
     def _fetch_yfinance_prices(self, symbol: str, period: str = "60d") -> Optional[pd.DataFrame]:
-        """Fetch price data from Yahoo Finance for crypto."""
+        """Fetch price data from Yahoo Finance for crypto, commodities, and stocks."""
         try:
-            # Convert symbol format for Yahoo Finance
-            yf_symbol = symbol.replace("/", "-")
-            if yf_symbol.endswith("-USDT"):
-                yf_symbol = yf_symbol.replace("-USDT", "-USD")
+            # Stock symbol mapping - stocks use plain ticker without suffix
+            STOCK_SYMBOL_MAP = {
+                "AAPL/USD": "AAPL", "MSFT/USD": "MSFT", "GOOGL/USD": "GOOGL",
+                "GOOG/USD": "GOOG", "AMZN/USD": "AMZN", "NVDA/USD": "NVDA",
+                "META/USD": "META", "TSLA/USD": "TSLA", "JPM/USD": "JPM",
+                "V/USD": "V", "JNJ/USD": "JNJ", "UNH/USD": "UNH",
+                "HD/USD": "HD", "PG/USD": "PG", "MA/USD": "MA",
+                "BAC/USD": "BAC", "XOM/USD": "XOM", "CVX/USD": "CVX",
+                "KO/USD": "KO", "PEP/USD": "PEP", "ABBV/USD": "ABBV",
+                "MRK/USD": "MRK", "WMT/USD": "WMT", "COST/USD": "COST",
+                "DIS/USD": "DIS", "NFLX/USD": "NFLX", "AMD/USD": "AMD", "INTC/USD": "INTC",
+            }
+            # Commodity symbol mapping
+            COMMODITY_SYMBOL_MAP = {
+                "XAU/USD": "GC=F", "XAG/USD": "SI=F", "USOIL/USD": "CL=F",
+                "UKOIL/USD": "BZ=F", "NATGAS/USD": "NG=F", "COPPER/USD": "HG=F",
+            }
+
+            # Check explicit mappings first
+            if symbol in STOCK_SYMBOL_MAP:
+                yf_symbol = STOCK_SYMBOL_MAP[symbol]
+            elif symbol in COMMODITY_SYMBOL_MAP:
+                yf_symbol = COMMODITY_SYMBOL_MAP[symbol]
+            else:
+                # Default crypto conversion
+                yf_symbol = symbol.replace("/", "-")
+                if yf_symbol.endswith("-USDT"):
+                    yf_symbol = yf_symbol.replace("-USDT", "-USD")
 
             ticker = yf.Ticker(yf_symbol)
             df = ticker.history(period=period, interval="1h")
@@ -642,9 +666,12 @@ class MLSignalGenerator:
             self.initialize([symbol])
 
         # Get price data
+        logger.info(f"[{symbol}] Generating signal at price ${current_price:.2f}")
         df = self._fetch_prices(symbol)
         if df is None or len(df) < 50:
+            logger.warning(f"[{symbol}] Insufficient data: {len(df) if df is not None else 0} rows")
             return None
+        logger.debug(f"[{symbol}] Fetched {len(df)} price rows")
 
         # Get regime-specific strategy parameters from Intelligent Brain
         regime_strategy = self.get_regime_strategy(df)
@@ -1146,15 +1173,19 @@ class MLSignalGenerator:
                 reasons.append(f"Weak momentum ({latest_momentum:.1f}%)")
 
             # Determine action based on score
-            min_score = 2.5  # Minimum score to trigger a signal
+            min_score = 1.5  # Lowered from 2.5 to generate more signals for stocks/commodities
+            logger.info(f"[{symbol}] TA scores: buy={buy_score:.1f}, sell={sell_score:.1f} (threshold={min_score})")
 
             if buy_score >= min_score and buy_score > sell_score:
                 action = "BUY"
                 confidence = min(0.5 + (buy_score / 10), 0.85)
+                logger.info(f"[{symbol}] TA signal: {action} @ {confidence:.0%}")
             elif sell_score >= min_score and sell_score > buy_score:
                 action = "SHORT"  # Changed from SELL to open short positions
                 confidence = min(0.5 + (sell_score / 10), 0.85)
+                logger.info(f"[{symbol}] TA signal: {action} @ {confidence:.0%}")
             else:
+                logger.info(f"[{symbol}] TA: No clear signal (buy={buy_score:.1f}, sell={sell_score:.1f})")
                 return None  # No clear signal
 
             # Track technical prediction

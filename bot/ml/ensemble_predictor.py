@@ -419,7 +419,8 @@ class EnsemblePredictor:
             predictions.update(self._predict_dl())
 
         if not predictions:
-            return 0, 0.0, {"error": "No predictions generated"}
+            # Raise exception to trigger fallback to technical analysis
+            raise RuntimeError("No predictions generated - all models failed")
 
         # Combine predictions using voting strategy
         final_prediction, final_confidence = self._vote(predictions)

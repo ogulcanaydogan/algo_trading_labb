@@ -435,7 +435,7 @@ class PnLNotificationManager:
     def _send_telegram(self, notification: PnLNotification) -> None:
         """Send notification via Telegram."""
         try:
-            from .notifications import TelegramNotifier
+            from bot.notifications import TelegramNotifier
 
             # Priority emoji mapping
             emoji_map = {

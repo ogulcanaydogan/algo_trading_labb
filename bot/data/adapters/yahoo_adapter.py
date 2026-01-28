@@ -97,7 +97,35 @@ class YahooAdapter(DataAdapter):
         "COPPER/USD": "HG=F",  # Copper futures
         "PLATINUM/USD": "PL=F",  # Platinum futures
         "PALLADIUM/USD": "PA=F",  # Palladium futures
-        # Stocks map directly (AAPL -> AAPL)
+        # Stocks - map from internal format to Yahoo format
+        "AAPL/USD": "AAPL",  # Apple Inc.
+        "MSFT/USD": "MSFT",  # Microsoft Corporation
+        "GOOGL/USD": "GOOGL",  # Alphabet Inc. (Google)
+        "GOOG/USD": "GOOG",  # Alphabet Class C
+        "AMZN/USD": "AMZN",  # Amazon.com Inc.
+        "NVDA/USD": "NVDA",  # NVIDIA Corporation
+        "META/USD": "META",  # Meta Platforms Inc.
+        "TSLA/USD": "TSLA",  # Tesla Inc.
+        "JPM/USD": "JPM",  # JPMorgan Chase
+        "V/USD": "V",  # Visa Inc.
+        "JNJ/USD": "JNJ",  # Johnson & Johnson
+        "UNH/USD": "UNH",  # UnitedHealth Group
+        "HD/USD": "HD",  # Home Depot
+        "PG/USD": "PG",  # Procter & Gamble
+        "MA/USD": "MA",  # Mastercard
+        "BAC/USD": "BAC",  # Bank of America
+        "XOM/USD": "XOM",  # Exxon Mobil
+        "CVX/USD": "CVX",  # Chevron
+        "KO/USD": "KO",  # Coca-Cola
+        "PEP/USD": "PEP",  # PepsiCo
+        "ABBV/USD": "ABBV",  # AbbVie
+        "MRK/USD": "MRK",  # Merck
+        "WMT/USD": "WMT",  # Walmart
+        "COST/USD": "COST",  # Costco
+        "DIS/USD": "DIS",  # Disney
+        "NFLX/USD": "NFLX",  # Netflix
+        "AMD/USD": "AMD",  # AMD
+        "INTC/USD": "INTC",  # Intel
     }
 
     # Timeframe mapping

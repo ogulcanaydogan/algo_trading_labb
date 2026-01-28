@@ -227,8 +227,28 @@ class PaperExecutionAdapter(ExecutionAdapter):
         try:
             import yfinance as yf
 
-            # Convert symbol format: BTC/USDT -> BTC-USD
-            yf_symbol = symbol.replace("/USDT", "-USD").replace("/USD", "-USD")
+            # Stock symbol mapping - stocks use plain ticker
+            STOCK_MAP = {
+                "AAPL/USD": "AAPL", "MSFT/USD": "MSFT", "GOOGL/USD": "GOOGL",
+                "AMZN/USD": "AMZN", "NVDA/USD": "NVDA", "META/USD": "META",
+                "TSLA/USD": "TSLA", "JPM/USD": "JPM", "V/USD": "V",
+                "BAC/USD": "BAC", "AMD/USD": "AMD", "INTC/USD": "INTC",
+                "NFLX/USD": "NFLX", "DIS/USD": "DIS", "KO/USD": "KO",
+            }
+            # Commodity symbol mapping
+            COMMODITY_MAP = {
+                "XAU/USD": "GC=F", "XAG/USD": "SI=F", "USOIL/USD": "CL=F",
+                "NATGAS/USD": "NG=F", "COPPER/USD": "HG=F",
+            }
+
+            # Convert symbol format
+            if symbol in STOCK_MAP:
+                yf_symbol = STOCK_MAP[symbol]
+            elif symbol in COMMODITY_MAP:
+                yf_symbol = COMMODITY_MAP[symbol]
+            else:
+                # Crypto: BTC/USDT -> BTC-USD
+                yf_symbol = symbol.replace("/USDT", "-USD").replace("/USD", "-USD")
 
             ticker = yf.Ticker(yf_symbol)
             # Try multiple price sources
