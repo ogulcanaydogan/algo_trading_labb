@@ -350,17 +350,30 @@ app = FastAPI(
 )
 
 # CORS middleware configuration
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
-# Ensure wildcard works properly
-if "*" in CORS_ORIGINS:
+# In production, set CORS_ORIGINS env var to specific domains (comma-separated)
+# Default allows localhost for development only
+_default_origins = "http://localhost:3000,http://localhost:8000,http://127.0.0.1:3000,http://127.0.0.1:8000"
+_cors_env = os.getenv("CORS_ORIGINS", "")
+if _cors_env == "*":
+    # Explicit wildcard - allow all (use with caution)
     CORS_ORIGINS = ["*"]
+    _allow_credentials = False
+elif _cors_env:
+    # Custom origins specified
+    CORS_ORIGINS = [o.strip() for o in _cors_env.split(",") if o.strip()]
+    _allow_credentials = True
+else:
+    # Default to localhost only for development
+    CORS_ORIGINS = [o.strip() for o in _default_origins.split(",")]
+    _allow_credentials = True
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
-    allow_credentials=False,  # Must be False when using wildcard origins
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"],
+    allow_credentials=_allow_credentials,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-API-Key", "X-Request-ID"],
+    expose_headers=["X-Request-ID", "X-RateLimit-Remaining"],
 )
 
 # Include unified trading API router

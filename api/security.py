@@ -6,6 +6,7 @@ import hashlib
 import logging
 import os
 import re
+import threading
 import time
 from collections import defaultdict
 from functools import wraps
@@ -157,25 +158,63 @@ def _constant_time_compare(val1: str, val2: str) -> bool:
 
 
 class RateLimiter:
-    """Simple in-memory rate limiter using sliding window."""
+    """Thread-safe in-memory rate limiter using sliding window."""
 
     def __init__(
         self,
         requests_per_minute: int = 60,
         requests_per_hour: int = 1000,
+        max_clients: int = 10000,
     ):
         self.requests_per_minute = requests_per_minute
         self.requests_per_hour = requests_per_hour
+        self.max_clients = max_clients
         self._minute_windows: dict[str, list[float]] = defaultdict(list)
         self._hour_windows: dict[str, list[float]] = defaultdict(list)
+        self._lock = threading.Lock()
+        self._last_cleanup = time.time()
+        self._cleanup_interval = 300  # Cleanup every 5 minutes
 
     def _clean_window(self, window: list[float], cutoff: float) -> list[float]:
         """Remove timestamps older than cutoff."""
         return [ts for ts in window if ts > cutoff]
 
+    def _maybe_cleanup_stale_clients(self, now: float) -> None:
+        """Remove stale client entries to prevent memory leaks."""
+        if now - self._last_cleanup < self._cleanup_interval:
+            return
+
+        hour_ago = now - 3600
+
+        # Remove clients with no recent activity
+        stale_clients = [
+            client_id for client_id, timestamps in self._hour_windows.items()
+            if not timestamps or max(timestamps) < hour_ago
+        ]
+
+        for client_id in stale_clients:
+            self._minute_windows.pop(client_id, None)
+            self._hour_windows.pop(client_id, None)
+
+        # If still too many clients, remove oldest ones
+        if len(self._hour_windows) > self.max_clients:
+            # Sort by most recent activity
+            sorted_clients = sorted(
+                self._hour_windows.keys(),
+                key=lambda c: max(self._hour_windows[c]) if self._hour_windows[c] else 0
+            )
+            # Remove oldest half
+            for client_id in sorted_clients[:len(sorted_clients) // 2]:
+                self._minute_windows.pop(client_id, None)
+                self._hour_windows.pop(client_id, None)
+
+        self._last_cleanup = now
+
     def is_allowed(self, client_id: str) -> tuple[bool, Optional[str]]:
         """
         Check if request is allowed for the given client.
+
+        Thread-safe implementation with automatic cleanup.
 
         Returns:
             Tuple of (is_allowed, error_message)
@@ -184,25 +223,41 @@ class RateLimiter:
         minute_ago = now - 60
         hour_ago = now - 3600
 
-        # Clean old entries
-        self._minute_windows[client_id] = self._clean_window(
-            self._minute_windows[client_id], minute_ago
-        )
-        self._hour_windows[client_id] = self._clean_window(self._hour_windows[client_id], hour_ago)
+        with self._lock:
+            # Periodic cleanup of stale clients
+            self._maybe_cleanup_stale_clients(now)
 
-        # Check minute limit
-        if len(self._minute_windows[client_id]) >= self.requests_per_minute:
-            return False, f"Rate limit exceeded: {self.requests_per_minute} requests per minute"
+            # Clean old entries for this client
+            self._minute_windows[client_id] = self._clean_window(
+                self._minute_windows[client_id], minute_ago
+            )
+            self._hour_windows[client_id] = self._clean_window(
+                self._hour_windows[client_id], hour_ago
+            )
 
-        # Check hour limit
-        if len(self._hour_windows[client_id]) >= self.requests_per_hour:
-            return False, f"Rate limit exceeded: {self.requests_per_hour} requests per hour"
+            # Check minute limit
+            if len(self._minute_windows[client_id]) >= self.requests_per_minute:
+                return False, f"Rate limit exceeded: {self.requests_per_minute} requests per minute"
 
-        # Record this request
-        self._minute_windows[client_id].append(now)
-        self._hour_windows[client_id].append(now)
+            # Check hour limit
+            if len(self._hour_windows[client_id]) >= self.requests_per_hour:
+                return False, f"Rate limit exceeded: {self.requests_per_hour} requests per hour"
 
-        return True, None
+            # Record this request
+            self._minute_windows[client_id].append(now)
+            self._hour_windows[client_id].append(now)
+
+            return True, None
+
+    def get_remaining(self, client_id: str) -> dict[str, int]:
+        """Get remaining requests for a client."""
+        with self._lock:
+            minute_used = len(self._minute_windows.get(client_id, []))
+            hour_used = len(self._hour_windows.get(client_id, []))
+            return {
+                "minute_remaining": max(0, self.requests_per_minute - minute_used),
+                "hour_remaining": max(0, self.requests_per_hour - hour_used),
+            }
 
 
 # Global rate limiter instance
