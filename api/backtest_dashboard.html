@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backtesting Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0f1a;
+            --bg-secondary: #111827;
+            --bg-card: #1a2332;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-blue: #3b82f6;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .header h1 { font-size: 1.5rem; }
+
+        .back-link {
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .card h2 {
+            font-size: 1rem;
+            margin-bottom: 15px;
+            color: var(--text-secondary);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+            color: var(--text-secondary);
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            color: white;
+            width: 100%;
+        }
+
+        .btn-primary:hover { opacity: 0.9; }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: var(--bg-secondary);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .positive { color: var(--accent-green); }
+        .negative { color: var(--accent-red); }
+
+        .chart-container {
+            height: 300px;
+            margin-bottom: 20px;
+        }
+
+        .trades-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .trades-table th {
+            text-align: left;
+            padding: 10px;
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .trades-table td {
+            padding: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-long { background: rgba(16,185,129,0.2); color: var(--accent-green); }
+        .badge-short { background: rgba(239,68,68,0.2); color: var(--accent-red); }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .results { display: none; }
+
+        #error {
+            background: rgba(239,68,68,0.1);
+            border: 1px solid var(--accent-red);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Backtesting Dashboard</h1>
+        <a href="/" class="back-link">Back to Trading Dashboard</a>
+    </div>
+
+    <div id="error"></div>
+
+    <div class="grid">
+        <!-- Config Panel -->
+        <div class="card">
+            <h2>Backtest Configuration</h2>
+            <form id="backtestForm">
+                <div class="form-group">
+                    <label>Symbol</label>
+                    <select id="symbol">
+                        <option value="BTC/USDT">BTC/USDT</option>
+                        <option value="ETH/USDT">ETH/USDT</option>
+                        <option value="SOL/USDT">SOL/USDT</option>
+                        <option value="XRP/USDT">XRP/USDT</option>
+                        <option value="AAPL/USD">AAPL/USD</option>
+                        <option value="MSFT/USD">MSFT/USD</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Strategy</label>
+                    <select id="strategy">
+                        <option value="ml_ensemble">ML Ensemble</option>
+                        <option value="ema_crossover">EMA Crossover</option>
+                        <option value="rsi_mean_reversion">RSI Mean Reversion</option>
+                        <option value="macd_momentum">MACD Momentum</option>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Start Date</label>
+                        <input type="date" id="startDate">
+                    </div>
+                    <div class="form-group">
+                        <label>End Date</label>
+                        <input type="date" id="endDate">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Initial Capital ($)</label>
+                    <input type="number" id="initialCapital" value="10000" min="100">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Position Size (%)</label>
+                        <input type="number" id="positionSize" value="10" min="1" max="100">
+                    </div>
+                    <div class="form-group">
+                        <label>Stop Loss (%)</label>
+                        <input type="number" id="stopLoss" value="2" min="0.1" max="20" step="0.1">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Timeframe</label>
+                    <select id="timeframe">
+                        <option value="1h">1 Hour</option>
+                        <option value="4h">4 Hours</option>
+                        <option value="1d" selected>1 Day</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="runBtn">
+                    Run Backtest
+                </button>
+            </form>
+        </div>
+
+        <!-- Results Panel -->
+        <div>
+            <div class="loading" id="loading">
+                <p>Running backtest...</p>
+            </div>
+
+            <div class="results" id="results">
+                <!-- Metrics -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value" id="totalReturn">--</div>
+                        <div class="metric-label">Total Return</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="sharpe">--</div>
+                        <div class="metric-label">Sharpe Ratio</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="winRate">--</div>
+                        <div class="metric-label">Win Rate</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="maxDrawdown">--</div>
+                        <div class="metric-label">Max Drawdown</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="totalTrades">--</div>
+                        <div class="metric-label">Total Trades</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="profitFactor">--</div>
+                        <div class="metric-label">Profit Factor</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="avgTrade">--</div>
+                        <div class="metric-label">Avg Trade</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="finalEquity">--</div>
+                        <div class="metric-label">Final Equity</div>
+                    </div>
+                </div>
+
+                <!-- Equity Chart -->
+                <div class="card">
+                    <h2>Equity Curve</h2>
+                    <div class="chart-container">
+                        <canvas id="equityChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Trades Table -->
+                <div class="card">
+                    <h2>Trade History</h2>
+                    <table class="trades-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Entry</th>
+                                <th>Exit</th>
+                                <th>Size</th>
+                                <th>P&L</th>
+                                <th>P&L %</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tradesBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set default dates
+        const today = new Date();
+        const threeMonthsAgo = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
+        document.getElementById('endDate').value = today.toISOString().split('T')[0];
+        document.getElementById('startDate').value = threeMonthsAgo.toISOString().split('T')[0];
+
+        let equityChart = null;
+
+        document.getElementById('backtestForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            const error = document.getElementById('error');
+            const runBtn = document.getElementById('runBtn');
+
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            error.style.display = 'none';
+            runBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/backtest/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        symbol: document.getElementById('symbol').value,
+                        strategy: document.getElementById('strategy').value,
+                        start_date: document.getElementById('startDate').value,
+                        end_date: document.getElementById('endDate').value,
+                        initial_capital: parseFloat(document.getElementById('initialCapital').value),
+                        position_size_pct: parseFloat(document.getElementById('positionSize').value),
+                        stop_loss_pct: parseFloat(document.getElementById('stopLoss').value),
+                        timeframe: document.getElementById('timeframe').value,
+                    }),
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || 'Backtest failed');
+                }
+
+                const data = await response.json();
+                displayResults(data);
+
+            } catch (err) {
+                error.textContent = err.message;
+                error.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+                runBtn.disabled = false;
+            }
+        });
+
+        function displayResults(data) {
+            const results = document.getElementById('results');
+            results.style.display = 'block';
+
+            const metrics = data.metrics || {};
+
+            // Update metrics
+            updateMetric('totalReturn', metrics.total_return_pct, '%', true);
+            updateMetric('sharpe', metrics.sharpe_ratio);
+            updateMetric('winRate', metrics.win_rate, '%');
+            updateMetric('maxDrawdown', metrics.max_drawdown_pct, '%', true, true);
+            updateMetric('totalTrades', metrics.total_trades);
+            updateMetric('profitFactor', metrics.profit_factor);
+            updateMetric('avgTrade', metrics.avg_trade_pct, '%', true);
+            updateMetric('finalEquity', metrics.final_equity, '$');
+
+            // Update equity chart
+            updateEquityChart(data.equity_curve || []);
+
+            // Update trades table
+            updateTradesTable(data.trades || []);
+        }
+
+        function updateMetric(id, value, suffix = '', colorize = false, invert = false) {
+            const el = document.getElementById(id);
+            if (value === undefined || value === null) {
+                el.textContent = '--';
+                el.className = 'metric-value';
+                return;
+            }
+
+            const formatted = suffix === '$'
+                ? '$' + value.toLocaleString(undefined, {maximumFractionDigits: 0})
+                : value.toFixed(2) + (suffix || '');
+
+            el.textContent = formatted;
+
+            if (colorize) {
+                const isPositive = invert ? value < 0 : value > 0;
+                el.className = 'metric-value ' + (isPositive ? 'positive' : 'negative');
+            }
+        }
+
+        function updateEquityChart(equityCurve) {
+            const ctx = document.getElementById('equityChart').getContext('2d');
+
+            if (equityChart) {
+                equityChart.destroy();
+            }
+
+            const labels = equityCurve.map((_, i) => i + 1);
+            const data = equityCurve.map(e => e.equity || e);
+
+            equityChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Equity',
+                        data: data,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                    },
+                    scales: {
+                        x: {
+                            display: false,
+                        },
+                        y: {
+                            ticks: {
+                                color: '#94a3b8',
+                                callback: (v) => '$' + v.toLocaleString(),
+                            },
+                            grid: { color: 'rgba(148,163,184,0.1)' },
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateTradesTable(trades) {
+            const tbody = document.getElementById('tradesBody');
+            tbody.innerHTML = '';
+
+            trades.slice(-50).reverse().forEach(trade => {
+                const pnl = trade.pnl || 0;
+                const pnlClass = pnl >= 0 ? 'positive' : 'negative';
+                const typeClass = trade.direction === 'LONG' ? 'badge-long' : 'badge-short';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${trade.exit_time || trade.entry_time || '--'}</td>
+                        <td><span class="status-badge ${typeClass}">${trade.direction || 'LONG'}</span></td>
+                        <td>$${(trade.entry_price || 0).toLocaleString()}</td>
+                        <td>$${(trade.exit_price || 0).toLocaleString()}</td>
+                        <td>${(trade.size || 0).toFixed(4)}</td>
+                        <td class="${pnlClass}">$${pnl.toFixed(2)}</td>
+                        <td class="${pnlClass}">${(trade.pnl_pct || 0).toFixed(2)}%</td>
+                    </tr>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>

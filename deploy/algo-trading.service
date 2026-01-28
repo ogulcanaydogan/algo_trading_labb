@@ -1,0 +1,44 @@
+[Unit]
+Description=Algo Trading Bot
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=trading
+Group=trading
+WorkingDirectory=/opt/algo-trading
+Environment=PYTHONUNBUFFERED=1
+Environment=TRADING_MODE=paper
+Environment=LOG_LEVEL=INFO
+
+# Load environment from file
+EnvironmentFile=-/opt/algo-trading/.env
+
+# Main trading bot
+ExecStart=/opt/algo-trading/venv/bin/python run_unified_trading.py
+
+# Restart policy
+Restart=always
+RestartSec=10
+StartLimitBurst=5
+StartLimitIntervalSec=60
+
+# Resource limits
+MemoryMax=2G
+CPUQuota=100%
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=algo-trading
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/algo-trading/data /opt/algo-trading/logs
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

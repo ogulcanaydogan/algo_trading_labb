@@ -6276,6 +6276,20 @@ async def strategy_dashboard() -> HTMLResponse:
     return HTMLResponse(content=STRATEGY_DASHBOARD_TEMPLATE.read_text())
 
 
+BACKTEST_DASHBOARD_TEMPLATE = Path(__file__).parent / "backtest_dashboard.html"
+
+
+@app.get("/dashboard/backtest", response_class=HTMLResponse, tags=["Dashboard"])
+async def backtest_dashboard() -> HTMLResponse:
+    """Serve the backtesting dashboard."""
+    if not BACKTEST_DASHBOARD_TEMPLATE.exists():
+        return HTMLResponse(
+            content="<html><body><h1>Backtest dashboard template missing.</h1></body></html>",
+            status_code=200,
+        )
+    return HTMLResponse(content=BACKTEST_DASHBOARD_TEMPLATE.read_text())
+
+
 # =============================================================================
 # Trading Mode Toggle (Paper <-> Live)
 # =============================================================================

@@ -1,0 +1,42 @@
+[Unit]
+Description=Algo Trading API Server
+After=network.target algo-trading.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=trading
+Group=trading
+WorkingDirectory=/opt/algo-trading
+Environment=PYTHONUNBUFFERED=1
+
+# Load environment from file
+EnvironmentFile=-/opt/algo-trading/.env
+
+# API server with uvicorn
+ExecStart=/opt/algo-trading/venv/bin/uvicorn api.api:app --host 0.0.0.0 --port 8000 --workers 2
+
+# Restart policy
+Restart=always
+RestartSec=5
+StartLimitBurst=5
+StartLimitIntervalSec=60
+
+# Resource limits
+MemoryMax=1G
+CPUQuota=50%
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=algo-api
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/algo-trading/data /opt/algo-trading/logs
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
