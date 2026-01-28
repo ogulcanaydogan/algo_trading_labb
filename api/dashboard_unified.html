@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Multi-Market Trading Dashboard</title>
     <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
+    <script src="/static/charts.js"></script>
+    <script src="/static/trading-utils.js"></script>
+    <script src="/static/websocket-utils.js"></script>
     <style>
         :root {
             /* Colors - Dark Theme */
@@ -4613,6 +4616,9 @@
     </footer>
 
     <script>
+        // ============ DIAGNOSTIC - Script Start ============
+        console.log('[DIAGNOSTIC] Script started at', new Date().toISOString());
+
         // Forward declarations for functions used in inline handlers
         window.handleRiskToggle = function(setting, enabled) {
             console.log(`Risk toggle (early): ${setting} = ${enabled}`);
@@ -5003,13 +5009,20 @@
 
             // === FETCH AND COMMIT (the only way to update from API) ===
             async fetchAndCommit() {
+                console.log('[DIAGNOSTIC] fetchAndCommit called');
                 this._pendingFetches++;
 
                 try {
                     const response = await fetch('/api/dashboard/unified-state');
+                    console.log('[DIAGNOSTIC] API response status:', response.status);
                     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
                     const snapshot = await response.json();
+                    console.log('[DIAGNOSTIC] Snapshot received:', {
+                        version: snapshot.version,
+                        total_value: snapshot.total?.total_value,
+                        hasMarkets: !!snapshot.markets
+                    });
                     this.commitSnapshot(snapshot);
 
                 } catch (error) {
@@ -5046,7 +5059,9 @@
         }
 
         // START THE SINGLE UPDATE LOOP
+        console.log('[DIAGNOSTIC] Starting PortfolioStore...');
         PortfolioStore.start(5000);
+        console.log('[DIAGNOSTIC] PortfolioStore started');
 
         // ============================================================
         // END PORTFOLIO STORE
@@ -7268,6 +7283,7 @@
 
             // Draw pie chart (no separate cash section)
             drawAllocationPieChart(cryptoValue, commodityValue, stockValue, 0);
+            */
         }
 
         // Update market stats
@@ -7386,6 +7402,29 @@
                         state.markets[marketType].positions = marketData.positions || {};
                         state.markets[marketType].positions_count = marketData.positions_count || 0;
                         state.markets[marketType].bot_running = data.bot_status?.running || false;
+
+                        // Convert positions dict to assets array for UI rendering
+                        const positions = marketData.positions || {};
+                        state.markets[marketType].assets = Object.entries(positions).map(([symbol, pos]) => ({
+                            symbol: symbol,
+                            price: pos.current_price || pos.entry_price || 0,
+                            change: pos.unrealized_pnl || 0,
+                            changePct: pos.entry_price ? ((pos.current_price - pos.entry_price) / pos.entry_price * 100) : 0,
+                            signal: pos.side === 'long' ? 'LONG' : pos.side === 'short' ? 'SHORT' : 'FLAT',
+                            confidence: pos.signal_confidence || 0,
+                            regime: pos.signal_meta?.regime || 'unknown',
+                            position: pos,
+                            quantity: pos.quantity,
+                            entry_price: pos.entry_price,
+                            unrealized_pnl: pos.unrealized_pnl,
+                            stop_loss: pos.stop_loss,
+                            take_profit: pos.take_profit,
+                            dl_prediction: pos.signal_meta?.model_type === 'ensemble' ? {
+                                action: pos.side === 'long' ? 'LONG' : 'SHORT',
+                                confidence: pos.signal_confidence,
+                                model_type: pos.signal_meta?.model_type
+                            } : null
+                        }));
 
                         // Cash balance calc uses initial_capital (static) so it's safe
                         const initialCap = marketData.initial_capital || 10000;
@@ -9893,12 +9932,18 @@
 
         function renderDataFreshness(data) {
             const container = document.getElementById('dataFreshnessStatus');
+            if (!container) {
+                console.error('dataFreshnessStatus container not found');
+                return;
+            }
+
             const symbols = data.symbols || {};
             const entries = Object.entries(symbols);
+            console.log('renderDataFreshness:', { symbolCount: entries.length, data });
 
             if (entries.length === 0) {
                 container.innerHTML = `
-                    <div style="text-align: center; color: var(--text-muted);">
+                    <div style="text-align: center; color: var(--text-muted); padding: var(--spacing-md);">
                         No data freshness tracking active. Start trading bots to see status.
                     </div>
                 `;

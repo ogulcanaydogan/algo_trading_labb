@@ -18,6 +18,7 @@ load_dotenv()
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
 from bot.ai import FeatureSnapshot, PredictionSnapshot, QuestionAnsweringEngine
 from bot.control import load_bot_control, update_bot_control
@@ -387,6 +388,12 @@ try:
 except ImportError as e:
     logger.warning(f"Advanced API not available: {e}")
 
+# Mount static files directory for CSS, JS, and other assets
+_static_dir = Path(__file__).parent / "static"
+if _static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(_static_dir)), name="static")
+    logger.info(f"Static files mounted from {_static_dir}")
+
 # Include WebSocket router
 try:
     from api.websocket_api import router as websocket_router
@@ -394,6 +401,52 @@ try:
     app.include_router(websocket_router)
 except ImportError as e:
     logger.warning(f"WebSocket API not available: {e}")
+
+# Include Prometheus metrics router
+try:
+    from api.prometheus_router import router as prometheus_router
+
+    app.include_router(prometheus_router, tags=["metrics"])
+except ImportError as e:
+    logger.warning(f"Prometheus metrics API not available: {e}")
+
+# Include API versioning router
+try:
+    from api.versioning import version_info_router, APIVersionMiddleware
+
+    app.include_router(version_info_router, tags=["versioning"])
+    app.add_middleware(APIVersionMiddleware)
+except ImportError as e:
+    logger.warning(f"API versioning not available: {e}")
+
+# Add rate limiting middleware
+try:
+    from api.rate_limiting import (
+        RateLimitMiddleware,
+        get_rate_limiter,
+        configure_rate_limits,
+    )
+
+    # Configure predefined rate limits
+    configure_rate_limits(get_rate_limiter())
+
+    # Add global rate limiting middleware
+    app.add_middleware(
+        RateLimitMiddleware,
+        requests_per_minute=1000,
+        burst_size=100,
+        exempt_paths=["/health", "/metrics", "/docs", "/openapi.json"],
+    )
+except ImportError as e:
+    logger.warning(f"Rate limiting not available: {e}")
+
+# Include feature flags router
+try:
+    from api.feature_flags_router import router as feature_flags_router
+
+    app.include_router(feature_flags_router, tags=["feature-flags"])
+except ImportError as e:
+    logger.warning(f"Feature flags API not available: {e}")
 
 # Track application start time for health checks
 _app_start_time = time.time()
@@ -727,6 +780,28 @@ def read_signals(
 @app.get("/equity", response_model=List[EquityPointResponse])
 def read_equity(store: StateStore = Depends(get_store)) -> List[EquityPointResponse]:
     """Return equity curve with real-time portfolio value appended."""
+    # First try unified trading equity file (has the most data)
+    unified_equity_file = STATE_DIR / "unified_trading" / "equity.json"
+    if unified_equity_file.exists():
+        try:
+            with open(unified_equity_file) as f:
+                data = json.load(f)
+            # Convert to EquityPointResponse format
+            result = []
+            for point in data[-500:]:  # Limit to last 500 points for performance
+                # Use balance (cash + unrealized PnL) as portfolio value
+                # NOT total_equity which double-counts positions
+                value = point.get("balance") or point.get("value", 0)
+                result.append(EquityPointResponse(
+                    timestamp=point.get("timestamp"),
+                    value=value
+                ))
+            if result:
+                return result
+        except (json.JSONDecodeError, OSError, KeyError):
+            pass  # Fall back to store
+
+    # Fall back to the store's equity curve
     store.load()
     curve = store.get_equity_curve()
     result = [EquityPointResponse.model_validate(point) for point in curve]
@@ -2726,7 +2801,6 @@ async def get_chart_ohlcv(
     period: str = Query(default="30d", description="Data period (e.g., 7d, 30d, 90d)"),
     interval: str = Query(default="1h", description="Candle interval (e.g., 15m, 1h, 4h, 1d)"),
     limit: int = Query(default=100, ge=10, le=500, description="Number of candles to return"),
-    _: bool = Depends(verify_api_key),
 ) -> Dict[str, Any]:
     """
     Get OHLCV (candlestick) data for a symbol.
@@ -3292,6 +3366,124 @@ async def get_walk_forward_history() -> Dict[str, Any]:
 
 
 # =============================================================================
+# Model Performance Tracking Endpoints
+# =============================================================================
+
+
+@app.get("/api/model-performance/stats", tags=["ML/AI"])
+async def get_model_performance_stats() -> Dict[str, Any]:
+    """Get model prediction accuracy statistics."""
+    try:
+        from bot.position_manager import get_performance_tracker
+
+        tracker = get_performance_tracker()
+        stats = tracker.get_accuracy_stats()
+
+        return {
+            "status": "success",
+            "stats": stats,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/model-performance/predictions", tags=["ML/AI"])
+async def get_recent_predictions(
+    limit: int = Query(default=50, description="Number of predictions to return"),
+) -> Dict[str, Any]:
+    """Get recent model predictions with outcomes."""
+    try:
+        from bot.position_manager import get_performance_tracker
+
+        tracker = get_performance_tracker()
+        predictions = tracker.get_recent_predictions(limit)
+
+        return {
+            "status": "success",
+            "predictions": predictions,
+            "total": len(predictions),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/position-manager/config", tags=["Risk"])
+async def get_position_manager_config() -> Dict[str, Any]:
+    """Get position manager configuration."""
+    from bot.position_manager import PositionConfig
+
+    config = PositionConfig()
+    return {
+        "stop_loss": {
+            "initial_stop_pct": config.initial_stop_pct,
+            "trailing_stop_pct": config.trailing_stop_pct,
+            "trailing_activation_pct": config.trailing_activation_pct,
+        },
+        "take_profit": {
+            "use_multiple_tp": config.use_multiple_tp,
+            "tp1_pct": config.tp1_pct,
+            "tp2_pct": config.tp2_pct,
+            "tp3_pct": config.tp3_pct,
+        },
+        "breakeven": {
+            "use_breakeven": config.use_breakeven,
+            "breakeven_trigger_pct": config.breakeven_trigger_pct,
+        },
+        "time_exit": {
+            "use_time_exit": config.use_time_exit,
+            "max_hold_hours": config.max_hold_hours,
+        },
+    }
+
+
+@app.get("/api/notifications/channels", tags=["Notifications"])
+async def get_notification_channels() -> Dict[str, Any]:
+    """Get configured notification channels."""
+    try:
+        from bot.notification_system import NotificationManager
+
+        manager = NotificationManager()
+        channels = manager.get_configured_channels()
+
+        return {
+            "status": "success",
+            "channels": channels,
+            "has_channels": manager.has_channels(),
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "channels": [],
+            "has_channels": False,
+            "error": str(e),
+        }
+
+
+@app.get("/api/notifications/history", tags=["Notifications"])
+async def get_notification_history(
+    limit: int = Query(default=50, description="Number of alerts to return"),
+) -> Dict[str, Any]:
+    """Get recent notification/alert history."""
+    try:
+        from bot.notification_system import NotificationManager
+
+        manager = NotificationManager()
+        history = manager.get_alert_history(limit)
+
+        return {
+            "status": "success",
+            "alerts": history,
+            "total": len(history),
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "alerts": [],
+            "error": str(e),
+        }
+
+
+# =============================================================================
 # Trade Journal Export Endpoints
 # =============================================================================
 
@@ -3714,13 +3906,70 @@ async def get_data_freshness_status() -> Dict[str, Any]:
 
     Shows data age and whether each symbol is tradeable.
     """
+    # First try the dedicated data freshness monitor
     try:
         from bot.data_freshness import get_monitor
 
         monitor = get_monitor()
-        return monitor.get_summary()
-    except ImportError:
-        return {"error": "Data freshness module not available", "symbols": {}}
+        result = monitor.get_summary()
+        if result.get("symbols"):
+            return result
+    except (ImportError, Exception):
+        pass
+
+    # Fallback: Generate freshness data from current positions
+    symbols_data = {}
+    try:
+        unified_state_file = STATE_DIR / "unified_trading" / "state.json"
+        if unified_state_file.exists():
+            with open(unified_state_file) as f:
+                state = json.load(f)
+
+            now = datetime.now(timezone.utc)
+
+            # Check positions at top level first (unified state structure)
+            positions = state.get("positions", {})
+
+            # Also check markets structure if positions is empty
+            if not positions:
+                for market_key in ["crypto", "commodity", "stock"]:
+                    market = state.get("markets", {}).get(market_key, {})
+                    market_positions = market.get("positions", {})
+                    positions.update(market_positions)
+
+            for symbol, pos in positions.items():
+                entry_time_str = pos.get("entry_time", "")
+                if entry_time_str:
+                    try:
+                        entry_time = datetime.fromisoformat(entry_time_str.replace("Z", "+00:00"))
+                        age_seconds = (now - entry_time).total_seconds()
+                        # Consider data fresh if position was entered recently
+                        status = "fresh" if age_seconds < 86400 else "stale" if age_seconds < 604800 else "expired"
+                        # Determine market from symbol
+                        market_key = "crypto" if "USDT" in symbol else "stock" if "/USD" in symbol else "commodity"
+                        symbols_data[symbol] = {
+                            "status": status,
+                            "age_seconds": age_seconds,
+                            "last_update": entry_time_str,
+                            "market": market_key,
+                        }
+                    except (ValueError, TypeError):
+                        pass
+
+        fresh_count = sum(1 for s in symbols_data.values() if s.get("status") == "fresh")
+        stale_count = sum(1 for s in symbols_data.values() if s.get("status") == "stale")
+        expired_count = sum(1 for s in symbols_data.values() if s.get("status") == "expired")
+
+        return {
+            "total_symbols": len(symbols_data),
+            "fresh": fresh_count,
+            "stale": stale_count,
+            "expired": expired_count,
+            "unknown": 0,
+            "average_age_seconds": sum(s.get("age_seconds", 0) for s in symbols_data.values()) / max(1, len(symbols_data)),
+            "tradeable_count": fresh_count + stale_count,
+            "symbols": symbols_data,
+        }
     except Exception as e:
         return {"error": str(e), "symbols": {}}
 

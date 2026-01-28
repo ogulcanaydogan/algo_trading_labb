@@ -437,11 +437,14 @@ class UnifiedStateStore:
             )
             unrealized_pnl = sum(pos.unrealized_pnl for pos in self._state.positions.values())
 
+            # Note: total_equity = balance + unrealized_pnl (NOT + positions_value)
+            # Balance already represents cash, unrealized_pnl is the P&L on open positions
+            # Adding positions_value would double-count the capital tied up in positions
             point = EquityPoint(
                 timestamp=datetime.now().isoformat(),
                 balance=self._state.current_balance,
                 positions_value=positions_value,
-                total_equity=self._state.current_balance + positions_value,
+                total_equity=self._state.current_balance + unrealized_pnl,
                 unrealized_pnl=unrealized_pnl,
             )
             self._equity_curve.append(point)

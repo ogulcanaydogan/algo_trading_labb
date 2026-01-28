@@ -559,3 +559,361 @@ class PositionManager:
     def get_total_unrealized_pnl(self) -> float:
         """Get total unrealized P&L across all positions."""
         return sum(p.unrealized_pnl for p in self.positions.values())
+
+
+# ============================================================
+# CONFIDENCE-BASED POSITION SIZING
+# ============================================================
+
+@dataclass
+class PositionSizingConfig:
+    """Configuration for confidence-based position sizing."""
+
+    base_size_pct: float = 5.0  # Base position size (% of portfolio)
+    min_size_pct: float = 2.0  # Minimum position size
+    max_size_pct: float = 15.0  # Maximum position size
+
+    # Confidence scaling
+    min_confidence: float = 0.5  # Minimum confidence to trade
+    max_confidence: float = 0.9  # Confidence for full size
+
+    # Volatility adjustment
+    use_volatility_scaling: bool = True
+    normal_volatility: float = 0.02  # 2% is "normal" daily vol
+
+    # Risk-per-trade
+    risk_per_trade_pct: float = 1.0  # Risk 1% of portfolio per trade
+
+
+def calculate_position_size(
+    portfolio_value: float,
+    confidence: float,
+    stop_distance_pct: float,
+    volatility: Optional[float] = None,
+    config: Optional[PositionSizingConfig] = None,
+) -> Tuple[float, float]:
+    """
+    Calculate position size based on confidence and risk parameters.
+
+    Args:
+        portfolio_value: Total portfolio value
+        confidence: Model confidence (0-1)
+        stop_distance_pct: Distance to stop-loss as percentage
+        volatility: Asset daily volatility (optional)
+        config: Sizing configuration
+
+    Returns:
+        Tuple of (position_size_value, position_size_pct)
+    """
+    cfg = config or PositionSizingConfig()
+
+    # Check minimum confidence
+    if confidence < cfg.min_confidence:
+        return 0.0, 0.0
+
+    # Start with base size
+    size_pct = cfg.base_size_pct
+
+    # Scale by confidence (linear between min and max)
+    conf_range = cfg.max_confidence - cfg.min_confidence
+    conf_normalized = min(1.0, (confidence - cfg.min_confidence) / conf_range)
+    size_pct = cfg.min_size_pct + (cfg.base_size_pct - cfg.min_size_pct) * conf_normalized
+
+    # Scale by volatility (inverse relationship)
+    if cfg.use_volatility_scaling and volatility and volatility > 0:
+        vol_ratio = cfg.normal_volatility / volatility
+        vol_factor = min(2.0, max(0.5, vol_ratio))  # Clamp 0.5x to 2x
+        size_pct *= vol_factor
+
+    # Risk-based sizing: ensure we don't risk more than risk_per_trade_pct
+    if stop_distance_pct > 0:
+        # position_size * stop_distance = risk_amount
+        # risk_amount = portfolio * risk_per_trade_pct
+        max_size_for_risk = (cfg.risk_per_trade_pct / stop_distance_pct) * 100
+        size_pct = min(size_pct, max_size_for_risk)
+
+    # Clamp to limits
+    size_pct = max(cfg.min_size_pct, min(cfg.max_size_pct, size_pct))
+
+    # Calculate absolute value
+    size_value = portfolio_value * (size_pct / 100)
+
+    return size_value, size_pct
+
+
+# ============================================================
+# AUTOMATED STOP-LOSS CHECKER
+# ============================================================
+
+class AutomatedStopChecker:
+    """
+    Automated stop-loss and take-profit checker.
+
+    Runs periodically to check all positions and close those
+    that have hit their stop-loss or take-profit levels.
+    """
+
+    def __init__(
+        self,
+        position_manager: PositionManager,
+        state_manager: Optional[Any] = None,
+        notification_manager: Optional[Any] = None,
+    ):
+        self.pm = position_manager
+        self.state = state_manager
+        self.notifications = notification_manager
+        self._last_check = datetime.now()
+
+    def check_all_positions(
+        self,
+        price_data: Dict[str, float],
+    ) -> List[Dict]:
+        """
+        Check all positions for stop conditions.
+
+        Args:
+            price_data: Dict of symbol -> current_price
+
+        Returns:
+            List of closed position summaries
+        """
+        closed = []
+
+        for symbol, position in list(self.pm.positions.items()):
+            if symbol not in price_data:
+                continue
+
+            current_price = price_data[symbol]
+
+            # Update position and check exits
+            exit_reason, exit_price, exit_size = self.pm.update(
+                symbol=symbol,
+                current_price=current_price,
+            )
+
+            if exit_reason:
+                # Full exit
+                if exit_size >= position.current_size * 0.99:
+                    result = self.pm.close_position(symbol, exit_price, exit_reason)
+                    if result:
+                        closed.append(result)
+                        self._notify_closure(result)
+
+        self._last_check = datetime.now()
+        return closed
+
+    def _notify_closure(self, result: Dict):
+        """Send notification for position closure."""
+        if not self.notifications:
+            return
+
+        try:
+            pnl = result.get("realized_pnl", 0)
+            entry = result.get("entry_price", 0)
+            exit_p = result.get("exit_price", 0)
+            pnl_pct = ((exit_p - entry) / entry * 100) if entry else 0
+
+            if result.get("direction") == "SHORT":
+                pnl_pct = -pnl_pct
+
+            self.notifications.notify_trade_closed(
+                symbol=result["symbol"],
+                direction=result["direction"],
+                entry_price=entry,
+                exit_price=exit_p,
+                pnl=pnl,
+                pnl_pct=pnl_pct,
+                reason=result.get("exit_reason", "unknown"),
+            )
+        except Exception as e:
+            print(f"Failed to send notification: {e}")
+
+
+# ============================================================
+# MODEL PERFORMANCE TRACKER
+# ============================================================
+
+@dataclass
+class PredictionRecord:
+    """Record of a model prediction."""
+
+    timestamp: str
+    symbol: str
+    prediction: str  # LONG, SHORT, FLAT
+    confidence: float
+    actual_direction: Optional[str] = None
+    price_at_prediction: float = 0.0
+    price_after: Optional[float] = None
+    was_correct: Optional[bool] = None
+
+
+class ModelPerformanceTracker:
+    """
+    Tracks model prediction accuracy over time.
+
+    Features:
+    - Records all predictions with confidence
+    - Tracks actual outcomes
+    - Calculates accuracy by symbol, confidence level, and time
+    """
+
+    def __init__(self, max_records: int = 10000):
+        self.records: List[PredictionRecord] = []
+        self.max_records = max_records
+
+    def record_prediction(
+        self,
+        symbol: str,
+        prediction: str,
+        confidence: float,
+        current_price: float,
+    ) -> int:
+        """
+        Record a new prediction.
+
+        Returns:
+            Index of the record for later update
+        """
+        record = PredictionRecord(
+            timestamp=datetime.now().isoformat(),
+            symbol=symbol,
+            prediction=prediction,
+            confidence=confidence,
+            price_at_prediction=current_price,
+        )
+
+        self.records.append(record)
+
+        # Trim old records
+        if len(self.records) > self.max_records:
+            self.records = self.records[-self.max_records:]
+
+        return len(self.records) - 1
+
+    def update_outcome(
+        self,
+        record_index: int,
+        price_after: float,
+    ):
+        """
+        Update a prediction with the actual outcome.
+
+        Args:
+            record_index: Index from record_prediction
+            price_after: Price some time after prediction
+        """
+        if record_index < 0 or record_index >= len(self.records):
+            return
+
+        record = self.records[record_index]
+        record.price_after = price_after
+
+        # Determine actual direction
+        price_change = (price_after - record.price_at_prediction) / record.price_at_prediction
+        if price_change > 0.001:  # 0.1% threshold
+            record.actual_direction = "LONG"
+        elif price_change < -0.001:
+            record.actual_direction = "SHORT"
+        else:
+            record.actual_direction = "FLAT"
+
+        # Check if prediction was correct
+        if record.prediction == "FLAT":
+            record.was_correct = record.actual_direction == "FLAT"
+        elif record.prediction == "LONG":
+            record.was_correct = record.actual_direction == "LONG"
+        elif record.prediction == "SHORT":
+            record.was_correct = record.actual_direction == "SHORT"
+
+    def get_accuracy_stats(self) -> Dict:
+        """Get overall accuracy statistics."""
+        evaluated = [r for r in self.records if r.was_correct is not None]
+
+        if not evaluated:
+            return {"total": 0, "accuracy": 0.0}
+
+        correct = sum(1 for r in evaluated if r.was_correct)
+
+        return {
+            "total": len(evaluated),
+            "correct": correct,
+            "accuracy": correct / len(evaluated) if evaluated else 0.0,
+            "by_symbol": self._accuracy_by_symbol(evaluated),
+            "by_confidence": self._accuracy_by_confidence(evaluated),
+        }
+
+    def _accuracy_by_symbol(self, records: List[PredictionRecord]) -> Dict:
+        """Calculate accuracy grouped by symbol."""
+        by_symbol: Dict[str, List[bool]] = {}
+
+        for r in records:
+            if r.symbol not in by_symbol:
+                by_symbol[r.symbol] = []
+            by_symbol[r.symbol].append(r.was_correct)
+
+        return {
+            sym: {
+                "total": len(results),
+                "accuracy": sum(results) / len(results) if results else 0.0,
+            }
+            for sym, results in by_symbol.items()
+        }
+
+    def _accuracy_by_confidence(self, records: List[PredictionRecord]) -> Dict:
+        """Calculate accuracy grouped by confidence level."""
+        buckets = {
+            "low (0.5-0.6)": [],
+            "medium (0.6-0.7)": [],
+            "high (0.7-0.8)": [],
+            "very_high (0.8+)": [],
+        }
+
+        for r in records:
+            if r.confidence < 0.6:
+                buckets["low (0.5-0.6)"].append(r.was_correct)
+            elif r.confidence < 0.7:
+                buckets["medium (0.6-0.7)"].append(r.was_correct)
+            elif r.confidence < 0.8:
+                buckets["high (0.7-0.8)"].append(r.was_correct)
+            else:
+                buckets["very_high (0.8+)"].append(r.was_correct)
+
+        return {
+            name: {
+                "total": len(results),
+                "accuracy": sum(results) / len(results) if results else 0.0,
+            }
+            for name, results in buckets.items()
+        }
+
+    def get_recent_predictions(self, limit: int = 50) -> List[Dict]:
+        """Get recent predictions."""
+        return [
+            {
+                "timestamp": r.timestamp,
+                "symbol": r.symbol,
+                "prediction": r.prediction,
+                "confidence": r.confidence,
+                "was_correct": r.was_correct,
+                "price_change": (
+                    (r.price_after - r.price_at_prediction) / r.price_at_prediction * 100
+                    if r.price_after
+                    else None
+                ),
+            }
+            for r in self.records[-limit:]
+        ]
+
+
+# Singleton instances
+_performance_tracker: Optional[ModelPerformanceTracker] = None
+
+
+def get_performance_tracker() -> ModelPerformanceTracker:
+    """Get or create the performance tracker singleton."""
+    global _performance_tracker
+
+    if _performance_tracker is None:
+        _performance_tracker = ModelPerformanceTracker()
+
+    return _performance_tracker

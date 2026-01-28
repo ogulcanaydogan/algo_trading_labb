@@ -58,7 +58,7 @@ class MLSignalGenerator:
         model_type: str = "gradient_boosting",
         confidence_threshold: float = 0.55,  # Balanced: filters noise while allowing quality signals
         use_mtf_filter: bool = True,
-        mtf_strict_mode: bool = False,  # Relaxed MTF filtering - allow signals with confidence penalty
+        mtf_strict_mode: bool = True,  # Strict MTF filtering - reject counter-trend signals
         regime_adaptive_threshold: bool = True,  # Adjust threshold based on market regime
         use_ensemble: bool = True,  # Use ensemble predictor for higher accuracy
         ensemble_voting_strategy: str = "performance",  # "majority", "weighted", "performance"
@@ -1172,9 +1172,35 @@ class MLSignalGenerator:
                 sell_score += 1
                 reasons.append(f"Weak momentum ({latest_momentum:.1f}%)")
 
+            # === TREND ALIGNMENT (Critical for avoiding counter-trend trades) ===
+            # Calculate trend using EMA slope and position
+            ema_50 = close.ewm(span=50).mean()
+            ema_200 = close.ewm(span=200).mean() if len(close) >= 200 else ema_50
+            ema_trend = (latest_ema_fast - latest_ema_slow) / latest_ema_slow * 100
+
+            # Determine trend direction
+            is_uptrend = (latest_ema_fast > latest_ema_slow and
+                         latest_close > ema_50.iloc[-1] and
+                         ema_trend > 0)
+            is_downtrend = (latest_ema_fast < latest_ema_slow and
+                           latest_close < ema_50.iloc[-1] and
+                           ema_trend < 0)
+
+            # Apply trend alignment penalty/bonus (weight: 3 - strongest factor)
+            if is_uptrend:
+                buy_score += 2  # Bonus for trend-aligned longs
+                sell_score -= 2  # Heavy penalty for counter-trend shorts
+                if sell_score > buy_score:
+                    reasons.append("⚠️ Counter-trend SHORT in uptrend")
+            elif is_downtrend:
+                sell_score += 2  # Bonus for trend-aligned shorts
+                buy_score -= 2  # Heavy penalty for counter-trend longs
+                if buy_score > sell_score:
+                    reasons.append("⚠️ Counter-trend BUY in downtrend")
+
             # Determine action based on score
             min_score = 1.5  # Lowered from 2.5 to generate more signals for stocks/commodities
-            logger.info(f"[{symbol}] TA scores: buy={buy_score:.1f}, sell={sell_score:.1f} (threshold={min_score})")
+            logger.info(f"[{symbol}] TA scores: buy={buy_score:.1f}, sell={sell_score:.1f} (trend: {'UP' if is_uptrend else 'DOWN' if is_downtrend else 'NEUTRAL'}, threshold={min_score})")
 
             if buy_score >= min_score and buy_score > sell_score:
                 action = "BUY"
