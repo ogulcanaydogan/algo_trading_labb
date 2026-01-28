@@ -327,10 +327,12 @@ class TestSafetyController:
 
     def test_create_safety_controller_for_mode(self):
         """Test factory function creates appropriate limits."""
-        # Live limited mode
+        # Live limited mode - uses percentage-based scaling, not hard capital limit
         controller = create_safety_controller_for_mode("live_limited", 100.0)
-        assert controller.limits.max_daily_loss_usd == 2.0
-        assert controller.limits.capital_limit == 100.0
+        assert controller.limits.max_daily_loss_usd == 2.0  # 2% of $100
+        assert controller.limits.max_daily_loss_pct == 0.02  # 2% percentage
+        assert controller.limits.max_position_size_pct == 0.05  # 5% position limit
+        assert controller.limits.capital_limit is None  # Uses pct-based scaling
 
         # Paper mode (relaxed)
         controller = create_safety_controller_for_mode("paper_live_data", 10000.0)

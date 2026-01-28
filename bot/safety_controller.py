@@ -113,6 +113,10 @@ class SafetyController:
         self._current_balance: float = 0.0
         self._open_positions: Dict[str, float] = {}  # symbol -> value
 
+        # Store configured USD caps as absolute maximums (safety feature)
+        self._configured_max_position_size_usd = self.limits.max_position_size_usd
+        self._configured_max_daily_loss_usd = self.limits.max_daily_loss_usd
+
         self._load_state()
 
     def _today(self) -> str:
@@ -183,10 +187,17 @@ class SafetyController:
                 self._save_state()
 
             # Recalculate dynamic position limits based on current balance
+            # Use MINIMUM of configured USD cap and percentage-based (safety feature)
             if self.limits.max_position_size_pct > 0:
-                self.limits.max_position_size_usd = balance * self.limits.max_position_size_pct
+                pct_based_position = balance * self.limits.max_position_size_pct
+                self.limits.max_position_size_usd = min(
+                    self._configured_max_position_size_usd, pct_based_position
+                )
             if self.limits.max_daily_loss_pct > 0:
-                self.limits.max_daily_loss_usd = balance * self.limits.max_daily_loss_pct
+                pct_based_loss = balance * self.limits.max_daily_loss_pct
+                self.limits.max_daily_loss_usd = min(
+                    self._configured_max_daily_loss_usd, pct_based_loss
+                )
 
     def update_positions(self, positions: Dict[str, float]) -> None:
         """Update open positions. positions = {symbol: value_usd}."""

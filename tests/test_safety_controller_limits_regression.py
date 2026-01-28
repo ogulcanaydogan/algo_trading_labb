@@ -88,6 +88,8 @@ class TestSafetyControllerLimitsRegression:
             limits=SafetyLimits(
                 max_daily_loss_pct=0.02,  # 2%
                 max_daily_loss_usd=1000,
+                max_position_size_usd=1000,  # High limit so position check doesn't interfere
+                max_position_size_pct=0.10,  # High limit for this test
                 min_time_between_trades_seconds=0,  # disable spacing for test
             ),
             state_path=tmp_path / "safety_test.json",
@@ -123,6 +125,10 @@ class TestSafetyControllerLimitsRegression:
             limits=SafetyLimits(
                 max_position_size_pct=0.05,  # 5%
                 max_position_size_usd=10000,
+                max_daily_loss_usd=10000,  # High limit to avoid triggering
+                max_daily_loss_pct=0.50,  # High limit to avoid triggering
+                emergency_stop_loss_pct=0.50,  # High limit to avoid triggering
+                min_time_between_trades_seconds=0,  # Disable for testing
             ),
             state_path=tmp_path / "safety_test.json",
         )
@@ -155,6 +161,9 @@ class TestSafetyControllerLimitsRegression:
             limits=SafetyLimits(
                 max_position_size_pct=0.20,  # 20% would allow huge positions
                 max_position_size_usd=100.0,  # But USD cap is $100
+                max_daily_loss_usd=10000,  # High limit
+                max_daily_loss_pct=0.50,  # High limit
+                capital_limit=None,  # No capital limit for this test
             ),
             state_path=tmp_path / "safety_test.json",
         )
@@ -176,9 +185,10 @@ class TestSafetyControllerLimitsRegression:
         controller = SafetyController(
             limits=SafetyLimits(
                 max_position_size_usd=100.0,  # $100 cap
-                max_position_size_pct=0.05,  # 5%
+                max_position_size_pct=0.50,  # 50% - high so USD cap is the limit
                 max_daily_loss_usd=10.0,  # $10 daily loss cap
-                max_daily_loss_pct=0.02,  # 2%
+                max_daily_loss_pct=0.10,  # 10% - high so USD cap is the limit
+                capital_limit=None,  # No capital limit for this test
             ),
             state_path=tmp_path / "safety_test.json",
         )
@@ -212,7 +222,9 @@ class TestSafetyControllerLimitsRegression:
         controller = SafetyController(
             limits=SafetyLimits(
                 max_position_size_pct=0.05,
+                max_position_size_usd=10000,  # High cap to allow pct-based scaling
                 max_daily_loss_pct=0.02,
+                max_daily_loss_usd=10000,  # High cap to allow pct-based scaling
             ),
             state_path=tmp_path / "safety_test.json",
         )
