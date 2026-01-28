@@ -19,6 +19,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 import logging
 
+from bot.core.exceptions import DataError, handle_exceptions
+
 logger = logging.getLogger(__name__)
 
 # Base data directory
@@ -80,14 +82,12 @@ class DataStore:
             if not filepath.exists():
                 self._save_json(filepath, defaults.get(key, {}))
 
+    @handle_exceptions(default={}, context="load_json")
     def _load_json(self, filepath: Path) -> Dict:
         """Load JSON file safely."""
-        try:
-            if filepath.exists():
-                with open(filepath, "r") as f:
-                    return json.load(f)
-        except Exception as e:
-            logger.error(f"Error loading {filepath}: {e}")
+        if filepath.exists():
+            with open(filepath, "r") as f:
+                return json.load(f)
         return {}
 
     def _save_json(self, filepath: Path, data: Dict):
@@ -101,8 +101,12 @@ class DataStore:
             # Write new data
             with open(filepath, "w") as f:
                 json.dump(data, f, indent=2, default=str)
-        except Exception as e:
+        except (OSError, IOError) as e:
             logger.error(f"Error saving {filepath}: {e}")
+            raise DataError(f"Failed to save data to {filepath}: {e}")
+        except (TypeError, ValueError) as e:
+            logger.error(f"Error serializing data for {filepath}: {e}")
+            raise DataError(f"Failed to serialize data: {e}")
 
     # ==================== TRADE RECORDING ====================
 
