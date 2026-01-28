@@ -579,6 +579,20 @@ class NotificationManager:
         )
         return self.send_alert(alert)
 
+    def send_critical(
+        self,
+        message: str,
+        title: str = "Critical Alert",
+    ) -> Dict[str, bool]:
+        """Send a critical-level alert."""
+        alert = Alert(
+            alert_type=AlertType.ERROR,
+            level=AlertLevel.CRITICAL,
+            title=title,
+            message=message,
+        )
+        return self.send_alert(alert)
+
     def get_configured_channels(self) -> List[str]:
         """Get list of configured channel names."""
         return list(self.channels.keys())

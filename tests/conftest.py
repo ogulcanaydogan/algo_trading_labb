@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any
@@ -13,6 +14,33 @@ import pytest
 
 from bot.state import BotState
 from bot.strategy import StrategyConfig
+
+# Test API key - strong format that passes validation
+TEST_API_KEY = "Xk9#mNpQ2wRsT5uV8yAz"
+
+
+@pytest.fixture(autouse=True)
+def set_test_api_key(monkeypatch):
+    """Automatically set API_KEY for all tests."""
+    monkeypatch.setenv("API_KEY", TEST_API_KEY)
+
+
+@pytest.fixture
+def api_headers():
+    """Return headers with valid API key for authenticated requests."""
+    return {"X-API-Key": TEST_API_KEY}
+
+
+@pytest.fixture
+def auth_client():
+    """Create authenticated test client for FastAPI app."""
+    from fastapi.testclient import TestClient
+    from api.api import app
+
+    client = TestClient(app)
+    # Override default headers to include API key
+    client.headers = {"X-API-Key": TEST_API_KEY}
+    return client
 
 
 @pytest.fixture

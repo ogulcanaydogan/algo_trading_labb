@@ -4,7 +4,7 @@ import asyncio
 import json
 import pytest
 import tempfile
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, Any
 
@@ -15,16 +15,19 @@ from api.validation import validate_trading_request, TradingValidationError
 from bot.core.circuit_breaker import CircuitBreaker, CircuitBreakerConfig
 from bot.core.structured_logging import correlation_context
 from bot.safety_controller import SafetyController, SafetyLimits
+from tests.conftest import TEST_API_KEY
 
 
 class TestTradingWorkflows:
     """Integration tests for complete trading workflows."""
-    
+
     @pytest.fixture
     def test_client(self):
-        """Create FastAPI test client."""
+        """Create authenticated FastAPI test client."""
         from api.api import app
-        return TestClient(app)
+        client = TestClient(app)
+        client.headers = {"X-API-Key": TEST_API_KEY}
+        return client
     
     @pytest.fixture
     def temp_data_dir(self):

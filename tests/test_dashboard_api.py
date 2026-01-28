@@ -12,12 +12,15 @@ from fastapi.testclient import TestClient
 
 from api import api as api_module
 from api.api import app
+from tests.conftest import TEST_API_KEY
 
 
 @pytest.fixture
 def client():
-    """Create a test client for the FastAPI app."""
-    return TestClient(app)
+    """Create an authenticated test client for the FastAPI app."""
+    test_client = TestClient(app)
+    test_client.headers = {"X-API-Key": TEST_API_KEY}
+    return test_client
 
 
 @pytest.fixture
@@ -160,15 +163,20 @@ class TestPortfolioStatsEndpoint:
             data = response.json()
             assert data["market_type"] == market_type
 
-    def test_portfolio_stats_no_auth_required_without_api_key(
+    def test_portfolio_stats_blocked_without_api_key_configured(
         self, client, mock_state_dirs, monkeypatch
     ):
-        """Test that portfolio stats works without auth when API_KEY not set."""
+        """Test that portfolio stats is blocked when API_KEY not configured (security)."""
         monkeypatch.delenv("API_KEY", raising=False)
         monkeypatch.setattr(api_module, "STATE_DIR", mock_state_dirs)
 
+        # Remove API key header too
+        client.headers.pop("X-API-Key", None)
+
         response = client.get("/api/portfolio/stats?market_type=all")
-        assert response.status_code == 200
+        # Security measure: block requests when API_KEY is not configured
+        assert response.status_code == 503
+        assert "not configured" in response.json().get("detail", "")
 
     def test_portfolio_stats_market_breakdown(self, client, mock_state_dirs, monkeypatch):
         """Test that markets breakdown is included."""
