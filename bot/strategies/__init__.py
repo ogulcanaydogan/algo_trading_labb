@@ -12,6 +12,8 @@ Provides multiple trading strategies for different market conditions:
 - Stochastic Divergence (reversal detection)
 - Keltner Channel (ATR-based breakouts)
 - Grid Trading (range trading)
+- Z-Score Reversion (statistical arbitrage)
+- Momentum (trend following)
 - Strategy Selector (auto-selects best strategy)
 """
 
@@ -26,6 +28,8 @@ from .breakout import BreakoutStrategy
 from .stochastic_divergence import StochasticDivergenceStrategy
 from .keltner_channel import KeltnerChannelStrategy
 from .grid_trading import GridTradingStrategy
+from .zscore_reversion import ZScoreReversionStrategy
+from .momentum import MomentumStrategy
 from .selector import StrategySelector
 
 __all__ = [
@@ -42,5 +46,7 @@ __all__ = [
     "StochasticDivergenceStrategy",
     "KeltnerChannelStrategy",
     "GridTradingStrategy",
+    "ZScoreReversionStrategy",
+    "MomentumStrategy",
     "StrategySelector",
 ]
