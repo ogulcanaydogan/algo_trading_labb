@@ -18,6 +18,13 @@ from bot.core import (
     metrics,
     validate_order,
 )
+from bot.core.exceptions import (
+    ExecutionError,
+    ExchangeError,
+    NetworkError,
+    handle_exceptions_async,
+    retry_on_exception_async,
+)
 
 logger = get_logger(__name__)
 
@@ -487,6 +494,13 @@ class TestnetExecutionAdapter(ExecutionAdapter):
         self._exchange = None
         self._session = None
 
+    @retry_on_exception_async(
+        max_retries=3,
+        exceptions=(ConnectionError, TimeoutError, OSError),
+        delay=1.0,
+        backoff=2.0,
+        context="testnet_connect",
+    )
     async def connect(self) -> bool:
         """Connect to testnet exchange with connection pooling."""
         try:
@@ -520,9 +534,11 @@ class TestnetExecutionAdapter(ExecutionAdapter):
             self._connected = True
             logger.info("Testnet execution adapter connected with connection pooling")
             return True
+        except (ConnectionError, TimeoutError) as e:
+            raise NetworkError(f"Failed to connect to testnet: {e}", details={"error": str(e)})
         except Exception as e:
             logger.error(f"Failed to connect to testnet: {e}")
-            return False
+            raise ExchangeError(f"Testnet connection failed: {e}")
 
     async def disconnect(self) -> None:
         """Disconnect from exchange and close connection pool."""
@@ -544,14 +560,7 @@ class TestnetExecutionAdapter(ExecutionAdapter):
     async def place_order(self, order: Order) -> OrderResult:
         """Place order on testnet."""
         if not self._exchange:
-            return OrderResult(
-                success=False,
-                order_id="",
-                status=OrderStatus.REJECTED,
-                filled_quantity=0,
-                average_price=0,
-                error_message="Not connected to exchange",
-            )
+            raise ExecutionError("Not connected to exchange")
 
         try:
             if order.order_type == OrderType.MARKET:
@@ -568,14 +577,7 @@ class TestnetExecutionAdapter(ExecutionAdapter):
                     price=order.price,
                 )
             else:
-                return OrderResult(
-                    success=False,
-                    order_id="",
-                    status=OrderStatus.REJECTED,
-                    filled_quantity=0,
-                    average_price=0,
-                    error_message=f"Unsupported order type: {order.order_type}",
-                )
+                raise ExecutionError(f"Unsupported order type: {order.order_type}")
 
             return OrderResult(
                 success=True,
@@ -586,16 +588,14 @@ class TestnetExecutionAdapter(ExecutionAdapter):
                 commission=result.get("fee", {}).get("cost", 0),
             )
 
+        except (ConnectionError, TimeoutError) as e:
+            logger.error(f"Testnet order network error: {e}")
+            raise NetworkError(f"Order failed due to network: {e}")
+        except ExecutionError:
+            raise
         except Exception as e:
             logger.error(f"Testnet order failed: {e}")
-            return OrderResult(
-                success=False,
-                order_id="",
-                status=OrderStatus.REJECTED,
-                filled_quantity=0,
-                average_price=0,
-                error_message=str(e),
-            )
+            raise ExchangeError(f"Testnet order execution failed: {e}")
 
     async def cancel_order(self, order_id: str, symbol: str) -> bool:
         """Cancel order on testnet."""
@@ -708,6 +708,13 @@ class LiveExecutionAdapter(ExecutionAdapter):
         self._exchange = None
         self._session = None  # Shared aiohttp session for connection pooling
 
+    @retry_on_exception_async(
+        max_retries=3,
+        exceptions=(ConnectionError, TimeoutError, OSError),
+        delay=1.0,
+        backoff=2.0,
+        context="live_connect",
+    )
     async def connect(self) -> bool:
         """Connect to live exchange with connection pooling."""
         try:
@@ -742,9 +749,11 @@ class LiveExecutionAdapter(ExecutionAdapter):
             self._connected = True
             logger.warning("LIVE execution adapter connected with connection pooling - REAL MONEY AT RISK")
             return True
+        except (ConnectionError, TimeoutError) as e:
+            raise NetworkError(f"Failed to connect to live exchange: {e}", details={"error": str(e)})
         except Exception as e:
             logger.error(f"Failed to connect to live exchange: {e}")
-            return False
+            raise ExchangeError(f"Live exchange connection failed: {e}")
 
     async def disconnect(self) -> None:
         """Disconnect from exchange and close connection pool."""
@@ -766,14 +775,7 @@ class LiveExecutionAdapter(ExecutionAdapter):
     async def place_order(self, order: Order) -> OrderResult:
         """Place live order with safety checks."""
         if not self._exchange:
-            return OrderResult(
-                success=False,
-                order_id="",
-                status=OrderStatus.REJECTED,
-                filled_quantity=0,
-                average_price=0,
-                error_message="Not connected to exchange",
-            )
+            raise ExecutionError("Not connected to exchange")
 
         # Safety check before placing live order
         if self.safety_controller:
@@ -804,14 +806,7 @@ class LiveExecutionAdapter(ExecutionAdapter):
                     price=order.price,
                 )
             else:
-                return OrderResult(
-                    success=False,
-                    order_id="",
-                    status=OrderStatus.REJECTED,
-                    filled_quantity=0,
-                    average_price=0,
-                    error_message=f"Unsupported order type: {order.order_type}",
-                )
+                raise ExecutionError(f"Unsupported order type: {order.order_type}")
 
             order_result = OrderResult(
                 success=True,
@@ -833,16 +828,14 @@ class LiveExecutionAdapter(ExecutionAdapter):
 
             return order_result
 
+        except (ConnectionError, TimeoutError) as e:
+            logger.error(f"Live order network error: {e}")
+            raise NetworkError(f"Live order failed due to network: {e}")
+        except ExecutionError:
+            raise
         except Exception as e:
             logger.error(f"Live order failed: {e}")
-            return OrderResult(
-                success=False,
-                order_id="",
-                status=OrderStatus.REJECTED,
-                filled_quantity=0,
-                average_price=0,
-                error_message=str(e),
-            )
+            raise ExchangeError(f"Live order execution failed: {e}")
 
     async def cancel_order(self, order_id: str, symbol: str) -> bool:
         """Cancel live order."""
