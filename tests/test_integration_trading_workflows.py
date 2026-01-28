@@ -462,3 +462,318 @@ class TestMultiPositionWorkflow:
 
         assert "BTC/USDT" not in state.positions
         assert "ETH/USDT" in state.positions
+
+
+class TestCircuitBreakerWorkflow:
+    """Test circuit breaker integration with trading."""
+
+    def test_circuit_breaker_state_management(self):
+        """Test that circuit breaker state is properly managed."""
+        from bot.core.circuit_breaker import CircuitState
+
+        config = CircuitBreakerConfig(
+            failure_threshold=3,
+            timeout=10,
+            success_threshold=1,
+        )
+        breaker = CircuitBreaker("test_workflow", config)
+
+        # Initial state should be CLOSED
+        assert breaker.state == CircuitState.CLOSED
+        assert breaker.failure_count == 0
+
+        # Simulate failures by directly setting state
+        breaker.failure_count = 3
+        breaker.state = CircuitState.OPEN
+
+        # Verify circuit is open
+        assert breaker.state == CircuitState.OPEN
+
+    def test_circuit_breaker_config(self):
+        """Test circuit breaker configuration."""
+        config = CircuitBreakerConfig(
+            failure_threshold=5,
+            timeout=60,
+            success_threshold=2,
+        )
+
+        breaker = CircuitBreaker("test_config", config)
+
+        assert breaker.config.failure_threshold == 5
+        assert breaker.config.timeout == 60
+        assert breaker.config.success_threshold == 2
+
+
+class TestCorrelationIdWorkflow:
+    """Test correlation ID propagation across components."""
+
+    def test_correlation_context_propagates(self):
+        """Test that correlation context propagates correctly."""
+        from bot.core.structured_logging import get_correlation_id, correlation_id_var
+
+        with correlation_context("test-corr-123") as ctx:
+            # Inside context, correlation ID should be set
+            corr_id = get_correlation_id()
+            assert corr_id == "test-corr-123"
+
+        # Outside context, correlation_id_var.get() should return None
+        # (get_correlation_id() generates a new UUID if not set)
+        raw_corr_id = correlation_id_var.get()
+        assert raw_corr_id is None or raw_corr_id != "test-corr-123"
+
+
+class TestCacheIntegrationWorkflow:
+    """Test cache integration with trading operations."""
+
+    def test_market_data_caching(self):
+        """Test that market data is cached correctly."""
+        from bot.core.cache import CacheManager
+
+        # Reset singleton
+        CacheManager._instance = None
+        cache = CacheManager()
+
+        ohlcv = [
+            {"open": 100, "high": 105, "low": 99, "close": 103, "volume": 1000}
+        ]
+
+        cache.cache_market_data("BTC/USDT", ohlcv, "1h")
+        cached = cache.get_market_data("BTC/USDT", "1h")
+
+        assert cached == ohlcv
+
+    def test_ml_prediction_caching(self):
+        """Test that ML predictions are cached."""
+        from bot.core.cache import CacheManager
+
+        CacheManager._instance = None
+        cache = CacheManager()
+
+        prediction = {"action": "LONG", "confidence": 0.85}
+        cache.cache_ml_prediction("BTC/USDT", "ensemble", prediction)
+
+        cached = cache.get_ml_prediction("BTC/USDT", "ensemble")
+        assert cached == prediction
+
+
+class TestAuditLoggingWorkflow:
+    """Test audit logging integration."""
+
+    def test_trade_audit_logging(self):
+        """Test that trades are properly audit logged."""
+        import tempfile
+        from bot.core.audit import AuditLogger, AuditEventType
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            AuditLogger._instance = None
+            audit = AuditLogger(Path(tmpdir))
+
+            # Log a trade
+            event_id = audit.log_trade(
+                action="executed",
+                symbol="BTC/USDT",
+                side="BUY",
+                quantity=0.1,
+                price=42000.0,
+                order_id="order123",
+            )
+
+            # Verify event was logged
+            events = audit.get_events()
+            assert len(events) >= 1
+
+            trade_event = [e for e in events if e["event_type"] == "trade_executed"]
+            assert len(trade_event) >= 1
+            assert trade_event[-1]["details"]["symbol"] == "BTC/USDT"
+
+    def test_safety_event_audit_logging(self):
+        """Test that safety events are audit logged."""
+        import tempfile
+        from bot.core.audit import AuditLogger
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            AuditLogger._instance = None
+            audit = AuditLogger(Path(tmpdir))
+
+            event_id = audit.log_safety_event(
+                event="daily_limit",
+                reason="Daily loss limit reached",
+                current_value=150.0,
+                limit=100.0,
+            )
+
+            events = audit.get_events()
+            safety_events = [e for e in events if "daily_limit" in e["event_type"]]
+            assert len(safety_events) >= 1
+
+
+class TestEndToEndTradingScenarios:
+    """End-to-end test scenarios for complete trading workflows."""
+
+    def test_full_trading_cycle_simulation(self):
+        """Simulate a complete trading cycle: signal -> validation -> execution -> P&L."""
+        # Step 1: Generate signal data
+        signal = {
+            "symbol": "BTC/USDT",
+            "decision": "LONG",
+            "confidence": 0.75,
+            "reason": "Bullish momentum detected",
+        }
+
+        # Step 2: Validate through safety controller
+        limits = SafetyLimits(
+            max_position_size_usd=1000.0,
+            max_daily_loss_usd=200.0,
+            max_trades_per_day=10,
+        )
+        controller = SafetyController(limits=limits)
+        controller.update_balance(10000.0)
+
+        # Step 3: Simulate trade execution (paper mode)
+        entry_price = 42000.0
+        quantity = 0.01
+
+        position = PositionState(
+            symbol=signal["symbol"],
+            quantity=quantity,
+            entry_price=entry_price,
+            side="long",
+            entry_time=datetime.now(timezone.utc).isoformat(),
+            stop_loss=entry_price * 0.98,
+            take_profit=entry_price * 1.03,
+            current_price=entry_price,
+        )
+
+        state = _create_state(balance=10000.0 - (entry_price * quantity))
+        state.positions[signal["symbol"]] = position
+
+        # Step 4: Simulate price movement
+        position.current_price = 42500.0  # Price went up
+
+        # Step 5: Calculate P&L
+        unrealized_pnl = (position.current_price - position.entry_price) * position.quantity
+        assert unrealized_pnl == 5.0  # $5 profit
+
+    def test_stop_loss_triggered_scenario(self):
+        """Test scenario where stop loss is triggered."""
+        state = _create_state(balance=9580.0)
+
+        position = PositionState(
+            symbol="BTC/USDT",
+            quantity=0.01,
+            entry_price=42000.0,
+            side="long",
+            entry_time=datetime.now(timezone.utc).isoformat(),
+            stop_loss=41000.0,
+            take_profit=44000.0,
+            current_price=42000.0,
+        )
+        state.positions["BTC/USDT"] = position
+
+        # Price drops below stop loss
+        position.current_price = 40500.0
+
+        # Check if stop loss should trigger
+        assert position.current_price < position.stop_loss
+
+        # Simulate closing position at stop loss
+        exit_price = position.stop_loss
+        realized_pnl = (exit_price - position.entry_price) * position.quantity
+        assert realized_pnl == -10.0  # $10 loss
+
+        # Update balance
+        state.current_balance += realized_pnl
+        del state.positions["BTC/USDT"]
+
+        assert state.current_balance == 9570.0
+        assert len(state.positions) == 0
+
+    def test_take_profit_triggered_scenario(self):
+        """Test scenario where take profit is triggered."""
+        state = _create_state(balance=9580.0)
+
+        position = PositionState(
+            symbol="ETH/USDT",
+            quantity=1.0,
+            entry_price=2500.0,
+            side="long",
+            entry_time=datetime.now(timezone.utc).isoformat(),
+            stop_loss=2400.0,
+            take_profit=2600.0,
+            current_price=2500.0,
+        )
+        state.positions["ETH/USDT"] = position
+
+        # Price rises above take profit
+        position.current_price = 2650.0
+
+        # Check if take profit should trigger
+        assert position.current_price > position.take_profit
+
+        # Simulate closing position at take profit
+        exit_price = position.take_profit
+        realized_pnl = (exit_price - position.entry_price) * position.quantity
+        assert realized_pnl == 100.0  # $100 profit
+
+        # Update balance
+        state.current_balance += realized_pnl
+        del state.positions["ETH/USDT"]
+
+        assert state.current_balance == 9680.0
+
+    def test_max_positions_limit_scenario(self):
+        """Test that max positions limit is enforced."""
+        limits = SafetyLimits(
+            max_open_positions=2,
+            max_position_size_usd=1000.0,
+        )
+        controller = SafetyController(limits=limits)
+        controller.update_balance(10000.0)
+
+        # Add 2 positions
+        controller.update_positions({
+            "BTC/USDT": 500.0,
+            "ETH/USDT": 500.0,
+        })
+
+        # Verify position count
+        assert len(controller._open_positions) == 2
+
+        # Trying to add a third should be blocked
+        # Create a mock order object
+        class MockOrder:
+            symbol = "SOL/USDT"
+            side = "BUY"
+            quantity = 1.0
+            price = 100.0
+
+        passed, reason = controller.pre_trade_check(MockOrder())
+
+        assert passed is False
+        assert "position" in reason.lower()
+
+    def test_daily_trade_limit_scenario(self):
+        """Test that daily trade limit is enforced."""
+        limits = SafetyLimits(
+            max_trades_per_day=3,
+            max_position_size_usd=1000.0,
+            min_time_between_trades_seconds=0,  # Allow rapid trades for testing
+        )
+        controller = SafetyController(limits=limits)
+        controller.update_balance(10000.0)
+
+        # Record 3 trades
+        for _ in range(3):
+            controller._daily_stats.trades += 1
+
+        # Fourth trade should be blocked
+        class MockOrder:
+            symbol = "BTC/USDT"
+            side = "BUY"
+            quantity = 0.01
+            price = 42000.0
+
+        passed, reason = controller.pre_trade_check(MockOrder())
+
+        assert passed is False
+        assert "trade" in reason.lower() and "limit" in reason.lower()

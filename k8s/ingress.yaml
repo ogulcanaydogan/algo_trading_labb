@@ -2,52 +2,44 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: algo-trading-ingress
-  namespace: trading
+  namespace: algo-trading
   labels:
-    app: algo-trading-bot
+    app.kubernetes.io/name: algo-trading-lab
+    app.kubernetes.io/component: ingress
   annotations:
-    kubernetes.io/ingress.class: nginx
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # NGINX Ingress Controller annotations
     nginx.ingress.kubernetes.io/proxy-body-size: "10m"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/websocket-services: "algo-trading-api"
     # Rate limiting
-    nginx.ingress.kubernetes.io/limit-rps: "100"
-    nginx.ingress.kubernetes.io/limit-connections: "50"
-    # Security headers
-    nginx.ingress.kubernetes.io/configuration-snippet: |
-      add_header X-Frame-Options "DENY" always;
-      add_header X-Content-Type-Options "nosniff" always;
-      add_header X-XSS-Protection "1; mode=block" always;
-    # For cert-manager TLS
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/limit-rps: "10"
+    nginx.ingress.kubernetes.io/limit-connections: "5"
+    # SSL redirect (uncomment for production with TLS)
+    # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
 spec:
-  tls:
-    - hosts:
-        - trading-api.example.com
-      secretName: trading-tls-secret
+  ingressClassName: nginx
+  # TLS configuration (uncomment for production)
+  # tls:
+  #   - hosts:
+  #       - trading.example.com
+  #     secretName: algo-trading-tls
   rules:
-    - host: trading-api.example.com
+    - host: trading.example.com  # Replace with your domain
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: algo-trading-bot
+                name: algo-trading-api
                 port:
                   number: 80
           - path: /ws
             pathType: Prefix
             backend:
               service:
-                name: algo-trading-bot
-                port:
-                  number: 80
-          - path: /graphql
-            pathType: Prefix
-            backend:
-              service:
-                name: algo-trading-bot
+                name: algo-trading-api
                 port:
                   number: 80

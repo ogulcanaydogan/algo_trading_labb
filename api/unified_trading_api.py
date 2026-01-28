@@ -14,11 +14,19 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/unified", tags=["Unified Trading"])
+router = APIRouter(
+    prefix="/api/unified",
+    tags=["Unified Trading"],
+    responses={
+        401: {"description": "Unauthorized - Invalid or missing API key"},
+        403: {"description": "Forbidden - Insufficient permissions"},
+        500: {"description": "Internal server error"},
+    },
+)
 
 
 # =============================================================================
@@ -27,16 +35,34 @@ router = APIRouter(prefix="/api/unified", tags=["Unified Trading"])
 
 
 class TradingModeInfo(BaseModel):
-    """Information about a trading mode."""
+    """Information about a trading mode and its configuration.
 
-    mode: str
-    description: str
-    is_paper: bool
-    is_live: bool
-    uses_real_data: bool
-    capital_limit: Optional[float]
-    max_position_usd: Optional[float]
-    max_daily_loss_usd: Optional[float]
+    Each mode has different risk characteristics and safety limits.
+    """
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "mode": "paper_live_data",
+                "description": "Paper trading with real market data",
+                "is_paper": True,
+                "is_live": False,
+                "uses_real_data": True,
+                "capital_limit": 10000.0,
+                "max_position_usd": 1000.0,
+                "max_daily_loss_usd": 200.0,
+            }
+        }
+    )
+
+    mode: str = Field(..., description="Mode identifier (e.g., paper_live_data)")
+    description: str = Field(..., description="Human-readable mode description")
+    is_paper: bool = Field(..., description="Whether this is paper trading")
+    is_live: bool = Field(..., description="Whether this uses real money")
+    uses_real_data: bool = Field(..., description="Whether this uses real market data")
+    capital_limit: Optional[float] = Field(None, description="Maximum capital allowed")
+    max_position_usd: Optional[float] = Field(None, description="Max position size in USD")
+    max_daily_loss_usd: Optional[float] = Field(None, description="Max daily loss allowed")
 
 
 class UnifiedStatusResponse(BaseModel):
@@ -52,22 +78,49 @@ class UnifiedStatusResponse(BaseModel):
     because its dashboard display expects pre-formatted percentages.
     """
 
-    mode: str
-    status: str
-    running: bool
-    balance: float
-    initial_capital: float
-    portfolio_value: float  # Total value: cash + positions at current prices
-    total_pnl: float
-    total_pnl_pct: float  # Percentage (0-100)
-    total_trades: int
-    win_rate: float  # Decimal (0.0-1.0) - dashboard multiplies by 100
-    max_drawdown: float  # Percentage (0-100) for display
-    open_positions: int
-    positions: Dict[str, Any]
-    safety: Dict[str, Any]
-    daily_trades: int
-    daily_pnl: float
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "mode": "paper_live_data",
+                "status": "active",
+                "running": True,
+                "balance": 9850.50,
+                "initial_capital": 10000.0,
+                "portfolio_value": 10250.75,
+                "total_pnl": 250.75,
+                "total_pnl_pct": 2.51,
+                "total_trades": 15,
+                "win_rate": 0.67,
+                "max_drawdown": 3.2,
+                "open_positions": 2,
+                "positions": {
+                    "BTC/USDT": {"quantity": 0.01, "entry_price": 42000.0},
+                },
+                "safety": {"emergency_stop_active": False},
+                "daily_trades": 3,
+                "daily_pnl": 125.50,
+            }
+        }
+    )
+
+    mode: str = Field(..., description="Current trading mode")
+    status: str = Field(..., description="Engine status (active/stopped)")
+    running: bool = Field(..., description="Whether engine is actively trading")
+    balance: float = Field(..., description="Current cash balance in USD")
+    initial_capital: float = Field(..., description="Starting capital")
+    portfolio_value: float = Field(
+        ..., description="Total value: cash + positions at current prices"
+    )
+    total_pnl: float = Field(..., description="Total profit/loss in USD")
+    total_pnl_pct: float = Field(..., description="Total P&L as percentage (0-100)")
+    total_trades: int = Field(..., description="Total number of completed trades")
+    win_rate: float = Field(..., description="Win rate as decimal (0.0-1.0)")
+    max_drawdown: float = Field(..., description="Maximum drawdown percentage (0-100)")
+    open_positions: int = Field(..., description="Number of currently open positions")
+    positions: Dict[str, Any] = Field(..., description="Current position details")
+    safety: Dict[str, Any] = Field(..., description="Safety controller status")
+    daily_trades: int = Field(..., description="Trades executed today")
+    daily_pnl: float = Field(..., description="P&L for today in USD")
 
 
 class TransitionProgressResponse(BaseModel):
@@ -248,9 +301,26 @@ def _load_safety_state() -> Optional[Dict[str, Any]]:
 # =============================================================================
 
 
-@router.get("/modes", response_model=List[TradingModeInfo])
+@router.get(
+    "/modes",
+    response_model=List[TradingModeInfo],
+    summary="List available trading modes",
+    description="""
+    Returns all available trading modes with their configurations.
+
+    **Available Modes:**
+    - `backtest`: Historical backtesting with simulated trades
+    - `paper_synthetic`: Paper trading with synthetic data
+    - `paper_live_data`: Paper trading with real market data
+    - `testnet`: Real orders on exchange testnet
+    - `live_limited`: Live trading with strict capital limits ($100 max)
+    - `live_full`: Full live trading with configurable limits
+
+    Each mode has different safety limits and risk characteristics.
+    """,
+)
 async def get_available_modes():
-    """Get list of available trading modes."""
+    """Get list of available trading modes with their configurations."""
     from bot.trading_mode import ModeConfig, TradingMode
 
     modes = []
@@ -288,7 +358,30 @@ def _get_mode_description(mode) -> str:
     return descriptions.get(mode.value, "Unknown mode")
 
 
-@router.get("/status", response_model=UnifiedStatusResponse)
+@router.get(
+    "/status",
+    response_model=UnifiedStatusResponse,
+    summary="Get trading engine status",
+    description="""
+    Returns the current state of the unified trading engine.
+
+    **Includes:**
+    - Current trading mode and status
+    - Balance and portfolio value
+    - P&L metrics (total and daily)
+    - Open positions
+    - Safety controller status
+    - Win rate and drawdown statistics
+
+    **Data Format Notes:**
+    - `win_rate`: Decimal (0.0-1.0), multiply by 100 for percentage
+    - `max_drawdown`: Already in percentage (0-100)
+    - `total_pnl_pct`: Already in percentage (0-100)
+    """,
+    responses={
+        404: {"description": "No trading state found - start trading first"},
+    },
+)
 async def get_unified_status():
     """Get current unified trading engine status."""
     from datetime import datetime
@@ -403,9 +496,22 @@ async def get_transition_progress(
     return TransitionProgressResponse(**progress)
 
 
-@router.get("/safety", response_model=SafetyStatusResponse)
+@router.get(
+    "/safety",
+    response_model=SafetyStatusResponse,
+    summary="Get safety controller status",
+    description="""
+    Returns the current state of the safety controller.
+
+    **Includes:**
+    - Emergency stop status and reason
+    - Daily trading statistics
+    - Position limits and utilization
+    - Current balance and peak balance
+    """,
+)
 async def get_safety_status():
-    """Get current safety controller status."""
+    """Get current safety controller status and limits."""
     from bot.safety_controller import SafetyController
 
     controller = SafetyController()
@@ -451,10 +557,31 @@ async def get_safety_limits():
     )
 
 
-@router.post("/switch-mode")
+@router.post(
+    "/switch-mode",
+    summary="Switch trading mode",
+    description="""
+    Switch to a different trading mode.
+
+    **Safety Requirements:**
+    - Live modes require `confirm=true` in the request
+    - Live modes require an `approver` name to be specified
+    - Certain transitions may be blocked based on trading performance
+
+    **Mode Progression:**
+    - Paper modes can be switched freely
+    - Testnet requires paper trading experience
+    - Live limited requires successful testnet trading
+    - Live full requires proven live limited performance
+    """,
+    responses={
+        400: {"description": "Invalid mode or missing confirmation"},
+        404: {"description": "No trading state found"},
+    },
+)
 async def switch_mode(request: ModeSwitchRequest):
     """
-    Switch trading mode.
+    Switch trading mode with safety validations.
 
     Requires confirmation for live modes and approval for restricted transitions.
     """

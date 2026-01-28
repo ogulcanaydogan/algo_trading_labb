@@ -1,0 +1,32 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: algo-trading
+
+# Common labels applied to all resources
+commonLabels:
+  app.kubernetes.io/managed-by: kustomize
+  app.kubernetes.io/version: "0.3.0"
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secrets.yaml
+  - storage.yaml
+  - rbac.yaml
+  - redis.yaml
+  - deployment-api.yaml
+  - deployment-bot.yaml
+  - ingress.yaml
+
+# Image customization - override in overlays
+images:
+  - name: algo-trading-lab
+    newTag: latest
+
+# ConfigMap generator for dynamic config
+configMapGenerator:
+  - name: algo-trading-runtime-config
+    literals:
+      - APP_VERSION=0.3.0
+      - DEPLOY_TIMESTAMP=2024-01-15T00:00:00Z

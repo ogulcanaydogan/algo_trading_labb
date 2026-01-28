@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: algo-trading-data-pvc
+  namespace: algo-trading
+  labels:
+    app.kubernetes.io/name: algo-trading-lab
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+    - ReadWriteMany  # Allow multiple pods to access
+  storageClassName: standard  # Adjust for your cluster
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: algo-trading-models-pvc
+  namespace: algo-trading
+  labels:
+    app.kubernetes.io/name: algo-trading-lab
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 5Gi
+---
+# Redis PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-data-pvc
+  namespace: algo-trading
+  labels:
+    app.kubernetes.io/name: algo-trading-lab
+    app.kubernetes.io/component: redis
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 1Gi
