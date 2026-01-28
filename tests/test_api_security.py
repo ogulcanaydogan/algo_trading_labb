@@ -34,13 +34,18 @@ class TestVerifyApiKey:
 
     @pytest.mark.asyncio
     async def test_no_auth_when_key_not_configured(self, monkeypatch):
-        """Test that auth is skipped when API_KEY is not configured."""
+        """Test that requests are blocked when API_KEY is not configured (security measure)."""
+        from fastapi import HTTPException
+
         monkeypatch.delenv("API_KEY", raising=False)
 
         request = MagicMock()
-        result = await verify_api_key(request, api_key=None)
 
-        assert result is None  # Auth skipped
+        with pytest.raises(HTTPException) as exc_info:
+            await verify_api_key(request, api_key=None)
+
+        assert exc_info.value.status_code == 503
+        assert "not configured" in exc_info.value.detail
 
     @pytest.mark.asyncio
     async def test_missing_key_raises_401(self, monkeypatch):
@@ -59,15 +64,17 @@ class TestVerifyApiKey:
 
     @pytest.mark.asyncio
     async def test_invalid_key_raises_403(self, monkeypatch):
-        """Test that invalid API key raises 403."""
+        """Test that wrong API key raises 403."""
         from fastapi import HTTPException
 
-        monkeypatch.setenv("API_KEY", "secret-key")
+        # Use a strong valid format key for the env (must have upper, lower, digit, special)
+        monkeypatch.setenv("API_KEY", "Xk9#mNpQ2wRsT5uV8yAz")
 
         request = MagicMock()
 
         with pytest.raises(HTTPException) as exc_info:
-            await verify_api_key(request, api_key="wrong-key")
+            # Use a different but valid format key that doesn't match
+            await verify_api_key(request, api_key="Yk9#mNpQ2wRsT5uV8yAz")
 
         assert exc_info.value.status_code == 403
         assert "Invalid API key" in exc_info.value.detail
@@ -75,12 +82,14 @@ class TestVerifyApiKey:
     @pytest.mark.asyncio
     async def test_valid_key_returns_key(self, monkeypatch):
         """Test that valid API key is returned."""
-        monkeypatch.setenv("API_KEY", "secret-key")
+        # Strong key: 20 chars, has upper, lower, digit, special, no weak patterns
+        valid_key = "Xk9#mNpQ2wRsT5uV8yAz"
+        monkeypatch.setenv("API_KEY", valid_key)
 
         request = MagicMock()
-        result = await verify_api_key(request, api_key="secret-key")
+        result = await verify_api_key(request, api_key=valid_key)
 
-        assert result == "secret-key"
+        assert result == valid_key
 
 
 class TestRateLimiter:
