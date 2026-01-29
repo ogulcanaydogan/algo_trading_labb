@@ -592,6 +592,55 @@ data_fetch_errors = Counter("data_fetch_errors_total", "Data fetch errors", ["pr
 model_predictions = Counter("model_predictions_total", "ML model predictions", ["model", "signal"])
 signal_strength = Gauge("signal_strength", "Current signal strength", ["symbol", "strategy"])
 
+# Portfolio metrics
+portfolio_value = Gauge("portfolio_value_dollars", "Total portfolio value in dollars", ["market"])
+portfolio_pnl = Gauge("portfolio_pnl_dollars", "Unrealized P&L in dollars", ["market"])
+portfolio_pnl_percent = Gauge("portfolio_pnl_percent", "P&L percentage", ["market"])
+positions_count = Gauge("positions_count", "Number of open positions", ["market"])
+drawdown_percent = Gauge("drawdown_percent", "Current drawdown percentage", ["market"])
+
+# API metrics
+api_requests_total = Counter("api_requests_total", "Total API requests", ["endpoint", "method", "status"])
+api_request_duration = Histogram(
+    "api_request_duration_seconds",
+    "API request duration",
+    ["endpoint", "method"],
+    buckets=(0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, float("inf")),
+)
+api_active_connections = Gauge("api_active_connections", "Active API connections", ["type"])
+
+# WebSocket metrics
+websocket_connections = Gauge("websocket_connections", "Active WebSocket connections", ["endpoint"])
+websocket_messages_sent = Counter("websocket_messages_sent_total", "WebSocket messages sent", ["endpoint"])
+websocket_messages_received = Counter("websocket_messages_received_total", "WebSocket messages received", ["endpoint"])
+websocket_bytes_sent = Counter("websocket_bytes_sent_total", "WebSocket bytes sent", ["endpoint"])
+
+# ML model metrics
+ml_prediction_latency = Histogram(
+    "ml_prediction_latency_seconds",
+    "ML prediction latency",
+    ["model_type"],
+    buckets=(0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, float("inf")),
+)
+ml_model_accuracy = Gauge("ml_model_accuracy", "ML model accuracy", ["model_type", "symbol"])
+ml_model_confidence = Gauge("ml_model_confidence", "ML model prediction confidence", ["model_type", "symbol"])
+
+# Risk metrics
+risk_exposure = Gauge("risk_exposure_dollars", "Current risk exposure", ["symbol"])
+risk_var_95 = Gauge("risk_var_95_dollars", "95% Value at Risk", ["market"])
+risk_sharpe_ratio = Gauge("risk_sharpe_ratio", "Sharpe ratio", ["market"])
+circuit_breaker_status = Gauge("circuit_breaker_status", "Circuit breaker status (0=closed, 1=open)", ["breaker_name"])
+
+# Exchange metrics
+exchange_connection_status = Gauge("exchange_connection_status", "Exchange connection status (1=connected, 0=disconnected)", ["exchange"])
+exchange_rate_limit_remaining = Gauge("exchange_rate_limit_remaining", "Remaining rate limit", ["exchange"])
+exchange_api_latency = Histogram(
+    "exchange_api_latency_seconds",
+    "Exchange API latency",
+    ["exchange", "operation"],
+    buckets=(0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, float("inf")),
+)
+
 # Register to trading registry
 for m in [
     trades_total,
@@ -601,5 +650,78 @@ for m in [
     data_fetch_errors,
     model_predictions,
     signal_strength,
+    portfolio_value,
+    portfolio_pnl,
+    portfolio_pnl_percent,
+    positions_count,
+    drawdown_percent,
+    api_requests_total,
+    api_request_duration,
+    api_active_connections,
+    websocket_connections,
+    websocket_messages_sent,
+    websocket_messages_received,
+    websocket_bytes_sent,
+    ml_prediction_latency,
+    ml_model_accuracy,
+    ml_model_confidence,
+    risk_exposure,
+    risk_var_95,
+    risk_sharpe_ratio,
+    circuit_breaker_status,
+    exchange_connection_status,
+    exchange_rate_limit_remaining,
+    exchange_api_latency,
 ]:
     trading_registry.register(m)
+
+
+def update_portfolio_metrics(
+    market: str,
+    value: float,
+    pnl: float,
+    pnl_pct: float,
+    pos_count: int,
+    drawdown: float = 0.0,
+) -> None:
+    """Update portfolio metrics for a market."""
+    portfolio_value.set(value, market=market)
+    portfolio_pnl.set(pnl, market=market)
+    portfolio_pnl_percent.set(pnl_pct, market=market)
+    positions_count.set(pos_count, market=market)
+    drawdown_percent.set(drawdown, market=market)
+
+
+def record_api_request(
+    endpoint: str,
+    method: str,
+    status: int,
+    duration: float,
+) -> None:
+    """Record an API request."""
+    api_requests_total.inc(endpoint=endpoint, method=method, status=str(status))
+    api_request_duration.observe(duration, endpoint=endpoint, method=method)
+
+
+def record_trade(
+    symbol: str,
+    side: str,
+    pnl: Optional[float] = None,
+) -> None:
+    """Record a trade execution."""
+    trades_total.inc(symbol=symbol, side=side)
+    if pnl is not None:
+        trade_pnl.set(pnl, symbol=symbol)
+
+
+def record_ml_prediction(
+    model_type: str,
+    symbol: str,
+    signal: str,
+    confidence: float,
+    latency: float,
+) -> None:
+    """Record an ML prediction."""
+    model_predictions.inc(model=model_type, signal=signal)
+    ml_model_confidence.set(confidence, model_type=model_type, symbol=symbol)
+    ml_prediction_latency.observe(latency, model_type=model_type)

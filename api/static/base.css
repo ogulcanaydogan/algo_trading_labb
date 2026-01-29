@@ -1,0 +1,301 @@
+/**
+ * Algo Trading Lab - Base Styles
+ *
+ * This file contains reusable styles that can be imported into dashboard pages.
+ * For now, most styles are still inline in the HTML files for backwards compatibility.
+ *
+ * Usage: <link rel="stylesheet" href="/static/base.css">
+ */
+
+/* CSS Variables for theming */
+:root {
+    /* Primary colors */
+    --primary: #3b82f6;
+    --primary-hover: #2563eb;
+    --primary-light: #60a5fa;
+
+    /* Success/Profit colors */
+    --success: #22c55e;
+    --success-hover: #16a34a;
+    --success-light: #86efac;
+
+    /* Danger/Loss colors */
+    --danger: #ef4444;
+    --danger-hover: #dc2626;
+    --danger-light: #fca5a5;
+
+    /* Warning colors */
+    --warning: #f59e0b;
+    --warning-hover: #d97706;
+
+    /* Background colors */
+    --bg-dark: #0f172a;
+    --bg-darker: #020617;
+    --bg-card: #1e293b;
+    --bg-card-hover: #334155;
+
+    /* Text colors */
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+
+    /* Border colors */
+    --border-light: #334155;
+    --border-dark: #1e293b;
+
+    /* Chart colors */
+    --chart-line: #3b82f6;
+    --chart-area: rgba(59, 130, 246, 0.2);
+    --chart-grid: #1e293b;
+
+    /* Spacing */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+
+    /* Border radius */
+    --radius-sm: 0.25rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+
+    /* Transitions */
+    --transition-fast: 150ms ease;
+    --transition-normal: 300ms ease;
+}
+
+/* Base reset for dashboard pages */
+.dashboard-reset {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.dashboard-reset *,
+.dashboard-reset *::before,
+.dashboard-reset *::after {
+    box-sizing: inherit;
+}
+
+/* Common utility classes */
+.text-success { color: var(--success) !important; }
+.text-danger { color: var(--danger) !important; }
+.text-warning { color: var(--warning) !important; }
+.text-muted { color: var(--text-muted) !important; }
+
+.bg-success { background-color: var(--success) !important; }
+.bg-danger { background-color: var(--danger) !important; }
+.bg-warning { background-color: var(--warning) !important; }
+
+/* Trading-specific utilities */
+.profit { color: var(--success); }
+.loss { color: var(--danger); }
+.neutral { color: var(--text-secondary); }
+
+.signal-long {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1));
+    border-left: 3px solid var(--success);
+}
+
+.signal-short {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.1));
+    border-left: 3px solid var(--danger);
+}
+
+.signal-flat {
+    background: linear-gradient(135deg, rgba(148, 163, 184, 0.2), rgba(148, 163, 184, 0.1));
+    border-left: 3px solid var(--text-secondary);
+}
+
+/* Card component */
+.trading-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    border: 1px solid var(--border-light);
+    transition: border-color var(--transition-fast);
+}
+
+.trading-card:hover {
+    border-color: var(--primary);
+}
+
+/* Button component */
+.trading-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    border: none;
+}
+
+.trading-btn-primary {
+    background: var(--primary);
+    color: white;
+}
+
+.trading-btn-primary:hover {
+    background: var(--primary-hover);
+}
+
+.trading-btn-success {
+    background: var(--success);
+    color: white;
+}
+
+.trading-btn-success:hover {
+    background: var(--success-hover);
+}
+
+.trading-btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.trading-btn-danger:hover {
+    background: var(--danger-hover);
+}
+
+/* Loading spinner */
+.loading-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border-light);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Pulse animation for alerts */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.pulse {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+/* Slide in animation */
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.slide-in {
+    animation: slideIn 0.3s ease-out;
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Tooltip styles */
+.tooltip {
+    position: absolute;
+    background: var(--bg-darker);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: 0.875rem;
+    z-index: 1000;
+    pointer-events: none;
+    box-shadow: var(--shadow-lg);
+}
+
+/* Badge component */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.badge-success {
+    background: rgba(34, 197, 94, 0.2);
+    color: var(--success);
+}
+
+.badge-danger {
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--danger);
+}
+
+.badge-warning {
+    background: rgba(245, 158, 11, 0.2);
+    color: var(--warning);
+}
+
+.badge-info {
+    background: rgba(59, 130, 246, 0.2);
+    color: var(--primary);
+}
+
+/* Table styles */
+.trading-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.trading-table th,
+.trading-table td {
+    padding: var(--spacing-sm) var(--spacing-md);
+    text-align: left;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.trading-table th {
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.trading-table tr:hover {
+    background: var(--bg-card-hover);
+}
+
+/* Grid layout utilities */
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--spacing-md); }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacing-md); }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--spacing-md); }
+
+@media (max-width: 768px) {
+    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+}
+
+/* Flex utilities */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-sm { gap: var(--spacing-sm); }
+.gap-md { gap: var(--spacing-md); }
