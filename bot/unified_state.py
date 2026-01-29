@@ -362,11 +362,19 @@ class UnifiedStateStore:
                 if hasattr(self._state, key):
                     setattr(self._state, key, value)
 
-            # Update peak balance
-            if self._state.current_balance > self._state.peak_balance:
-                self._state.peak_balance = self._state.current_balance
+            # Update peak balance using REALIZED balance only (exclude unrealized P&L)
+            # This prevents false drawdown triggers from temporary unrealized gains
+            total_unrealized_pnl = sum(
+                pos.unrealized_pnl for pos in self._state.positions.values()
+                if hasattr(pos, 'unrealized_pnl') and pos.unrealized_pnl is not None
+            )
+            realized_balance = self._state.current_balance - total_unrealized_pnl
 
-            # Calculate drawdown
+            # Only update peak if realized balance increases (actual profits locked in)
+            if realized_balance > self._state.peak_balance:
+                self._state.peak_balance = realized_balance
+
+            # Calculate drawdown based on current total equity vs realized peak
             if self._state.peak_balance > 0:
                 drawdown = (
                     self._state.peak_balance - self._state.current_balance

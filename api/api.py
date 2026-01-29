@@ -5259,6 +5259,171 @@ async def start_trading_engine(
 
 
 # =============================================================================
+# Position Management Endpoints
+# =============================================================================
+
+
+@app.post("/api/trading/position/close", tags=["Trading"])
+async def close_position(
+    symbol: str = Query(..., description="Trading symbol (e.g., BTC/USDT, XRP/USDT)"),
+    reason: str = Query(default="Manual close via API", description="Reason for closing"),
+    _auth: Optional[str] = Depends(verify_api_key),
+) -> Dict[str, Any]:
+    """
+    Close a specific position manually.
+
+    This endpoint allows closing individual positions without waiting for SL/TP.
+    Useful for closing counter-trend positions or manual portfolio management.
+
+    Args:
+        symbol: Trading symbol (e.g., "BTC/USDT", "XRP/USDT")
+        reason: Reason for closing the position
+
+    Returns:
+        Position close details including realized P&L
+    """
+    state_file = STATE_DIR / "unified_trading" / "state.json"
+
+    if not state_file.exists():
+        raise HTTPException(status_code=404, detail="Trading state not found")
+
+    try:
+        with open(state_file, "r") as f:
+            state = json.load(f)
+
+        positions = state.get("positions", {})
+
+        if symbol not in positions:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No open position for {symbol}. Available: {list(positions.keys())}"
+            )
+
+        position = positions[symbol]
+        entry_price = position["entry_price"]
+        quantity = position["quantity"]
+        side = position["side"]
+        current_price = position.get("current_price", entry_price)
+
+        # Calculate realized P&L
+        if side == "long":
+            realized_pnl = (current_price - entry_price) * quantity
+        else:  # short
+            realized_pnl = (entry_price - current_price) * quantity
+
+        # Update state
+        state["current_balance"] += realized_pnl
+        state["total_pnl"] = state.get("total_pnl", 0) + realized_pnl
+        state["total_trades"] = state.get("total_trades", 0) + 1
+
+        if realized_pnl >= 0:
+            state["winning_trades"] = state.get("winning_trades", 0) + 1
+        else:
+            state["losing_trades"] = state.get("losing_trades", 0) + 1
+
+        # Remove position
+        del positions[symbol]
+        state["positions"] = positions
+        state["timestamp"] = datetime.now(timezone.utc).isoformat()
+
+        # Save state
+        with open(state_file, "w") as f:
+            json.dump(state, f, indent=2)
+
+        return {
+            "success": True,
+            "symbol": symbol,
+            "side": side,
+            "entry_price": entry_price,
+            "exit_price": current_price,
+            "quantity": quantity,
+            "realized_pnl": round(realized_pnl, 2),
+            "reason": reason,
+            "new_balance": round(state["current_balance"], 2),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to close position: {str(e)}")
+
+
+@app.post("/api/trading/positions/close-all", tags=["Trading"])
+async def close_all_positions(
+    reason: str = Query(default="Manual close all via API", description="Reason for closing"),
+    _auth: Optional[str] = Depends(verify_api_key),
+) -> Dict[str, Any]:
+    """Close all open positions."""
+    state_file = STATE_DIR / "unified_trading" / "state.json"
+
+    if not state_file.exists():
+        raise HTTPException(status_code=404, detail="Trading state not found")
+
+    try:
+        with open(state_file, "r") as f:
+            state = json.load(f)
+
+        positions = state.get("positions", {})
+
+        if not positions:
+            return {
+                "success": True,
+                "message": "No positions to close",
+                "closed_positions": [],
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+
+        closed = []
+        total_pnl = 0
+
+        for symbol, position in list(positions.items()):
+            entry_price = position["entry_price"]
+            quantity = position["quantity"]
+            side = position["side"]
+            current_price = position.get("current_price", entry_price)
+
+            if side == "long":
+                pnl = (current_price - entry_price) * quantity
+            else:
+                pnl = (entry_price - current_price) * quantity
+
+            total_pnl += pnl
+            state["total_trades"] = state.get("total_trades", 0) + 1
+
+            if pnl >= 0:
+                state["winning_trades"] = state.get("winning_trades", 0) + 1
+            else:
+                state["losing_trades"] = state.get("losing_trades", 0) + 1
+
+            closed.append({
+                "symbol": symbol,
+                "side": side,
+                "pnl": round(pnl, 2),
+            })
+
+        state["current_balance"] += total_pnl
+        state["total_pnl"] = state.get("total_pnl", 0) + total_pnl
+        state["positions"] = {}
+        state["timestamp"] = datetime.now(timezone.utc).isoformat()
+
+        with open(state_file, "w") as f:
+            json.dump(state, f, indent=2)
+
+        return {
+            "success": True,
+            "closed_positions": closed,
+            "total_realized_pnl": round(total_pnl, 2),
+            "new_balance": round(state["current_balance"], 2),
+            "reason": reason,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to close positions: {str(e)}")
+
+
+# =============================================================================
 # Risk Settings Endpoints
 # =============================================================================
 
