@@ -56,7 +56,7 @@ class MLSignalGenerator:
         self,
         model_dir: Path = Path("data/models"),
         model_type: str = "gradient_boosting",
-        confidence_threshold: float = 0.55,  # Balanced: filters noise while allowing quality signals
+        confidence_threshold: float = 0.65,  # Increased: prioritize quality over quantity for better win rate
         use_mtf_filter: bool = True,
         mtf_strict_mode: bool = True,  # Strict MTF filtering - reject counter-trend signals
         regime_adaptive_threshold: bool = True,  # Adjust threshold based on market regime

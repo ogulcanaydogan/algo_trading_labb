@@ -166,7 +166,7 @@ class EngineConfig:
     use_ml_signals: bool = True
     ml_model_type: str = "gradient_boosting"
     ml_confidence_threshold: float = (
-        0.55  # Balanced threshold: filters noise while allowing quality signals
+        0.65  # Increased threshold: prioritize quality over quantity for better win rate
     )
 
     # Multi-asset trading (crypto + forex + commodities via different brokers)
