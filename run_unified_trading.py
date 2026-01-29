@@ -62,22 +62,23 @@ async def run_trading(args) -> None:
     # Determine symbols based on mode
     multi_asset = getattr(args, 'multi_asset', False)
     if multi_asset:
-        # Multi-asset mode: crypto + forex + commodities + stocks with trained models
+        # Multi-asset mode: crypto + forex + commodities + stocks - expanded for 1% daily target
         symbols = [
-            # Crypto (Binance)
+            # Crypto (Binance) - high volatility, 24/7
             "BTC/USDT", "ETH/USDT", "SOL/USDT",
             # Forex (OANDA) - best performers
             "EUR/USD", "GBP/USD",
-            # Indices (OANDA)
+            # Indices (OANDA) - major indices
             "SPX500/USD", "NAS100/USD",
             # Commodities (OANDA) - Gold, Silver, Oil
             "XAU/USD",    # Gold
             "XAG/USD",    # Silver
             "WTICO/USD",  # WTI Oil
-            # US Stocks (Alpaca)
+            # US Stocks (Alpaca) - expanded list for more opportunities
             "AAPL/USD", "NVDA/USD", "MSFT/USD", "GOOGL/USD",
+            "TSLA/USD", "AMZN/USD", "META/USD",  # Added high-volatility stocks
         ]
-        logger.info("Multi-asset mode enabled: crypto + forex + indices + commodities + stocks")
+        logger.info(f"Multi-asset mode: {len(symbols)} symbols for maximum opportunities")
     else:
         symbols = args.symbols.split(",") if args.symbols else ["BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT", "ADA/USDT", "AVAX/USDT"]
 
@@ -217,7 +218,7 @@ def main():
     run_p.add_argument("--mode", default="paper_live_data")
     run_p.add_argument("--capital", type=float, default=30000)
     run_p.add_argument("--symbols", default="BTC/USDT,ETH/USDT,SOL/USDT,XRP/USDT,ADA/USDT,AVAX/USDT", help="Trading symbols (comma-separated)")
-    run_p.add_argument("--interval", type=int, default=60)
+    run_p.add_argument("--interval", type=int, default=30)  # Faster for more opportunities
     run_p.add_argument("--confirm", action="store_true")
     run_p.add_argument("--fresh", action="store_true")
     run_p.add_argument("--multi-asset", action="store_true", help="Enable multi-asset trading (crypto, forex, commodities)")
@@ -240,7 +241,7 @@ def main():
         args.mode = "paper_live_data"
         args.capital = 30000
         args.symbols = "BTC/USDT,ETH/USDT,SOL/USDT"
-        args.interval = 60
+        args.interval = 30  # Faster loop for more opportunities
         args.confirm = False
         args.fresh = False
         args.multi_asset = False

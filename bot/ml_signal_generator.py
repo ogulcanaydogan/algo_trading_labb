@@ -63,6 +63,7 @@ class MLSignalGenerator:
         regime_adaptive_threshold: bool = True,  # Adjust threshold based on market regime
         use_ensemble: bool = True,  # Use ensemble predictor for higher accuracy
         ensemble_voting_strategy: str = "performance",  # "majority", "weighted", "performance"
+        use_scalping: bool = True,  # Enable scalping in sideways markets
     ):
         self.model_dir = model_dir
         self.model_type = model_type
@@ -72,6 +73,7 @@ class MLSignalGenerator:
         self.regime_adaptive_threshold = regime_adaptive_threshold
         self.use_ensemble = use_ensemble and ENSEMBLE_AVAILABLE
         self.ensemble_voting_strategy = ensemble_voting_strategy
+        self.use_scalping = use_scalping
 
         self.models: Dict[str, Any] = {}
         self.ensemble_predictors: Dict[
@@ -688,6 +690,10 @@ class MLSignalGenerator:
             # Fallback to technical analysis
             signal = await self._technical_signal(symbol, df, current_price)
 
+        # If no signal from main strategies, try scalping (sideways market mean reversion)
+        if signal is None and self.use_scalping:
+            signal = await self._scalping_signal(symbol, df, current_price)
+
         # Apply multi-timeframe filter
         if signal and self.use_mtf_filter:
             signal = self._apply_mtf_filter(signal, df)
@@ -1272,6 +1278,89 @@ class MLSignalGenerator:
 
         except Exception as e:
             logger.warning(f"Technical analysis failed for {symbol}: {e}")
+            return None
+
+    async def _scalping_signal(
+        self, symbol: str, df: pd.DataFrame, current_price: float
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Generate scalping/mean reversion signals for sideways markets.
+
+        Activates when ADX < 25 (no strong trend).
+        Uses Bollinger Bands and RSI for mean reversion entries.
+        """
+        try:
+            if len(df) < 50:
+                return None
+
+            # Calculate indicators
+            close = df["close"]
+            high = df["high"]
+            low = df["low"]
+
+            # ADX for trend strength
+            from ta.trend import ADXIndicator
+            adx_indicator = ADXIndicator(high=high, low=low, close=close, window=14)
+            adx = adx_indicator.adx().iloc[-1]
+
+            # Only scalp in sideways markets (ADX < 25)
+            if adx >= 25:
+                return None
+
+            # RSI
+            from ta.momentum import RSIIndicator
+            rsi = RSIIndicator(close=close, window=14).rsi().iloc[-1]
+
+            # Bollinger Bands
+            from ta.volatility import BollingerBands
+            bb = BollingerBands(close=close, window=20, window_dev=2)
+            bb_upper = bb.bollinger_hband().iloc[-1]
+            bb_lower = bb.bollinger_lband().iloc[-1]
+            bb_mid = bb.bollinger_mavg().iloc[-1]
+            bb_position = (current_price - bb_lower) / (bb_upper - bb_lower) if (bb_upper - bb_lower) > 0 else 0.5
+
+            action = None
+            confidence = 0.0
+            reason = ""
+
+            # Mean reversion: Buy at lower band, sell at upper band
+            if bb_position < 0.15 and rsi < 35:
+                # Price near lower band + oversold RSI = BUY scalp
+                action = "BUY"
+                confidence = 0.70 + (0.15 - bb_position) * 0.5 + (35 - rsi) / 100
+                reason = f"Scalp BUY: BB position {bb_position:.2f}, RSI {rsi:.1f}, ADX {adx:.1f}"
+            elif bb_position > 0.85 and rsi > 65:
+                # Price near upper band + overbought RSI = SELL scalp
+                action = "SHORT"
+                confidence = 0.70 + (bb_position - 0.85) * 0.5 + (rsi - 65) / 100
+                reason = f"Scalp SHORT: BB position {bb_position:.2f}, RSI {rsi:.1f}, ADX {adx:.1f}"
+
+            if action is None:
+                return None
+
+            confidence = min(0.90, confidence)
+
+            logger.info(f"[{symbol}] Scalping signal: {action} @ {confidence:.1%} (ADX={adx:.1f})")
+
+            return {
+                "action": action,
+                "confidence": confidence,
+                "reason": reason,
+                "price": current_price,
+                "model_type": "scalping",
+                "regime": "sideways",
+                "strategy": "mean_reversion",
+                "indicators": {
+                    "adx": adx,
+                    "rsi": rsi,
+                    "bb_position": bb_position,
+                },
+                "take_profit_pct": 0.005,  # Tighter 0.5% take profit for scalping
+                "stop_loss_pct": 0.003,    # Tighter 0.3% stop loss for scalping
+            }
+
+        except Exception as e:
+            logger.warning(f"Scalping signal failed for {symbol}: {e}")
             return None
 
 

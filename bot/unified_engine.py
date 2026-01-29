@@ -175,15 +175,27 @@ class EngineConfig:
     # Signal generator (injected or auto-created)
     signal_generator: Optional[Callable[[str, float], Optional[Dict[str, Any]]]] = None
 
-    # Trailing stop settings
+    # Trailing stop settings - aggressive for 1% daily target
     use_trailing_stop: bool = True
-    trailing_stop_pct: float = 0.015  # 1.5% trailing distance
-    trailing_activation_pct: float = 0.01  # Activate after 1% profit
+    trailing_stop_pct: float = 0.012  # 1.2% trailing distance (tighter to lock profits)
+    trailing_activation_pct: float = 0.008  # Activate after 0.8% profit (earlier activation)
 
-    # DCA settings
+    # DCA settings (buy dips)
     use_dca: bool = True
     max_dca_orders: int = 4
     max_position_multiplier: float = 3.0
+
+    # Pyramiding settings (add to winners)
+    use_pyramiding: bool = True
+    pyramid_threshold_pct: float = 0.01  # Add when position is +1% profitable
+    pyramid_add_pct: float = 0.5  # Add 50% of original size
+    max_pyramid_adds: int = 2  # Max 2 adds to winning positions
+
+    # Grid trading settings (for sideways markets)
+    use_grid_trading: bool = True
+    grid_spacing_pct: float = 0.005  # 0.5% between grid levels
+    grid_levels: int = 3  # Number of buy/sell levels
+    grid_adx_threshold: float = 20  # Only activate grid when ADX < 20
 
     # Self-learning settings
     use_action_tracker: bool = True  # Track optimal actions per market state
@@ -1748,6 +1760,10 @@ class UnifiedTradingEngine:
                     if dca_opportunity:
                         await self._execute_dca(symbol, dca_opportunity, current_price)
 
+                # Check pyramiding opportunity (add to winning positions)
+                if self.config.use_pyramiding:
+                    await self._check_pyramid_opportunity(symbol, position, current_price)
+
             except Exception as e:
                 logger.error(f"Error checking position {symbol}: {e}")
 
@@ -1820,6 +1836,86 @@ class UnifiedTradingEngine:
             logger.info(
                 f"DCA executed: {symbol} new avg=${new_avg_price:.2f}, "
                 f"total qty={total_quantity:.6f}"
+            )
+
+    async def _check_pyramid_opportunity(
+        self, symbol: str, position: Any, current_price: float
+    ) -> None:
+        """Check if we should add to a winning position (pyramiding)."""
+        if not self._state or not self.execution_adapter:
+            return
+
+        # Calculate current P&L percentage
+        if position.side == "long":
+            pnl_pct = (current_price - position.entry_price) / position.entry_price
+        else:
+            pnl_pct = (position.entry_price - current_price) / position.entry_price
+
+        # Check if position is profitable enough to pyramid
+        if pnl_pct < self.config.pyramid_threshold_pct:
+            return
+
+        # Check pyramid count (stored in signal_meta or default to 0)
+        pyramid_count = position.signal_meta.get("pyramid_count", 0) if position.signal_meta else 0
+        if pyramid_count >= self.config.max_pyramid_adds:
+            return
+
+        # Check if we have enough balance
+        add_size = position.quantity * self.config.pyramid_add_pct
+        add_cost = add_size * current_price
+        if add_cost > self._state.current_balance * 0.1:  # Max 10% per pyramid
+            return
+
+        logger.info(
+            f"Pyramid opportunity: {symbol} at +{pnl_pct*100:.1f}%, "
+            f"adding {self.config.pyramid_add_pct*100:.0f}% more"
+        )
+
+        # Create pyramid order
+        order = Order(
+            symbol=symbol,
+            side=OrderSide.BUY if position.side == "long" else OrderSide.SELL,
+            order_type=OrderType.MARKET,
+            quantity=add_size,
+            signal_confidence=0.7,
+            signal_reason=f"Pyramid add #{pyramid_count + 1}",
+        )
+
+        result = await self.execution_adapter.place_order(order)
+        if result and result.success:
+            # Update position with new average
+            total_quantity = position.quantity + result.filled_quantity
+            total_cost = (position.entry_price * position.quantity) + (
+                result.average_price * result.filled_quantity
+            )
+            new_avg_price = total_cost / total_quantity
+
+            position.quantity = total_quantity
+            position.entry_price = new_avg_price
+
+            # Update pyramid count
+            if not position.signal_meta:
+                position.signal_meta = {}
+            position.signal_meta["pyramid_count"] = pyramid_count + 1
+
+            # Update stop loss (tighter after pyramid)
+            if position.side == "long":
+                position.stop_loss = new_avg_price * (1 - self.config.stop_loss_pct * 0.8)
+                position.take_profit = new_avg_price * (1 + self.config.take_profit_pct)
+            else:
+                position.stop_loss = new_avg_price * (1 + self.config.stop_loss_pct * 0.8)
+                position.take_profit = new_avg_price * (1 - self.config.take_profit_pct)
+
+            self.state_store.update_position(symbol, position)
+
+            # Update trailing stop
+            if self.trailing_stop_manager:
+                self.trailing_stop_manager.remove_position(symbol)
+                self.trailing_stop_manager.add_position(symbol, new_avg_price, position.side)
+
+            logger.info(
+                f"Pyramid executed: {symbol} new avg=${new_avg_price:.2f}, "
+                f"total qty={total_quantity:.6f}, pyramid #{pyramid_count + 1}"
             )
 
     async def _close_all_positions(self, reason: str) -> None:
