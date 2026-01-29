@@ -1186,17 +1186,21 @@ class MLSignalGenerator:
                            latest_close < ema_50.iloc[-1] and
                            ema_trend < 0)
 
-            # Apply trend alignment penalty/bonus (weight: 3 - strongest factor)
+            # Apply trend alignment - HARD BLOCK counter-trend trades
+            # This is the most important filter to prevent losing trades
+            block_shorts = False
+            block_longs = False
+
             if is_uptrend:
-                buy_score += 2  # Bonus for trend-aligned longs
-                sell_score -= 2  # Heavy penalty for counter-trend shorts
-                if sell_score > buy_score:
-                    reasons.append("⚠️ Counter-trend SHORT in uptrend")
+                buy_score += 3  # Strong bonus for trend-aligned longs
+                sell_score = 0  # ZERO out shorts in uptrend - hard block
+                block_shorts = True
+                reasons.append("🚫 Shorts blocked - strong uptrend")
             elif is_downtrend:
-                sell_score += 2  # Bonus for trend-aligned shorts
-                buy_score -= 2  # Heavy penalty for counter-trend longs
-                if buy_score > sell_score:
-                    reasons.append("⚠️ Counter-trend BUY in downtrend")
+                sell_score += 3  # Strong bonus for trend-aligned shorts
+                buy_score = 0  # ZERO out longs in downtrend - hard block
+                block_longs = True
+                reasons.append("🚫 Longs blocked - strong downtrend")
 
             # Determine action based on score
             min_score = 1.5  # Lowered from 2.5 to generate more signals for stocks/commodities
