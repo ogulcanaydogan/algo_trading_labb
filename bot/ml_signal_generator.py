@@ -57,7 +57,7 @@ class MLSignalGenerator:
         self,
         model_dir: Path = Path("data/models"),
         model_type: str = "gradient_boosting",
-        confidence_threshold: float = 0.65,  # Increased: prioritize quality over quantity for better win rate
+        confidence_threshold: float = 0.70,  # Higher threshold for better win rate
         use_mtf_filter: bool = True,
         mtf_strict_mode: bool = True,  # Strict MTF filtering - reject counter-trend signals
         regime_adaptive_threshold: bool = True,  # Adjust threshold based on market regime
@@ -1278,7 +1278,7 @@ class MLSignalGenerator:
 def create_signal_generator(
     symbols: List[str],
     model_type: str = "gradient_boosting",
-    confidence_threshold: float = 0.65,
+    confidence_threshold: float = 0.70,
     use_mtf_filter: bool = True,
     mtf_strict_mode: bool = True,
     use_ensemble: bool = True,
@@ -1289,7 +1289,7 @@ def create_signal_generator(
     Args:
         symbols: List of symbols to trade
         model_type: Fallback model type if ensemble unavailable
-        confidence_threshold: Minimum confidence to generate signal (0.65 recommended for 60%+ win rate)
+        confidence_threshold: Minimum confidence to generate signal (0.70 for better win rate)
         use_mtf_filter: Enable multi-timeframe trend filtering
         mtf_strict_mode: Reject signals that don't align with higher timeframes (True improves quality)
         use_ensemble: Use ensemble predictor for higher accuracy (recommended)

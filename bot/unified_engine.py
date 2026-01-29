@@ -150,10 +150,10 @@ class EngineConfig:
     loop_interval_seconds: int = 300  # 5 minutes
     max_positions: int = 6  # Increased to allow more diversification (crypto + commodities + stocks)
 
-    # Risk settings
+    # Risk settings - tuned for better win rate
     risk_per_trade_pct: float = 0.01  # 1% risk per trade
-    stop_loss_pct: float = 0.02  # 2% stop loss
-    take_profit_pct: float = 0.04  # 4% take profit
+    stop_loss_pct: float = 0.015  # 1.5% stop loss (tighter to cut losses faster)
+    take_profit_pct: float = 0.05  # 5% take profit (better 1:3.3 risk/reward)
 
     # Data settings
     data_dir: Path = field(default_factory=lambda: Path("data/unified_trading"))
@@ -166,7 +166,7 @@ class EngineConfig:
     use_ml_signals: bool = True
     ml_model_type: str = "gradient_boosting"
     ml_confidence_threshold: float = (
-        0.65  # Increased threshold: prioritize quality over quantity for better win rate
+        0.70  # Higher threshold: only take high-confidence signals for better win rate
     )
 
     # Multi-asset trading (crypto + forex + commodities via different brokers)
