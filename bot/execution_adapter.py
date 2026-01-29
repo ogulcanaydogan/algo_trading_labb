@@ -56,6 +56,7 @@ class OrderStatus(Enum):
     CANCELLED = "cancelled"
     REJECTED = "rejected"
     EXPIRED = "expired"
+    FAILED = "failed"
 
 
 @dataclass
@@ -68,6 +69,8 @@ class Order:
     quantity: float
     price: Optional[float] = None  # For limit orders
     stop_price: Optional[float] = None  # For stop orders
+    stop_loss: Optional[float] = None  # Stop loss price for position
+    take_profit: Optional[float] = None  # Take profit price for position
     client_order_id: Optional[str] = None
     time_in_force: str = "GTC"  # Good Till Cancelled
 
