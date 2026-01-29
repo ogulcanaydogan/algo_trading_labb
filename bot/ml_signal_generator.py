@@ -786,6 +786,19 @@ class MLSignalGenerator:
             else:
                 return None  # Flat - no signal
 
+            # HARD BLOCK counter-trend trades (same logic as TA signals)
+            # Get trend from EMA crossover
+            monitor_features = self._build_monitor_features(df)
+            ema_trend = monitor_features.get("ema_trend", 0.0)
+            trend = self._classify_trend(ema_trend)
+
+            if trend == "up" and action == "SHORT":
+                logger.info(f"[{symbol}] Ensemble SHORT blocked - strong uptrend (EMA trend: {ema_trend:.4f})")
+                return None
+            elif trend == "down" and action == "BUY":
+                logger.info(f"[{symbol}] Ensemble BUY blocked - strong downtrend (EMA trend: {ema_trend:.4f})")
+                return None
+
             raw_confidence = confidence
             calibrated_confidence = self._apply_calibration(raw_confidence)
             adjusted_confidence, threshold_adj, monitor_notes = self._apply_monitor_gates(
@@ -805,8 +818,7 @@ class MLSignalGenerator:
             regime_info = f" [regime:{self._current_regime}]" if self._current_regime else ""
             num_models = details.get("num_models", 0)
 
-            monitor_features = self._build_monitor_features(df)
-            trend = self._classify_trend(monitor_features.get("ema_trend", 0.0))
+            # monitor_features and trend already calculated above for trend blocking
             volatility_regime = self._classify_volatility(
                 monitor_features.get("volatility_24", 0.0)
             )
@@ -990,6 +1002,18 @@ class MLSignalGenerator:
                     )
                 return None  # No clear signal
 
+            # HARD BLOCK counter-trend trades (same logic as TA and ensemble signals)
+            monitor_features = self._build_monitor_features(df)
+            ema_trend = monitor_features.get("ema_trend", 0.0)
+            trend = self._classify_trend(ema_trend)
+
+            if trend == "up" and action == "SHORT":
+                logger.info(f"[{symbol}] ML SHORT blocked - strong uptrend (EMA trend: {ema_trend:.4f})")
+                return None
+            elif trend == "down" and action == "BUY":
+                logger.info(f"[{symbol}] ML BUY blocked - strong downtrend (EMA trend: {ema_trend:.4f})")
+                return None
+
             regime_info = f" [regime:{self._current_regime}]" if self._current_regime else ""
 
             adjusted_confidence, threshold_adj, monitor_notes = self._apply_monitor_gates(
@@ -1002,8 +1026,7 @@ class MLSignalGenerator:
                 )
                 return None
 
-            monitor_features = self._build_monitor_features(df)
-            trend = self._classify_trend(monitor_features.get("ema_trend", 0.0))
+            # monitor_features and trend already calculated above for trend blocking
             volatility_regime = self._classify_volatility(
                 monitor_features.get("volatility_24", 0.0)
             )
