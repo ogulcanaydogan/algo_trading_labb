@@ -324,6 +324,18 @@ class UnifiedTradingEngine:
             except Exception as e:
                 logger.warning(f"Could not initialize Discord alerts: {e}")
 
+        # Telegram Alerts
+        self.telegram_channel = None
+        try:
+            from bot.notification_system import TelegramChannel
+            self.telegram_channel = TelegramChannel()
+            if self.telegram_channel.is_configured():
+                logger.info("Telegram alerts initialized")
+            else:
+                self.telegram_channel = None
+        except Exception as e:
+            logger.warning(f"Could not initialize Telegram alerts: {e}")
+
         # Advanced Risk Manager
         self.risk_manager = None
         if config.use_advanced_risk:
@@ -1327,6 +1339,25 @@ class UnifiedTradingEngine:
             except Exception as e:
                 logger.warning(f"Discord alert failed: {e}")
 
+        # Send Telegram alert
+        if self.telegram_channel:
+            try:
+                from bot.notification_system import Alert, AlertType, AlertLevel
+                alert = Alert(
+                    alert_type=AlertType.TRADE_OPENED,
+                    level=AlertLevel.INFO,
+                    title=f"📈 {side.upper()} {symbol}",
+                    message=f"Opened {side.upper()} position\n"
+                            f"Symbol: {symbol}\n"
+                            f"Price: ${result.average_price:.2f}\n"
+                            f"Qty: {result.filled_quantity:.4f}\n"
+                            f"Reason: {signal.get('reason', 'ML signal')[:50]}",
+                    data={"symbol": symbol, "side": side, "price": result.average_price},
+                )
+                self.telegram_channel.send(alert)
+            except Exception as e:
+                logger.warning(f"Telegram alert failed: {e}")
+
         # Register with trailing stop manager
         if self.trailing_stop_manager:
             self.trailing_stop_manager.add_position(
@@ -1507,6 +1538,28 @@ class UnifiedTradingEngine:
                 )
             except Exception as e:
                 logger.warning(f"Discord alert failed: {e}")
+
+        # Send Telegram alert for close
+        if self.telegram_channel:
+            try:
+                from bot.notification_system import Alert, AlertType, AlertLevel
+                emoji = "✅" if pnl >= 0 else "❌"
+                alert_level = AlertLevel.INFO if pnl >= 0 else AlertLevel.WARNING
+                alert = Alert(
+                    alert_type=AlertType.TRADE_CLOSED,
+                    level=alert_level,
+                    title=f"{emoji} Closed {symbol}",
+                    message=f"Position closed\n"
+                            f"Symbol: {symbol}\n"
+                            f"Side: {position.side.upper()}\n"
+                            f"Exit: ${result.average_price:.2f}\n"
+                            f"P&L: ${pnl:.2f} ({pnl_pct:.2f}%)\n"
+                            f"Reason: {reason}",
+                    data={"symbol": symbol, "pnl": pnl, "pnl_pct": pnl_pct},
+                )
+                self.telegram_channel.send(alert)
+            except Exception as e:
+                logger.warning(f"Telegram alert failed: {e}")
 
         # Remove from trailing stop manager
         if self.trailing_stop_manager:
