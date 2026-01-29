@@ -70,7 +70,9 @@ async def run_trading(args) -> None:
             "EUR/USD", "GBP/USD",
             # Indices (OANDA)
             "SPX500/USD", "NAS100/USD",
-            # Commodities (OANDA)
+            # Commodities (OANDA) - Gold, Silver, Oil
+            "XAU/USD",    # Gold
+            "XAG/USD",    # Silver
             "WTICO/USD",  # WTI Oil
             # US Stocks (Alpaca)
             "AAPL/USD", "NVDA/USD", "MSFT/USD", "GOOGL/USD",

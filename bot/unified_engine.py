@@ -148,7 +148,7 @@ class EngineConfig:
     # Trading settings
     symbols: List[str] = field(default_factory=lambda: ["BTC/USDT", "ETH/USDT"])
     loop_interval_seconds: int = 300  # 5 minutes
-    max_positions: int = 3
+    max_positions: int = 6  # Increased to allow more diversification (crypto + commodities + stocks)
 
     # Risk settings
     risk_per_trade_pct: float = 0.01  # 1% risk per trade

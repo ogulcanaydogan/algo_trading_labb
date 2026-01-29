@@ -34,7 +34,7 @@ class SafetyLimits:
     # Position limits (user priority)
     max_position_size_usd: float = 20.0  # $20 max for LIVE_LIMITED
     max_position_size_pct: float = 0.05  # 5% of capital per position (CRITICAL: was 20% - unsafe!)
-    max_open_positions: int = 3
+    max_open_positions: int = 6  # Increased to allow more diversification
 
     # Daily loss limits (user priority)
     max_daily_loss_usd: float = 2.0  # $2 max for LIVE_LIMITED

@@ -108,11 +108,11 @@ class RegimeLimits:
                 size_multiplier=0.5,
             ),
             MarketRegime.UNKNOWN: cls(
-                max_leverage=1.5,
-                max_position_pct=0.10,
-                risk_per_trade_pct=0.01,
+                max_leverage=2.0,
+                max_position_pct=0.15,  # Increased from 0.10 for better capital utilization
+                risk_per_trade_pct=0.015,  # Slightly increased for commodities
                 allowed_directions=["long", "short"],  # Allow trading to accumulate paper trades
-                size_multiplier=0.5,  # Reduced size for safety
+                size_multiplier=0.75,  # Increased from 0.5 for silver/commodities
             ),
         }
         return defaults.get(regime, defaults[MarketRegime.UNKNOWN])
