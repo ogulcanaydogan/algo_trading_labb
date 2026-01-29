@@ -17,6 +17,7 @@ import yfinance as yf
 
 from bot.multi_timeframe import MultiTimeframeAnalyzer, confirm_signal_mtf
 from bot.ml_performance_tracker import get_ml_tracker, track_prediction
+from bot.ml.feature_engineer import FeatureEngineer
 
 # Model monitoring for calibration and drift-aware gating
 try:
@@ -78,6 +79,7 @@ class MLSignalGenerator:
         ] = {}  # Ensemble predictors per symbol
         self._price_cache: Dict[str, pd.DataFrame] = {}
         self._mtf_analyzer = MultiTimeframeAnalyzer()
+        self._feature_engineer = FeatureEngineer()  # Use same feature engineering as training
         self._initialized = False
         self._current_regime: Optional[str] = None
 
@@ -866,40 +868,21 @@ class MLSignalGenerator:
             return await self._technical_signal(symbol, df, current_price)
 
     def _extract_features(self, df: pd.DataFrame) -> Optional[np.ndarray]:
-        """Extract features matching the improved_training.py feature set (43 features)."""
+        """Extract features using FeatureEngineer (same as training - 120 features)."""
         try:
-            import json
-
-            # Use the same feature engineering as improved_training.py
-            df_features = self._engineer_training_features(df.copy())
+            # Use the same feature engineering as MLPredictor training
+            df_features = self._feature_engineer.extract_features(df.copy())
 
             if len(df_features) == 0:
                 logger.warning("Feature engineering returned empty DataFrame")
                 return None
 
-            # The 43 features from improved_training.py in exact order
-            feature_names = [
-                "ema_7", "ema_7_dist", "ema_14", "ema_14_dist", "ema_21", "ema_21_dist",
-                "ema_50", "ema_50_dist", "ema_100", "ema_100_dist", "ema_200", "ema_200_dist",
-                "rsi_7", "rsi_14", "rsi_28",
-                "macd", "macd_signal", "macd_hist",
-                "bb_20_mid", "bb_20_std", "bb_20_upper", "bb_20_lower", "bb_20_position",
-                "bb_50_mid", "bb_50_std", "bb_50_upper", "bb_50_lower", "bb_50_position",
-                "roc_3", "momentum_3", "roc_5", "momentum_5", "roc_10", "momentum_10", "roc_20", "momentum_20",
-                "volume_sma_20", "volume_ratio", "volume_roc",
-                "atr_14", "volatility_20", "high_low_ratio", "close_open_ratio"
-            ]
+            # Get feature columns from data_quality module (same as training)
+            from bot.ml.data_quality import get_feature_columns
+            feature_cols = get_feature_columns(df_features)
 
-            # Build feature array
-            features = []
-            for feat_name in feature_names:
-                if feat_name in df_features.columns:
-                    val = df_features[feat_name].iloc[-1]
-                else:
-                    val = 0.0
-                features.append(val)
-
-            X = np.array(features).reshape(1, -1)
+            # Get the latest row's features
+            X = df_features[feature_cols].iloc[-1:].values
 
             # Sanitize: replace inf/-inf with NaN, then fill with 0
             X = np.where(np.isinf(X), np.nan, X)
