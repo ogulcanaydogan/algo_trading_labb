@@ -57,7 +57,7 @@ class MLSignalGenerator:
         self,
         model_dir: Path = Path("data/models"),
         model_type: str = "gradient_boosting",
-        confidence_threshold: float = 0.70,  # Higher threshold for better win rate
+        confidence_threshold: float = 0.65,  # Balanced threshold for more trades
         use_mtf_filter: bool = True,
         mtf_strict_mode: bool = True,  # Strict MTF filtering - reject counter-trend signals
         regime_adaptive_threshold: bool = True,  # Adjust threshold based on market regime
@@ -1278,7 +1278,7 @@ class MLSignalGenerator:
 def create_signal_generator(
     symbols: List[str],
     model_type: str = "gradient_boosting",
-    confidence_threshold: float = 0.70,
+    confidence_threshold: float = 0.65,
     use_mtf_filter: bool = True,
     mtf_strict_mode: bool = True,
     use_ensemble: bool = True,
