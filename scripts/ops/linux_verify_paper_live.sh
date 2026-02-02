@@ -59,7 +59,7 @@ if [ -f "${HEARTBEAT}" ]; then
   if [ -z "${hb_ts}" ]; then
     fail "heartbeat timestamp missing"
   else
-    hb_age="$(python3 - <<'PY'
+    hb_age="$(python3 - "$hb_ts" <<'PY'
 import sys
 from datetime import datetime, timezone
 
@@ -75,7 +75,7 @@ now = datetime.now(timezone.utc)
 age = (now - dt).total_seconds()
 print(int(age))
 PY
-"${hb_ts}")"
+)"
     echo "heartbeat age (s): ${hb_age}"
     if [ "${hb_age}" -gt "${HEARTBEAT_MAX_AGE_SECONDS}" ]; then
       fail "heartbeat too old (${hb_age}s > ${HEARTBEAT_MAX_AGE_SECONDS}s)"
