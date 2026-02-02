@@ -1,0 +1,76 @@
+# algo_trading_live_limited.service - Systemd user service for live-limited trading
+#
+# IMPORTANT: This service runs REAL LIVE TRADING with strict guardrails.
+# Do NOT start this service until phase2d-status returns exit_code=0.
+#
+# Installation (user service):
+#   mkdir -p ~/.config/systemd/user
+#   cp scripts/ops/algo_trading_live_limited.service ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   systemctl --user enable algo_trading_live_limited.service
+#   # Run readiness check before starting:
+#   ~/work/algo_trading_lab/.venv/bin/python run_unified_trading.py phase2d-status
+#   # Only if exit_code=0:
+#   systemctl --user start algo_trading_live_limited.service
+#
+# Commands:
+#   systemctl --user status algo_trading_live_limited
+#   systemctl --user start algo_trading_live_limited
+#   systemctl --user stop algo_trading_live_limited
+#   systemctl --user restart algo_trading_live_limited
+#   journalctl --user -u algo_trading_live_limited -f
+#
+# ROLLBACK (one-command):
+#   systemctl --user stop algo_trading_live_limited.service
+#   # Paper-live continues running uninterrupted
+
+[Unit]
+Description=Algo Trading Live-Limited Engine (REAL MONEY - GUARDRAILS ACTIVE)
+Documentation=https://github.com/weezboo/algo_trading_lab
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=1800
+StartLimitBurst=3
+
+# Do not start automatically on boot - require manual start after readiness check
+# To enable auto-start after testing: systemctl --user enable algo_trading_live_limited
+
+[Service]
+Type=simple
+
+# === IMPORTANT: Update this path to your repo location ===
+WorkingDirectory=/home/weezboo/work/algo_trading_lab
+
+# Use venv python with live_limited mode
+# --confirm is REQUIRED for live modes
+ExecStart=/home/weezboo/work/algo_trading_lab/.venv/bin/python run_unified_trading.py run --mode live_limited --interval 60 --capital 1000 --confirm
+
+# Live-limited risk guardrails (conservative defaults)
+Environment="LIVE_MAX_POSITION_PCT=5.0"
+Environment="LIVE_MAX_LEVERAGE=1.0"
+Environment="LIVE_MAX_DAILY_LOSS_PCT=2.0"
+Environment="LIVE_MAX_ORDERS_DAY=20"
+Environment="LIVE_LIMITED_CAPITAL=1000.0"
+
+# Load .env file for API keys (NEVER commit this file)
+EnvironmentFile=-/home/weezboo/work/algo_trading_lab/.env
+
+# Restart policy - more conservative for live trading
+Restart=on-failure
+RestartSec=60
+
+# Graceful shutdown - give more time for position cleanup
+TimeoutStopSec=60
+KillMode=mixed
+KillSignal=SIGTERM
+
+# Logging
+StandardOutput=append:/home/weezboo/work/algo_trading_lab/logs/live_limited_longrun.out.log
+StandardError=append:/home/weezboo/work/algo_trading_lab/logs/live_limited_longrun.err.log
+
+# Resource limits
+MemoryMax=2G
+CPUQuota=50%
+
+[Install]
+WantedBy=default.target
