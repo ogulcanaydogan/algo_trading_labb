@@ -28,6 +28,131 @@ from bot.unified_engine import EngineConfig, UnifiedTradingEngine
 from bot.broker_router import create_multi_asset_adapter
 
 
+def _env_float(name: str, default: float) -> float:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _env_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _resolve_venv_python() -> Path:
+    repo_root = Path(__file__).resolve().parent
+    if os.name == "nt":
+        candidate = repo_root / ".venv" / "Scripts" / "python.exe"
+    else:
+        candidate = repo_root / ".venv" / "bin" / "python"
+    return candidate if candidate.exists() else Path(sys.executable)
+
+
+def _get_pidfile_path() -> Path:
+    """Get the PID file path."""
+    repo_root = Path(__file__).resolve().parent
+    return repo_root / "logs" / "paper_live.pid"
+
+
+def _get_heartbeat_path() -> Path:
+    """Get the heartbeat file path."""
+    repo_root = Path(__file__).resolve().parent
+    return repo_root / "data" / "rl" / "paper_live_heartbeat.json"
+
+
+def _write_pid_file() -> None:
+    """Write current PID to pidfile for PID parity with heartbeat."""
+    pidfile_path = _get_pidfile_path()
+    pidfile_path.parent.mkdir(parents=True, exist_ok=True)
+    pidfile_path.write_text(str(os.getpid()), encoding="utf-8")
+
+
+def _remove_pid_file() -> None:
+    """Remove PID file on shutdown."""
+    pidfile_path = _get_pidfile_path()
+    try:
+        if pidfile_path.exists():
+            pidfile_path.unlink()
+    except OSError:
+        pass
+
+
+def _enforce_single_instance() -> None:
+    """Cross-platform single instance check using heartbeat/pidfile + process validation."""
+    try:
+        import psutil
+    except ImportError:
+        return
+
+    import json as _json
+
+    heartbeat_path = _get_heartbeat_path()
+    pidfile_path = _get_pidfile_path()
+    pid = None
+
+    # Try heartbeat first (most reliable, written by Python)
+    if heartbeat_path.exists():
+        try:
+            with heartbeat_path.open("r", encoding="utf-8") as f:
+                heartbeat = _json.load(f)
+            pid = heartbeat.get("pid")
+        except (OSError, _json.JSONDecodeError):
+            pid = None
+
+    # Fallback to pidfile
+    if not pid and pidfile_path.exists():
+        try:
+            pid = int(pidfile_path.read_text(encoding="utf-8").strip().splitlines()[0])
+        except (OSError, ValueError, IndexError):
+            pid = None
+
+    if not pid:
+        return
+
+    # Check if process is still running with run_unified_trading.py
+    try:
+        proc = psutil.Process(int(pid))
+        cmdline = " ".join(proc.cmdline())
+        if "run_unified_trading.py" in cmdline:
+            print("Another run_unified_trading.py process is already running; exiting.")
+            sys.exit(0)
+    except (psutil.NoSuchProcess, psutil.AccessDenied, ValueError):
+        # Process not running, clean up stale files
+        try:
+            if pidfile_path.exists():
+                pidfile_path.unlink()
+        except OSError:
+            pass
+        return
+
+
+def _enforce_single_instance_windows() -> None:
+    """Windows-specific single instance check (legacy, calls cross-platform version)."""
+    if os.name != "nt":
+        return
+    _enforce_single_instance()
+
+
+def _reexec_with_venv_on_windows() -> None:
+    if os.name != "nt":
+        return
+    venv_python = _resolve_venv_python()
+    try:
+        if venv_python.exists() and Path(sys.executable).resolve() != venv_python.resolve():
+            os.execv(str(venv_python), [str(venv_python)] + sys.argv)
+    except OSError:
+        pass
+
+
 def setup_logging(mode: str, data_dir: Path) -> None:
     """Setup logging."""
     log_dir = data_dir / "logs"
@@ -58,6 +183,21 @@ async def run_trading(args) -> None:
     data_dir = Path("data/unified_trading")
     setup_logging(mode.value, data_dir)
     logger = logging.getLogger(__name__)
+
+    # Write PID file for process tracking (ensures PID parity with heartbeat)
+    _write_pid_file()
+    logger.info(f"PID file written: {_get_pidfile_path()} (pid={os.getpid()})")
+
+    if mode == TradingMode.PAPER_LIVE_DATA:
+        min_ratio = _env_float("PAPER_LIVE_TURNOVER_MIN_RATIO", 2.0)
+        max_daily = _env_int("PAPER_LIVE_TURNOVER_MAX_DAILY", 10)
+        os.environ.setdefault("PAPER_LIVE_TURNOVER_MIN_RATIO", str(min_ratio))
+        os.environ.setdefault("PAPER_LIVE_TURNOVER_MAX_DAILY", str(max_daily))
+        logger.info(
+            "Paper-live turnover overrides: min_ratio=%s max_daily=%s",
+            min_ratio,
+            max_daily,
+        )
 
     # Determine symbols based on mode
     multi_asset = getattr(args, 'multi_asset', False)
@@ -93,13 +233,19 @@ async def run_trading(args) -> None:
 
     engine = UnifiedTradingEngine(config)
 
-    def handle_signal(sig):
+    def _schedule_stop(sig):
         logger.info(f"Received signal {sig}, stopping...")
-        asyncio.create_task(engine.stop())
+        loop.call_soon_threadsafe(lambda: asyncio.create_task(engine.stop()))
 
-    loop = asyncio.get_event_loop()
-    for sig in (signal.SIGINT, signal.SIGTERM):
-        loop.add_signal_handler(sig, lambda s=sig: handle_signal(s))
+    loop = asyncio.get_running_loop()
+    signals = [signal.SIGINT, signal.SIGTERM]
+    if os.name == "nt" and hasattr(signal, "SIGBREAK"):
+        signals.append(signal.SIGBREAK)  # type: ignore[attr-defined]
+    for sig in signals:
+        try:
+            loop.add_signal_handler(sig, lambda s=sig: _schedule_stop(s))
+        except NotImplementedError:
+            signal.signal(sig, lambda *_: _schedule_stop(sig))
 
     logger.info("=" * 60)
     logger.info("UNIFIED TRADING ENGINE")
@@ -145,11 +291,17 @@ async def run_trading(args) -> None:
     logger.info(f"Trades: {status['total_trades']}")
     logger.info("=" * 60)
 
+    # Clean up PID file on shutdown
+    _remove_pid_file()
+    logger.info("PID file removed")
+
 
 async def show_status(args) -> None:
     """Show current status."""
     import json
-    state_file = Path("data/unified_trading/state.json")
+    repo_root = Path(__file__).resolve().parent
+    state_file = repo_root / "data" / "unified_trading" / "state.json"
+    heartbeat_file = repo_root / "data" / "rl" / "paper_live_heartbeat.json"
 
     print("\n" + "=" * 60)
     print("TRADING ENGINE STATUS")
@@ -170,7 +322,23 @@ async def show_status(args) -> None:
             print(f"\nPositions ({len(state['positions'])}):")
             for sym, pos in state['positions'].items():
                 print(f"  {sym}: {pos['side']} @ ${pos['entry_price']:.2f}")
-    else:
+    if heartbeat_file.exists():
+        with open(heartbeat_file) as f:
+            heartbeat = json.load(f)
+        print("\nHeartbeat:")
+        print(f"  Timestamp: {heartbeat.get('timestamp', 'unknown')}")
+        print(f"  PID: {heartbeat.get('pid', 'unknown')}")
+        print(f"  Mode: {heartbeat.get('mode', 'unknown')}")
+        symbols = heartbeat.get("symbols") or []
+        if symbols:
+            print(f"  Symbols: {', '.join(symbols)}")
+        decisions = heartbeat.get("total_decisions_session")
+        if decisions is not None:
+            print(f"  Decisions (session): {decisions}")
+        paper_live_decisions = heartbeat.get("paper_live_decisions_session")
+        if paper_live_decisions is not None:
+            print(f"  Paper-live decisions (session): {paper_live_decisions}")
+    if not state_file.exists() and not heartbeat_file.exists():
         print("No state found. Start trading first.")
     print("=" * 60)
 
@@ -210,6 +378,8 @@ async def emergency_stop(args) -> None:
 
 
 def main():
+    _reexec_with_venv_on_windows()
+
     parser = argparse.ArgumentParser(description="Unified Trading Engine")
     subparsers = parser.add_subparsers(dest="command")
 
@@ -245,6 +415,10 @@ def main():
         args.confirm = False
         args.fresh = False
         args.multi_asset = False
+
+    if args.command == "run":
+        # Cross-platform single instance check (works on Linux/macOS/Windows)
+        _enforce_single_instance()
 
     if args.command == "run":
         asyncio.run(run_trading(args))
