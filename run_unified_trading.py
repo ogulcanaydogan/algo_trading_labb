@@ -7,16 +7,20 @@ Usage:
     python run_unified_trading.py --mode live_limited --confirm  # Live trading
     python run_unified_trading.py status                        # Check status
     python run_unified_trading.py check-transition testnet      # Check readiness
+    python run_unified_trading.py phase2c-status               # Production readiness gates
 """
 
 import argparse
 import asyncio
+import json
 import logging
 import os
+import re
 import signal
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).parent))
 
@@ -390,6 +394,233 @@ async def emergency_stop(args) -> None:
     print("EMERGENCY STOP TRIGGERED")
 
 
+def _check_gate(
+    name: str,
+    passed: bool,
+    evidence: str,
+    timestamp: str | None = None,
+) -> dict[str, Any]:
+    """Create a gate check result."""
+    return {
+        "name": name,
+        "passed": passed,
+        "evidence": evidence,
+        "timestamp": timestamp or datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def phase2c_status(args) -> int:
+    """
+    Check Phase 2C production readiness gates.
+
+    Returns:
+        0 = all gates pass
+        1 = error reading data
+        2 = one or more gates fail
+    """
+    repo_root = Path(__file__).resolve().parent
+    shadow_file = repo_root / "data" / "rl" / "shadow_decisions.jsonl"
+    heartbeat_file = repo_root / "data" / "rl" / "paper_live_heartbeat.json"
+    override_file = repo_root / "data" / "rl" / "manual_override.json"
+    logs_dir = repo_root / "logs"
+
+    gates: list[dict[str, Any]] = []
+
+    try:
+        # Gate 1: Shadow decisions >= 100
+        shadow_count = 0
+        if shadow_file.exists():
+            with shadow_file.open("r", encoding="utf-8") as f:
+                shadow_count = sum(1 for _ in f)
+        gate1_pass = shadow_count >= 100
+        gates.append(_check_gate(
+            "Shadow decisions >= 100",
+            gate1_pass,
+            f"{shadow_count} decisions",
+        ))
+
+        # Gate 2: Capital preservation never CRITICAL
+        critical_events: list[str] = []
+        for log_file in logs_dir.glob("paper_live*.log"):
+            try:
+                content = log_file.read_text(encoding="utf-8", errors="ignore")
+                # Look for critical preservation level
+                matches = re.findall(r"level[=:]critical|CRITICAL.*preservation", content, re.IGNORECASE)
+                if matches:
+                    critical_events.extend([f"{log_file.name}: {m}" for m in matches[:3]])
+            except Exception:
+                pass
+        gate2_pass = len(critical_events) == 0
+        gates.append(_check_gate(
+            "Capital preservation never CRITICAL",
+            gate2_pass,
+            "clean" if gate2_pass else f"{len(critical_events)} events: {critical_events[:2]}",
+        ))
+
+        # Gate 3: Strategy weighting clamp never exceeded
+        clamp_events: list[str] = []
+        for log_file in logs_dir.glob("paper_live*.log"):
+            try:
+                content = log_file.read_text(encoding="utf-8", errors="ignore")
+                # Look for clamp exceeded messages
+                matches = re.findall(r"clamp.*exceed|weight.*clamp.*hit", content, re.IGNORECASE)
+                if matches:
+                    clamp_events.extend([f"{log_file.name}: {m}" for m in matches[:3]])
+            except Exception:
+                pass
+        gate3_pass = len(clamp_events) == 0
+        gates.append(_check_gate(
+            "Strategy weighting clamp never exceeded",
+            gate3_pass,
+            "clean" if gate3_pass else f"{len(clamp_events)} events",
+        ))
+
+        # Gate 4: Tradegate rejection non-anomalous
+        # Check shadow_decisions for rejection reasons
+        rejection_reasons: dict[str, int] = {}
+        if shadow_file.exists():
+            try:
+                with shadow_file.open("r", encoding="utf-8") as f:
+                    for line in f:
+                        try:
+                            dec = json.loads(line)
+                            gate_dec = dec.get("gate_decision", {})
+                            reason = gate_dec.get("rejection_reason", "")
+                            if reason and not gate_dec.get("approved", True):
+                                rejection_reasons[reason] = rejection_reasons.get(reason, 0) + 1
+                        except json.JSONDecodeError:
+                            pass
+            except Exception:
+                pass
+
+        # Known non-anomalous rejection reasons
+        known_reasons = {
+            "signal_blocked_at_generator",
+            "insufficient_data",
+            "ev_ratio_below_threshold",
+            "daily_limit_reached",
+            "interval_too_short",
+            "no_signal",
+            "low_confidence",
+            "scalping",
+            "trend_too_strong",
+            "cooldown",
+            "position_limit",
+            "risk_limit",
+            "mtf_rejected",  # Multi-timeframe filter
+            "htf",           # Higher timeframe filter
+            "rejected",      # Generic rejection
+        }
+        anomalous_rejections = {
+            k: v for k, v in rejection_reasons.items()
+            if not any(known in k.lower() for known in known_reasons)
+        }
+        gate4_pass = len(anomalous_rejections) == 0
+        top_rejections = sorted(rejection_reasons.items(), key=lambda x: -x[1])[:3]
+        evidence4 = ", ".join([f"{k}:{v}" for k, v in top_rejections]) if top_rejections else "no rejections"
+        if anomalous_rejections:
+            evidence4 = f"ANOMALOUS: {list(anomalous_rejections.keys())[:2]}"
+        gates.append(_check_gate(
+            "Tradegate rejection non-anomalous",
+            gate4_pass,
+            evidence4,
+        ))
+
+        # Gate 5: Turnover governor cost drag < threshold (default 5%)
+        turnover_cost_drag = 0.0
+        turnover_threshold = float(os.getenv("TURNOVER_COST_DRAG_THRESHOLD", "5.0"))
+        for log_file in sorted(logs_dir.glob("paper_live*.log"), reverse=True)[:3]:
+            try:
+                content = log_file.read_text(encoding="utf-8", errors="ignore")
+                # Look for cost drag percentage
+                match = re.search(r"cost[_\s]*drag[:\s]*(\d+\.?\d*)%?", content, re.IGNORECASE)
+                if match:
+                    turnover_cost_drag = float(match.group(1))
+                    break
+            except Exception:
+                pass
+        gate5_pass = turnover_cost_drag < turnover_threshold
+        gates.append(_check_gate(
+            f"Turnover governor cost drag < {turnover_threshold}%",
+            gate5_pass,
+            f"{turnover_cost_drag:.2f}%",
+        ))
+
+        # Gate 6: Heartbeat recent (< 6 hours)
+        heartbeat_age_hours = float("inf")
+        heartbeat_ts = None
+        if heartbeat_file.exists():
+            try:
+                with heartbeat_file.open("r", encoding="utf-8") as f:
+                    hb = json.load(f)
+                heartbeat_ts = hb.get("timestamp", "")
+                if heartbeat_ts:
+                    dt = datetime.fromisoformat(heartbeat_ts.replace("Z", "+00:00"))
+                    if dt.tzinfo is None:
+                        dt = dt.replace(tzinfo=timezone.utc)
+                    now = datetime.now(timezone.utc)
+                    heartbeat_age_hours = (now - dt).total_seconds() / 3600
+            except Exception:
+                pass
+        gate6_pass = heartbeat_age_hours < 6.0
+        if heartbeat_age_hours == float("inf"):
+            evidence6 = "no heartbeat"
+        else:
+            evidence6 = f"{heartbeat_age_hours:.2f}h ago ({heartbeat_ts})"
+        gates.append(_check_gate(
+            "Heartbeat recent (< 6h)",
+            gate6_pass,
+            evidence6,
+            heartbeat_ts,
+        ))
+
+        # Gate 7: No manual overrides active
+        override_active = False
+        override_reason = ""
+        if override_file.exists():
+            try:
+                with override_file.open("r", encoding="utf-8") as f:
+                    override = json.load(f)
+                override_active = override.get("active", False)
+                override_reason = override.get("reason", "unknown")
+            except Exception:
+                pass
+        gate7_pass = not override_active
+        gates.append(_check_gate(
+            "No manual overrides active",
+            gate7_pass,
+            "clean" if gate7_pass else f"override: {override_reason}",
+        ))
+
+    except Exception as e:
+        print(f"ERROR: Failed to check gates: {e}")
+        return 1
+
+    # Print results
+    all_passed = all(g["passed"] for g in gates)
+
+    print("\n" + "=" * 70)
+    print("PHASE 2C PRODUCTION READINESS GATES")
+    print("=" * 70)
+    print(f"{'Gate':<45} {'Status':<8} {'Evidence'}")
+    print("-" * 70)
+
+    for gate in gates:
+        status = "PASS" if gate["passed"] else "FAIL"
+        status_colored = f"\033[32m{status}\033[0m" if gate["passed"] else f"\033[31m{status}\033[0m"
+        print(f"{gate['name']:<45} {status_colored:<17} {gate['evidence']}")
+
+    print("-" * 70)
+
+    if all_passed:
+        print("\033[32m✓ All gates PASS - Production ready\033[0m")
+        return 0
+    else:
+        failed = [g["name"] for g in gates if not g["passed"]]
+        print(f"\033[31m✗ {len(failed)} gate(s) FAIL - Not production ready\033[0m")
+        return 2
+
+
 def main():
     _reexec_with_venv_on_windows()
 
@@ -418,6 +649,9 @@ def main():
     stop_p = subparsers.add_parser("emergency-stop", help="Emergency stop")
     stop_p.add_argument("--reason", default="Manual")
 
+    # Phase 2C status (production readiness gates)
+    subparsers.add_parser("phase2c-status", help="Check Phase 2C production readiness gates")
+
     args = parser.parse_args()
 
     if args.command is None:
@@ -442,6 +676,8 @@ def main():
         asyncio.run(check_transition(args))
     elif args.command == "emergency-stop":
         asyncio.run(emergency_stop(args))
+    elif args.command == "phase2c-status":
+        sys.exit(phase2c_status(args))
 
 
 if __name__ == "__main__":
