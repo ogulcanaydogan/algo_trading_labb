@@ -90,53 +90,35 @@ def _remove_pid_file() -> None:
         pass
 
 
-def _enforce_single_instance() -> None:
-    """Cross-platform single instance check using heartbeat/pidfile + process validation."""
+def _enforce_single_instance(mode: str = "") -> None:
+    """Cross-platform single instance check - allows different modes to run simultaneously."""
     try:
         import psutil
     except ImportError:
         return
 
-    import json as _json
-
-    heartbeat_path = _get_heartbeat_path()
-    pidfile_path = _get_pidfile_path()
-    pid = None
-
-    # Try heartbeat first (most reliable, written by Python)
-    if heartbeat_path.exists():
+    # Check if another process with the SAME mode is already running
+    current_pid = os.getpid()
+    for proc in psutil.process_iter(['pid', 'cmdline']):
         try:
-            with heartbeat_path.open("r", encoding="utf-8") as f:
-                heartbeat = _json.load(f)
-            pid = heartbeat.get("pid")
-        except (OSError, _json.JSONDecodeError):
-            pid = None
-
-    # Fallback to pidfile
-    if not pid and pidfile_path.exists():
-        try:
-            pid = int(pidfile_path.read_text(encoding="utf-8").strip().splitlines()[0])
-        except (OSError, ValueError, IndexError):
-            pid = None
-
-    if not pid:
-        return
-
-    # Check if process is still running with run_unified_trading.py
-    try:
-        proc = psutil.Process(int(pid))
-        cmdline = " ".join(proc.cmdline())
-        if "run_unified_trading.py" in cmdline:
-            print("Another run_unified_trading.py process is already running; exiting.")
-            sys.exit(0)
-    except (psutil.NoSuchProcess, psutil.AccessDenied, ValueError):
-        # Process not running, clean up stale files
-        try:
-            if pidfile_path.exists():
-                pidfile_path.unlink()
-        except OSError:
-            pass
-        return
+            if proc.info['pid'] == current_pid:
+                continue
+            cmdline = proc.info.get('cmdline') or []
+            cmdline_str = " ".join(cmdline)
+            if "run_unified_trading.py" not in cmdline_str:
+                continue
+            if "run" not in cmdline_str:
+                continue
+            # Check if same mode
+            if mode and f"--mode {mode}" in cmdline_str:
+                print(f"Another {mode} process is already running (PID {proc.info['pid']}); exiting.")
+                sys.exit(0)
+            elif mode and mode in cmdline_str:
+                # Also check without --mode prefix
+                print(f"Another {mode} process is already running (PID {proc.info['pid']}); exiting.")
+                sys.exit(0)
+        except (psutil.NoSuchProcess, psutil.AccessDenied, KeyError):
+            continue
 
 
 def _enforce_single_instance_windows() -> None:
@@ -876,8 +858,8 @@ def main():
         args.multi_asset = False
 
     if args.command == "run":
-        # Cross-platform single instance check (works on Linux/macOS/Windows)
-        _enforce_single_instance()
+        # Cross-platform single instance check - allows different modes to run simultaneously
+        _enforce_single_instance(args.mode)
 
     if args.command == "run":
         asyncio.run(run_trading(args))
