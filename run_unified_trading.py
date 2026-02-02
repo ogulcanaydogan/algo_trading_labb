@@ -303,13 +303,28 @@ async def show_status(args) -> None:
     state_file = repo_root / "data" / "unified_trading" / "state.json"
     heartbeat_file = repo_root / "data" / "rl" / "paper_live_heartbeat.json"
 
+    state = None
+    heartbeat = None
+    if state_file.exists():
+        with open(state_file) as f:
+            state = json.load(f)
+    if heartbeat_file.exists():
+        with open(heartbeat_file) as f:
+            heartbeat = json.load(f)
+
+    if getattr(args, "json", False):
+        payload = {
+            "state": state,
+            "heartbeat": heartbeat,
+        }
+        print(json.dumps(payload, indent=2, sort_keys=True, default=str))
+        return
+
     print("\n" + "=" * 60)
     print("TRADING ENGINE STATUS")
     print("=" * 60)
 
-    if state_file.exists():
-        with open(state_file) as f:
-            state = json.load(f)
+    if state is not None:
         print(f"\nMode: {state['mode']}")
         print(f"Status: {state['status']}")
         print(f"Balance: ${state['current_balance']:.2f}")
@@ -322,9 +337,7 @@ async def show_status(args) -> None:
             print(f"\nPositions ({len(state['positions'])}):")
             for sym, pos in state['positions'].items():
                 print(f"  {sym}: {pos['side']} @ ${pos['entry_price']:.2f}")
-    if heartbeat_file.exists():
-        with open(heartbeat_file) as f:
-            heartbeat = json.load(f)
+    if heartbeat is not None:
         print("\nHeartbeat:")
         print(f"  Timestamp: {heartbeat.get('timestamp', 'unknown')}")
         print(f"  PID: {heartbeat.get('pid', 'unknown')}")
@@ -338,7 +351,7 @@ async def show_status(args) -> None:
         paper_live_decisions = heartbeat.get("paper_live_decisions_session")
         if paper_live_decisions is not None:
             print(f"  Paper-live decisions (session): {paper_live_decisions}")
-    if not state_file.exists() and not heartbeat_file.exists():
+    if state is None and heartbeat is None:
         print("No state found. Start trading first.")
     print("=" * 60)
 
@@ -394,7 +407,8 @@ def main():
     run_p.add_argument("--multi-asset", action="store_true", help="Enable multi-asset trading (crypto, forex, commodities)")
 
     # Status
-    subparsers.add_parser("status", help="Show status")
+    status_p = subparsers.add_parser("status", help="Show status")
+    status_p.add_argument("--json", action="store_true", help="Output JSON status payload")
 
     # Check transition
     check_p = subparsers.add_parser("check-transition", help="Check transition")

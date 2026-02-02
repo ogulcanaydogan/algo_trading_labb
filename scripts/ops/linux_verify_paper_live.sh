@@ -6,6 +6,7 @@ SERVICE="algo_trading_paper_live"
 PIDFILE="${ROOT}/logs/paper_live.pid"
 HEARTBEAT="${ROOT}/data/rl/paper_live_heartbeat.json"
 OUTLOG="${ROOT}/logs/paper_live_longrun.out.log"
+HEARTBEAT_MAX_AGE_SECONDS="${HEARTBEAT_MAX_AGE_SECONDS:-120}"
 
 fail_count=0
 
@@ -57,6 +58,28 @@ if [ -f "${HEARTBEAT}" ]; then
   echo "heartbeat timestamp: ${hb_ts}"
   if [ -z "${hb_ts}" ]; then
     fail "heartbeat timestamp missing"
+  else
+    hb_age="$(python3 - <<'PY'
+import sys
+from datetime import datetime, timezone
+
+ts = sys.argv[1]
+try:
+    dt = datetime.fromisoformat(ts)
+except ValueError:
+    # Fallback for timestamps without microseconds/offset
+    dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+if dt.tzinfo is None:
+    dt = dt.replace(tzinfo=timezone.utc)
+now = datetime.now(timezone.utc)
+age = (now - dt).total_seconds()
+print(int(age))
+PY
+"${hb_ts}")"
+    echo "heartbeat age (s): ${hb_age}"
+    if [ "${hb_age}" -gt "${HEARTBEAT_MAX_AGE_SECONDS}" ]; then
+      fail "heartbeat too old (${hb_age}s > ${HEARTBEAT_MAX_AGE_SECONDS}s)"
+    fi
   fi
 fi
 

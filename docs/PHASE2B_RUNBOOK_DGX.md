@@ -69,6 +69,16 @@ Safe change procedure:
 1. Edit the systemd user service to update env vars.
    - File: `~/.config/systemd/user/algo_trading_paper_live.service`
    - Update/insert `Environment=` lines, or point to an `EnvironmentFile=`.
+   - Or use a drop-in override:
+     ```bash
+     systemctl --user edit algo_trading_paper_live
+     ```
+     Then add:
+     ```ini
+     [Service]
+     Environment=PAPER_LIVE_TURNOVER_MIN_RATIO=2.0
+     Environment=PAPER_LIVE_TURNOVER_MAX_DAILY=10
+     ```
 2. Reload and restart:
    ```bash
    systemctl --user daemon-reload
