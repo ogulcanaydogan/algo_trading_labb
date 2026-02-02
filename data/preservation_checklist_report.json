@@ -1,0 +1,80 @@
+{
+  "timestamp": "2026-01-29T12:14:26.203322",
+  "all_passed": true,
+  "total_checks": 10,
+  "passed_checks": 10,
+  "failed_checks": 0,
+  "critical_failures": 0,
+  "items": [
+    {
+      "name": "Configuration Validity",
+      "description": "Verify thresholds and multipliers are properly configured",
+      "passed": true,
+      "details": "All thresholds valid",
+      "severity": "info"
+    },
+    {
+      "name": "State Persistence",
+      "description": "Verify state is saved to and loaded from disk",
+      "passed": true,
+      "details": "State file at data/capital_preservation_state.json",
+      "severity": "info"
+    },
+    {
+      "name": "Lockdown Trigger",
+      "description": "Verify lockdown activates at 8.0% drawdown",
+      "passed": true,
+      "details": "Lockdown threshold set to 8.0% drawdown",
+      "severity": "info"
+    },
+    {
+      "name": "Recovery Mechanism",
+      "description": "Verify recovery conditions are properly configured",
+      "passed": true,
+      "details": "Recovery requires: 5 trades, >60% win rate, PF>1.2",
+      "severity": "info"
+    },
+    {
+      "name": "Restrictions Enforcement",
+      "description": "Verify trading restrictions match current level",
+      "passed": true,
+      "details": "Level lockdown: leverage=0%, position=0%",
+      "severity": "info"
+    },
+    {
+      "name": "Leverage Adjustment",
+      "description": "Verify leverage is adjusted based on preservation level",
+      "passed": true,
+      "details": "Input 3.0x \u2192 Output 0.0x (multiplier: 0.0)",
+      "severity": "info"
+    },
+    {
+      "name": "Position Size Adjustment",
+      "description": "Verify position size is adjusted based on preservation level",
+      "passed": true,
+      "details": "Input $1000.0 \u2192 Output $0.0 (multiplier: 0.0)",
+      "severity": "info"
+    },
+    {
+      "name": "Cooldown Adjustment",
+      "description": "Verify cooldown is adjusted based on preservation level",
+      "passed": true,
+      "details": "Lockdown mode: infinite cooldown (no trading allowed)",
+      "severity": "info"
+    },
+    {
+      "name": "Confidence Filtering",
+      "description": "Verify low confidence trades are blocked based on level",
+      "passed": true,
+      "details": "Min required: 110%. 30% conf: blocked. 95% conf: blocked.",
+      "severity": "info"
+    },
+    {
+      "name": "Monitoring Availability",
+      "description": "Verify all monitoring metrics are accessible",
+      "passed": true,
+      "details": "All monitoring fields available",
+      "severity": "info"
+    }
+  ]
+}

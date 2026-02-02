@@ -1,0 +1,14 @@
+{
+  "weights": {
+    "TrendFollower": 0.20,
+    "MeanReversion": 0.20,
+    "MomentumTrader": 0.20,
+    "ShortSpecialist": 0.20,
+    "Scalper": 0.20
+  },
+  "last_update": null,
+  "performance": {},
+  "history": [],
+  "initialized_at": "2026-01-29T13:00:00Z",
+  "note": "Phase 2B shadow program initialized - equal weights, no prior history"
+}

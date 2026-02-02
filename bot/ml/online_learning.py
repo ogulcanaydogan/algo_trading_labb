@@ -76,6 +76,7 @@ class ExperienceBuffer:
     Features:
     - Fixed-size buffer with automatic eviction of oldest experiences
     - Prioritized sampling based on reward magnitude
+    - Regime-aware sampling for context-specific learning
     - Support for batch sampling for training
     - Persistence to disk
     """
@@ -84,6 +85,7 @@ class ExperienceBuffer:
         self,
         max_size: int = 2000,
         persist_path: Optional[str] = None,
+        regime_aware: bool = True,
     ):
         """
         Initialize the experience buffer.
@@ -91,11 +93,16 @@ class ExperienceBuffer:
         Args:
             max_size: Maximum number of experiences to store
             persist_path: Path to persist buffer state
+            regime_aware: Enable regime-aware indexing for smart sampling
         """
         self.max_size = max_size
         self.persist_path = Path(persist_path) if persist_path else None
         self._buffer: Deque[TradeExperience] = deque(maxlen=max_size)
         self._lock = threading.RLock()
+
+        # Regime-aware indexing
+        self.regime_aware = regime_aware
+        self._regime_indices: Dict[str, List[int]] = {}  # regime -> list of buffer indices
 
         if self.persist_path:
             self._load()
@@ -105,9 +112,39 @@ class ExperienceBuffer:
         with self._lock:
             self._buffer.append(experience)
 
+            # Update regime index
+            if self.regime_aware:
+                self._update_regime_index(experience)
+
             # Auto-persist periodically
             if self.persist_path and len(self._buffer) % 100 == 0:
                 self._save()
+
+    def _update_regime_index(self, experience: TradeExperience) -> None:
+        """Update regime-based index after adding experience."""
+        regime = experience.regime
+        if regime not in self._regime_indices:
+            self._regime_indices[regime] = []
+
+        # Add current buffer position (before potential eviction)
+        idx = len(self._buffer) - 1
+        self._regime_indices[regime].append(idx)
+
+        # Clean up indices that are now out of buffer range due to eviction
+        if len(self._buffer) >= self.max_size:
+            self._cleanup_regime_indices()
+
+    def _cleanup_regime_indices(self) -> None:
+        """Remove invalid indices after buffer eviction."""
+        min_valid_idx = max(0, len(self._buffer) - self.max_size)
+        for regime in list(self._regime_indices.keys()):
+            self._regime_indices[regime] = [
+                idx for idx in self._regime_indices[regime]
+                if idx >= min_valid_idx
+            ]
+            # Remove empty regimes
+            if not self._regime_indices[regime]:
+                del self._regime_indices[regime]
 
     def add_trade(
         self,
@@ -214,6 +251,113 @@ class ExperienceBuffer:
         """Get the n most recent experiences."""
         with self._lock:
             return list(self._buffer)[-n:]
+
+    def sample_regime_aware(
+        self,
+        current_regime: str,
+        batch_size: int = 64,
+        regime_weight: float = 0.7,
+    ) -> List[TradeExperience]:
+        """
+        Sample experiences with bias towards current regime.
+
+        This enables context-specific learning - when in a bear market,
+        prioritize learning from past bear market experiences.
+
+        Args:
+            current_regime: Current market regime (e.g., "BULL", "BEAR", "SIDEWAYS")
+            batch_size: Number of experiences to sample
+            regime_weight: Weight for same-regime experiences (0-1)
+                          Higher = more experiences from matching regime
+
+        Returns:
+            List of sampled experiences
+        """
+        with self._lock:
+            if len(self._buffer) == 0:
+                return []
+
+            actual_size = min(batch_size, len(self._buffer))
+
+            # Get experiences matching current regime
+            same_regime_exps = [
+                exp for exp in self._buffer
+                if exp.regime == current_regime
+            ]
+
+            # Get experiences from other regimes
+            other_regime_exps = [
+                exp for exp in self._buffer
+                if exp.regime != current_regime
+            ]
+
+            # Calculate how many to sample from each group
+            if same_regime_exps:
+                n_same = min(int(actual_size * regime_weight), len(same_regime_exps))
+                n_other = actual_size - n_same
+            else:
+                n_same = 0
+                n_other = actual_size
+
+            sampled = []
+
+            # Sample from same regime (prioritized by reward)
+            if n_same > 0 and same_regime_exps:
+                weights = np.array([abs(exp.reward) + 0.1 for exp in same_regime_exps])
+                weights = weights / weights.sum()
+                indices = np.random.choice(
+                    len(same_regime_exps),
+                    size=min(n_same, len(same_regime_exps)),
+                    replace=False,
+                    p=weights,
+                )
+                sampled.extend([same_regime_exps[i] for i in indices])
+
+            # Sample from other regimes
+            if n_other > 0 and other_regime_exps:
+                weights = np.array([abs(exp.reward) + 0.1 for exp in other_regime_exps])
+                weights = weights / weights.sum()
+                indices = np.random.choice(
+                    len(other_regime_exps),
+                    size=min(n_other, len(other_regime_exps)),
+                    replace=False,
+                    p=weights,
+                )
+                sampled.extend([other_regime_exps[i] for i in indices])
+
+            return sampled
+
+    def get_regime_distribution(self) -> Dict[str, int]:
+        """Get the distribution of experiences across regimes."""
+        with self._lock:
+            distribution = {}
+            for exp in self._buffer:
+                regime = exp.regime
+                distribution[regime] = distribution.get(regime, 0) + 1
+            return distribution
+
+    def get_regime_performance(self) -> Dict[str, Dict[str, float]]:
+        """Get win rate and avg PnL for each regime."""
+        with self._lock:
+            regime_stats = {}
+            for exp in self._buffer:
+                regime = exp.regime
+                if regime not in regime_stats:
+                    regime_stats[regime] = {"wins": 0, "total": 0, "total_pnl": 0.0}
+                regime_stats[regime]["total"] += 1
+                regime_stats[regime]["total_pnl"] += exp.pnl_pct
+                if exp.outcome == "WIN":
+                    regime_stats[regime]["wins"] += 1
+
+            # Calculate win rate and avg PnL
+            result = {}
+            for regime, stats in regime_stats.items():
+                result[regime] = {
+                    "count": stats["total"],
+                    "win_rate": stats["wins"] / stats["total"] if stats["total"] > 0 else 0,
+                    "avg_pnl": stats["total_pnl"] / stats["total"] if stats["total"] > 0 else 0,
+                }
+            return result
 
     def get_features_labels(
         self,

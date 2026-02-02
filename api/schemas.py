@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -385,4 +385,194 @@ class HealthCheckResponse(BaseModel):
     )
     components: Dict[str, str] = Field(
         ..., description="Health status of individual components"
+    )
+
+
+class ShadowHealthResponse(BaseModel):
+    """Response model for shadow data collection health metrics.
+
+    Provides PAPER_LIVE progress metrics for Phase 2C promotion tracking.
+    """
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "paper_live_decisions_today": 15,
+                "paper_live_decisions_7d": 85,
+                "paper_live_days_streak": 5,
+                "paper_live_weeks_counted": 3,
+                "heartbeat_recent": 1,
+                "latest_report_timestamp": "2026-01-29T10:30:00",
+                "gate_1_progress": {"required": 12, "current": 3, "met": False},
+                "overall_health": "HEALTHY",
+            }
+        }
+    )
+
+    paper_live_decisions_today: int = Field(
+        ..., description="Number of PAPER_LIVE decisions collected today"
+    )
+    paper_live_decisions_7d: int = Field(
+        ..., description="Number of PAPER_LIVE decisions in the last 7 days"
+    )
+    paper_live_days_streak: int = Field(
+        ..., description="Consecutive days with PAPER_LIVE data collection"
+    )
+    paper_live_weeks_counted: int = Field(
+        ..., description="Number of weeks with PAPER_LIVE data (Gate 1 progress)"
+    )
+    heartbeat_recent: int = Field(
+        ..., description="1 if heartbeat is recent (< 2 hours), 0 otherwise"
+    )
+    latest_report_timestamp: Optional[str] = Field(
+        None, description="Timestamp of the latest daily shadow health report"
+    )
+    gate_1_progress: Dict[str, Any] = Field(
+        ..., description="Gate 1 (weeks collected) progress details"
+    )
+    overall_health: str = Field(
+        ..., description="Overall shadow collection health status"
+    )
+
+
+class LiveHealthResponse(BaseModel):
+    """Response model for live trading guardrails health status.
+
+    Provides real-time status of micro-live rollout guardrails.
+    """
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "live_mode_enabled": False,
+                "kill_switch_active": False,
+                "kill_switch_reason": None,
+                "daily_trades": {"count": 1, "limit": 3, "remaining": 2},
+                "capital": {"deployed_today": 150.0, "max_pct": 0.01},
+                "position": {"max_pct": 0.02},
+                "leverage": {"max": 1.0},
+                "symbol_allowlist": ["ETH/USDT"],
+                "last_trade": "2026-01-29T10:30:00Z",
+                "overall_status": "SAFE",
+            }
+        }
+    )
+
+    live_mode_enabled: bool = Field(
+        ..., description="Whether live trading mode is enabled"
+    )
+    kill_switch_active: bool = Field(
+        ..., description="Whether the kill switch is currently active"
+    )
+    kill_switch_reason: Optional[str] = Field(
+        None, description="Reason for kill switch activation if active"
+    )
+    daily_trades: Dict[str, Any] = Field(
+        ..., description="Daily trade count and limits"
+    )
+    capital: Dict[str, Any] = Field(
+        ..., description="Capital deployment status"
+    )
+    position: Dict[str, Any] = Field(
+        ..., description="Position size limits"
+    )
+    leverage: Dict[str, Any] = Field(
+        ..., description="Leverage limits"
+    )
+    symbol_allowlist: List[str] = Field(
+        ..., description="Symbols allowed for live trading"
+    )
+    last_trade: Optional[str] = Field(
+        None, description="Timestamp of last live trade"
+    )
+    overall_status: str = Field(
+        ..., description="Overall status: SAFE, LIVE_ACTIVE, or BLOCKED"
+    )
+
+
+class ReadinessResponse(BaseModel):
+    """Response model for system readiness check.
+
+    Aggregates shadow, live guardrails, turnover, and capital preservation
+    status into a unified readiness assessment.
+
+    Includes live_rollout_* fields for April 1st deployment readiness.
+    """
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "overall_readiness": "CONDITIONAL",
+                "reasons": ["Shadow heartbeat not recent"],
+                "recommended_next_actions": ["Verify shadow collector is running"],
+                "live_rollout_readiness": "CONDITIONAL",
+                "live_rollout_reasons": [
+                    "PAPER_LIVE streak (10 days) below minimum (14 days)",
+                    "PAPER_LIVE weeks counted (1) below minimum (2)",
+                ],
+                "live_rollout_next_actions": [
+                    "Continue PAPER_LIVE trading for 4 more consecutive days",
+                    "Accumulate 1 more week of PAPER_LIVE data",
+                ],
+                "components": {
+                    "shadow": {
+                        "paper_live_decisions_today": 5,
+                        "paper_live_decisions_7d": 45,
+                        "paper_live_days_streak": 10,
+                        "paper_live_weeks_counted": 1,
+                        "heartbeat_recent": 1,
+                        "overall_health": "WARNING",
+                    },
+                    "live": {
+                        "live_mode_enabled": False,
+                        "kill_switch_active": False,
+                        "daily_trades_remaining": 3,
+                        "overall_status": "SAFE",
+                    },
+                    "turnover": {
+                        "enabled": True,
+                        "symbols_configured": 2,
+                        "total_blocks_today": 5,
+                        "total_decisions_today": 20,
+                        "block_rate_pct": 25.0,
+                    },
+                    "capital_preservation": {
+                        "current_level": "NORMAL",
+                        "last_escalation": None,
+                    },
+                    "daily_reports": {
+                        "latest_report_age_hours": 2.5,
+                        "reports_last_24h": True,
+                        "critical_alerts_14d": 0,
+                    },
+                    "execution_realism": {
+                        "drift_detected": False,
+                        "slippage_7d_avg": 0.0015,
+                        "slippage_prior_7d_avg": 0.0012,
+                    },
+                },
+            }
+        }
+    )
+
+    overall_readiness: Literal["GO", "CONDITIONAL", "NO_GO"] = Field(
+        ..., description="Overall readiness status"
+    )
+    reasons: List[str] = Field(
+        ..., description="Reasons for the readiness determination"
+    )
+    recommended_next_actions: List[str] = Field(
+        ..., description="Recommended actions based on current status"
+    )
+    live_rollout_readiness: Literal["GO", "CONDITIONAL", "NO_GO"] = Field(
+        ..., description="Live rollout readiness for April 1st deployment"
+    )
+    live_rollout_reasons: List[str] = Field(
+        ..., description="Reasons for the live rollout readiness determination"
+    )
+    live_rollout_next_actions: List[str] = Field(
+        ..., description="Recommended actions for live rollout readiness"
+    )
+    components: Dict[str, Any] = Field(
+        ..., description="Detailed status of each component"
     )

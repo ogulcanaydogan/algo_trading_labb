@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-01-31T14:20:38.870879",
+  "pid": 42214,
+  "mode": "PAPER_LIVE",
+  "shadow_collector_attached": true,
+  "symbols": [
+    "BTC/USDT",
+    "ETH/USDT",
+    "SOL/USDT",
+    "XRP/USDT",
+    "ADA/USDT",
+    "AVAX/USDT"
+  ],
+  "last_decision_ts": "2026-01-31T14:20:38.870826",
+  "total_decisions_session": 55,
+  "paper_live_decisions_session": 55
+}

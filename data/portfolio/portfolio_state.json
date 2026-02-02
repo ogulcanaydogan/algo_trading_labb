@@ -1,19 +1,6 @@
 {
-  "cash_balance": 5000,
-  "positions": {
-    "AAPL": {
-      "quantity": 10,
-      "avg_cost": 240.0,
-      "market_type": "stock",
-      "beta": 1.2
-    },
-    "BTC-USD": {
-      "quantity": 0.5,
-      "avg_cost": 42000.0,
-      "market_type": "crypto",
-      "beta": 1.5
-    }
-  },
+  "cash_balance": 30000.0,
+  "positions": {},
   "target_weights": {},
-  "updated_at": "2026-01-12T00:29:14.778530"
+  "updated_at": "2026-01-26T22:30:00.000000"
 }

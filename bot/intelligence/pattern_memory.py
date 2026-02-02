@@ -29,7 +29,7 @@ class TradingPattern:
     pattern_id: Optional[int] = None
     symbol: str = ""
     regime: str = ""
-    action: str = ""  # BUY, SELL, HOLD
+    action: str = ""  # BUY, SELL, HOLD, SHORT
     entry_price: float = 0.0
     exit_price: float = 0.0
     pnl_pct: float = 0.0
@@ -42,10 +42,27 @@ class TradingPattern:
     volatility: float = 0.0
     trend_strength: float = 0.0
 
+    # Position details (new)
+    leverage: float = 1.0
+    is_short: bool = False
+    position_size_pct: float = 0.0  # % of portfolio
+
+    # Streak context at entry (new)
+    win_streak_at_entry: int = 0
+    loss_streak_at_entry: int = 0
+    daily_pnl_at_entry: float = 0.0
+
+    # News/sentiment context (new)
+    news_sentiment: float = 0.0  # -1 to 1
+    fear_greed_index: float = 50.0  # 0 to 100
+
     # Outcome
     was_profitable: bool = False
     max_drawdown_pct: float = 0.0
     max_profit_pct: float = 0.0
+
+    # Exit details (new)
+    exit_reason: str = ""  # TP, SL, trailing, signal_flip, manual
 
     # Metadata
     timestamp: datetime = field(default_factory=datetime.now)
@@ -66,9 +83,18 @@ class TradingPattern:
             "macd": self.macd,
             "volatility": self.volatility,
             "trend_strength": self.trend_strength,
+            "leverage": self.leverage,
+            "is_short": self.is_short,
+            "position_size_pct": self.position_size_pct,
+            "win_streak_at_entry": self.win_streak_at_entry,
+            "loss_streak_at_entry": self.loss_streak_at_entry,
+            "daily_pnl_at_entry": self.daily_pnl_at_entry,
+            "news_sentiment": self.news_sentiment,
+            "fear_greed_index": self.fear_greed_index,
             "was_profitable": self.was_profitable,
             "max_drawdown_pct": self.max_drawdown_pct,
             "max_profit_pct": self.max_profit_pct,
+            "exit_reason": self.exit_reason,
             "timestamp": self.timestamp.isoformat(),
             "decay_weight": self.decay_weight,
         }
@@ -119,7 +145,7 @@ class PatternMemory:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        # Patterns table
+        # Patterns table - extended schema with leverage, shorts, streaks
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS patterns (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -135,13 +161,40 @@ class PatternMemory:
                 macd REAL,
                 volatility REAL,
                 trend_strength REAL,
+                leverage REAL DEFAULT 1.0,
+                is_short INTEGER DEFAULT 0,
+                position_size_pct REAL DEFAULT 0.0,
+                win_streak_at_entry INTEGER DEFAULT 0,
+                loss_streak_at_entry INTEGER DEFAULT 0,
+                daily_pnl_at_entry REAL DEFAULT 0.0,
+                news_sentiment REAL DEFAULT 0.0,
+                fear_greed_index REAL DEFAULT 50.0,
                 was_profitable INTEGER,
                 max_drawdown_pct REAL,
                 max_profit_pct REAL,
+                exit_reason TEXT DEFAULT '',
                 timestamp TEXT NOT NULL,
                 decay_weight REAL DEFAULT 1.0
             )
         """)
+
+        # Add new columns to existing table (for migrations)
+        new_columns = [
+            ("leverage", "REAL DEFAULT 1.0"),
+            ("is_short", "INTEGER DEFAULT 0"),
+            ("position_size_pct", "REAL DEFAULT 0.0"),
+            ("win_streak_at_entry", "INTEGER DEFAULT 0"),
+            ("loss_streak_at_entry", "INTEGER DEFAULT 0"),
+            ("daily_pnl_at_entry", "REAL DEFAULT 0.0"),
+            ("news_sentiment", "REAL DEFAULT 0.0"),
+            ("fear_greed_index", "REAL DEFAULT 50.0"),
+            ("exit_reason", "TEXT DEFAULT ''"),
+        ]
+        for col_name, col_type in new_columns:
+            try:
+                cursor.execute(f"ALTER TABLE patterns ADD COLUMN {col_name} {col_type}")
+            except sqlite3.OperationalError:
+                pass  # Column already exists
 
         # Indexes for efficient querying
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_patterns_symbol ON patterns(symbol)")
@@ -181,9 +234,11 @@ class PatternMemory:
                 INSERT INTO patterns (
                     symbol, regime, action, entry_price, exit_price, pnl_pct,
                     hold_duration_minutes, confidence_at_entry, rsi, macd,
-                    volatility, trend_strength, was_profitable, max_drawdown_pct,
-                    max_profit_pct, timestamp, decay_weight
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    volatility, trend_strength, leverage, is_short, position_size_pct,
+                    win_streak_at_entry, loss_streak_at_entry, daily_pnl_at_entry,
+                    news_sentiment, fear_greed_index, was_profitable, max_drawdown_pct,
+                    max_profit_pct, exit_reason, timestamp, decay_weight
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
                 (
                     pattern.symbol,
@@ -198,9 +253,18 @@ class PatternMemory:
                     pattern.macd,
                     pattern.volatility,
                     pattern.trend_strength,
+                    pattern.leverage,
+                    1 if pattern.is_short else 0,
+                    pattern.position_size_pct,
+                    pattern.win_streak_at_entry,
+                    pattern.loss_streak_at_entry,
+                    pattern.daily_pnl_at_entry,
+                    pattern.news_sentiment,
+                    pattern.fear_greed_index,
                     1 if pattern.was_profitable else 0,
                     pattern.max_drawdown_pct,
                     pattern.max_profit_pct,
+                    pattern.exit_reason,
                     pattern.timestamp.isoformat(),
                     pattern.decay_weight,
                 ),
@@ -227,6 +291,7 @@ class PatternMemory:
         """Get similar patterns from memory."""
         with self._lock:
             conn = sqlite3.connect(self.db_path)
+            conn.row_factory = sqlite3.Row  # Use Row factory for column name access
             cursor = conn.cursor()
 
             query = "SELECT * FROM patterns WHERE 1=1"
@@ -263,24 +328,34 @@ class PatternMemory:
         # Convert to TradingPattern objects with decay weighting
         patterns = []
         for row in rows:
+            # Safely get values with defaults for backward compatibility
             pattern = TradingPattern(
-                pattern_id=row[0],
-                symbol=row[1],
-                regime=row[2],
-                action=row[3],
-                entry_price=row[4] or 0,
-                exit_price=row[5] or 0,
-                pnl_pct=row[6] or 0,
-                hold_duration_minutes=row[7] or 0,
-                confidence_at_entry=row[8] or 0,
-                rsi=row[9] or 0,
-                macd=row[10] or 0,
-                volatility=row[11] or 0,
-                trend_strength=row[12] or 0,
-                was_profitable=bool(row[13]),
-                max_drawdown_pct=row[14] or 0,
-                max_profit_pct=row[15] or 0,
-                timestamp=datetime.fromisoformat(row[16]),
+                pattern_id=row["id"],
+                symbol=row["symbol"],
+                regime=row["regime"],
+                action=row["action"],
+                entry_price=row["entry_price"] or 0,
+                exit_price=row["exit_price"] or 0,
+                pnl_pct=row["pnl_pct"] or 0,
+                hold_duration_minutes=row["hold_duration_minutes"] or 0,
+                confidence_at_entry=row["confidence_at_entry"] or 0,
+                rsi=row["rsi"] or 0,
+                macd=row["macd"] or 0,
+                volatility=row["volatility"] or 0,
+                trend_strength=row["trend_strength"] or 0,
+                leverage=row["leverage"] if "leverage" in row.keys() else 1.0,
+                is_short=bool(row["is_short"]) if "is_short" in row.keys() else False,
+                position_size_pct=row["position_size_pct"] if "position_size_pct" in row.keys() else 0.0,
+                win_streak_at_entry=row["win_streak_at_entry"] if "win_streak_at_entry" in row.keys() else 0,
+                loss_streak_at_entry=row["loss_streak_at_entry"] if "loss_streak_at_entry" in row.keys() else 0,
+                daily_pnl_at_entry=row["daily_pnl_at_entry"] if "daily_pnl_at_entry" in row.keys() else 0.0,
+                news_sentiment=row["news_sentiment"] if "news_sentiment" in row.keys() else 0.0,
+                fear_greed_index=row["fear_greed_index"] if "fear_greed_index" in row.keys() else 50.0,
+                was_profitable=bool(row["was_profitable"]),
+                max_drawdown_pct=row["max_drawdown_pct"] or 0,
+                max_profit_pct=row["max_profit_pct"] or 0,
+                exit_reason=row["exit_reason"] if "exit_reason" in row.keys() else "",
+                timestamp=datetime.fromisoformat(row["timestamp"]),
             )
             # Apply decay
             pattern.decay_weight = self._calculate_decay(pattern.timestamp)

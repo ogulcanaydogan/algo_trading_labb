@@ -126,6 +126,82 @@ try:
 except ImportError:
     ONLINE_LEARNING_AVAILABLE = False
 
+# Shadow Data Collector imports (Phase 2B shadow mode)
+try:
+    from bot.rl.shadow_data_collector import (
+        ShadowDataCollector,
+        get_shadow_collector,
+        write_paper_live_heartbeat,
+        DATA_MODE_PAPER_LIVE,
+    )
+    from bot.rl.multi_agent_system import MarketState as RLMarketState
+
+    SHADOW_COLLECTOR_AVAILABLE = True
+except ImportError:
+    SHADOW_COLLECTOR_AVAILABLE = False
+
+# Turnover Governor imports (reduce friction, improve net-of-cost edge)
+try:
+    from bot.turnover_governor import (
+        TurnoverGovernor,
+        TurnoverGovernorConfig,
+        TurnoverDecision,
+        get_turnover_governor,
+    )
+
+    TURNOVER_GOVERNOR_AVAILABLE = True
+except ImportError:
+    TURNOVER_GOVERNOR_AVAILABLE = False
+
+# Feedback Orchestrator imports (unified learning coordination)
+try:
+    from bot.learning.feedback_orchestrator import (
+        FeedbackOrchestrator,
+        FeedbackConfig,
+        TradeContext,
+    )
+
+    FEEDBACK_ORCHESTRATOR_AVAILABLE = True
+except ImportError:
+    FEEDBACK_ORCHESTRATOR_AVAILABLE = False
+
+# Phase 1 Production Components
+try:
+    from bot.risk.trade_gate import TradeGate, GateConfig, TradeRequest as GateTradeRequest, get_trade_gate
+    TRADE_GATE_AVAILABLE = True
+except ImportError:
+    TRADE_GATE_AVAILABLE = False
+
+try:
+    from bot.risk.risk_budget_engine import RiskBudgetEngine, RiskBudgetConfig, get_risk_budget_engine
+    RISK_BUDGET_AVAILABLE = True
+except ImportError:
+    RISK_BUDGET_AVAILABLE = False
+
+try:
+    from bot.safety.capital_preservation import CapitalPreservationMode, PreservationConfig, get_capital_preservation
+    CAPITAL_PRESERVATION_AVAILABLE = True
+except ImportError:
+    CAPITAL_PRESERVATION_AVAILABLE = False
+
+try:
+    from bot.meta.trade_forensics import TradeForensics, ForensicsConfig, get_trade_forensics
+    TRADE_FORENSICS_AVAILABLE = True
+except ImportError:
+    TRADE_FORENSICS_AVAILABLE = False
+
+try:
+    from bot.execution.reconciler import Reconciler, ReconcilerConfig, get_reconciler
+    RECONCILER_AVAILABLE = True
+except ImportError:
+    RECONCILER_AVAILABLE = False
+
+try:
+    from bot.execution.execution_simulator import ExecutionSimulator, SimulatorConfig, get_execution_simulator
+    EXECUTION_SIMULATOR_AVAILABLE = True
+except ImportError:
+    EXECUTION_SIMULATOR_AVAILABLE = False
+
 # Auto-Retrainer imports (drift detection and automatic retraining)
 try:
     from bot.ml.auto_retrainer import AutoRetrainer
@@ -133,6 +209,19 @@ try:
     AUTO_RETRAINER_AVAILABLE = True
 except ImportError:
     AUTO_RETRAINER_AVAILABLE = False
+
+# Live Trading Guardrails imports (micro-live rollout safety)
+try:
+    from bot.live_trading_guardrails import (
+        LiveTradingGuardrails,
+        LiveTradingConfig,
+        GuardrailCheckResult,
+        get_live_guardrails,
+    )
+
+    LIVE_GUARDRAILS_AVAILABLE = True
+except ImportError:
+    LIVE_GUARDRAILS_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -424,12 +513,173 @@ class UnifiedTradingEngine:
             except Exception as e:
                 logger.warning(f"Could not initialize Online Learning Manager: {e}")
 
+        # === Phase 1 Production Components ===
+
+        # Trade Gate - qualification scoring before trade entry
+        self.trade_gate: Optional[TradeGate] = None
+        if TRADE_GATE_AVAILABLE:
+            try:
+                self.trade_gate = get_trade_gate()
+                logger.info("Trade Gate initialized - trade qualification enabled")
+            except Exception as e:
+                logger.warning(f"Could not initialize Trade Gate: {e}")
+
+        # Risk Budget Engine - per-trade risk allocation
+        self.risk_budget_engine: Optional[RiskBudgetEngine] = None
+        if RISK_BUDGET_AVAILABLE:
+            try:
+                self.risk_budget_engine = get_risk_budget_engine()
+                logger.info("Risk Budget Engine initialized")
+            except Exception as e:
+                logger.warning(f"Could not initialize Risk Budget Engine: {e}")
+
+        # Capital Preservation Mode - protective measures on degradation
+        self.capital_preservation: Optional[CapitalPreservationMode] = None
+        if CAPITAL_PRESERVATION_AVAILABLE:
+            try:
+                self.capital_preservation = get_capital_preservation(
+                    initial_equity=config.initial_capital
+                )
+                logger.info("Capital Preservation Mode initialized")
+            except Exception as e:
+                logger.warning(f"Could not initialize Capital Preservation: {e}")
+
+        # Trade Forensics - MAE/MFE post-trade analysis
+        self.trade_forensics: Optional[TradeForensics] = None
+        if TRADE_FORENSICS_AVAILABLE:
+            try:
+                self.trade_forensics = get_trade_forensics()
+                logger.info("Trade Forensics initialized - MAE/MFE analysis enabled")
+            except Exception as e:
+                logger.warning(f"Could not initialize Trade Forensics: {e}")
+
+        # Reconciler - idempotency and crash-safe state
+        self.reconciler: Optional[Reconciler] = None
+        if RECONCILER_AVAILABLE:
+            try:
+                self.reconciler = get_reconciler()
+                logger.info("Reconciler initialized - idempotent trade processing enabled")
+            except Exception as e:
+                logger.warning(f"Could not initialize Reconciler: {e}")
+
+        # Execution Simulator - slippage/fee modeling for paper trading
+        self.execution_simulator: Optional[ExecutionSimulator] = None
+        if EXECUTION_SIMULATOR_AVAILABLE:
+            try:
+                self.execution_simulator = get_execution_simulator()
+                logger.info("Execution Simulator initialized - realistic paper trading")
+            except Exception as e:
+                logger.warning(f"Could not initialize Execution Simulator: {e}")
+
+        # Feedback Orchestrator - unified learning coordination
+        self.feedback_orchestrator: Optional[FeedbackOrchestrator] = None
+        if FEEDBACK_ORCHESTRATOR_AVAILABLE:
+            try:
+                self.feedback_orchestrator = FeedbackOrchestrator(
+                    config=FeedbackConfig(
+                        online_learning_frequency=50,
+                        pattern_update_frequency=1,
+                        drift_check_frequency=20,
+                        max_consecutive_losses_before_action=5,
+                    ),
+                    online_learner=self.online_learning_manager,
+                    trade_forensics=self.trade_forensics,
+                    capital_preservation=self.capital_preservation,
+                    reconciler=self.reconciler,
+                )
+                logger.info(
+                    "Feedback Orchestrator initialized - all learning systems coordinated (Phase 1 Production)"
+                )
+            except Exception as e:
+                logger.warning(f"Could not initialize Feedback Orchestrator: {e}")
+
+        # === Phase 2B Shadow Data Collection ===
+        # Shadow collector for advisory-only RL recommendations (no execution authority)
+        self.shadow_collector: Optional[ShadowDataCollector] = None
+        self._shadow_enabled = False
+        self._last_heartbeat_time: Optional[datetime] = None
+        self._heartbeat_interval_seconds = 300  # 5 minutes
+
+        if SHADOW_COLLECTOR_AVAILABLE:
+            try:
+                self.shadow_collector = get_shadow_collector()
+                self._shadow_enabled = True
+                logger.info(
+                    f"Shadow collector attached (mode=PAPER_LIVE, symbols={config.symbols})"
+                )
+            except Exception as e:
+                logger.warning(f"Could not initialize Shadow Data Collector: {e}")
+
+        # === Turnover Governor (reduce friction, improve net-of-cost edge) ===
+        # Pre-filter for all symbols - TradeGate/RiskBudget/CapitalPreservation retain final authority
+        self.turnover_governor: Optional[TurnoverGovernor] = None
+        if TURNOVER_GOVERNOR_AVAILABLE:
+            try:
+                def _safe_float_env(name: str, default: float) -> float:
+                    value = os.getenv(name)
+                    if value is None:
+                        return default
+                    try:
+                        return float(value)
+                    except (TypeError, ValueError):
+                        return default
+
+                def _safe_int_env(name: str, default: int) -> int:
+                    value = os.getenv(name)
+                    if value is None:
+                        return default
+                    try:
+                        return int(value)
+                    except (TypeError, ValueError):
+                        return default
+
+                min_expected_value_multiple = 2.0
+                max_decisions_per_day = 10
+                if self.config.initial_mode == TradingMode.PAPER_LIVE_DATA:
+                    min_expected_value_multiple = _safe_float_env(
+                        "PAPER_LIVE_TURNOVER_MIN_RATIO",
+                        min_expected_value_multiple,
+                    )
+                    max_decisions_per_day = _safe_int_env(
+                        "PAPER_LIVE_TURNOVER_MAX_DAILY",
+                        max_decisions_per_day,
+                    )
+
+                self.turnover_governor = get_turnover_governor(
+                    TurnoverGovernorConfig(
+                        min_decision_interval_minutes=15.0,
+                        max_decisions_per_day=max_decisions_per_day,
+                        min_expected_value_multiple=min_expected_value_multiple,
+                        enabled=True,
+                    )
+                )
+                logger.info(
+                    "Turnover Governor initialized - reducing friction, improving net-of-cost edge"
+                )
+            except Exception as e:
+                logger.warning(f"Could not initialize Turnover Governor: {e}")
+
+        # === Micro-Live Rollout Guardrails ===
+        # CRITICAL: Last line of defense before real money trades
+        self.live_guardrails: Optional[LiveTradingGuardrails] = None
+        if LIVE_GUARDRAILS_AVAILABLE:
+            try:
+                self.live_guardrails = get_live_guardrails()
+                logger.info(
+                    f"Live Trading Guardrails initialized - "
+                    f"LIVE_MODE={'ENABLED' if self.live_guardrails.config.live_mode else 'DISABLED'}"
+                )
+            except Exception as e:
+                logger.warning(f"Could not initialize Live Trading Guardrails: {e}")
+
         # Learning/risk tracking
         self._last_regime_state: Optional[RegimeState] = None
         self._daily_loss_total: float = 0.0
         self._consecutive_losses: int = 0
         self._daily_loss_date: Optional[str] = None
         self._last_trade_time: Optional[datetime] = None
+        self._signal_block_reasons: Dict[str, str] = {}
+        self._signal_block_sources: Dict[str, str] = {}
 
         # Callbacks
         self._on_trade_callbacks: List[Callable] = []
@@ -527,6 +777,21 @@ class UnifiedTradingEngine:
         self.state_store.update_state(status=TradingStatus.ACTIVE)
 
         logger.info(f"Starting trading engine in {self._state.mode.value} mode")
+
+        # Write initial heartbeat for shadow data collection (Phase 2B)
+        if self._shadow_enabled and SHADOW_COLLECTOR_AVAILABLE:
+            try:
+                write_paper_live_heartbeat(
+                    symbols=self.config.symbols,
+                    total_decisions=0,
+                    paper_live_decisions=0,
+                )
+                self._last_heartbeat_time = datetime.now()
+                logger.info(
+                    f"Shadow collector attached (mode=PAPER_LIVE, symbols={self.config.symbols})"
+                )
+            except Exception as e:
+                logger.warning(f"Failed to write initial heartbeat: {e}")
 
         # Start the main loop
         self._loop_task = asyncio.create_task(self._main_loop())
@@ -708,6 +973,14 @@ class UnifiedTradingEngine:
                 self.state_store.update_state(current_balance=self._state.current_balance)
             except Exception as e:
                 logger.debug(f"Failed to update balance during pause: {e}")
+            if self._shadow_enabled and self.shadow_collector and SHADOW_COLLECTOR_AVAILABLE:
+                for symbol in self.config.symbols:
+                    self._record_shadow_hold(
+                        symbol=symbol,
+                        reason=f"paused:{control_state.reason or 'paused'}",
+                        current_price=None,
+                        strategy_used="engine_paused",
+                    )
             return
 
         # Check if trading is allowed
@@ -717,6 +990,14 @@ class UnifiedTradingEngine:
                 logger.warning(f"Trading blocked: {reason}")
                 # Log this EVERY iteration so we can see what's blocking
                 logger.info(f"[SAFETY BLOCK] Reason: {reason} | Allowed: {allowed}")
+                if self._shadow_enabled and self.shadow_collector and SHADOW_COLLECTOR_AVAILABLE:
+                    for symbol in self.config.symbols:
+                        self._record_shadow_hold(
+                            symbol=symbol,
+                            reason=f"safety_blocked:{reason}",
+                            current_price=None,
+                            strategy_used="safety_blocked",
+                        )
                 return
             logger.debug(f"[SAFETY PASS] Trading allowed")
 
@@ -771,9 +1052,48 @@ class UnifiedTradingEngine:
         if self.safety_controller:
             self.safety_controller.clear_api_errors()
 
+        # Update heartbeat periodically (every 5 minutes) for shadow data collection
+        if self._shadow_enabled and SHADOW_COLLECTOR_AVAILABLE:
+            now = datetime.now()
+            if (
+                self._last_heartbeat_time is None
+                or (now - self._last_heartbeat_time).total_seconds()
+                >= self._heartbeat_interval_seconds
+            ):
+                try:
+                    # Get decision counts from shadow collector
+                    total_decisions = 0
+                    paper_live_decisions = 0
+                    last_decision_ts = None
+                    if self.shadow_collector:
+                        stats = self.shadow_collector.get_collection_stats()
+                        total_decisions = stats.get("total_decisions", 0)
+                        paper_live_decisions = stats.get("paper_live_decisions", 0)
+                        last_decision_ts = stats.get("last_decision_ts")
+
+                    write_paper_live_heartbeat(
+                        symbols=self.config.symbols,
+                        total_decisions=total_decisions,
+                        paper_live_decisions=paper_live_decisions,
+                        last_decision_ts=last_decision_ts,
+                    )
+                    self._last_heartbeat_time = now
+                    logger.debug(
+                        f"Heartbeat updated: total={total_decisions}, paper_live={paper_live_decisions}, "
+                        f"last_ts={last_decision_ts}"
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to update heartbeat: {e}")
+
     async def _process_symbol(self, symbol: str) -> None:
         """Process trading signal for a symbol."""
         if not self._state or not self.execution_adapter:
+            self._record_shadow_hold(
+                symbol=symbol,
+                reason="engine_not_initialized",
+                current_price=None,
+                strategy_used="engine_blocked",
+            )
             return
 
         # Check if we already have a position
@@ -784,9 +1104,21 @@ class UnifiedTradingEngine:
             current_price = await self.execution_adapter.get_current_price(symbol)
             if current_price is None:
                 logger.warning(f"No price available for {symbol}")
+                self._record_shadow_hold(
+                    symbol=symbol,
+                    reason="price_unavailable",
+                    current_price=None,
+                    strategy_used="price_unavailable",
+                )
                 return
         except Exception as e:
             logger.error(f"Failed to get price for {symbol}: {e}")
+            self._record_shadow_hold(
+                symbol=symbol,
+                reason=f"price_fetch_error:{type(e).__name__}",
+                current_price=None,
+                strategy_used="price_fetch_error",
+            )
             return
 
         # Update position price if we have one
@@ -802,9 +1134,140 @@ class UnifiedTradingEngine:
         # Generate signal
         signal = await self._generate_signal(symbol, current_price)
 
+        # Record shadow decision for Phase 2B RL shadow mode (advisory only, no execution authority)
+        # CRITICAL: Log ALL decision points, including when signal is blocked (returns None)
+        # This captures hold/blocked decisions for RL counterfactual analysis
+        if self._shadow_enabled and self.shadow_collector and SHADOW_COLLECTOR_AVAILABLE:
+            try:
+                generator_obj = getattr(self._signal_generator, "__self__", None)
+                gate_trace = None
+                if signal and isinstance(signal, dict):
+                    gate_trace = signal.get("gate_trace")
+                if gate_trace is None and generator_obj and hasattr(generator_obj, "get_last_gate_trace"):
+                    gate_trace = generator_obj.get_last_gate_trace(symbol)
+
+                if signal:
+                    # Build market state from signal
+                    market_state = RLMarketState(
+                        symbol=symbol,
+                        price=current_price,
+                        volatility=signal.get("volatility", 0.0),
+                        regime=signal.get("regime", "unknown"),
+                        fear_greed=signal.get("fear_greed", 50.0),
+                        news_sentiment=signal.get("sentiment", 0.0),
+                        rsi=signal.get("rsi", 50.0),
+                        trend_strength=signal.get("trend_strength", 0.0),
+                    )
+                    actual_action = signal.get("action", "hold")
+                    actual_confidence = signal.get("confidence", 0.0)
+                    strategy_used = signal.get("strategy", "unified_engine")
+                else:
+                    # No signal = blocked at signal generator level (trend filter, threshold, etc.)
+                    # Log as HOLD with available context for RL training
+                    current_regime = "unknown"
+                    if self._last_regime_state:
+                        current_regime = self._last_regime_state.regime.value
+                    market_state = RLMarketState(
+                        symbol=symbol,
+                        price=current_price,
+                        volatility=0.0,
+                        regime=current_regime,
+                        fear_greed=50.0,
+                        news_sentiment=0.0,
+                        rsi=50.0,
+                        trend_strength=0.0,
+                    )
+                    actual_action = "hold"
+                    actual_confidence = 0.0
+                    strategy_used = "signal_blocked"
+
+                # Determine if this would be approved by trade gate
+                gate_approved = True if signal else False
+                gate_score = signal.get("confidence", 0.5) if signal else 0.0
+                gate_rejection_reason = "" if signal else "signal_blocked_at_generator"
+
+                if self.trade_gate and signal:
+                    gate_result = self.trade_gate.evaluate_trade(
+                        symbol=symbol,
+                        signal_confidence=signal.get("confidence", 0.5),
+                    ) if hasattr(self.trade_gate, "evaluate_trade") else None
+                    if gate_result:
+                        gate_approved = gate_result.get("approved", True)
+                        gate_score = gate_result.get("score", 0.5)
+                        gate_rejection_reason = gate_result.get("reason", "")
+
+                # Get preservation level
+                preservation_level = "normal"
+                if self.capital_preservation:
+                    preservation_level = getattr(
+                        self.capital_preservation, "current_level", "normal"
+                    )
+
+                # Record the decision
+                self.shadow_collector.record_decision_point(
+                    symbol=symbol,
+                    market_state=market_state,
+                    gate_approved=gate_approved,
+                    gate_score=gate_score,
+                    gate_rejection_reason=gate_rejection_reason,
+                    preservation_level=preservation_level,
+                    actual_action=actual_action,
+                    actual_confidence=actual_confidence,
+                    strategy_used=strategy_used,
+                    gate_trace=gate_trace,
+                )
+                # Keep heartbeat in sync for PAPER_LIVE decisions
+                if signal:
+                    self._update_shadow_heartbeat()
+                logger.debug(f"Shadow decision recorded for {symbol}: action={actual_action}")
+            except Exception as e:
+                logger.debug(f"Failed to record shadow decision for {symbol}: {e}")
+
         if not signal:
             logger.debug(f"No signal for {symbol}")
+            block_reason = self._signal_block_reasons.get(symbol, "signal_blocked")
+            block_source = self._signal_block_sources.get(symbol, "signal_blocked")
+            generator_obj = getattr(self._signal_generator, "__self__", None)
+            gate_trace = None
+            if generator_obj and hasattr(generator_obj, "get_last_gate_trace"):
+                gate_trace = generator_obj.get_last_gate_trace(symbol)
+            self._record_shadow_hold(
+                symbol=symbol,
+                reason=block_reason,
+                current_price=current_price,
+                strategy_used=block_source,
+                gate_trace=gate_trace,
+            )
             return
+
+        # === Turnover Governor Check (pre-filter before execution) ===
+        # This reduces friction and improves net-of-cost edge
+        # TradeGate/RiskBudget/CapitalPreservation retain final authority
+        if self.turnover_governor and TURNOVER_GOVERNOR_AVAILABLE:
+            action = signal.get("action", "hold")
+            if action.lower() not in ("hold", "flat", "none", ""):
+                # Estimate position size for cost calculation
+                position_size = self._state.current_balance * 0.1  # 10% position size estimate
+                expected_pnl = signal.get("expected_pnl", 0.0)
+                confidence = signal.get("confidence", 0.5)
+
+                turnover_decision = self.turnover_governor.evaluate_decision(
+                    symbol=symbol,
+                    action=action,
+                    expected_pnl=expected_pnl,
+                    position_size_usd=position_size,
+                    confidence=confidence,
+                    is_rl_advisory=signal.get("source") == "rl_advisory",
+                )
+
+                if not turnover_decision.allowed:
+                    logger.info(
+                        f"[TURNOVER GOVERNOR] {symbol}: {turnover_decision.reason} "
+                        f"(EV=${turnover_decision.expected_value:.2f}, "
+                        f"cost=${turnover_decision.estimated_cost:.2f}, "
+                        f"ratio={turnover_decision.cost_multiple:.2f}x)"
+                    )
+                    return
 
         # Sync regime risk engine with latest regime info
         if self.regime_risk_engine:
@@ -859,7 +1322,6 @@ class UnifiedTradingEngine:
                 logger.info(f"SHORT signal for {symbol} ignored - shorting disabled")
             elif not has_position:
                 await self._open_position(symbol, "short", current_price, signal)
-                logger.info(f"Opened SHORT position for {symbol} (shorting enabled)")
             else:
                 pos = self._state.positions[symbol]
                 if pos.side == "long":
@@ -872,18 +1334,107 @@ class UnifiedTradingEngine:
         else:
             logger.debug(f"No action for signal: {action}")
 
+    def _record_shadow_hold(
+        self,
+        symbol: str,
+        reason: str,
+        current_price: Optional[float],
+        strategy_used: str,
+        gate_trace: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Record a HOLD decision for shadow mode with a rejection reason."""
+        if not (self._shadow_enabled and self.shadow_collector and SHADOW_COLLECTOR_AVAILABLE):
+            return
+
+        try:
+            current_regime = "unknown"
+            if self._last_regime_state:
+                current_regime = self._last_regime_state.regime.value
+
+            price = current_price if current_price is not None else 0.0
+            market_state = RLMarketState(
+                symbol=symbol,
+                price=price,
+                volatility=0.0,
+                regime=current_regime,
+                fear_greed=50.0,
+                news_sentiment=0.0,
+                rsi=50.0,
+                trend_strength=0.0,
+            )
+
+            preservation_level = "normal"
+            if self.capital_preservation:
+                preservation_level = getattr(self.capital_preservation, "current_level", "normal")
+
+            if gate_trace is None:
+                gate_trace = {
+                    "stage": "engine_block",
+                    "reason": reason,
+                    "symbol": symbol,
+                    "ts": datetime.now().isoformat(),
+                }
+
+            self.shadow_collector.record_decision_point(
+                symbol=symbol,
+                market_state=market_state,
+                gate_approved=False,
+                gate_score=0.0,
+                gate_rejection_reason=reason,
+                preservation_level=preservation_level,
+                actual_action="hold",
+                actual_confidence=0.0,
+                strategy_used=strategy_used,
+                gate_trace=gate_trace,
+            )
+            self._update_shadow_heartbeat()
+        except Exception as e:
+            logger.debug(f"Failed to record shadow HOLD for {symbol}: {e}")
+
+    def _update_shadow_heartbeat(self) -> None:
+        """Update paper-live heartbeat from shadow collector stats."""
+        if not (self._shadow_enabled and self.shadow_collector and SHADOW_COLLECTOR_AVAILABLE):
+            return
+
+        try:
+            stats = self.shadow_collector.get_collection_stats()
+            write_paper_live_heartbeat(
+                symbols=self.config.symbols,
+                total_decisions=stats.get("total_decisions", 0),
+                paper_live_decisions=stats.get("paper_live_decisions", 0),
+                last_decision_ts=stats.get("last_decision_ts"),
+            )
+            self._last_heartbeat_time = datetime.now()
+        except Exception as e:
+            logger.debug(f"Failed to update shadow heartbeat: {e}")
+
     async def _generate_signal(self, symbol: str, current_price: float) -> Optional[Dict[str, Any]]:
         """Generate trading signal using all AI systems."""
         base_signal = None
+        self._signal_block_reasons.pop(symbol, None)
+        self._signal_block_sources.pop(symbol, None)
 
         # First get base ML signal
         if self._signal_generator:
             try:
                 base_signal = await self._signal_generator(symbol, current_price)
             except Exception as e:
+                self._signal_block_reasons[symbol] = f"signal_generator_exception:{type(e).__name__}"
+                self._signal_block_sources[symbol] = "signal_exception"
                 logger.error(f"Signal generation error for {symbol}: {e}")
 
         if not base_signal:
+            generator_obj = getattr(self._signal_generator, "__self__", None)
+            block_reason = getattr(generator_obj, "last_block_reason", None)
+            block_source = getattr(generator_obj, "last_block_stage", None)
+            if block_reason:
+                self._signal_block_reasons[symbol] = block_reason
+            if block_source:
+                self._signal_block_sources[symbol] = block_source
+            if symbol not in self._signal_block_reasons:
+                self._signal_block_reasons[symbol] = "signal_blocked"
+            if symbol not in self._signal_block_sources:
+                self._signal_block_sources[symbol] = "signal_blocked"
             return None
 
         # Enhance with EnhancedSignalProcessor (MTF, regime, orderbook, RL)
@@ -1275,6 +1826,19 @@ class UnifiedTradingEngine:
             logger.warning(f"Order blocked: {reason}")
             return
 
+        # Live trading guardrails check (CRITICAL for live modes)
+        position_value = position_size * price
+        portfolio_value = self._state.current_balance if self._state else self.config.initial_capital
+        guardrail_passed, guardrail_reason = self._check_live_guardrails(
+            symbol=symbol,
+            position_value=position_value,
+            portfolio_value=portfolio_value,
+            leverage=signal.get("leverage", 1.0),
+        )
+        if not guardrail_passed:
+            logger.warning(f"Order blocked by live guardrails: {guardrail_reason}")
+            return
+
         # Execute order
         result = await self.execution_adapter.place_order(order)
 
@@ -1323,6 +1887,13 @@ class UnifiedTradingEngine:
         self.safety_controller.update_positions(
             {s: p.quantity * p.entry_price for s, p in self._state.positions.items()}
         )
+
+        # Record decision with turnover governor (for interval/count tracking)
+        if self.turnover_governor and TURNOVER_GOVERNOR_AVAILABLE:
+            self.turnover_governor.record_decision_taken(symbol)
+
+        # Record live trade for guardrails tracking
+        self._record_live_trade(symbol, result.filled_quantity * result.average_price)
 
         logger.info(
             f"Opened {side.upper()} position: {symbol} @ ${result.average_price:.2f} "
@@ -1454,6 +2025,14 @@ class UnifiedTradingEngine:
             order_type=OrderType.MARKET,
             quantity=position.quantity,
         )
+
+        # Check kill switch only for live modes (closing positions should be allowed
+        # even if other guardrails would block opening new positions)
+        if self._state and self._state.mode.is_live and self.live_guardrails and LIVE_GUARDRAILS_AVAILABLE:
+            result_check = self.live_guardrails.check_kill_switch()
+            if not result_check.passed:
+                logger.critical(f"Cannot close position - KILL SWITCH ACTIVE: {result_check.block_reason}")
+                return
 
         # Execute order
         result = await self.execution_adapter.place_order(order)
@@ -1636,6 +2215,58 @@ class UnifiedTradingEngine:
             except Exception as e:
                 logger.debug(f"Online learning feedback failed: {e}")
 
+        # Feedback Orchestrator: Unified learning coordination
+        if self.feedback_orchestrator and FEEDBACK_ORCHESTRATOR_AVAILABLE:
+            try:
+                import numpy as np
+                signal_meta = getattr(position, "signal_meta", {}) or {}
+
+                # Build trade context for unified learning
+                trade_context = TradeContext(
+                    symbol=symbol,
+                    side="LONG" if position.side == "long" else "SHORT",
+                    entry_time=datetime.fromisoformat(position.entry_time) if position.entry_time else datetime.now(timezone.utc),
+                    exit_time=datetime.now(timezone.utc),
+                    entry_price=position.entry_price,
+                    exit_price=result.average_price,
+                    stop_loss=getattr(position, "stop_loss", 0.0) or 0.0,
+                    take_profit=getattr(position, "take_profit", 0.0) or 0.0,
+                    quantity=position.quantity,
+                    leverage=signal_meta.get("regime_strategy", {}).get("leverage", 1.0),
+                    pnl=pnl,
+                    pnl_pct=pnl_pct / 100,  # Convert to decimal
+                    max_unrealized_profit_pct=getattr(position, "max_profit_pct", 0.0) or 0.0,
+                    max_unrealized_loss_pct=getattr(position, "max_drawdown_pct", 0.0) or 0.0,
+                    regime_at_entry=signal_meta.get("regime", "unknown"),
+                    regime_at_exit=self._last_regime_state.regime.value if self._last_regime_state else "unknown",
+                    volatility=signal_meta.get("volatility", 0.0) or 0.0,
+                    trend=signal_meta.get("trend", "neutral") or "neutral",
+                    signal_source=signal_meta.get("model_type", "unknown"),
+                    signal_confidence=getattr(position, "signal_confidence", 0.5) or 0.5,
+                    signal_reason=getattr(position, "signal_reason", "") or "",
+                    rsi=signal_meta.get("rsi", 50.0) or 50.0,
+                    macd=signal_meta.get("macd", 0.0) or 0.0,
+                    bb_position=signal_meta.get("bb_position", 0.5) or 0.5,
+                    feature_vector=signal_meta.get("features") if isinstance(signal_meta.get("features"), np.ndarray) else None,
+                    exit_reason=reason,
+                )
+
+                # Process feedback asynchronously
+                feedback_result = await self.feedback_orchestrator.process_trade_feedback(trade_context)
+
+                if feedback_result.get("drift_detected"):
+                    logger.warning(f"Learning: Drift detected - {feedback_result.get('alerts', [])}")
+
+                if feedback_result.get("retrain_triggered"):
+                    logger.info("Learning: Model retrain triggered due to accumulated experiences")
+
+                logger.debug(
+                    f"Feedback processed in {feedback_result.get('latency_ms', 0):.1f}ms: "
+                    f"{len(feedback_result.get('updates_completed', []))} systems updated"
+                )
+            except Exception as e:
+                logger.debug(f"Feedback orchestrator failed: {e}")
+
         await self._record_action_outcome(
             symbol=symbol,
             entry_price=position.entry_price,
@@ -1701,6 +2332,77 @@ class UnifiedTradingEngine:
                 )
             except Exception as e:
                 logger.warning(f"Failed to process trade with intelligent brain: {e}")
+
+    def _check_live_guardrails(
+        self,
+        symbol: str,
+        position_value: float,
+        portfolio_value: float,
+        leverage: float = 1.0,
+    ) -> tuple[bool, Optional[str]]:
+        """
+        Check live trading guardrails before executing a real order.
+
+        This is the LAST LINE OF DEFENSE before real money trades.
+        Only applies to LIVE modes (LIVE_LIMITED, LIVE_FULL).
+
+        Args:
+            symbol: Trading symbol
+            position_value: Value of the position in quote currency
+            portfolio_value: Total portfolio value
+            leverage: Leverage being used (default 1.0)
+
+        Returns:
+            Tuple of (passed, block_reason)
+        """
+        # Only check for live modes
+        if not self._state or not self._state.mode.is_live:
+            return True, None
+
+        # Check if guardrails are available
+        if not self.live_guardrails or not LIVE_GUARDRAILS_AVAILABLE:
+            # Fail safe - block live trades if guardrails not available
+            logger.error("Live guardrails not available - blocking live trade")
+            return False, "Live guardrails not initialized"
+
+        # Run all guardrail checks
+        result = self.live_guardrails.check_all_guardrails(
+            symbol=symbol,
+            position_value=position_value,
+            portfolio_value=portfolio_value,
+            leverage=leverage,
+        )
+
+        if not result.passed:
+            # Log the block
+            log_level = logging.CRITICAL if result.is_critical else logging.WARNING
+            logger.log(
+                log_level,
+                f"LIVE TRADE BLOCKED by {result.guardrail_name}: {result.block_reason}"
+            )
+
+            # Send alert for critical blocks (kill switch)
+            if result.is_critical and self.telegram_channel:
+                try:
+                    from bot.notification_system import Alert, AlertType, AlertLevel
+                    alert = Alert(
+                        alert_type=AlertType.SYSTEM,
+                        level=AlertLevel.CRITICAL,
+                        title="KILL SWITCH ACTIVE",
+                        message=f"All live trading halted: {result.block_reason}",
+                    )
+                    self.telegram_channel.send_alert(alert)
+                except Exception as e:
+                    logger.error(f"Failed to send kill switch alert: {e}")
+
+            return False, result.block_reason
+
+        return True, None
+
+    def _record_live_trade(self, symbol: str, position_value: float):
+        """Record a completed live trade in the guardrails state."""
+        if self._state and self._state.mode.is_live and self.live_guardrails:
+            self.live_guardrails.record_live_trade(symbol, position_value)
 
     async def _check_positions(self) -> None:
         """Check all positions for stop loss / take profit / trailing stop / DCA."""
@@ -1792,6 +2494,18 @@ class UnifiedTradingEngine:
             signal_reason=f"DCA at {level_drawdown * 100:.0f}% drawdown",
         )
 
+        # Live trading guardrails check (CRITICAL for live modes)
+        position_value = dca_quantity * current_price
+        portfolio_value = self._state.current_balance if self._state else self.config.initial_capital
+        guardrail_passed, guardrail_reason = self._check_live_guardrails(
+            symbol=symbol,
+            position_value=position_value,
+            portfolio_value=portfolio_value,
+        )
+        if not guardrail_passed:
+            logger.warning(f"DCA order blocked by live guardrails: {guardrail_reason}")
+            return
+
         # Execute order
         result = await self.execution_adapter.place_order(order)
 
@@ -1832,6 +2546,9 @@ class UnifiedTradingEngine:
             if self.trailing_stop_manager:
                 self.trailing_stop_manager.remove_position(symbol)
                 self.trailing_stop_manager.add_position(symbol, new_avg_price, position.side)
+
+            # Record live trade for guardrails tracking
+            self._record_live_trade(symbol, result.filled_quantity * result.average_price)
 
             logger.info(
                 f"DCA executed: {symbol} new avg=${new_avg_price:.2f}, "
@@ -1881,6 +2598,18 @@ class UnifiedTradingEngine:
             signal_reason=f"Pyramid add #{pyramid_count + 1}",
         )
 
+        # Live trading guardrails check (CRITICAL for live modes)
+        position_value = add_size * current_price
+        portfolio_value = self._state.current_balance if self._state else self.config.initial_capital
+        guardrail_passed, guardrail_reason = self._check_live_guardrails(
+            symbol=symbol,
+            position_value=position_value,
+            portfolio_value=portfolio_value,
+        )
+        if not guardrail_passed:
+            logger.warning(f"Pyramid order blocked by live guardrails: {guardrail_reason}")
+            return
+
         result = await self.execution_adapter.place_order(order)
         if result and result.success:
             # Update position with new average
@@ -1912,6 +2641,9 @@ class UnifiedTradingEngine:
             if self.trailing_stop_manager:
                 self.trailing_stop_manager.remove_position(symbol)
                 self.trailing_stop_manager.add_position(symbol, new_avg_price, position.side)
+
+            # Record live trade for guardrails tracking
+            self._record_live_trade(symbol, result.filled_quantity * result.average_price)
 
             logger.info(
                 f"Pyramid executed: {symbol} new avg=${new_avg_price:.2f}, "

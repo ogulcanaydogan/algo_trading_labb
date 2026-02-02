@@ -1,0 +1,92 @@
+{
+  "timestamp": "2026-01-29T11:38:33.954877",
+  "overall_verdict": "GO",
+  "phase2_ready": true,
+  "results": [
+    {
+      "name": "1. Execution Realism Validation",
+      "passed": true,
+      "metrics": {
+        "ideal_total_return_pct": 0.5685255616045164,
+        "realistic_total_return_pct": 0.20951220608724525,
+        "return_degradation_pct": 63.148146673308545,
+        "ideal_win_rate": 0.59,
+        "realistic_win_rate": 0.58,
+        "avg_slippage_pct": 0.0003380291223168678,
+        "avg_fees_usd": 0.09021402042422048,
+        "worst_trade_pnl_pct": -0.06520041287807775
+      },
+      "warnings": [
+        "High realism impact: 63.1% return drop (acceptable if edge survives)",
+        "Slippage seems unrealistically low: 0.034%"
+      ],
+      "failures": []
+    },
+    {
+      "name": "2. TradeGate Behavior Audit",
+      "passed": true,
+      "metrics": {
+        "total_evaluations": 10,
+        "approval_rate": 0.5,
+        "rejection_rate": 0.5,
+        "circuit_breaker_functional": true,
+        "borderline_trade_count": 0,
+        "top_rejection_reason": "drawdown_protection"
+      },
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "name": "3. Capital Preservation Escalation Test",
+      "passed": true,
+      "metrics": {
+        "consecutive_loss_escalation": false,
+        "drawdown_escalation": true,
+        "lockdown_effective": true,
+        "leverage_graduated": true
+      },
+      "warnings": [
+        "Consecutive losses did not escalate protection level"
+      ],
+      "failures": []
+    },
+    {
+      "name": "4. Feedback Integrity & Learning Audit",
+      "passed": true,
+      "metrics": {
+        "write_read_integrity": true,
+        "phase1_fields_stored": true,
+        "batch_write_success_rate": 1.0,
+        "restart_safety": true
+      },
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "name": "5. Reconciliation & Idempotency Verification",
+      "passed": true,
+      "metrics": {
+        "idempotency_working": true,
+        "position_match_detection": true,
+        "position_mismatch_detection": true,
+        "state_persistence": true
+      },
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "name": "6. Component Integration Validation",
+      "passed": true,
+      "metrics": {
+        "all_steps_passed": true,
+        "gate_score": 83.5,
+        "execution_slippage": 0.00027429036003315195,
+        "forensics_capture_ratio": 0.4
+      },
+      "warnings": [],
+      "failures": []
+    }
+  ],
+  "critical_issues": [],
+  "recommendations": []
+}

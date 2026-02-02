@@ -1,0 +1,117 @@
+{
+  "timestamp": "2026-01-29T12:12:50.320122",
+  "validation_type": "phase2a_extended_backtest",
+  "period": "1y",
+  "interval": "1d",
+  "symbols": [
+    "BTC-USD",
+    "ETH-USD"
+  ],
+  "realism_enabled": true,
+  "size_aware_slippage": true,
+  "results_by_symbol": {
+    "BTC-USD": {
+      "period": {
+        "start_date": "2025-01-29",
+        "end_date": "2026-01-29",
+        "trading_days": 366
+      },
+      "capital": {
+        "initial_balance": 10000.0,
+        "final_balance": 9971.25
+      },
+      "trades": {
+        "total": 10,
+        "winning": 4,
+        "losing": 6
+      },
+      "pnl_comparison": {
+        "ideal_total_pnl": 58.28,
+        "realistic_total_pnl": -28.75,
+        "friction_drag": 87.03
+      },
+      "returns": {
+        "ideal_total_return_pct": 0.5828,
+        "realistic_total_return_pct": -0.2875,
+        "return_degradation_pct": 149.34
+      },
+      "win_rates": {
+        "ideal": 0.4,
+        "realistic": 0.4
+      },
+      "risk": {
+        "max_drawdown_pct": 5.3089,
+        "sharpe_ratio": -0.3408
+      },
+      "friction_analysis": {
+        "total_slippage_cost": 47.27,
+        "total_fee_cost": 39.76,
+        "avg_slippage_per_trade": 4.727,
+        "avg_fee_per_trade": 3.9762,
+        "avg_friction_pct": 0.1754
+      },
+      "worst_case": {
+        "worst_trade_pnl": -110.24,
+        "worst_trade_pnl_pct": -2.1635
+      }
+    },
+    "ETH-USD": {
+      "period": {
+        "start_date": "2025-01-29",
+        "end_date": "2026-01-29",
+        "trading_days": 366
+      },
+      "capital": {
+        "initial_balance": 10000.0,
+        "final_balance": 10639.15
+      },
+      "trades": {
+        "total": 8,
+        "winning": 5,
+        "losing": 3
+      },
+      "pnl_comparison": {
+        "ideal_total_pnl": 710.4,
+        "realistic_total_pnl": 639.15,
+        "friction_drag": 71.24
+      },
+      "returns": {
+        "ideal_total_return_pct": 7.104,
+        "realistic_total_return_pct": 6.3915,
+        "return_degradation_pct": 10.03
+      },
+      "win_rates": {
+        "ideal": 0.625,
+        "realistic": 0.625
+      },
+      "risk": {
+        "max_drawdown_pct": 1.0907,
+        "sharpe_ratio": 8.5442
+      },
+      "friction_analysis": {
+        "total_slippage_cost": 38.65,
+        "total_fee_cost": 32.6,
+        "avg_slippage_per_trade": 4.8309,
+        "avg_fee_per_trade": 4.0745,
+        "avg_friction_pct": 0.1741
+      },
+      "worst_case": {
+        "worst_trade_pnl": -117.09,
+        "worst_trade_pnl_pct": -2.1771
+      }
+    }
+  },
+  "aggregate": {
+    "total_trades": 18,
+    "total_friction_usd": 158.28,
+    "total_slippage_usd": 85.92,
+    "total_fees_usd": 72.36,
+    "avg_friction_pct": 0.1748
+  },
+  "phase2b_gate_check": {
+    "extended_backtest_complete": true,
+    "min_months": 6,
+    "realism_on": true,
+    "size_aware_slippage": true
+  }
+}

@@ -1,0 +1,310 @@
+{
+  "timestamp": "2026-01-29T12:45:00",
+  "phase": "Phase 2B - Counterfactual Validation & Cost-Aware Learning",
+  "overall_verdict": "GO",
+  "phase2c_ready": false,
+
+  "prerequisite_status": {
+    "phase2a_complete": true,
+    "rl_shadow_mode_verified": true,
+    "extended_backtest_complete": true,
+    "critical_finding": "BTC-USD shows ~149% return degradation (edge does NOT survive friction), ETH-USD shows ~10% degradation (edge survives)"
+  },
+
+  "workstream_a_status": {
+    "name": "Shadow Data Collection",
+    "status": "COMPLETE",
+    "deliverables": [
+      {
+        "item": "bot/rl/shadow_data_collector.py",
+        "status": "COMPLETE",
+        "description": "Comprehensive decision data collection for counterfactual analysis"
+      }
+    ],
+    "features": [
+      "Decision snapshots with full context",
+      "RL recommendation capture",
+      "Gate decision recording",
+      "Execution cost tracking (slippage, fees, spread)",
+      "Outcome recording (PnL, MAE/MFE)",
+      "JSONL logging for persistence"
+    ]
+  },
+
+  "workstream_b_status": {
+    "name": "Counterfactual Evaluation Engine (Core Deliverable)",
+    "status": "COMPLETE",
+    "deliverables": [
+      {
+        "item": "bot/rl/counterfactual_evaluator.py",
+        "status": "COMPLETE",
+        "description": "Evaluates 'What if we followed RL?' without changing execution"
+      }
+    ],
+    "features": [
+      "delta_PnL calculation (RL vs baseline)",
+      "Hit rate / precision by regime",
+      "Incremental Sharpe (rolling weekly)",
+      "Incremental drawdown / tail risk",
+      "Cost decomposition (slippage vs fees vs turnover)",
+      "Confidence threshold sweeps",
+      "Per-symbol and per-regime analysis",
+      "Weekly JSON report generation"
+    ],
+    "verification": "EVALUATION ONLY - No execution authority"
+  },
+
+  "workstream_c_status": {
+    "name": "Cost-Aware Reward Shaping",
+    "status": "COMPLETE",
+    "deliverables": [
+      {
+        "item": "bot/rl/reward_shaping.py (enhanced)",
+        "status": "COMPLETE",
+        "description": "CostAwareRewardShaper with friction penalties"
+      }
+    ],
+    "reward_components": [
+      {
+        "component": "NET returns",
+        "description": "Uses net-of-cost PnL, not gross"
+      },
+      {
+        "component": "Turnover penalty",
+        "penalty": "-0.05 per trade, +0.1x additional per trade over 10/day limit"
+      },
+      {
+        "component": "Slippage surprise penalty",
+        "penalty": "5x multiplier when slippage exceeds expected"
+      },
+      {
+        "component": "CVaR / tail risk penalty",
+        "penalty": "3x multiplier for exceeding 5% CVaR threshold"
+      },
+      {
+        "component": "Capital preservation violation",
+        "penalty": "-1000.0 (effectively INFINITE)",
+        "critical": true
+      }
+    ],
+    "calibration": "Supports calibration from counterfactual analysis results"
+  },
+
+  "workstream_d_status": {
+    "name": "Safe Strategy Weighting Advisor",
+    "status": "COMPLETE",
+    "deliverables": [
+      {
+        "item": "bot/rl/strategy_weighting_advisor.py",
+        "status": "COMPLETE",
+        "description": "Bandit/MoE style strategy selection (NO execution authority)"
+      }
+    ],
+    "safety_constraints_locked": {
+      "max_daily_weight_shift": "10% (LOCKED)",
+      "min_strategy_weight": "5% (LOCKED - cannot fully disable)",
+      "max_strategy_weight": "50% (LOCKED - no single strategy dominance)",
+      "update_cooldown_hours": "4 hours minimum between updates"
+    },
+    "features": [
+      "Uses RL preferences + performance statistics",
+      "Regime-specific weight boosts",
+      "Performance tracking per strategy",
+      "State persistence"
+    ],
+    "verification": "ADVISORY ONLY - Never changes position sizing, leverage, or places orders"
+  },
+
+  "workstream_e_status": {
+    "name": "BTC-USD Diagnosis Track",
+    "status": "COMPLETE",
+    "deliverables": [
+      {
+        "item": "bot/rl/btc_diagnosis.py",
+        "status": "COMPLETE",
+        "description": "Diagnosis tool for BTC underperformance attribution"
+      }
+    ],
+    "attribution_categories": [
+      "Turnover costs (trading frequency)",
+      "Slippage costs (market impact)",
+      "Spread costs (bid-ask spread)",
+      "Strategy behavior (regime-specific issues)"
+    ],
+    "outputs": [
+      "Primary cause identification",
+      "Recoverable return estimation",
+      "Prioritized recommendations",
+      "JSON and Markdown report generation"
+    ]
+  },
+
+  "test_results": {
+    "phase2b_component_tests": {
+      "passed": 45,
+      "failed": 0,
+      "categories": [
+        "Shadow data collection",
+        "Counterfactual evaluation",
+        "Cost-aware reward shaping",
+        "Strategy weighting safety constraints",
+        "BTC diagnosis attribution",
+        "Integration tests",
+        "Safety verification tests"
+      ]
+    }
+  },
+
+  "non_negotiable_constraints_verified": {
+    "rl_cannot_place_orders": {
+      "verified": true,
+      "evidence": "No execute/place_order/trade methods in any Phase 2B component"
+    },
+    "rl_cannot_bypass_tradegate": {
+      "verified": true,
+      "evidence": "All components are advisory/evaluation only"
+    },
+    "rl_cannot_change_leverage": {
+      "verified": true,
+      "evidence": "StrategyWeightingAdvisor has no set_leverage method"
+    },
+    "rl_cannot_change_position_sizing": {
+      "verified": true,
+      "evidence": "StrategyWeightingAdvisor has no set_position_size method"
+    },
+    "capital_preservation_penalty_extreme": {
+      "verified": true,
+      "evidence": "CAPITAL_PRESERVATION_VIOLATION_PENALTY = -1000.0"
+    },
+    "weight_shift_clamped": {
+      "verified": true,
+      "evidence": "MAX_DAILY_WEIGHT_SHIFT = 0.10 (10%) locked in WeightingConfig"
+    },
+    "phase2c_remains_blocked": {
+      "verified": true,
+      "evidence": "No execution authority granted, RL limited to shadow/advisory"
+    }
+  },
+
+  "gating_decisions": {
+    "phase_2b": {
+      "verdict": "GO",
+      "reason": "All deliverables complete, 45/45 tests pass, safety constraints verified"
+    },
+    "phase_2c": {
+      "verdict": "BLOCKED",
+      "reason": "Requires Phase 2B shadow mode data collection (3+ months)",
+      "blocking_requirements": [
+        "3+ months shadow mode data collection",
+        "Counterfactual analysis shows positive RL edge",
+        "BTC-USD diagnosis addressed (turnover reduction)",
+        "Human review and sign-off on RL decisions"
+      ]
+    }
+  },
+
+  "phase2c_transition_criteria": {
+    "data_collection_weeks": 12,
+    "minimum_decisions_for_evaluation": 1000,
+    "minimum_rl_hit_rate": 0.55,
+    "minimum_incremental_sharpe": 0.3,
+    "maximum_incremental_drawdown": 0.05,
+    "required_confidence_threshold_identified": true,
+    "btc_degradation_addressed": "Turnover reduction implemented"
+  },
+
+  "recommendations": [
+    "Enable shadow data collection in paper trading immediately",
+    "Run counterfactual evaluation weekly to track RL edge",
+    "Use BTC diagnosis tool to guide turnover reduction strategy",
+    "Monitor strategy weighting advisor recommendations (do not apply automatically)",
+    "Keep Phase 2C BLOCKED until 3+ months of shadow data collected",
+    "Review cost-aware reward calibration monthly with actual friction data"
+  ],
+
+  "files_created": [
+    "bot/rl/shadow_data_collector.py",
+    "bot/rl/counterfactual_evaluator.py",
+    "bot/rl/strategy_weighting_advisor.py",
+    "bot/rl/btc_diagnosis.py",
+    "bot/rl/btc_turnover_reduction.py",
+    "scripts/shadow/run_daily_shadow_health.py",
+    "scripts/shadow/run_weekly_shadow_report.py",
+    "docs/PHASE2B_RUNBOOK.md",
+    "tests/test_phase2b_components.py",
+    "tests/test_phase2b_operations.py"
+  ],
+
+  "files_modified": [
+    "bot/rl/reward_shaping.py (added CostAwareRewardShaper)"
+  ],
+
+  "operational_program": {
+    "name": "3-Month Shadow Data Collection Program",
+    "status": "READY TO START",
+    "duration_weeks": 12,
+    "daily_checks": {
+      "script": "scripts/shadow/run_daily_shadow_health.py",
+      "schedule": "Daily at 6 AM (cron)",
+      "output": "data/reports/daily_shadow_health_YYYY-MM-DD.json",
+      "checks": [
+        "Shadow logging working",
+        "Decisions collected count",
+        "Capital preservation state",
+        "Strategy weight clamp enforcement",
+        "TradeGate rejection distribution"
+      ]
+    },
+    "weekly_reports": {
+      "script": "scripts/shadow/run_weekly_shadow_report.py --week N",
+      "schedule": "Weekly (manual, Monday)",
+      "output_json": "data/reports/weekly_shadow_report_YYYY-MM-DD.json",
+      "output_markdown": "docs/reports/weekly_shadow_summary_YYYY-MM-DD.md",
+      "contents": [
+        "Per-symbol edge analysis (ΔPnL, Sharpe, hit rate, max DD)",
+        "Per-regime edge analysis",
+        "Cost decomposition (slippage vs fees vs turnover)",
+        "Confidence threshold sweep",
+        "Drift check vs prior weeks",
+        "BTC-specific diagnosis",
+        "Phase 2C promotion gate progress"
+      ]
+    },
+    "btc_mitigation": {
+      "file": "bot/rl/btc_turnover_reduction.py",
+      "rules": {
+        "min_decision_interval_hours": 4.0,
+        "max_decisions_per_day": 3,
+        "min_expected_value_multiplier": 2.0,
+        "min_confidence": 0.75,
+        "cooldown_after_2_losses_hours": 6.0
+      }
+    },
+    "runbook": "docs/PHASE2B_RUNBOOK.md"
+  },
+
+  "test_results": {
+    "phase2b_component_tests": {
+      "passed": 45,
+      "failed": 0,
+      "file": "tests/test_phase2b_components.py"
+    },
+    "phase2b_operations_tests": {
+      "passed": 23,
+      "failed": 0,
+      "file": "tests/test_phase2b_operations.py",
+      "categories": [
+        "Daily health report schema",
+        "Weekly report schema",
+        "Clamp enforcement",
+        "BTC turnover reduction rules",
+        "Deterministic output",
+        "Integration tests"
+      ]
+    },
+    "total_tests": {
+      "passed": 68,
+      "failed": 0
+    }
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "agent_weights": {
+    "trend_follower": 1.0,
+    "mean_reversion": 1.0,
+    "momentum_trader": 1.0,
+    "short_specialist": 1.0,
+    "scalper": 1.0
+  },
+  "agent_stats": {
+    "trend_follower": {
+      "agent_type": "trend_follower",
+      "trade_count": 0,
+      "win_count": 0,
+      "win_rate": 0.5,
+      "regime_affinity": {
+        "BULL": 0.8,
+        "STRONG_BULL": 0.9,
+        "BEAR": 0.7,
+        "STRONG_BEAR": 0.75,
+        "SIDEWAYS": 0.3,
+        "HIGH_VOL": 0.5,
+        "LOW_VOL": 0.4
+      }
+    },
+    "mean_reversion": {
+      "agent_type": "mean_reversion",
+      "trade_count": 1,
+      "win_count": 1,
+      "win_rate": 1.0,
+      "regime_affinity": {
+        "SIDEWAYS": 0.91,
+        "LOW_VOL": 0.8,
+        "BULL": 0.4,
+        "BEAR": 0.4,
+        "HIGH_VOL": 0.3,
+        "CRASH": 0.1
+      }
+    },
+    "momentum_trader": {
+      "agent_type": "momentum_trader",
+      "trade_count": 0,
+      "win_count": 0,
+      "win_rate": 0.5,
+      "regime_affinity": {
+        "HIGH_VOL": 0.85,
+        "STRONG_BULL": 0.8,
+        "STRONG_BEAR": 0.75,
+        "BREAKOUT": 0.9,
+        "SIDEWAYS": 0.2,
+        "LOW_VOL": 0.3
+      }
+    },
+    "short_specialist": {
+      "agent_type": "short_specialist",
+      "trade_count": 0,
+      "win_count": 0,
+      "win_rate": 0.5,
+      "regime_affinity": {
+        "BEAR": 0.85,
+        "STRONG_BEAR": 0.9,
+        "CRASH": 0.95,
+        "HIGH_VOL": 0.7,
+        "BULL": 0.2,
+        "SIDEWAYS": 0.4
+      }
+    },
+    "scalper": {
+      "agent_type": "scalper",
+      "trade_count": 0,
+      "win_count": 0,
+      "win_rate": 0.5,
+      "regime_affinity": {
+        "SIDEWAYS": 0.8,
+        "LOW_VOL": 0.7,
+        "HIGH_VOL": 0.6,
+        "BULL": 0.6,
+        "BEAR": 0.6
+      }
+    }
+  }
+}

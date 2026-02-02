@@ -54,7 +54,7 @@ margin_ratio = Gauge(
 signals_generated = Counter(
     "signals_generated_total",
     "Total signals generated",
-    ["type", "symbol"],  # type: LONG, SHORT, FLAT
+    ["type", "symbol"],  # signal_type: LONG, SHORT, FLAT
     registry=registry,
 )
 

@@ -1,0 +1,11 @@
+{
+  "level": "normal",
+  "activated_at": "2026-01-29T13:00:00.000000",
+  "trigger_reasons": [],
+  "peak_equity": 30000.0,
+  "current_equity": 30000.0,
+  "recovery_trades": 0,
+  "recovery_wins": 0,
+  "timestamp": "2026-01-29T13:00:00.000000",
+  "note": "Reset for Phase 2B shadow program start"
+}

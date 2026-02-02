@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.yapay.shadow.weekly</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/env</string>
+        <string>python</string>
+        <string>/Users/ogulcanaydogan/Desktop/YaPAY/algo_trading_lab/scripts/shadow/run_weekly_shadow_report.py</string>
+        <string>--week</string>
+        <string>1</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/ogulcanaydogan/Desktop/YaPAY/algo_trading_lab</string>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>0</integer>
+        <key>Hour</key>
+        <integer>23</integer>
+        <key>Minute</key>
+        <integer>30</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>/Users/ogulcanaydogan/Desktop/YaPAY/algo_trading_lab/logs/weekly_shadow_report.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/ogulcanaydogan/Desktop/YaPAY/algo_trading_lab/logs/weekly_shadow_report.error.log</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PYTHONPATH</key>
+        <string>/Users/ogulcanaydogan/Desktop/YaPAY/algo_trading_lab</string>
+    </dict>
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>

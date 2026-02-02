@@ -1,0 +1,69 @@
+# algo_trading_paper_live.service - Systemd user service for paper-live trading
+#
+# Installation (user service - recommended):
+#   mkdir -p ~/.config/systemd/user
+#   cp scripts/ops/algo_trading_paper_live.service ~/.config/systemd/user/
+#   # Edit the service file to set correct REPO_ROOT path
+#   systemctl --user daemon-reload
+#   systemctl --user enable algo_trading_paper_live.service
+#   loginctl enable-linger $(whoami)  # Allow service to run after logout
+#   systemctl --user start algo_trading_paper_live.service
+#
+# Commands:
+#   systemctl --user status algo_trading_paper_live
+#   systemctl --user start algo_trading_paper_live
+#   systemctl --user stop algo_trading_paper_live
+#   systemctl --user restart algo_trading_paper_live
+#   journalctl --user -u algo_trading_paper_live -f
+#
+# For system-wide service (requires sudo):
+#   sudo cp scripts/ops/algo_trading_paper_live.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable algo_trading_paper_live
+#   sudo systemctl start algo_trading_paper_live
+
+[Unit]
+Description=Algo Trading Paper-Live Engine
+Documentation=https://github.com/weezboo/algo_trading_lab
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+# === IMPORTANT: Update this path to your repo location ===
+# For user service: ~/work/algo_trading_lab
+# For system service: /opt/algo_trading_lab
+WorkingDirectory=/home/weezboo/work/algo_trading_lab
+
+# Use venv python
+ExecStart=/home/weezboo/work/algo_trading_lab/.venv/bin/python run_unified_trading.py run --mode paper_live_data --interval 60 --capital 10000
+
+# Paper-live turnover overrides (change these as needed)
+Environment="PAPER_LIVE_TURNOVER_MIN_RATIO=2.0"
+Environment="PAPER_LIVE_TURNOVER_MAX_DAILY=10"
+
+# Load .env file if present
+EnvironmentFile=-/home/weezboo/work/algo_trading_lab/.env
+
+# Restart policy
+Restart=always
+RestartSec=30
+StartLimitIntervalSec=600
+StartLimitBurst=5
+
+# Graceful shutdown
+TimeoutStopSec=30
+KillMode=mixed
+KillSignal=SIGTERM
+
+# Logging (stdout/stderr go to journal, also redirect to log files)
+StandardOutput=append:/home/weezboo/work/algo_trading_lab/logs/paper_live_longrun.out.log
+StandardError=append:/home/weezboo/work/algo_trading_lab/logs/paper_live_longrun.err.log
+
+# Resource limits (optional)
+# MemoryMax=2G
+# CPUQuota=50%
+
+[Install]
+WantedBy=default.target

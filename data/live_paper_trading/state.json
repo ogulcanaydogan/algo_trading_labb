@@ -1,87 +1,16 @@
 {
-  "timestamp": "2026-01-16T14:56:28.391522",
+  "timestamp": "2026-01-26T22:30:00.000000",
   "market_type": "crypto",
-  "total_value": 10017.765735824283,
-  "cash_balance": 6676.401032941567,
+  "total_value": 10000.0,
+  "cash_balance": 10000.0,
   "initial_capital": 10000.0,
-  "pnl": 17.765735824283183,
-  "pnl_pct": 0.17765735824283183,
-  "positions": {
-    "SOL/USDT": {
-      "quantity": 11.674694000000002,
-      "price": 143.19723510742188,
-      "value": 1671.783901525208
-    },
-    "AVAX/USDT": {
-      "quantity": 121.209171,
-      "price": 13.77437686920166,
-      "value": 1669.5808013575086
-    }
-  },
-  "positions_count": 2,
-  "current_weights": {
-    "SOL/USDT": 0.16688191215599932,
-    "AVAX/USDT": 0.16666199284207278
-  },
+  "pnl": 0.0,
+  "pnl_pct": 0.0,
+  "positions": {},
+  "positions_count": 0,
+  "current_weights": {},
   "optimization_method": "risk_parity",
-  "signals": {
-    "BTC/USDT": {
-      "signal": "FLAT",
-      "regime": "sideways",
-      "confidence": 0.6129032258064515,
-      "price": 95349.9296875,
-      "dl_prediction": {
-        "action": "FLAT",
-        "confidence": 0.33,
-        "model_type": "none",
-        "prob_long": 0.33,
-        "prob_short": 0.33,
-        "prob_flat": 0.34
-      }
-    },
-    "ETH/USDT": {
-      "signal": "FLAT",
-      "regime": "sideways",
-      "confidence": 0.6129032258064515,
-      "price": 3299.165771484375,
-      "dl_prediction": {
-        "action": "FLAT",
-        "confidence": 0.33,
-        "model_type": "none",
-        "prob_long": 0.33,
-        "prob_short": 0.33,
-        "prob_flat": 0.34
-      }
-    },
-    "SOL/USDT": {
-      "signal": "FLAT",
-      "regime": "sideways",
-      "confidence": 0.6129032258064515,
-      "price": 143.19723510742188,
-      "dl_prediction": {
-        "action": "FLAT",
-        "confidence": 0.33,
-        "model_type": "none",
-        "prob_long": 0.33,
-        "prob_short": 0.33,
-        "prob_flat": 0.34
-      }
-    },
-    "AVAX/USDT": {
-      "signal": "FLAT",
-      "regime": "sideways",
-      "confidence": 0.6129032258064515,
-      "price": 13.77437686920166,
-      "dl_prediction": {
-        "action": "FLAT",
-        "confidence": 0.33,
-        "model_type": "none",
-        "prob_long": 0.33,
-        "prob_short": 0.33,
-        "prob_flat": 0.34
-      }
-    }
-  },
+  "signals": {},
   "deep_learning_enabled": true,
   "dl_model_selection": "regime_based"
 }

@@ -1,0 +1,26 @@
+{
+  "aggregate_stats": {
+    "total_trades": 21,
+    "avg_capture_ratio": 0.22222222222222218,
+    "avg_pain_ratio": 0.5079365079365079,
+    "avg_edge_efficiency": 0.569534411167064,
+    "optimal_exits": 0,
+    "good_exits": 0,
+    "acceptable_exits": 0,
+    "poor_exits": 13,
+    "stopped_out_exits": 8,
+    "optimal_entries": 21,
+    "good_entries": 0,
+    "acceptable_entries": 0,
+    "poor_entries": 0,
+    "tight_stops": 5,
+    "optimal_stops": 16,
+    "loose_stops": 0,
+    "no_stops": 0,
+    "avg_mae_minutes": 15.238095238095237,
+    "avg_mfe_minutes": 30.0,
+    "avg_holding_minutes": 82.85714358571428,
+    "avg_optimal_holding_minutes": 30.0
+  },
+  "timestamp": "2026-01-30T23:31:41.901186"
+}

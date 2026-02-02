@@ -10,6 +10,7 @@ Automatically detects failures and recovers components:
 
 import asyncio
 import inspect
+import json
 import logging
 import subprocess
 import time
@@ -19,7 +20,56 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Optional
 
+import os
+import sys
+
 logger = logging.getLogger(__name__)
+
+
+def _resolve_venv_python() -> Path:
+    repo_root = Path(__file__).resolve().parent.parent
+    if os.name == "nt":
+        candidate = repo_root / ".venv" / "Scripts" / "python.exe"
+    else:
+        candidate = repo_root / ".venv" / "bin" / "python"
+    return candidate if candidate.exists() else Path(sys.executable)
+
+
+def _is_engine_running_windows() -> bool:
+    # Windows-only guard using heartbeat/pidfile + cmdline validation.
+    try:
+        import psutil
+    except ImportError:
+        return False
+
+    repo_root = Path(__file__).resolve().parent.parent
+    heartbeat_path = repo_root / "data" / "rl" / "paper_live_heartbeat.json"
+    pidfile_path = repo_root / "logs" / "paper_live.pid"
+    pid = None
+
+    if heartbeat_path.exists():
+        try:
+            with heartbeat_path.open("r", encoding="utf-8") as f:
+                heartbeat = json.load(f)
+            pid = heartbeat.get("pid")
+        except (OSError, json.JSONDecodeError):
+            pid = None
+
+    if not pid and pidfile_path.exists():
+        try:
+            pid = int(pidfile_path.read_text(encoding="utf-8").strip().splitlines()[0])
+        except (OSError, ValueError, IndexError):
+            pid = None
+
+    if not pid:
+        return False
+
+    try:
+        proc = psutil.Process(int(pid))
+        cmdline = " ".join(proc.cmdline())
+        return "run_unified_trading.py" in cmdline
+    except (psutil.NoSuchProcess, psutil.AccessDenied, ValueError):
+        return False
 
 
 class RecoveryAction(Enum):
@@ -288,6 +338,32 @@ class AutoRecovery:
             return False
 
         try:
+            if os.name == "nt":
+                if "run_unified_trading.py" in script and _is_engine_running_windows():
+                    return True
+
+                # Use venv python on Windows to avoid system-python mismatches.
+                python_exe = _resolve_venv_python()
+                log_file = context.get("log_file")
+                stdout_target = subprocess.DEVNULL
+                stderr_target = subprocess.DEVNULL
+                if log_file:
+                    log_path = Path(log_file)
+                    log_path.parent.mkdir(parents=True, exist_ok=True)
+                    stdout_target = open(log_path, "a", encoding="utf-8")
+                    stderr_target = stdout_target
+
+                process = subprocess.Popen(
+                    [str(python_exe), str(script)],
+                    stdout=stdout_target,
+                    stderr=stderr_target,
+                )
+
+                # Keep log handle open in parent to avoid Windows log stream issues.
+
+                await asyncio.sleep(2)
+                return process.poll() is None
+
             # Kill existing process
             subprocess.run(
                 ["pkill", "-f", script],

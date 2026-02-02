@@ -6,6 +6,8 @@ Provides:
 - Smart order execution (TWAP/VWAP)
 - Iceberg orders
 - Smart order routing
+- Execution simulation (slippage, fees, partial fills)
+- Reconciliation and idempotency
 """
 
 from .slippage_tracker import (
@@ -62,6 +64,30 @@ from .execution_algos import (
     create_execution_algorithm,
 )
 
+from .execution_simulator import (
+    ExecutionResult,
+    ExecutionSimulator,
+    FeeSchedule,
+    LatencyModel,
+    PartialFillModel,
+    SimulatorConfig,
+    SlippageModel,
+    get_execution_simulator,
+    reset_execution_simulator,
+)
+
+from .reconciler import (
+    PositionRecord,
+    ReconciliationResult,
+    ReconciliationStatus,
+    Reconciler,
+    ReconcilerConfig,
+    TransactionRecord,
+    TransactionState,
+    get_reconciler,
+    reset_reconciler,
+)
+
 __all__ = [
     # Slippage tracking
     "SlippageTracker",
@@ -107,4 +133,24 @@ __all__ = [
     "AdaptiveAlgorithm",
     "AlgorithmFactory",
     "create_execution_algorithm",
+    # Execution Simulator
+    "ExecutionResult",
+    "ExecutionSimulator",
+    "FeeSchedule",
+    "LatencyModel",
+    "PartialFillModel",
+    "SimulatorConfig",
+    "SlippageModel",
+    "get_execution_simulator",
+    "reset_execution_simulator",
+    # Reconciliation
+    "PositionRecord",
+    "ReconciliationResult",
+    "ReconciliationStatus",
+    "Reconciler",
+    "ReconcilerConfig",
+    "TransactionRecord",
+    "TransactionState",
+    "get_reconciler",
+    "reset_reconciler",
 ]

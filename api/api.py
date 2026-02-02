@@ -5211,37 +5211,87 @@ async def start_trading_engine(
 ) -> Dict[str, Any]:
     """Start the unified trading engine in background."""
     import subprocess
+    import os
+    import json
     import sys
 
     try:
-        # Check if engine is already running
-        check_result = subprocess.run(
-            ["pgrep", "-f", "run_unified_trading.py"],
-            capture_output=True,
-            text=True,
-        )
+        def _is_engine_running_windows() -> bool:
+            # Windows-only guard using heartbeat/pidfile + cmdline validation.
+            try:
+                import psutil
+            except ImportError:
+                return False
 
-        if check_result.returncode == 0:
-            return {
-                "success": True,
-                "status": "already_running",
-                "message": "Trading engine is already running",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            }
+            repo_root = Path(__file__).parent.parent
+            heartbeat_path = repo_root / "data" / "rl" / "paper_live_heartbeat.json"
+            pidfile_path = repo_root / "logs" / "paper_live.pid"
+            pid = None
+
+            if heartbeat_path.exists():
+                try:
+                    with heartbeat_path.open("r", encoding="utf-8") as f:
+                        heartbeat = json.load(f)
+                    pid = heartbeat.get("pid")
+                except (OSError, json.JSONDecodeError):
+                    pid = None
+
+            if not pid and pidfile_path.exists():
+                try:
+                    pid = int(pidfile_path.read_text(encoding="utf-8").strip().splitlines()[0])
+                except (OSError, ValueError, IndexError):
+                    pid = None
+
+            if not pid:
+                return False
+
+            try:
+                proc = psutil.Process(int(pid))
+                cmdline = " ".join(proc.cmdline())
+                return "run_unified_trading.py" in cmdline
+            except (psutil.NoSuchProcess, psutil.AccessDenied, ValueError):
+                return False
+
+        # Check if engine is already running
+        if os.name != "nt":
+            check_result = subprocess.run(
+                ["pgrep", "-f", "run_unified_trading.py"],
+                capture_output=True,
+                text=True,
+            )
+
+            if check_result.returncode == 0:
+                return {
+                    "success": True,
+                    "status": "already_running",
+                    "message": "Trading engine is already running",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }
+        else:
+            if _is_engine_running_windows():
+                return {
+                    "success": True,
+                    "status": "already_running",
+                    "message": "Trading engine is already running",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }
 
         # Start the unified trading engine
-        venv_path = Path(__file__).parent.parent / ".venv" / "bin" / "python"
+        repo_root = Path(__file__).resolve().parent.parent
+        if os.name == "nt":
+            venv_path = repo_root / ".venv" / "Scripts" / "python.exe"
+        else:
+            venv_path = repo_root / ".venv" / "bin" / "python"
         if not venv_path.exists():
-            venv_path = sys.executable
+            venv_path = Path(sys.executable)
 
-        script_path = Path(__file__).parent.parent / "run_unified_trading.py"
+        script_path = repo_root / "run_unified_trading.py"
 
-        subprocess.Popen(
-            [str(venv_path), str(script_path)],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True,
-        )
+        popen_kwargs = {"stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
+        if os.name != "nt":
+            popen_kwargs["start_new_session"] = True
+
+        subprocess.Popen([str(venv_path), str(script_path)], **popen_kwargs)
 
         return {
             "success": True,

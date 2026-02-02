@@ -1,0 +1,131 @@
+{
+  "program_name": "Phase 2B Shadow Data Collection Program",
+  "status": "STARTED",
+  "started_at": "2026-01-29T13:20:00Z",
+
+  "program_configuration": {
+    "duration_weeks": 12,
+    "min_decisions_per_day": 30,
+    "target_symbols": ["BTC/USDT", "ETH/USDT", "SOL/USDT"],
+    "regimes_tracked": ["bull", "bear", "sideways", "volatile", "recovery"],
+    "daily_health_schedule": "23:55 daily",
+    "weekly_report_schedule": "23:30 Sunday",
+    "rl_execution_authority": false,
+    "rl_advisory_only": true
+  },
+
+  "safety_constraints": {
+    "max_daily_weight_shift": 0.10,
+    "min_strategy_weight": 0.05,
+    "max_strategy_weight": 0.50,
+    "weight_update_cooldown_hours": 4,
+    "capital_preservation_enabled": true,
+    "trade_gate_enabled": true,
+    "risk_budget_enabled": true
+  },
+
+  "initial_state": {
+    "capital_preservation_level": "normal",
+    "strategy_weights": {
+      "TrendFollower": 0.20,
+      "MeanReversion": 0.20,
+      "MomentumTrader": 0.20,
+      "ShortSpecialist": 0.20,
+      "Scalper": 0.20
+    },
+    "initial_capital": 30000.0
+  },
+
+  "data_collection_status": {
+    "shadow_log_path": "data/rl/shadow_decisions.jsonl",
+    "shadow_log_entries": 50,
+    "strategy_weights_path": "data/rl/strategy_weights.json",
+    "strategy_weights_exists": true,
+    "capital_preservation_path": "data/capital_preservation_state.json",
+    "capital_preservation_exists": true
+  },
+
+  "verification_reports": {
+    "daily_health_report": {
+      "path": "data/reports/daily_shadow_health_2026-01-29.json",
+      "created_at": "2026-01-29T13:19:18.111431",
+      "overall_health": "HEALTHY",
+      "decisions_today": 13,
+      "clamp_exceeded": false
+    },
+    "weekly_evidence_report": {
+      "json_path": "data/reports/weekly_shadow_report_2026-01-29.json",
+      "markdown_path": "docs/reports/weekly_shadow_summary_2026-01-29.md",
+      "week_number": 1,
+      "total_decisions": 50,
+      "overall_edge_positive": false,
+      "note": "Test data - edge metrics will be meaningful once production data is collected"
+    }
+  },
+
+  "automation_setup": {
+    "method": "launchd (macOS)",
+    "daily_plist": "scripts/shadow/launchd/com.yapay.shadow.daily.plist",
+    "weekly_plist": "scripts/shadow/launchd/com.yapay.shadow.weekly.plist",
+    "setup_script": "scripts/shadow/setup_automation.sh",
+    "log_directory": "logs/",
+    "installation_command": "./scripts/shadow/setup_automation.sh install"
+  },
+
+  "files_created_or_initialized": [
+    "data/rl/strategy_weights.json",
+    "data/capital_preservation_state.json (reset to normal)",
+    "data/rl/shadow_decisions.jsonl (50 test entries)",
+    "data/reports/daily_shadow_health_2026-01-29.json",
+    "data/reports/weekly_shadow_report_2026-01-29.json",
+    "docs/reports/weekly_shadow_summary_2026-01-29.md",
+    "scripts/shadow/generate_test_decisions.py",
+    "scripts/shadow/setup_automation.sh",
+    "scripts/shadow/launchd/com.yapay.shadow.daily.plist",
+    "scripts/shadow/launchd/com.yapay.shadow.weekly.plist"
+  ],
+
+  "phase2c_promotion_gates": {
+    "gate_1_data_collection": {
+      "requirement": "12+ weeks",
+      "current": 1,
+      "status": "NOT MET"
+    },
+    "gate_2_positive_edge": {
+      "requirement": "Positive ΔPnL consistently",
+      "status": "PENDING - needs production data"
+    },
+    "gate_3_hit_rate": {
+      "requirement": "≥55%",
+      "status": "PENDING - needs production data"
+    },
+    "gate_4_sharpe": {
+      "requirement": "≥0.3",
+      "status": "PENDING - needs production data"
+    },
+    "gate_5_max_drawdown": {
+      "requirement": "<5%",
+      "status": "PENDING - needs production data"
+    },
+    "gate_6_btc_mitigation": {
+      "requirement": "Turnover reduction validated",
+      "status": "IMPLEMENTED - needs validation"
+    },
+    "gate_7_human_signoff": {
+      "requirement": "Documented approval",
+      "status": "PENDING - after all gates pass"
+    }
+  },
+
+  "next_steps": [
+    "1. Install automation: ./scripts/shadow/setup_automation.sh install",
+    "2. Start paper trading with shadow mode enabled",
+    "3. Monitor daily health reports for issues",
+    "4. Review weekly reports every Monday",
+    "5. Re-run Phase 2C gate evaluation after 12 weeks"
+  ],
+
+  "verification_timestamp": "2026-01-29T13:20:00Z",
+  "verification_passed": true,
+  "program_ready": true
+}

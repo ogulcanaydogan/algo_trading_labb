@@ -255,6 +255,12 @@ class OANDAAdapter(ExecutionAdapter):
             logger.error(f"Failed to get positions: {e}")
             return []
 
+    # Instruments that require integer units
+    INTEGER_UNIT_INSTRUMENTS = {
+        "SPX500_USD", "NAS100_USD", "US30_USD", "UK100_GBP",
+        "DE30_EUR", "JP225_USD", "XAU_USD", "XAG_USD",
+    }
+
     async def execute_order(self, order: Order) -> bool:
         """Execute a market order."""
         try:
@@ -262,6 +268,13 @@ class OANDAAdapter(ExecutionAdapter):
 
             # OANDA uses negative units for sell orders
             units = order.quantity if order.side == OrderSide.BUY else -order.quantity
+
+            # Some instruments (indices, metals) require integer units
+            if instrument in self.INTEGER_UNIT_INSTRUMENTS:
+                units = int(round(units))
+                if units == 0:
+                    units = 1 if order.side == OrderSide.BUY else -1
+                    logger.warning(f"Adjusted units for {instrument} to minimum: {units}")
 
             order_data = {
                 "order": {
@@ -307,8 +320,18 @@ class OANDAAdapter(ExecutionAdapter):
                 return True
 
         except requests.exceptions.HTTPError as e:
-            error_body = e.response.json() if e.response else {}
-            logger.error(f"OANDA order failed: {e} - {error_body}")
+            error_body = {}
+            error_text = ""
+            if e.response is not None:
+                try:
+                    error_body = e.response.json()
+                except Exception:
+                    error_text = e.response.text[:500] if e.response.text else "empty"
+            logger.error(
+                f"OANDA order failed: {e} | "
+                f"instrument={instrument} units={units} | "
+                f"body={error_body or error_text}"
+            )
             return False
         except Exception as e:
             logger.error(f"Failed to execute order: {e}")

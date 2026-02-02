@@ -177,6 +177,7 @@ class EnsemblePredictor:
         # Sequence buffer for DL models
         self.feature_buffer: List[np.ndarray] = []
         self.seq_length = 30  # Default, updated when loading models
+        self._dl_feature_mismatch_logged: set[str] = set()
 
     def load_models(self) -> bool:
         """Load all available models for the symbol."""
@@ -495,6 +496,21 @@ class EnsemblePredictor:
 
         for model_name, model in self.dl_models.items():
             try:
+                expected_features = None
+                if hasattr(model, "lstm"):
+                    expected_features = model.lstm.input_size
+                elif hasattr(model, "input_proj"):
+                    expected_features = model.input_proj.in_features
+
+                if expected_features is not None and sequence.shape[1] != expected_features:
+                    if model_name not in self._dl_feature_mismatch_logged:
+                        logger.warning(
+                            f"Skipping DL model {model_name}: expected {expected_features} features, "
+                            f"got {sequence.shape[1]}"
+                        )
+                        self._dl_feature_mismatch_logged.add(model_name)
+                    continue
+
                 # Scale if scaler available
                 if model_name in self.dl_scalers:
                     scaler = self.dl_scalers[model_name]

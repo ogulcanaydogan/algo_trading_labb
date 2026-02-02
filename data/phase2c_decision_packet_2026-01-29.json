@@ -1,0 +1,278 @@
+{
+  "decision_packet_version": "1.0",
+  "evaluation_date": "2026-01-29",
+  "evaluator": "Phase 2C Promotion Gatekeeper",
+
+  "VERDICT": "NO-GO",
+  "verdict_reason": "CRITICAL: Shadow data collection program has NOT been started. Zero weeks of data collected. All promotion gates FAIL.",
+
+  "evidence_audit": {
+    "required_inputs_checked": {
+      "daily_shadow_health_reports": {
+        "found": 0,
+        "required": "90+ days",
+        "path_searched": "data/reports/daily_shadow_health_*.json",
+        "status": "MISSING"
+      },
+      "weekly_shadow_reports": {
+        "found": 0,
+        "required": "12+ weeks",
+        "path_searched": "data/reports/weekly_shadow_report_*.json",
+        "status": "MISSING"
+      },
+      "weekly_markdown_summaries": {
+        "found": 0,
+        "path_searched": "docs/reports/weekly_shadow_summary_*.md",
+        "status": "MISSING"
+      },
+      "shadow_decisions_log": {
+        "entries": 0,
+        "path": "data/rl/shadow_decisions.jsonl",
+        "status": "EMPTY OR MISSING"
+      },
+      "shadow_log_jsonl": {
+        "entries": 114,
+        "path": "data/rl/shadow_log.jsonl",
+        "note": "All entries from 2026-01-29 (today) - appears to be unit test data only",
+        "actual_outcomes_recorded": 0,
+        "status": "TEST DATA ONLY - NOT PRODUCTION"
+      },
+      "strategy_weights_state": {
+        "path": "data/rl/strategy_weights.json",
+        "status": "FILE NOT FOUND"
+      },
+      "capital_preservation_state": {
+        "path": "data/capital_preservation_state.json",
+        "current_level": "lockdown",
+        "trigger_reason": "Manual: test",
+        "status": "TEST STATE - NOT PRODUCTION"
+      }
+    },
+    "evidence_conclusion": "NO PRODUCTION SHADOW DATA EXISTS. Program not yet started."
+  },
+
+  "gate_evaluation": {
+    "gate_1_data_collection": {
+      "requirement": "≥12 weeks shadow data collected (continuous, no major gaps)",
+      "status": "FAIL",
+      "weeks_collected": 0,
+      "weeks_required": 12,
+      "evidence": "No weekly_shadow_report_*.json files found. Shadow log contains only 114 test entries from today.",
+      "confidence": "HIGH (definitive failure)"
+    },
+    "gate_2_positive_edge": {
+      "requirement": "Positive net-of-cost RL incremental edge consistently",
+      "status": "FAIL",
+      "computed_value": "N/A - No data",
+      "evidence": "Cannot evaluate: no counterfactual evaluation data exists",
+      "confidence": "N/A"
+    },
+    "gate_3_hit_rate": {
+      "requirement": "Hit rate ≥55% on promoted symbol(s)",
+      "status": "FAIL",
+      "computed_value": "N/A - No data",
+      "evidence": "Cannot evaluate: no trading outcome data recorded",
+      "confidence": "N/A"
+    },
+    "gate_4_sharpe": {
+      "requirement": "Incremental Sharpe ≥0.3 on promoted symbol(s)",
+      "status": "FAIL",
+      "computed_value": "N/A - No data",
+      "evidence": "Cannot evaluate: no PnL data to calculate Sharpe ratio",
+      "confidence": "N/A"
+    },
+    "gate_5_max_drawdown": {
+      "requirement": "Max drawdown <5% under counterfactual 'follow RL' scenarios",
+      "status": "FAIL",
+      "computed_value": "N/A - No data",
+      "evidence": "Cannot evaluate: no counterfactual scenarios recorded",
+      "confidence": "N/A"
+    },
+    "gate_6_btc_mitigation": {
+      "requirement": "BTC mitigation validated OR BTC explicitly excluded from Phase 2C scope",
+      "status": "FAIL",
+      "computed_value": "N/A - No data",
+      "evidence": "BTC turnover reduction implemented but not validated - no trading data",
+      "confidence": "N/A"
+    },
+    "gate_7_human_signoff": {
+      "requirement": "Human sign-off (explicit approval checklist)",
+      "status": "FAIL",
+      "evidence": "Cannot request sign-off until all other gates pass",
+      "confidence": "N/A"
+    }
+  },
+
+  "gate_summary_table": {
+    "headers": ["Gate", "Requirement", "Status", "Value", "Required"],
+    "rows": [
+      ["1", "Data collection weeks", "FAIL", "0", "≥12"],
+      ["2", "Positive RL edge", "FAIL", "N/A", "Positive ΔPnL"],
+      ["3", "Hit rate", "FAIL", "N/A", "≥55%"],
+      ["4", "Incremental Sharpe", "FAIL", "N/A", "≥0.3"],
+      ["5", "Max drawdown", "FAIL", "N/A", "<5%"],
+      ["6", "BTC mitigation", "FAIL", "Not validated", "Validated"],
+      ["7", "Human sign-off", "FAIL", "Not requested", "Documented"]
+    ],
+    "gates_passed": 0,
+    "gates_failed": 7,
+    "gates_total": 7
+  },
+
+  "drift_and_safety_review": {
+    "status": "CANNOT EVALUATE",
+    "reason": "No production data exists for drift or safety analysis",
+    "checks_required": [
+      "TradeGate rejection distribution shifts",
+      "CapitalPreservation escalation frequency",
+      "Clamp violation monitoring",
+      "Strategy weight oscillation detection",
+      "Turnover trend analysis"
+    ],
+    "current_capital_preservation_state": {
+      "level": "lockdown",
+      "note": "Test state from manual trigger - not indicative of production behavior"
+    }
+  },
+
+  "remediation_tasks": {
+    "priority_order": "Sequential - each task depends on prior completion",
+    "tasks": [
+      {
+        "priority": 1,
+        "task": "START shadow data collection program",
+        "description": "Enable shadow collector in paper trading and begin actual trading with shadow logging",
+        "blocking": true,
+        "effort": "Configuration change",
+        "timeline": "Immediate",
+        "verification": "daily_shadow_health reports being generated"
+      },
+      {
+        "priority": 2,
+        "task": "Run paper trading with shadow mode for 12+ weeks",
+        "description": "Collect minimum 12 weeks of continuous shadow data with actual trading outcomes",
+        "blocking": true,
+        "effort": "12 weeks elapsed time",
+        "timeline": "3 months minimum",
+        "verification": "12+ weekly_shadow_report_*.json files exist with valid data"
+      },
+      {
+        "priority": 3,
+        "task": "Generate and review weekly reports",
+        "description": "Run run_weekly_shadow_report.py each week and review for positive edge",
+        "blocking": true,
+        "effort": "Weekly manual review",
+        "timeline": "Throughout 12 weeks",
+        "verification": "Weekly reports show metrics, not N/A values"
+      },
+      {
+        "priority": 4,
+        "task": "Validate BTC turnover reduction effectiveness",
+        "description": "Analyze BTC-specific metrics using btc_diagnosis.py, confirm turnover reduced",
+        "blocking": true,
+        "effort": "Analysis after 4+ weeks BTC data",
+        "timeline": "Week 4-12",
+        "verification": "BTC degradation improved or BTC excluded from scope"
+      },
+      {
+        "priority": 5,
+        "task": "Achieve Gate 2-5 thresholds",
+        "description": "Counterfactual analysis must show positive edge, hit rate ≥55%, Sharpe ≥0.3, DD <5%",
+        "blocking": true,
+        "effort": "May require tuning confidence thresholds",
+        "timeline": "Week 8-12",
+        "verification": "Weekly reports consistently pass thresholds"
+      },
+      {
+        "priority": 6,
+        "task": "Request human sign-off",
+        "description": "Present complete evidence package to stakeholders for approval",
+        "blocking": true,
+        "effort": "Review meeting",
+        "timeline": "After week 12 if all other gates pass",
+        "verification": "Documented approval with signatures"
+      }
+    ]
+  },
+
+  "phase_2c_scope_proposal": {
+    "status": "NOT APPLICABLE",
+    "reason": "Cannot propose scope until all gates pass",
+    "note": "When gates pass, recommend starting with ETH-only, strategy selection advisory only"
+  },
+
+  "rollback_triggers": {
+    "status": "DEFINED FOR FUTURE USE",
+    "note": "These triggers will apply once Phase 2C is approved",
+    "triggers": [
+      {
+        "name": "Daily loss threshold",
+        "threshold": "≥1.5% daily loss",
+        "action": "Disable RL advisory, revert to baseline"
+      },
+      {
+        "name": "Weekly drawdown",
+        "threshold": ">3% weekly drawdown",
+        "action": "Disable RL advisory, full review"
+      },
+      {
+        "name": "Hit rate collapse",
+        "threshold": "Hit rate drops below 45% over 2 weeks",
+        "action": "Disable RL advisory"
+      },
+      {
+        "name": "Sharpe deterioration",
+        "threshold": "Sharpe drops below 0.1 for 2 consecutive weeks",
+        "action": "Disable RL advisory"
+      },
+      {
+        "name": "CapitalPreservation escalation",
+        "threshold": "≥3 escalations in 1 week",
+        "action": "Immediate RL disable"
+      },
+      {
+        "name": "Turnover spike",
+        "threshold": ">50% increase in daily trades vs baseline",
+        "action": "Review and potentially disable"
+      },
+      {
+        "name": "Data integrity",
+        "threshold": "Any missing shadow log entries or report generation failures",
+        "action": "Pause until resolved"
+      }
+    ]
+  },
+
+  "human_signoff_checklist": {
+    "status": "NOT READY FOR SIGNOFF",
+    "reason": "Gates 1-6 must pass before requesting signoff",
+    "checklist_for_future": [
+      "[ ] 12+ weeks shadow data collected continuously",
+      "[ ] All weekly reports reviewed and archived",
+      "[ ] Positive RL edge in ≥10 of 12 weeks",
+      "[ ] Edge stable across multiple regimes (not just one)",
+      "[ ] BTC mitigation validated or BTC excluded",
+      "[ ] No critical alerts in past 4 weeks",
+      "[ ] Rollback triggers documented and tested",
+      "[ ] Stakeholder review meeting completed",
+      "[ ] Risk committee approval documented",
+      "[ ] Release manager sign-off"
+    ]
+  },
+
+  "next_steps": [
+    "1. IMMEDIATE: Start paper trading with shadow collector enabled",
+    "2. DAILY: Run run_daily_shadow_health.py and monitor",
+    "3. WEEKLY: Run run_weekly_shadow_report.py --week N and review",
+    "4. WEEK 12+: Re-run this gate evaluation with actual data",
+    "5. DO NOT attempt Phase 2C promotion until this evaluation passes"
+  ],
+
+  "metadata": {
+    "generated_at": "2026-01-29T13:00:00Z",
+    "evaluation_duration_seconds": 60,
+    "files_checked": 6,
+    "decision_confidence": "HIGH",
+    "appeal_process": "Re-run evaluation after 12+ weeks of data collection"
+  }
+}

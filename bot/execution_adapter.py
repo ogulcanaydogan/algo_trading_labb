@@ -346,7 +346,8 @@ class PaperExecutionAdapter(ExecutionAdapter):
         # Check if we have enough balance
         if order.side == OrderSide.BUY:
             required = order.quantity * fill_price + commission
-            if required > self._balance:
+            balance = self._balance if self._balance is not None else self.initial_balance
+            if required > balance:
                 return OrderResult(
                     success=False,
                     order_id=order_id,
@@ -357,7 +358,10 @@ class PaperExecutionAdapter(ExecutionAdapter):
                     simulated=True,
                 )
 
-        # Execute the simulated order
+        # Execute the simulated order - ensure balance is initialized
+        if self._balance is None:
+            self._balance = self.initial_balance
+
         if order.side == OrderSide.BUY:
             self._balance -= order.quantity * fill_price + commission
             # Update or create position
@@ -465,12 +469,20 @@ class PaperExecutionAdapter(ExecutionAdapter):
     async def get_balance(self) -> Balance:
         """Get current balance."""
         positions = await self.get_all_positions()
-        in_positions = sum(p.value for p in positions)
-        unrealized_pnl = sum(p.unrealized_pnl for p in positions)
+        # Safely sum with None handling
+        in_positions = sum(
+            p.value if p.value is not None else 0.0
+            for p in positions
+        )
+        unrealized_pnl = sum(
+            p.unrealized_pnl if p.unrealized_pnl is not None else 0.0
+            for p in positions
+        )
+        balance = self._balance if self._balance is not None else 0.0
 
         return Balance(
-            total=self._balance + in_positions + unrealized_pnl,
-            available=self._balance,
+            total=balance + in_positions + unrealized_pnl,
+            available=balance,
             in_positions=in_positions,
             unrealized_pnl=unrealized_pnl,
         )

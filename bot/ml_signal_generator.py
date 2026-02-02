@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 
+from bot.exchange import ExchangeClient
 from bot.multi_timeframe import MultiTimeframeAnalyzer, confirm_signal_mtf
 from bot.ml_performance_tracker import get_ml_tracker, track_prediction
 from bot.ml.feature_engineer import FeatureEngineer
@@ -57,7 +58,7 @@ class MLSignalGenerator:
         self,
         model_dir: Path = Path("data/models"),
         model_type: str = "gradient_boosting",
-        confidence_threshold: float = 0.65,  # Balanced threshold for more trades
+        confidence_threshold: float = 0.60,  # Lower threshold for more active trading
         use_mtf_filter: bool = True,
         mtf_strict_mode: bool = True,  # Strict MTF filtering - reject counter-trend signals
         regime_adaptive_threshold: bool = True,  # Adjust threshold based on market regime
@@ -80,6 +81,7 @@ class MLSignalGenerator:
             str, EnsemblePredictor
         ] = {}  # Ensemble predictors per symbol
         self._price_cache: Dict[str, pd.DataFrame] = {}
+        self._exchange_client: Optional[ExchangeClient] = None
         self._mtf_analyzer = MultiTimeframeAnalyzer()
         self._feature_engineer = FeatureEngineer()  # Use same feature engineering as training
         self._initialized = False
@@ -91,6 +93,16 @@ class MLSignalGenerator:
         self._monitor_min_samples = 50
         self._last_monitor_check: Optional[datetime] = None
         self._last_monitor_summary: Dict[str, Any] = {}
+        self.last_block_reason: str = ""
+        self.last_block_stage: str = ""
+        self._last_fetch_source: str = ""
+        self._last_fetch_timeframe: str = ""
+        self._last_fetch_rows: int = 0
+        self._last_fetch_first_ts: Optional[str] = None
+        self._last_fetch_last_ts: Optional[str] = None
+        self._last_features_count: Optional[int] = None
+        self._last_gate_trace_by_symbol: Dict[str, Dict[str, Any]] = {}
+        self._last_gate_trace_log_ts: Dict[str, datetime] = {}
 
         if self._monitor_enabled:
             try:
@@ -98,6 +110,16 @@ class MLSignalGenerator:
             except Exception as e:
                 self._monitor_enabled = False
                 logger.debug(f"Model monitor unavailable: {e}")
+
+    def _clear_block_reason(self) -> None:
+        self.last_block_reason = ""
+        self.last_block_stage = ""
+
+    def _set_block_reason(self, stage: str, reason: str, overwrite: bool = True) -> None:
+        if not overwrite and self.last_block_reason:
+            return
+        self.last_block_stage = stage
+        self.last_block_reason = reason
 
     def initialize(self, symbols: List[str]) -> bool:
         """Initialize models for given symbols with intelligent fallback."""
@@ -519,7 +541,12 @@ class MLSignalGenerator:
             if asset_type in ["forex", "commodity", "index"]:
                 return self._fetch_oanda_prices(symbol)
 
-            # Use Yahoo Finance for crypto
+            # Use CCXT for crypto, fallback to Yahoo Finance
+            if asset_type == "crypto":
+                df = self._fetch_ccxt_prices(symbol, timeframe="1h", limit=200)
+                if df is not None and not df.empty:
+                    return df
+
             return self._fetch_yfinance_prices(symbol, period)
 
         except Exception as e:
@@ -648,11 +675,87 @@ class MLSignalGenerator:
 
             # Cache the data
             self._price_cache[symbol] = df
+            self._last_fetch_source = "yfinance"
+            self._last_fetch_timeframe = "1h"
+            self._last_fetch_rows = len(df)
+            if not df.empty:
+                self._last_fetch_first_ts = df.index[0].isoformat()
+                self._last_fetch_last_ts = df.index[-1].isoformat()
             return df
 
         except Exception as e:
             logger.warning(f"YFinance fetch failed for {symbol}: {e}")
             return self._price_cache.get(symbol)
+
+    def _fetch_ccxt_prices(
+        self, symbol: str, timeframe: str = "1h", limit: int = 200
+    ) -> Optional[pd.DataFrame]:
+        """Fetch price data from CCXT for crypto symbols."""
+        try:
+            if self._exchange_client is None:
+                self._exchange_client = ExchangeClient(exchange_id="binance")
+            df = self._exchange_client.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
+            if df is None or df.empty:
+                return None
+            self._price_cache[symbol] = df
+            self._last_fetch_source = "ccxt"
+            self._last_fetch_timeframe = timeframe
+            self._last_fetch_rows = len(df)
+            self._last_fetch_first_ts = df.index[0].isoformat()
+            self._last_fetch_last_ts = df.index[-1].isoformat()
+            return df
+        except Exception as e:
+            logger.warning(f"CCXT fetch failed for {symbol}: {e}")
+            return None
+
+    def _build_gate_trace(
+        self,
+        symbol: str,
+        stage: str,
+        reason: str,
+        action: Optional[str] = None,
+        confidence: Optional[float] = None,
+        threshold: Optional[float] = None,
+        trend: Optional[Any] = None,
+        model: Optional[str] = None,
+        features_count: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        return {
+            "stage": stage,
+            "reason": reason,
+            "symbol": symbol,
+            "source": self._last_fetch_source or "unknown",
+            "timeframe": self._last_fetch_timeframe or "n/a",
+            "rows": self._last_fetch_rows,
+            "trend": trend,
+            "confidence": confidence,
+            "threshold": threshold,
+            "features_count": features_count,
+            "model": model,
+            "action": action,
+            "ts": datetime.now().isoformat(),
+        }
+
+    def _log_gate_trace_rate_limited(self, symbol: str, gate_trace: Dict[str, Any]) -> None:
+        now = datetime.now()
+        last = self._last_gate_trace_log_ts.get(symbol)
+        if last and (now - last).total_seconds() < 300:
+            return
+        self._last_gate_trace_log_ts[symbol] = now
+        logger.info(
+            "[%s] gate_trace stage=%s reason=%s confidence=%s threshold=%s features=%s source=%s rows=%s",
+            symbol,
+            gate_trace.get("stage"),
+            gate_trace.get("reason"),
+            gate_trace.get("confidence"),
+            gate_trace.get("threshold"),
+            gate_trace.get("features_count"),
+            gate_trace.get("source"),
+            gate_trace.get("rows"),
+        )
+
+    def get_last_gate_trace(self, symbol: str) -> Optional[Dict[str, Any]]:
+        return self._last_gate_trace_by_symbol.get(symbol)
 
     async def generate_signal(self, symbol: str, current_price: float) -> Optional[Dict[str, Any]]:
         """
@@ -666,6 +769,7 @@ class MLSignalGenerator:
             - regime: current market regime
             - regime_strategy: dict with position_size_multiplier, stop_loss_pct, etc.
         """
+        self._clear_block_reason()
         if not self._initialized:
             self.initialize([symbol])
 
@@ -673,7 +777,22 @@ class MLSignalGenerator:
         logger.info(f"[{symbol}] Generating signal at price ${current_price:.2f}")
         df = self._fetch_prices(symbol)
         if df is None or len(df) < 50:
-            logger.warning(f"[{symbol}] Insufficient data: {len(df) if df is not None else 0} rows")
+            rows = len(df) if df is not None else 0
+            logger.warning(
+                f"[{symbol}] Insufficient data: {rows} rows "
+                f"(source={self._last_fetch_source or 'unknown'}, "
+                f"timeframe={self._last_fetch_timeframe or 'n/a'}, "
+                f"first_ts={self._last_fetch_first_ts}, "
+                f"last_ts={self._last_fetch_last_ts})"
+            )
+            self._set_block_reason("data_fetch", f"insufficient_data:{rows}")
+            gate_trace = self._build_gate_trace(
+                symbol=symbol,
+                stage="data_fetch",
+                reason=f"insufficient_data:{rows}",
+            )
+            self._last_gate_trace_by_symbol[symbol] = gate_trace
+            self._log_gate_trace_rate_limited(symbol, gate_trace)
             return None
         logger.debug(f"[{symbol}] Fetched {len(df)} price rows")
 
@@ -681,22 +800,32 @@ class MLSignalGenerator:
         regime_strategy = self.get_regime_strategy(df)
 
         # Use ensemble predictor if available (higher accuracy)
+        stage = "technical"
         if symbol in self.ensemble_predictors:
+            stage = "ensemble"
             signal = await self._ensemble_signal(symbol, df, current_price)
         # Fall back to single ML model
         elif symbol in self.models:
+            stage = "ml"
             signal = await self._ml_signal(symbol, df, current_price)
         else:
             # Fallback to technical analysis
             signal = await self._technical_signal(symbol, df, current_price)
 
+        if signal is None:
+            self._set_block_reason(stage, f"{stage}_no_signal", overwrite=False)
+
         # If no signal from main strategies, try scalping (sideways market mean reversion)
         if signal is None and self.use_scalping:
             signal = await self._scalping_signal(symbol, df, current_price)
+            if signal is None:
+                self._set_block_reason("scalping", "scalping_no_signal", overwrite=False)
 
-        # Apply multi-timeframe filter
-        if signal and self.use_mtf_filter:
+        # Apply multi-timeframe filter (skip for scalping signals - mean reversion works in any trend)
+        if signal and self.use_mtf_filter and signal.get("model_type") != "scalping":
             signal = self._apply_mtf_filter(signal, df)
+            if signal is None:
+                self._set_block_reason("mtf_filter", "mtf_rejected", overwrite=False)
 
         # Enrich signal with regime strategy info
         if signal:
@@ -711,6 +840,44 @@ class MLSignalGenerator:
                 )
                 signal["confidence"] = adjusted_conf
                 signal["regime_confidence_adjustment"] = regime_strategy["confidence_adjustment"]
+
+        if signal is None:
+            gate_trace = self._build_gate_trace(
+                symbol=symbol,
+                stage=self.last_block_stage or "unknown",
+                reason=self.last_block_reason or "unknown",
+                trend=None,
+                confidence=None,
+                threshold=None,
+                model=stage,
+                features_count=self._last_features_count,
+            )
+            self._last_gate_trace_by_symbol[symbol] = gate_trace
+            self._log_gate_trace_rate_limited(symbol, gate_trace)
+            return None
+
+        if self._last_features_count is None:
+            try:
+                features = self._extract_features(df)
+                if features is not None:
+                    self._last_features_count = int(features.shape[1])
+            except Exception:
+                self._last_features_count = None
+
+        gate_trace = self._build_gate_trace(
+            symbol=symbol,
+            stage="passed",
+            reason="signal_generated",
+            action=signal.get("action"),
+            confidence=signal.get("confidence"),
+            threshold=signal.get("threshold_used"),
+            trend=signal.get("trend"),
+            model=signal.get("model_type", stage),
+            features_count=self._last_features_count,
+        )
+        signal["gate_trace"] = gate_trace
+        self._last_gate_trace_by_symbol[symbol] = gate_trace
+        self._log_gate_trace_rate_limited(symbol, gate_trace)
 
         return signal
 
@@ -740,6 +907,7 @@ class MLSignalGenerator:
                 if self.mtf_strict_mode:
                     # Reject the signal entirely in strict mode
                     logger.info(f"MTF filter rejected {action}: {reason}")
+                    self._set_block_reason("mtf_filter", f"mtf_rejected:{reason}")
                     return None
                 else:
                     # Paper mode: minimal penalty for counter-trend, never reject
@@ -766,6 +934,7 @@ class MLSignalGenerator:
 
         except Exception as e:
             logger.warning(f"MTF filter error: {e}")
+            self._set_block_reason("mtf_filter", f"mtf_error:{type(e).__name__}", overwrite=False)
             return signal  # Return original signal on error
 
     async def _ensemble_signal(
@@ -780,6 +949,7 @@ class MLSignalGenerator:
             features = self._extract_features(df)
             if features is None:
                 logger.warning(f"Failed to extract features for {symbol}")
+                self._set_block_reason("ensemble", "ensemble_feature_extract_failed", overwrite=False)
                 return await self._ml_signal(symbol, df, current_price)
 
             # Get ensemble prediction
@@ -792,6 +962,7 @@ class MLSignalGenerator:
             elif prediction == -1:
                 action = "SHORT"  # Changed from SELL to open short positions
             else:
+                self._set_block_reason("ensemble", "ensemble_flat")
                 return None  # Flat - no signal
 
             # HARD BLOCK counter-trend trades (same logic as TA signals)
@@ -802,9 +973,11 @@ class MLSignalGenerator:
 
             if trend == "up" and action == "SHORT":
                 logger.info(f"[{symbol}] Ensemble SHORT blocked - strong uptrend (EMA trend: {ema_trend:.4f})")
+                self._set_block_reason("ensemble", "ensemble_trend_blocked")
                 return None
             elif trend == "down" and action == "BUY":
                 logger.info(f"[{symbol}] Ensemble BUY blocked - strong downtrend (EMA trend: {ema_trend:.4f})")
+                self._set_block_reason("ensemble", "ensemble_trend_blocked")
                 return None
 
             raw_confidence = confidence
@@ -814,13 +987,14 @@ class MLSignalGenerator:
             )
 
             threshold = self._get_adaptive_threshold(action) + threshold_adj
-            threshold = max(0.35, min(0.85, threshold))
+            threshold = max(0.30, min(0.80, threshold))  # Lower threshold range for more trades
 
             # Check against threshold
             if adjusted_confidence < threshold:
-                logger.debug(
-                    f"{symbol}: Ensemble {action} rejected ({adjusted_confidence:.2f} < {threshold:.2f})"
+                logger.info(
+                    f"[{symbol}] Ensemble {action} rejected: confidence {adjusted_confidence:.2f} < threshold {threshold:.2f}"
                 )
+                self._set_block_reason("ensemble", "ensemble_confidence_below_threshold")
                 return None
 
             regime_info = f" [regime:{self._current_regime}]" if self._current_regime else ""
@@ -868,6 +1042,9 @@ class MLSignalGenerator:
 
         except Exception as e:
             logger.warning(f"Ensemble prediction failed for {symbol}: {e}")
+            self._set_block_reason(
+                "ensemble", f"ensemble_exception:{type(e).__name__}", overwrite=False
+            )
             # Fall back to single model
             if symbol in self.models:
                 return await self._ml_signal(symbol, df, current_price)
@@ -894,6 +1071,7 @@ class MLSignalGenerator:
             X = np.where(np.isinf(X), np.nan, X)
             X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)
 
+            self._last_features_count = int(X.shape[1])
             logger.debug(f"Extracted {X.shape[1]} features for ensemble prediction")
             return X
 
@@ -989,6 +1167,7 @@ class MLSignalGenerator:
                         f"{symbol}: No signal (L:{calibrated_long:.2f}<{long_threshold:.2f}, "
                         f"S:{calibrated_short:.2f}<{short_threshold:.2f}, regime:{self._current_regime})"
                     )
+                self._set_block_reason("ml", "ml_no_clear_signal")
                 return None  # No clear signal
 
             # HARD BLOCK counter-trend trades (same logic as TA and ensemble signals)
@@ -998,9 +1177,11 @@ class MLSignalGenerator:
 
             if trend == "up" and action == "SHORT":
                 logger.info(f"[{symbol}] ML SHORT blocked - strong uptrend (EMA trend: {ema_trend:.4f})")
+                self._set_block_reason("ml", "ml_trend_blocked")
                 return None
             elif trend == "down" and action == "BUY":
                 logger.info(f"[{symbol}] ML BUY blocked - strong downtrend (EMA trend: {ema_trend:.4f})")
+                self._set_block_reason("ml", "ml_trend_blocked")
                 return None
 
             regime_info = f" [regime:{self._current_regime}]" if self._current_regime else ""
@@ -1013,6 +1194,7 @@ class MLSignalGenerator:
                 logger.debug(
                     f"{symbol}: ML {action} rejected ({adjusted_confidence:.2f} < {threshold_used:.2f})"
                 )
+                self._set_block_reason("ml", "ml_confidence_below_threshold")
                 return None
 
             # monitor_features and trend already calculated above for trend blocking
@@ -1060,6 +1242,7 @@ class MLSignalGenerator:
 
         except Exception as e:
             logger.warning(f"ML prediction failed for {symbol}: {e}")
+            self._set_block_reason("ml", f"ml_exception:{type(e).__name__}", overwrite=False)
             return await self._technical_signal(symbol, df, current_price)
 
     async def _technical_signal(
@@ -1228,6 +1411,7 @@ class MLSignalGenerator:
                 logger.info(f"[{symbol}] TA signal: {action} @ {confidence:.0%}")
             else:
                 logger.info(f"[{symbol}] TA: No clear signal (buy={buy_score:.1f}, sell={sell_score:.1f})")
+                self._set_block_reason("technical", "technical_no_clear_signal")
                 return None  # No clear signal
 
             # Track technical prediction
@@ -1278,6 +1462,9 @@ class MLSignalGenerator:
 
         except Exception as e:
             logger.warning(f"Technical analysis failed for {symbol}: {e}")
+            self._set_block_reason(
+                "technical", f"technical_exception:{type(e).__name__}", overwrite=False
+            )
             return None
 
     async def _scalping_signal(
@@ -1291,6 +1478,7 @@ class MLSignalGenerator:
         """
         try:
             if len(df) < 50:
+                self._set_block_reason("scalping", "scalping_insufficient_data")
                 return None
 
             # Calculate indicators
@@ -1305,6 +1493,7 @@ class MLSignalGenerator:
 
             # Only scalp in sideways markets (ADX < 25)
             if adx >= 25:
+                self._set_block_reason("scalping", "scalping_trend_too_strong")
                 return None
 
             # RSI
@@ -1324,18 +1513,20 @@ class MLSignalGenerator:
             reason = ""
 
             # Mean reversion: Buy at lower band, sell at upper band
-            if bb_position < 0.15 and rsi < 35:
+            # More lenient conditions for more trade opportunities
+            if bb_position < 0.25 and rsi < 40:
                 # Price near lower band + oversold RSI = BUY scalp
                 action = "BUY"
-                confidence = 0.70 + (0.15 - bb_position) * 0.5 + (35 - rsi) / 100
+                confidence = 0.65 + (0.25 - bb_position) * 0.4 + (40 - rsi) / 100
                 reason = f"Scalp BUY: BB position {bb_position:.2f}, RSI {rsi:.1f}, ADX {adx:.1f}"
-            elif bb_position > 0.85 and rsi > 65:
+            elif bb_position > 0.75 and rsi > 60:
                 # Price near upper band + overbought RSI = SELL scalp
                 action = "SHORT"
-                confidence = 0.70 + (bb_position - 0.85) * 0.5 + (rsi - 65) / 100
+                confidence = 0.65 + (bb_position - 0.75) * 0.4 + (rsi - 60) / 100
                 reason = f"Scalp SHORT: BB position {bb_position:.2f}, RSI {rsi:.1f}, ADX {adx:.1f}"
 
             if action is None:
+                self._set_block_reason("scalping", "scalping_no_setup")
                 return None
 
             confidence = min(0.90, confidence)
@@ -1361,13 +1552,16 @@ class MLSignalGenerator:
 
         except Exception as e:
             logger.warning(f"Scalping signal failed for {symbol}: {e}")
+            self._set_block_reason(
+                "scalping", f"scalping_exception:{type(e).__name__}", overwrite=False
+            )
             return None
 
 
 def create_signal_generator(
     symbols: List[str],
     model_type: str = "gradient_boosting",
-    confidence_threshold: float = 0.65,
+    confidence_threshold: float = 0.60,
     use_mtf_filter: bool = True,
     mtf_strict_mode: bool = True,
     use_ensemble: bool = True,
@@ -1378,7 +1572,7 @@ def create_signal_generator(
     Args:
         symbols: List of symbols to trade
         model_type: Fallback model type if ensemble unavailable
-        confidence_threshold: Minimum confidence to generate signal (0.70 for better win rate)
+        confidence_threshold: Minimum confidence to generate signal (0.60 for active trading)
         use_mtf_filter: Enable multi-timeframe trend filtering
         mtf_strict_mode: Reject signals that don't align with higher timeframes (True improves quality)
         use_ensemble: Use ensemble predictor for higher accuracy (recommended)

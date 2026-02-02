@@ -342,11 +342,21 @@ class MultiAssetAdapter(ExecutionAdapter):
                 balance = await adapter.get_balance()
                 if balance is None:
                     continue
-                if hasattr(balance, "total") and balance.total is not None:
-                    total += balance.total or 0.0
-                    available += balance.available or 0.0
-                    in_positions += balance.in_positions or 0.0
-                    unrealized_pnl += balance.unrealized_pnl or 0.0
+                if hasattr(balance, "total"):
+                    # Safely extract values with None handling
+                    b_total = getattr(balance, "total", None)
+                    b_avail = getattr(balance, "available", None)
+                    b_in_pos = getattr(balance, "in_positions", None)
+                    b_unrealized = getattr(balance, "unrealized_pnl", None)
+
+                    if b_total is not None:
+                        total += float(b_total)
+                    if b_avail is not None:
+                        available += float(b_avail)
+                    if b_in_pos is not None:
+                        in_positions += float(b_in_pos)
+                    if b_unrealized is not None:
+                        unrealized_pnl += float(b_unrealized)
                 elif balance is not None:
                     # Simple float balance
                     try:
@@ -437,7 +447,8 @@ def create_broker_router(mode: str = "paper", config: Optional[Dict] = None) -> 
     from bot.execution_adapter import create_execution_adapter
 
     # Create crypto adapter (Binance)
-    crypto_adapter = create_execution_adapter(mode, config)
+    initial_balance = config.get("initial_balance", 30000.0) if config else 30000.0
+    crypto_adapter = create_execution_adapter(mode, initial_balance=initial_balance)
 
     # Create stock adapter (Alpaca) - paper mode by default
     # Always try to create if credentials exist

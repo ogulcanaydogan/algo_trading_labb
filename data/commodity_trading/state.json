@@ -1,82 +1,21 @@
 {
-  "timestamp": "2026-01-16T14:58:23.369033",
+  "timestamp": "2026-01-26T22:30:00.000000",
   "market_type": "commodity",
-  "total_value": 9954.015154933753,
-  "cash_balance": 4142.430706468773,
+  "total_value": 10000.0,
+  "cash_balance": 10000.0,
   "initial_capital": 10000.0,
-  "pnl": -45.984845066246635,
-  "pnl_pct": -0.4598484506624663,
-  "positions": {
-    "XAG/USD": {
-      "quantity": 18.729153,
-      "price": 89.17500305175781,
-      "value": 1670.172275931839
-    },
-    "USOIL/USD": {
-      "quantity": 27.748752,
-      "price": 59.439998626708984,
-      "value": 1649.3857807728882
-    },
-    "XAU/USD": {
-      "quantity": 0.540265,
-      "price": 4612.60009765625,
-      "value": 2492.026391760254
-    }
-  },
-  "positions_count": 3,
-  "current_weights": {
-    "XAG/USD": 0.16778880179864006,
-    "USOIL/USD": 0.16570054948684326,
-    "XAU/USD": 0.25035388764955513
-  },
+  "pnl": 0.0,
+  "pnl_pct": 0.0,
+  "positions": {},
+  "positions_count": 0,
+  "current_weights": {},
   "optimization_method": "risk_parity",
-  "signals": {
-    "XAU/USD": {
-      "signal": "FLAT",
-      "regime": "sideways",
-      "confidence": 0.6129032258064515,
-      "price": 4612.60009765625
-    },
-    "XAG/USD": {
-      "signal": "FLAT",
-      "regime": "volatile",
-      "confidence": 0.6624472573839663,
-      "price": 89.17500305175781
-    },
-    "USOIL/USD": {
-      "signal": "FLAT",
-      "regime": "volatile",
-      "confidence": 0.6624472573839663,
-      "price": 59.439998626708984
-    },
-    "NATGAS/USD": {
-      "signal": "FLAT",
-      "regime": "volatile",
-      "confidence": 0.6624472573839663,
-      "price": 3.0899999141693115
-    }
-  },
+  "signals": {},
   "commodities": {
-    "XAU/USD": {
-      "name": "Gold",
-      "yf_symbol": "GC=F",
-      "price": 4612.60009765625
-    },
-    "XAG/USD": {
-      "name": "Silver",
-      "yf_symbol": "SI=F",
-      "price": 89.17500305175781
-    },
-    "USOIL/USD": {
-      "name": "Crude Oil",
-      "yf_symbol": "CL=F",
-      "price": 59.439998626708984
-    },
-    "NATGAS/USD": {
-      "name": "Natural Gas",
-      "yf_symbol": "NG=F",
-      "price": 3.0899999141693115
-    }
+    "XAU/USD": {"name": "Gold", "yf_symbol": "GC=F"},
+    "XAG/USD": {"name": "Silver", "yf_symbol": "SI=F"},
+    "USOIL/USD": {"name": "Crude Oil", "yf_symbol": "CL=F"},
+    "NATGAS/USD": {"name": "Natural Gas", "yf_symbol": "NG=F"}
   },
   "deep_learning_enabled": false,
   "ml_signals_enabled": true

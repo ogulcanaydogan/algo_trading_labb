@@ -1,91 +1,17 @@
 {
-  "timestamp": "2026-01-16T14:58:07.289506",
+  "timestamp": "2026-01-26T22:30:00.000000",
   "market_type": "stock",
-  "total_value": 9989.673638591072,
-  "cash_balance": 0.014949769787214295,
+  "total_value": 10000.0,
+  "cash_balance": 10000.0,
   "initial_capital": 10000.0,
-  "pnl": -10.326361408928278,
-  "pnl_pct": -0.10326361408928278,
-  "positions": {
-    "MSFT": {
-      "quantity": 3.734983,
-      "price": 458.3399963378906,
-      "value": 1711.892094542084
-    },
-    "AAPL": {
-      "quantity": 6.069201,
-      "price": 257.2049865722656,
-      "value": 1561.0287617093811
-    },
-    "AMZN": {
-      "quantity": 10.169161,
-      "price": 237.64999389648438,
-      "value": 2416.701049582367
-    },
-    "GOOGL": {
-      "quantity": 5.154739,
-      "price": 331.5199890136719,
-      "value": 1708.899016648346
-    },
-    "NVDA": {
-      "quantity": 13.631712442230109,
-      "price": 190.08160400390625,
-      "value": 2591.1377663391054
-    }
-  },
-  "positions_count": 5,
-  "current_weights": {
-    "MSFT": 0.171366168352976,
-    "AAPL": 0.15626424027297314,
-    "AMZN": 0.24191992021104852,
-    "GOOGL": 0.17106655116806865,
-    "NVDA": 0.2593816234725918
-  },
+  "pnl": 0.0,
+  "pnl_pct": 0.0,
+  "positions": {},
+  "positions_count": 0,
+  "current_weights": {},
   "optimization_method": "risk_parity",
-  "signals": {
-    "AAPL": {
-      "signal": "SHORT",
-      "regime": "volatile",
-      "confidence": 0.5775716694772344,
-      "price": 257.2049865722656,
-      "dl_prediction": null
-    },
-    "MSFT": {
-      "signal": "FLAT",
-      "regime": "strong_bear",
-      "confidence": 0.5145518672315453,
-      "price": 458.3399963378906,
-      "dl_prediction": null
-    },
-    "GOOGL": {
-      "signal": "FLAT",
-      "regime": "strong_bull",
-      "confidence": 0.4738129040684465,
-      "price": 331.5199890136719,
-      "dl_prediction": null
-    },
-    "NVDA": {
-      "signal": "FLAT",
-      "regime": "sideways",
-      "confidence": 0.6129032258064515,
-      "price": 190.08160400390625,
-      "dl_prediction": null
-    },
-    "AMZN": {
-      "signal": "FLAT",
-      "regime": "volatile",
-      "confidence": 0.6954314720812182,
-      "price": 237.64999389648438,
-      "dl_prediction": null
-    }
-  },
+  "signals": {},
   "deep_learning_enabled": false,
   "dl_model_selection": null,
-  "stocks": [
-    "AAPL",
-    "MSFT",
-    "GOOGL",
-    "NVDA",
-    "AMZN"
-  ]
+  "stocks": ["AAPL", "MSFT", "GOOGL", "NVDA", "AMZN"]
 }

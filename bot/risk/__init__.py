@@ -60,6 +60,26 @@ from .stress_testing import (
     create_stress_test_engine,
 )
 
+from .trade_gate import (
+    GateConfig,
+    GateDecision,
+    GateResult,
+    GateScore,
+    TradeGate,
+    TradeRequest,
+    get_trade_gate,
+    reset_trade_gate,
+)
+
+from .risk_budget_engine import (
+    PortfolioRiskState,
+    RiskBudget,
+    RiskBudgetConfig,
+    RiskBudgetEngine,
+    get_risk_budget_engine,
+    reset_risk_budget_engine,
+)
+
 __all__ = [
     # Drawdown recovery
     "DrawdownRecoveryManager",
@@ -104,4 +124,20 @@ __all__ = [
     "HypotheticalScenarios",
     "StressTestEngine",
     "create_stress_test_engine",
+    # Trade Gate
+    "GateConfig",
+    "GateDecision",
+    "GateResult",
+    "GateScore",
+    "TradeGate",
+    "TradeRequest",
+    "get_trade_gate",
+    "reset_trade_gate",
+    # Risk Budget Engine
+    "PortfolioRiskState",
+    "RiskBudget",
+    "RiskBudgetConfig",
+    "RiskBudgetEngine",
+    "get_risk_budget_engine",
+    "reset_risk_budget_engine",
 ]

@@ -1,0 +1,47 @@
+{
+  "symbols": [
+    {
+      "symbol": "XRP/USDT",
+      "last_decision_time": null,
+      "decisions_today": 0,
+      "decisions_today_date": "2026-01-31",
+      "blocked_today": 97,
+      "blocked_reasons": {
+        "ev_cost": 97
+      },
+      "estimated_cost_drag": 860.3587526802297
+    },
+    {
+      "symbol": "ADA/USDT",
+      "last_decision_time": null,
+      "decisions_today": 0,
+      "decisions_today_date": "2026-01-31",
+      "blocked_today": 107,
+      "blocked_reasons": {
+        "ev_cost": 107
+      },
+      "estimated_cost_drag": 949.0555313070578
+    },
+    {
+      "symbol": "AVAX/USDT",
+      "last_decision_time": null,
+      "decisions_today": 0,
+      "decisions_today_date": "2026-01-31",
+      "blocked_today": 97,
+      "blocked_reasons": {
+        "ev_cost": 97
+      },
+      "estimated_cost_drag": 860.3587526802297
+    }
+  ],
+  "daily_stats": {
+    "date": "2026-01-31",
+    "total_decisions_allowed": 0,
+    "total_decisions_blocked": 301,
+    "blocked_by_interval": 0,
+    "blocked_by_daily_limit": 0,
+    "blocked_by_ev_cost": 301,
+    "total_cost_drag_avoided": 2669.7730366675014
+  },
+  "timestamp": "2026-01-31T14:20:38.330751"
+}
