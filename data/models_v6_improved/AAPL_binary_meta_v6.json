@@ -1,0 +1,130 @@
+{
+  "symbol": "AAPL",
+  "version": "v6_improved",
+  "asset_class": "stock",
+  "trained_at": "2026-02-14T12:46:14.054937",
+  "config": {
+    "horizon": 8,
+    "min_move": 0.01,
+    "vol_mult": 0.4,
+    "confidence_threshold": 0.55,
+    "top_n_features": 35,
+    "optuna_trials": 50
+  },
+  "metrics": {
+    "test_accuracy": 0.519163763066202,
+    "test_auc": 0.5442404817404818,
+    "hc_accuracy": 0.51171875,
+    "hc_count": 256,
+    "total_samples": 1434,
+    "train_samples": 1147,
+    "test_samples": 287
+  },
+  "walk_forward": {
+    "folds": [
+      {
+        "acc": 0.4846153846153846,
+        "auc": 0.4277870613511578,
+        "hc_acc": 0.4583333333333333,
+        "hc_n": 120,
+        "test_samples": 130,
+        "is_valid": true
+      },
+      {
+        "acc": 0.5538461538461539,
+        "auc": 0.5623781676413255,
+        "hc_acc": 0.5528455284552846,
+        "hc_n": 123,
+        "test_samples": 130,
+        "is_valid": true
+      },
+      {
+        "acc": 0.4846153846153846,
+        "auc": 0.4856260394392968,
+        "hc_acc": 0.48,
+        "hc_n": 125,
+        "test_samples": 130,
+        "is_valid": true
+      },
+      {
+        "acc": 0.4846153846153846,
+        "auc": 0.41554134091447525,
+        "hc_acc": 0.48412698412698413,
+        "hc_n": 126,
+        "test_samples": 130,
+        "is_valid": true
+      },
+      {
+        "acc": 0.5846153846153846,
+        "auc": 0.6228381900023691,
+        "hc_acc": 0.5793650793650794,
+        "hc_n": 126,
+        "test_samples": 130,
+        "is_valid": true
+      },
+      {
+        "acc": 0.6,
+        "auc": 0.6296296296296295,
+        "hc_acc": 0.6016260162601627,
+        "hc_n": 123,
+        "test_samples": 130,
+        "is_valid": true
+      },
+      {
+        "acc": 0.5076923076923077,
+        "auc": 0.4839544513457557,
+        "hc_acc": 0.5169491525423728,
+        "hc_n": 118,
+        "test_samples": 130,
+        "is_valid": true
+      },
+      {
+        "acc": 0.6076923076923076,
+        "auc": 0.6914867212707868,
+        "hc_acc": 0.6333333333333333,
+        "hc_n": 120,
+        "test_samples": 130,
+        "is_valid": true
+      },
+      {
+        "acc": 0.4846153846153846,
+        "auc": 0.5634652509652509,
+        "hc_acc": 0.49606299212598426,
+        "hc_n": 127,
+        "test_samples": 130,
+        "is_valid": true
+      },
+      {
+        "acc": 0.25,
+        "auc": 0.5,
+        "hc_acc": 0.25,
+        "hc_n": 4,
+        "test_samples": 4,
+        "is_valid": false
+      }
+    ],
+    "avg_acc": 0.5324786324786325,
+    "avg_auc": 0.5425229836177832,
+    "avg_hc_acc": 0.5336269355047261,
+    "std": 0.050737853263780615,
+    "stable": false,
+    "valid_folds": 9,
+    "total_folds": 10
+  },
+  "best_params": {
+    "model": "lgb",
+    "n_estimators": 351,
+    "max_depth": 6,
+    "learning_rate": 0.08419093887383058,
+    "subsample": 0.8147130269183407,
+    "colsample_bytree": 0.992438789010885,
+    "min_child_samples": 42,
+    "reg_alpha": 0.010468777428879887,
+    "reg_lambda": 0.2426938771141346
+  },
+  "improvements": [
+    "market_regime_features",
+    "small_fold_filtering",
+    "dual_horizon_strategy"
+  ]
+}

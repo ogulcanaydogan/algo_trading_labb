@@ -1,0 +1,21 @@
+{
+  "trained_at": "2026-02-14T13:20:28.438558",
+  "improvements": [
+    "market_regime_features",
+    "small_fold_filtering",
+    "dual_horizon_strategy"
+  ],
+  "results": [
+    {
+      "symbol": "BTC_USDT",
+      "status": "success",
+      "accuracy": 0.5851851851851851,
+      "hc_accuracy": 0.6623376623376623,
+      "wf_accuracy": 0.5136612021857924,
+      "wf_stable": false,
+      "wf_valid_folds": 9,
+      "horizon": 3,
+      "asset_class": "crypto"
+    }
+  ]
+}

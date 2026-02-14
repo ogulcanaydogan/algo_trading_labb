@@ -1,0 +1,118 @@
+{
+  "summary": {
+    "test_id": "a6e03d4d",
+    "strategies_tested": [
+      "ema_crossover",
+      "momentum",
+      "mean_reversion",
+      "breakout"
+    ],
+    "bars_processed": 1950,
+    "overall_winner": "mean_reversion",
+    "confidence": "low"
+  },
+  "performance_comparison": {
+    "ema_crossover": {
+      "total_return_pct": -4.1034,
+      "win_rate": 0.3745,
+      "sharpe_ratio": -0.4779,
+      "max_drawdown_pct": 8.7892,
+      "total_trades": 259,
+      "profit_factor": 1.0327
+    },
+    "momentum": {
+      "total_return_pct": 0.0,
+      "win_rate": 0.0,
+      "sharpe_ratio": 0.0,
+      "max_drawdown_pct": 0.0,
+      "total_trades": 0,
+      "profit_factor": 0.0
+    },
+    "mean_reversion": {
+      "total_return_pct": 0.0646,
+      "win_rate": 0.481,
+      "sharpe_ratio": 0.0213,
+      "max_drawdown_pct": 2.1443,
+      "total_trades": 79,
+      "profit_factor": 0.9287
+    },
+    "breakout": {
+      "total_return_pct": 0.0,
+      "win_rate": 0.0,
+      "sharpe_ratio": 0.0,
+      "max_drawdown_pct": 0.0,
+      "total_trades": 0,
+      "profit_factor": 0.0
+    }
+  },
+  "head_to_head": [
+    {
+      "matchup": "ema_crossover vs momentum",
+      "winner": "",
+      "p_value": 1.0,
+      "significant": false,
+      "effect_size": "",
+      "return_diff": 0.0
+    },
+    {
+      "matchup": "ema_crossover vs mean_reversion",
+      "winner": "ema_crossover",
+      "p_value": 0.6949,
+      "significant": false,
+      "effect_size": "negligible",
+      "return_diff": 0.149
+    },
+    {
+      "matchup": "ema_crossover vs breakout",
+      "winner": "",
+      "p_value": 1.0,
+      "significant": false,
+      "effect_size": "",
+      "return_diff": 0.0
+    },
+    {
+      "matchup": "momentum vs mean_reversion",
+      "winner": "",
+      "p_value": 1.0,
+      "significant": false,
+      "effect_size": "",
+      "return_diff": 0.0
+    },
+    {
+      "matchup": "momentum vs breakout",
+      "winner": "",
+      "p_value": 1.0,
+      "significant": false,
+      "effect_size": "",
+      "return_diff": 0.0
+    },
+    {
+      "matchup": "mean_reversion vs breakout",
+      "winner": "",
+      "p_value": 1.0,
+      "significant": false,
+      "effect_size": "",
+      "return_diff": 0.0
+    }
+  ],
+  "rankings": {
+    "by_return": [
+      "mean_reversion",
+      "momentum",
+      "breakout",
+      "ema_crossover"
+    ],
+    "by_sharpe": [
+      "mean_reversion",
+      "momentum",
+      "breakout",
+      "ema_crossover"
+    ],
+    "by_win_rate": [
+      "mean_reversion",
+      "ema_crossover",
+      "momentum",
+      "breakout"
+    ]
+  }
+}

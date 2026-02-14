@@ -1,0 +1,36 @@
+{
+  "config": "BTC_USDT_1h",
+  "base_symbol": "BTC_USDT",
+  "version": "v6_extended",
+  "asset_class": "crypto",
+  "trained_at": "2026-02-14T14:19:15.938640",
+  "config_params": {
+    "horizon": 1,
+    "min_move": 0.008,
+    "vol_mult": 0.5,
+    "confidence_threshold": 0.6
+  },
+  "metrics": {
+    "test_accuracy": 0.5714285714285714,
+    "test_auc": 0.6122495446265938,
+    "hc_accuracy": 0.6292134831460674,
+    "hc_count": 89,
+    "wf_accuracy": 0.5401174168297456,
+    "wf_stable": false
+  },
+  "position_sizing": {
+    "kelly_fraction": 0.38202247191011235,
+    "recommended_position_pct": 0.19101123595505617,
+    "per_trade_ev": 0.004584269662921348
+  },
+  "best_params": {
+    "model": "xgb",
+    "n_estimators": 136,
+    "max_depth": 4,
+    "learning_rate": 0.0657602507238015,
+    "subsample": 0.8672880202967636,
+    "colsample_bytree": 0.8373709686890922,
+    "reg_alpha": 0.30265611127704917,
+    "reg_lambda": 0.15643600920981324
+  }
+}

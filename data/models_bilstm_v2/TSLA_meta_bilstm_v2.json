@@ -1,0 +1,23 @@
+{
+  "symbol": "TSLA",
+  "model_type": "bilstm",
+  "version": "v2",
+  "trained_at": "2026-02-14T14:07:28.970411",
+  "training_time": 99.17520451545715,
+  "config": {
+    "horizon": 8,
+    "seq_length": 48,
+    "hidden_size": 64
+  },
+  "metrics": {
+    "test_accuracy": 0.5113350125944585,
+    "test_auc": 0.5572813562763311,
+    "test_f1": 0.11009174311926606
+  },
+  "walk_forward": {
+    "avg_acc": 0.4659009332376166,
+    "avg_auc": 0.47331467763907636,
+    "std": 0.0844594610960269,
+    "folds": 7
+  }
+}

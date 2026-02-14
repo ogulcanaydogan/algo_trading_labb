@@ -437,6 +437,18 @@ class UnifiedTradingEngine:
         except Exception as e:
             logger.warning(f"Could not initialize Telegram alerts: {e}")
 
+        # WhatsApp Alerts (via Clawdbot file-based queue)
+        self.whatsapp_alerts = None
+        try:
+            from bot.whatsapp_alerts import get_whatsapp_alert_manager
+            self.whatsapp_alerts = get_whatsapp_alert_manager()
+            if self.whatsapp_alerts.enabled:
+                logger.info("WhatsApp alerts initialized (file-based queue for Clawdbot)")
+            else:
+                self.whatsapp_alerts = None
+        except Exception as e:
+            logger.warning(f"Could not initialize WhatsApp alerts: {e}")
+
         # Advanced Risk Manager
         self.risk_manager = None
         if config.use_advanced_risk:
@@ -1941,6 +1953,22 @@ class UnifiedTradingEngine:
             except Exception as e:
                 logger.warning(f"Telegram alert failed: {e}")
 
+        # Send WhatsApp alert (via Clawdbot file queue)
+        if self.whatsapp_alerts:
+            try:
+                self.whatsapp_alerts.trade_entry(
+                    symbol=symbol,
+                    side=side,
+                    price=result.average_price,
+                    quantity=result.filled_quantity,
+                    stop_loss=position.stop_loss,
+                    take_profit=position.take_profit,
+                    confidence=signal.get("confidence"),
+                    reason=signal.get("reason", "ML signal"),
+                )
+            except Exception as e:
+                logger.warning(f"WhatsApp alert failed: {e}")
+
         # Register with trailing stop manager
         if self.trailing_stop_manager:
             self.trailing_stop_manager.add_position(
@@ -2151,6 +2179,30 @@ class UnifiedTradingEngine:
                 self.telegram_channel.send(alert)
             except Exception as e:
                 logger.warning(f"Telegram alert failed: {e}")
+
+        # Send WhatsApp alert for close (via Clawdbot file queue)
+        if self.whatsapp_alerts:
+            try:
+                # Calculate holding time
+                try:
+                    entry_time_dt = datetime.fromisoformat(position.entry_time)
+                    duration_hours = (datetime.now(timezone.utc) - entry_time_dt).total_seconds() / 3600
+                except Exception:
+                    duration_hours = 0.0
+                
+                self.whatsapp_alerts.trade_exit(
+                    symbol=symbol,
+                    side=position.side,
+                    entry_price=position.entry_price,
+                    exit_price=result.average_price,
+                    quantity=position.quantity,
+                    pnl=pnl,
+                    pnl_pct=pnl_pct,
+                    reason=reason,
+                    duration_hours=duration_hours,
+                )
+            except Exception as e:
+                logger.warning(f"WhatsApp alert failed: {e}")
 
         # Remove from trailing stop manager
         if self.trailing_stop_manager:

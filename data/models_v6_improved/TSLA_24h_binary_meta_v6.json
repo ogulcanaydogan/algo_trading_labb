@@ -1,0 +1,30 @@
+{
+  "symbol": "TSLA",
+  "horizon": 24,
+  "asset_class": "stock",
+  "version": "v6_mtf",
+  "trained_at": "2026-02-14T14:04:43.406463",
+  "config": {
+    "min_move": 0.02,
+    "vol_mult": 0.35,
+    "conf_thresh": 0.55
+  },
+  "metrics": {
+    "accuracy": 0.44623655913978494,
+    "auc": 0.4504004394714777,
+    "hc_accuracy": 0.445859872611465,
+    "hc_count": 314,
+    "wf_accuracy": 0.4305555555555556,
+    "wf_stable": false
+  },
+  "best_params": {
+    "model": "xgb",
+    "n_estimators": 163,
+    "max_depth": 4,
+    "learning_rate": 0.028941442788596318,
+    "subsample": 0.7912726728878613,
+    "colsample_bytree": 0.8099025726528951,
+    "reg_alpha": 0.14648955132800723,
+    "reg_lambda": 0.061096835101224926
+  }
+}

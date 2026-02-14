@@ -1,0 +1,103 @@
+{
+  "symbol": "TSLA",
+  "horizons": [
+    3,
+    8,
+    24
+  ],
+  "data_bars": 2000,
+  "timestamp": "2026-02-14T14:04:50.753634",
+  "single_3h": {
+    "horizon": 3,
+    "total_bars": 1517,
+    "all_trades": {
+      "count": 1517,
+      "win_rate": 0.7139090309822017,
+      "avg_return": 0.01021797899488365,
+      "total_return": 15.500674135238498,
+      "sharpe": 21.769794879633913
+    },
+    "high_conf_trades": {
+      "count": 1371,
+      "pct_of_total": 0.9037574159525379,
+      "win_rate": 0.7366885485047411,
+      "avg_return": 0.011425656355743318,
+      "total_return": 15.664574863724088,
+      "sharpe": 24.068447363732567
+    }
+  },
+  "single_8h": {
+    "horizon": 8,
+    "total_bars": 1512,
+    "all_trades": {
+      "count": 1512,
+      "win_rate": 0.7288359788359788,
+      "avg_return": 0.01745688460176497,
+      "total_return": 26.394809517868637,
+      "sharpe": 15.074662401801397
+    },
+    "high_conf_trades": {
+      "count": 1342,
+      "pct_of_total": 0.8875661375661376,
+      "win_rate": 0.7459016393442623,
+      "avg_return": 0.019367696462211398,
+      "total_return": 25.991448652287694,
+      "sharpe": 16.557093868760045
+    }
+  },
+  "single_24h": {
+    "horizon": 24,
+    "total_bars": 1496,
+    "all_trades": {
+      "count": 1496,
+      "win_rate": 0.7372994652406417,
+      "avg_return": 0.030616940353460458,
+      "total_return": 45.802942768776845,
+      "sharpe": 9.275673434677582
+    },
+    "high_conf_trades": {
+      "count": 1346,
+      "pct_of_total": 0.8997326203208557,
+      "win_rate": 0.7570579494799405,
+      "avg_return": 0.03415202625187423,
+      "total_return": 45.96862733502272,
+      "sharpe": 10.207639607671394
+    }
+  },
+  "mtf_medium": {
+    "horizons": [
+      3,
+      8,
+      24
+    ],
+    "total_bars": 1512,
+    "target_horizon": 8,
+    "all_trades": {
+      "count": 1512,
+      "win_rate": 0.7156084656084656,
+      "avg_return": 0.017324203356246314,
+      "total_return": 26.194195474644424
+    },
+    "mtf_filtered": {
+      "conviction_threshold": "medium",
+      "count": 1512,
+      "pct_of_total": 1.0,
+      "win_rate": 0.7156084656084656,
+      "avg_return": 0.017324203356246314,
+      "total_return": 26.194195474644424,
+      "sharpe": 14.926154648563427
+    },
+    "high_conviction_only": {
+      "count": 735,
+      "pct_of_total": 0.4861111111111111,
+      "win_rate": 0.8068027210884354,
+      "avg_return": 0.02674044934778606,
+      "total_return": 19.654230270622755,
+      "sharpe": 21.964769130634288
+    },
+    "agreement_stats": {
+      "avg_agreement": 0.8287037037037037,
+      "high_agreement_pct": 0.4861111111111111
+    }
+  }
+}

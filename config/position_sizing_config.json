@@ -1,0 +1,36 @@
+{
+  "base_position_pct": 0.1,
+  "high_conviction_pct": 0.25,
+  "medium_conviction_pct": 0.15,
+  "low_conviction_pct": 0.1,
+  "max_single_position_pct": 0.3,
+  "max_portfolio_exposure_pct": 0.8,
+  "daily_loss_limit_pct": 0.03,
+  "max_daily_drawdown_pct": 0.05,
+  "kelly_fraction": 0.5,
+  "compound_gains": true,
+  "compound_frequency": "daily",
+  "asset_overrides": {
+    "BTC_USDT": {
+      "position_multiplier": 1.0
+    },
+    "ETH_USDT": {
+      "position_multiplier": 1.0
+    },
+    "SOL_USDT": {
+      "position_multiplier": 0.9
+    },
+    "TSLA": {
+      "max_position_pct": 0.2
+    },
+    "COIN": {
+      "max_position_pct": 0.15
+    },
+    "SPX500_USD": {
+      "position_multiplier": 1.2
+    },
+    "NAS100_USD": {
+      "position_multiplier": 1.1
+    }
+  }
+}

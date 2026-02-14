@@ -1,0 +1,15 @@
+{
+  "trained_at": "2026-02-14T14:21:04.981068",
+  "results": [
+    {
+      "config": "ETH_USDT_3h",
+      "status": "success",
+      "accuracy": 0.5,
+      "hc_accuracy": 0.4794520547945205,
+      "wf_accuracy": 0.5133750711439954,
+      "recommended_position": 0.06621004566210044,
+      "horizon": 3
+    }
+  ],
+  "estimated_daily_ev": 0.00043535372490148213
+}

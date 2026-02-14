@@ -1,0 +1,130 @@
+{
+  "symbol": "BTC_USDT",
+  "version": "v6_improved",
+  "asset_class": "crypto",
+  "trained_at": "2026-02-14T13:20:28.434674",
+  "config": {
+    "horizon": 3,
+    "min_move": 0.015,
+    "vol_mult": 0.4,
+    "confidence_threshold": 0.6,
+    "top_n_features": 35,
+    "optuna_trials": 50
+  },
+  "metrics": {
+    "test_accuracy": 0.5851851851851851,
+    "test_auc": 0.623015873015873,
+    "hc_accuracy": 0.6623376623376623,
+    "hc_count": 77,
+    "total_samples": 674,
+    "train_samples": 539,
+    "test_samples": 135
+  },
+  "walk_forward": {
+    "folds": [
+      {
+        "acc": 0.45901639344262296,
+        "auc": 0.5283224400871459,
+        "hc_acc": 0.47058823529411764,
+        "hc_n": 51,
+        "test_samples": 61,
+        "is_valid": true
+      },
+      {
+        "acc": 0.5573770491803278,
+        "auc": 0.6054945054945055,
+        "hc_acc": 0.5952380952380952,
+        "hc_n": 42,
+        "test_samples": 61,
+        "is_valid": true
+      },
+      {
+        "acc": 0.47540983606557374,
+        "auc": 0.6576227390180879,
+        "hc_acc": 0.4878048780487805,
+        "hc_n": 41,
+        "test_samples": 61,
+        "is_valid": true
+      },
+      {
+        "acc": 0.36065573770491804,
+        "auc": 0.29729729729729726,
+        "hc_acc": 0.2708333333333333,
+        "hc_n": 48,
+        "test_samples": 61,
+        "is_valid": true
+      },
+      {
+        "acc": 0.6229508196721312,
+        "auc": 0.6350114416475973,
+        "hc_acc": 0.5952380952380952,
+        "hc_n": 42,
+        "test_samples": 61,
+        "is_valid": true
+      },
+      {
+        "acc": 0.5573770491803278,
+        "auc": 0.5687645687645688,
+        "hc_acc": 0.575,
+        "hc_n": 40,
+        "test_samples": 61,
+        "is_valid": true
+      },
+      {
+        "acc": 0.45901639344262296,
+        "auc": 0.3899782135076253,
+        "hc_acc": 0.41304347826086957,
+        "hc_n": 46,
+        "test_samples": 61,
+        "is_valid": true
+      },
+      {
+        "acc": 0.6065573770491803,
+        "auc": 0.5080091533180777,
+        "hc_acc": 0.6,
+        "hc_n": 40,
+        "test_samples": 61,
+        "is_valid": true
+      },
+      {
+        "acc": 0.5245901639344263,
+        "auc": 0.6613272311212814,
+        "hc_acc": 0.5526315789473685,
+        "hc_n": 38,
+        "test_samples": 61,
+        "is_valid": true
+      },
+      {
+        "acc": 0.6666666666666666,
+        "auc": 0.5,
+        "hc_acc": 0.6666666666666666,
+        "hc_n": 2,
+        "test_samples": 3,
+        "is_valid": false
+      }
+    ],
+    "avg_acc": 0.5136612021857924,
+    "avg_auc": 0.5390919544729097,
+    "avg_hc_acc": 0.5067086327067399,
+    "std": 0.07843005516069576,
+    "stable": false,
+    "valid_folds": 9,
+    "total_folds": 10
+  },
+  "best_params": {
+    "model": "lgb",
+    "n_estimators": 332,
+    "max_depth": 5,
+    "learning_rate": 0.03284264854730962,
+    "subsample": 0.9309235889280147,
+    "colsample_bytree": 0.819421668344388,
+    "min_child_samples": 40,
+    "reg_alpha": 3.653470477329409,
+    "reg_lambda": 3.7521534085149297
+  },
+  "improvements": [
+    "market_regime_features",
+    "small_fold_filtering",
+    "dual_horizon_strategy"
+  ]
+}

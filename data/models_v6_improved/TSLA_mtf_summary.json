@@ -1,0 +1,35 @@
+{
+  "symbol": "TSLA",
+  "asset_class": "stock",
+  "trained_at": "2026-02-14T14:04:43.408984",
+  "horizons": [
+    3,
+    24
+  ],
+  "results": [
+    {
+      "horizon": 3,
+      "status": "success",
+      "metrics": {
+        "accuracy": 0.48172757475083056,
+        "auc": 0.5007515473032714,
+        "hc_accuracy": 0.5019607843137255,
+        "hc_count": 255,
+        "wf_accuracy": 0.5098039215686274,
+        "wf_stable": false
+      }
+    },
+    {
+      "horizon": 24,
+      "status": "success",
+      "metrics": {
+        "accuracy": 0.44623655913978494,
+        "auc": 0.4504004394714777,
+        "hc_accuracy": 0.445859872611465,
+        "hc_count": 314,
+        "wf_accuracy": 0.4305555555555556,
+        "wf_stable": false
+      }
+    }
+  ]
+}

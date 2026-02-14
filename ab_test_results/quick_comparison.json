@@ -1,0 +1,54 @@
+{
+  "summary": {
+    "test_id": "e16fec10",
+    "strategies_tested": [
+      "simple_sma",
+      "rsi_extremes"
+    ],
+    "bars_processed": 950,
+    "overall_winner": "rsi_extremes",
+    "confidence": "low"
+  },
+  "performance_comparison": {
+    "simple_sma": {
+      "total_return_pct": -2.5451,
+      "win_rate": 0.385,
+      "sharpe_ratio": -0.4315,
+      "max_drawdown_pct": 6.183,
+      "total_trades": 226,
+      "profit_factor": 1.0042
+    },
+    "rsi_extremes": {
+      "total_return_pct": -1.2853,
+      "win_rate": 0.3256,
+      "sharpe_ratio": -0.3318,
+      "max_drawdown_pct": 3.974,
+      "total_trades": 129,
+      "profit_factor": 0.6769
+    }
+  },
+  "head_to_head": [
+    {
+      "matchup": "simple_sma vs rsi_extremes",
+      "winner": "simple_sma",
+      "p_value": 0.1186,
+      "significant": false,
+      "effect_size": "negligible",
+      "return_diff": 0.6113
+    }
+  ],
+  "rankings": {
+    "by_return": [
+      "rsi_extremes",
+      "simple_sma"
+    ],
+    "by_sharpe": [
+      "rsi_extremes",
+      "simple_sma"
+    ],
+    "by_win_rate": [
+      "simple_sma",
+      "rsi_extremes"
+    ]
+  }
+}

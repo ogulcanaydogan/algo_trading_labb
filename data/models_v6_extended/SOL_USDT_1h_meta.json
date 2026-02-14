@@ -1,0 +1,36 @@
+{
+  "config": "SOL_USDT_1h",
+  "base_symbol": "SOL_USDT",
+  "version": "v6_extended",
+  "asset_class": "crypto",
+  "trained_at": "2026-02-14T14:19:54.202194",
+  "config_params": {
+    "horizon": 1,
+    "min_move": 0.015,
+    "vol_mult": 0.5,
+    "confidence_threshold": 0.6
+  },
+  "metrics": {
+    "test_accuracy": 0.5849056603773585,
+    "test_auc": 0.5509672619047619,
+    "hc_accuracy": 0.527027027027027,
+    "hc_count": 74,
+    "wf_accuracy": 0.5295566502463054,
+    "wf_stable": true
+  },
+  "position_sizing": {
+    "kelly_fraction": 0.21171171171171163,
+    "recommended_position_pct": 0.10585585585585582,
+    "per_trade_ev": 0.004763513513513512
+  },
+  "best_params": {
+    "model": "xgb",
+    "n_estimators": 129,
+    "max_depth": 8,
+    "learning_rate": 0.061101266510534887,
+    "subsample": 0.7992694074557947,
+    "colsample_bytree": 0.6254233401144095,
+    "reg_alpha": 0.0690767598589619,
+    "reg_lambda": 0.07545013689052606
+  }
+}

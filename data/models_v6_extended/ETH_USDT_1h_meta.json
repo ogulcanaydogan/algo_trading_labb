@@ -1,0 +1,36 @@
+{
+  "config": "ETH_USDT_1h",
+  "base_symbol": "ETH_USDT",
+  "version": "v6_extended",
+  "asset_class": "crypto",
+  "trained_at": "2026-02-14T14:19:38.130260",
+  "config_params": {
+    "horizon": 1,
+    "min_move": 0.01,
+    "vol_mult": 0.5,
+    "confidence_threshold": 0.6
+  },
+  "metrics": {
+    "test_accuracy": 0.5589519650655022,
+    "test_auc": 0.5541781450872361,
+    "hc_accuracy": 0.5416666666666666,
+    "hc_count": 144,
+    "wf_accuracy": 0.5260770975056689,
+    "wf_stable": true
+  },
+  "position_sizing": {
+    "kelly_fraction": 0.23611111111111097,
+    "recommended_position_pct": 0.11805555555555548,
+    "per_trade_ev": 0.0035416666666666643
+  },
+  "best_params": {
+    "model": "xgb",
+    "n_estimators": 100,
+    "max_depth": 7,
+    "learning_rate": 0.06626017213430757,
+    "subsample": 0.7527238544740464,
+    "colsample_bytree": 0.684158809619637,
+    "reg_alpha": 2.956446753676667,
+    "reg_lambda": 0.304746920254878
+  }
+}

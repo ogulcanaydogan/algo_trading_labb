@@ -1,0 +1,116 @@
+{
+  "symbol": "XRP_USDT",
+  "version": "v6_stable_v3",
+  "trained_at": "2026-02-14T13:11:08.031185",
+  "config": {
+    "symbol": "XRP_USDT",
+    "horizon": 3,
+    "min_move": 0.015,
+    "vol_mult": 0.4,
+    "conf_thresh": 0.58,
+    "n_optuna": 120,
+    "n_wf_folds": 12,
+    "top_n_features": 15,
+    "min_samples_fold": 80,
+    "asset_class": "crypto"
+  },
+  "metrics": {
+    "test_accuracy": 0.5538461538461539,
+    "test_auc": 0.5770705014671283,
+    "total_samples": 1948
+  },
+  "walk_forward": {
+    "folds": [
+      {
+        "acc": 0.5838926174496645,
+        "auc": 0.6093355001805705,
+        "test_samples": 149,
+        "is_valid": true
+      },
+      {
+        "acc": 0.5302013422818792,
+        "auc": 0.5752164502164503,
+        "test_samples": 149,
+        "is_valid": true
+      },
+      {
+        "acc": 0.4899328859060403,
+        "auc": 0.5656146179401993,
+        "test_samples": 149,
+        "is_valid": true
+      },
+      {
+        "acc": 0.5302013422818792,
+        "auc": 0.611121157323689,
+        "test_samples": 149,
+        "is_valid": true
+      },
+      {
+        "acc": 0.6174496644295302,
+        "auc": 0.6575392479006936,
+        "test_samples": 149,
+        "is_valid": true
+      },
+      {
+        "acc": 0.5234899328859061,
+        "auc": 0.5262869660460022,
+        "test_samples": 149,
+        "is_valid": true
+      },
+      {
+        "acc": 0.5570469798657718,
+        "auc": 0.6072072072072072,
+        "test_samples": 149,
+        "is_valid": true
+      },
+      {
+        "acc": 0.5771812080536913,
+        "auc": 0.6182971014492753,
+        "test_samples": 149,
+        "is_valid": true
+      },
+      {
+        "acc": 0.48322147651006714,
+        "auc": 0.45670995670995673,
+        "test_samples": 149,
+        "is_valid": true
+      },
+      {
+        "acc": 0.6308724832214765,
+        "auc": 0.6332912761355444,
+        "test_samples": 149,
+        "is_valid": true
+      },
+      {
+        "acc": 0.5973154362416108,
+        "auc": 0.563849943160288,
+        "test_samples": 149,
+        "is_valid": true
+      },
+      {
+        "acc": 0.5454545454545454,
+        "auc": 0.4444444444444444,
+        "test_samples": 11,
+        "is_valid": false
+      }
+    ],
+    "avg_acc": 0.5564368517388651,
+    "avg_auc": 0.5840426749336252,
+    "std": 0.04706299152087099,
+    "trimmed_std": 0.03867651746425038,
+    "stable": true,
+    "valid_folds": 11,
+    "total_folds": 12
+  },
+  "best_params": {
+    "n_estimators": 151,
+    "max_depth": 4,
+    "learning_rate": 0.029892564199595028,
+    "subsample": 0.8077593685395315,
+    "colsample_bytree": 0.4509127667304015,
+    "min_child_samples": 100,
+    "reg_alpha": 10.821839937103436,
+    "reg_lambda": 20.37622640189017,
+    "model": "lgb"
+  }
+}

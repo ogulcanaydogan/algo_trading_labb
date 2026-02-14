@@ -1,0 +1,23 @@
+{
+  "symbol": "TSLA",
+  "model_type": "transformer",
+  "version": "v2",
+  "trained_at": "2026-02-14T14:10:11.005090",
+  "training_time": 148.01294660568237,
+  "config": {
+    "horizon": 8,
+    "seq_length": 48,
+    "hidden_size": 64
+  },
+  "metrics": {
+    "test_accuracy": 0.4433249370277078,
+    "test_auc": 0.4153850058372672,
+    "test_f1": 0.4289405684754522
+  },
+  "walk_forward": {
+    "avg_acc": 0.44364680545585067,
+    "avg_auc": 0.4404465273314892,
+    "std": 0.0446007884192651,
+    "folds": 7
+  }
+}

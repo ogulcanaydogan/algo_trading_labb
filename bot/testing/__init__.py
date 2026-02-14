@@ -1,34 +1,26 @@
 """
-Testing module for A/B testing and experimentation.
+A/B Testing Framework for Strategy Comparison
 
-Provides:
-- A/B Testing Framework
-- Strategy comparison tests
-- Statistical analysis tools
+Run multiple strategies in parallel with paper portfolios,
+collect performance metrics, and perform statistical comparison.
 """
 
-from .ab_testing import (
-    ABTestingFramework,
-    Experiment,
-    ExperimentStatus,
-    ExperimentResult,
-    Variant,
-    MetricResult,
-    AllocationMethod,
-    StrategyABTest,
-    create_ab_testing_framework,
-    create_strategy_ab_test,
+from bot.testing.ab_framework import (
+    ABTest,
+    ABTestConfig,
+    ABTestResult,
+    PaperPortfolio,
+    StrategyRunner,
+    StatisticalComparison,
+    run_ab_test,
 )
 
 __all__ = [
-    "ABTestingFramework",
-    "Experiment",
-    "ExperimentStatus",
-    "ExperimentResult",
-    "Variant",
-    "MetricResult",
-    "AllocationMethod",
-    "StrategyABTest",
-    "create_ab_testing_framework",
-    "create_strategy_ab_test",
+    "ABTest",
+    "ABTestConfig",
+    "ABTestResult",
+    "PaperPortfolio",
+    "StrategyRunner",
+    "StatisticalComparison",
+    "run_ab_test",
 ]

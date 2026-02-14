@@ -39,7 +39,7 @@ def _init_logging():
 _init_logging()
 
 from .bot import BotConfig, run_loop
-from .portfolio import PortfolioAssetConfig, PortfolioConfig, PortfolioRunner
+from .portfolio_runner import PortfolioAssetConfig, PortfolioConfig, PortfolioRunner
 
 __all__ = [
     "BotConfig",

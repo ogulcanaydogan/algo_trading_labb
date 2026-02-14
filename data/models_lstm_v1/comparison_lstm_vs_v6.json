@@ -1,0 +1,24 @@
+{
+  "timestamp": "2026-02-14T14:04:06.778911",
+  "comparisons": [
+    {
+      "symbol": "TSLA",
+      "lstm": {
+        "test_accuracy": 0.5463182897862233,
+        "test_auc": 0.5266603458395414,
+        "hc_accuracy": 0.5474452554744526,
+        "wf_accuracy": 0.4937578027465668,
+        "wf_stable": false,
+        "training_time": 57.4359233379364
+      },
+      "v6": {
+        "test_accuracy": 0.5684754521963824,
+        "test_auc": 0.5811431623931624,
+        "hc_accuracy": 0.5705329153605015,
+        "wf_accuracy": 0.5511111111111111,
+        "wf_stable": true
+      },
+      "winner": "V6"
+    }
+  ]
+}
